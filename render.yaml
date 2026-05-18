@@ -2,7 +2,7 @@ services:
   - type: web
     name: oikos-server
     runtime: node
-    plan: starter
+    plan: free
     region: oregon
     buildCommand: npm install
     startCommand: npm run start -w @oikos/server
@@ -12,14 +12,10 @@ services:
       - key: NODE_VERSION
         value: "20"
       - key: DB_PATH
-        value: /var/data/oikos.db
+        value: /tmp/oikos.db
       - key: TURN_TIMEOUT_MS
         value: "90000"
       - key: ROOM_MAX_AGE_MS
         value: "86400000"
       - key: CLIENT_ORIGIN
         sync: false
-    disk:
-      name: oikos-data
-      mountPath: /var/data
-      sizeGB: 1

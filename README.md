@@ -38,8 +38,8 @@ A ordem importa: suba o servidor primeiro, pegue a URL, configure o frontend, de
 **1. Servidor no Render**
 
 - O repositorio ja tem `render.yaml` (Blueprint). No Render: New > Blueprint > selecione o repo.
-- Plano `starter` + disco em `/var/data` para o SQLite sobreviver a restart/redeploy.
-  (No plano free o disco e efemero: a partida some em redeploy/spin-down.)
+- Plano `free`, sem disco persistente, para publicar sem pagar nada agora.
+  Nesse modo o SQLite fica em `/tmp/oikos.db`: funciona para jogar/testar, mas a partida pode sumir se o servidor dormir, reiniciar ou fizer redeploy.
 - Variaveis ja definidas no `render.yaml`. `CLIENT_ORIGIN` fica em branco no primeiro deploy.
 - Apos o deploy, copie a URL publica do servico (ex.: `https://oikos-server.onrender.com`).
 
@@ -48,7 +48,7 @@ Variaveis do servidor:
 ```bash
 PORT=4173                       # injetado pelo Render
 CLIENT_ORIGIN=https://sua-url-do-frontend
-DB_PATH=/var/data/oikos.db      # caminho do SQLite (disco persistente)
+DB_PATH=/tmp/oikos.db           # caminho do SQLite no modo gratis/efemero
 TURN_TIMEOUT_MS=90000           # pula turno de jogador desconectado
 ROOM_MAX_AGE_MS=86400000        # purga salas inativas ha mais de 24h
 ```
@@ -83,6 +83,6 @@ npm run start -w @oikos/server   # servidor Node
 - Jogador reconecta com a mesma identidade do navegador; ao atualizar a pagina volta para a ultima sala.
 - Fim de jogo apos 5 rodadas com pontuacao final (maioria de recursos, semente 2:1, limite e desempate).
 - Turno de jogador desconectado e pulado automaticamente apos `TURN_TIMEOUT_MS`.
-- Salas persistidas em SQLite (`DB_PATH`): sobrevivem a restart do servidor. Salas antigas sao purgadas.
+- Salas persistidas em SQLite (`DB_PATH`) enquanto o servidor estiver vivo. No Render gratis, o armazenamento e efemero e pode ser perdido em restart/redeploy/spin-down.
 
-Escala: uma instancia de servidor (SQLite local). Para multiplas instancias/horizontal, trocar o store por Redis/Postgres.
+Escala: uma instancia de servidor (SQLite local). Para producao com persistencia real, usar plano com disco persistente ou trocar o store por Redis/Postgres.
