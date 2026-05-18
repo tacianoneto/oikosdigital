@@ -1,0 +1,395 @@
+import cors from "@fastify/cors";
+import Fastify from "fastify";
+import { Server } from "socket.io";
+import type { PublicRoomState, SpeciesId } from "@oikos/shared";
+import { purgeRoomsOlderThan, saveRoom } from "./store";
+import {
+  addArmadillo,
+  addCapuchin,
+  addCoati,
+  addMacaw,
+  addWolf,
+  completeAction,
+  createRoom,
+  forceSkipActivePlayer,
+  getActiveDisconnectedPlayer,
+  getPublicRoom,
+  hideArmadillo,
+  joinRoom,
+  leaveRooms,
+  movePiece,
+  placeCardInForest,
+  placeSetupPiece,
+  removeWolfBasePiece,
+  removePieces,
+  resolveCoatiPair,
+  scoreCapuchin,
+  scoreArmadillo,
+  scoreMacaw,
+  selectSpecies,
+  setReady,
+  spendJaguarMeat,
+  spendWolfResources,
+  startGame
+} from "./rooms";
+
+const port = Number(process.env.PORT ?? 4173);
+const app = Fastify({ logger: true });
+const configuredOrigin = process.env.CLIENT_ORIGIN;
+const allowedOrigin = configuredOrigin && configuredOrigin !== "true" ? configuredOrigin : true;
+const socketsByPlayerId = new Map<string, Set<string>>();
+const turnSkipTimers = new Map<string, NodeJS.Timeout>();
+const pendingRoomSaves = new Map<string, PublicRoomState>();
+let roomSaveTimer: NodeJS.Timeout | null = null;
+const turnTimeoutMs = Number(process.env.TURN_TIMEOUT_MS ?? 90000);
+
+await app.register(cors, { origin: allowedOrigin });
+
+app.get("/health", async () => ({
+  ok: true,
+  service: "oikos-server"
+}));
+
+const io = new Server(app.server, {
+  cors: {
+    origin: allowedOrigin
+  }
+});
+
+function clearTurnSkipTimer(roomId: string): void {
+  const timer = turnSkipTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    turnSkipTimers.delete(roomId);
+  }
+}
+
+function reconcileTurnTimer(roomId: string): void {
+  clearTurnSkipTimer(roomId);
+
+  if (turnTimeoutMs <= 0) {
+    return;
+  }
+
+  const disconnectedPlayerId = getActiveDisconnectedPlayer(roomId);
+  if (!disconnectedPlayerId) {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    turnSkipTimers.delete(roomId);
+    if (!getActiveDisconnectedPlayer(roomId)) {
+      return;
+    }
+
+    try {
+      const result = forceSkipActivePlayer(roomId, "jogador desconectado");
+      if (result.skipped) {
+        broadcastRoom(result.room);
+      }
+    } catch (error) {
+      app.log.error({ err: error, roomId }, "Falha ao pular turno por desconexao.");
+    }
+  }, turnTimeoutMs);
+
+  turnSkipTimers.set(roomId, timer);
+}
+
+function broadcastRoom(room: PublicRoomState): void {
+  io.to(room.roomId).emit("room:update", room);
+  scheduleRoomSave(room);
+  reconcileTurnTimer(room.roomId);
+}
+
+function scheduleRoomSave(room: PublicRoomState): void {
+  pendingRoomSaves.set(room.roomId, room);
+
+  if (roomSaveTimer) {
+    return;
+  }
+
+  roomSaveTimer = setTimeout(flushPendingRoomSaves, 250);
+  roomSaveTimer.unref();
+}
+
+function flushPendingRoomSaves(): void {
+  roomSaveTimer = null;
+  const roomsToSave = [...pendingRoomSaves.values()];
+  pendingRoomSaves.clear();
+
+  for (const room of roomsToSave) {
+    saveRoom(room);
+  }
+}
+
+io.on("connection", (socket) => {
+  const playerId = getPlayerId(socket);
+  registerSocket(playerId, socket.id);
+
+  socket.emit("connected", { playerId });
+
+  socket.on("room:create", (payload: { name: string }, reply) => {
+    withReply(reply, () => {
+      const room = createRoom(playerId, payload.name);
+      socket.join(room.roomId);
+      scheduleRoomSave(room);
+      return room;
+    });
+  });
+
+  socket.on("room:join", (payload: { roomId: string; name: string }, reply) => {
+    withReply(reply, () => {
+      const room = joinRoom(payload.roomId, playerId, payload.name);
+      socket.join(room.roomId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("room:get", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => getPublicRoom(payload.roomId));
+  });
+
+  socket.on("species:select", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
+    withReply(reply, () => {
+      const room = selectSpecies(payload.roomId, playerId, payload.speciesId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("player:ready", (payload: { roomId: string; ready: boolean }, reply) => {
+    withReply(reply, () => {
+      const room = setReady(payload.roomId, playerId, payload.ready);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("game:start", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = startGame(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("setup:place-piece", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = placeSetupPiece(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on(
+    "forest:place-card",
+    (payload: { roomId: string; cardId: string; x: number; y: number; rotation: 0 | 90 | 180 | 270 }, reply) => {
+      withReply(reply, () => {
+        const room = placeCardInForest(payload.roomId, playerId, payload.cardId, payload.x, payload.y, payload.rotation);
+        broadcastRoom(room);
+        return room;
+      });
+    }
+  );
+
+  socket.on("action:complete", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = completeAction(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("coati:add", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = addCoati(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("coati:resolve-pair", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = resolveCoatiPair(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("capuchin:add", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = addCapuchin(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("macaw:add", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = addMacaw(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("armadillo:add", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = addArmadillo(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("wolf:add", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = addWolf(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("piece:move", (payload: { roomId: string; pieceId: string; targetPieceId?: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = movePiece(payload.roomId, playerId, payload.pieceId, payload.x, payload.y, payload.targetPieceId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("pieces:remove", (payload: { roomId: string; pieceIds: string[] }, reply) => {
+    withReply(reply, () => {
+      const room = removePieces(payload.roomId, playerId, payload.pieceIds);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("jaguar:spend-meat", (payload: { roomId: string; count: number }, reply) => {
+    withReply(reply, () => {
+      const room = spendJaguarMeat(payload.roomId, playerId, payload.count);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("capuchin:score", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = scoreCapuchin(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("macaw:score", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = scoreMacaw(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("armadillo:hide", (payload: { roomId: string; pieceId: string }, reply) => {
+    withReply(reply, () => {
+      const room = hideArmadillo(payload.roomId, playerId, payload.pieceId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("armadillo:score", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = scoreArmadillo(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("wolf:remove-base", (payload: { roomId: string; pieceId: string }, reply) => {
+    withReply(reply, () => {
+      const room = removeWolfBasePiece(payload.roomId, playerId, payload.pieceId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("wolf:spend-resources", (payload: { roomId: string; resources: Array<"meat" | "egg" | "fruit" | "seed"> }, reply) => {
+    withReply(reply, () => {
+      const room = spendWolfResources(payload.roomId, playerId, payload.resources);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("disconnect", () => {
+    unregisterSocket(playerId, socket.id);
+    if (hasActiveSocket(playerId)) {
+      return;
+    }
+
+    for (const room of leaveRooms(playerId)) {
+      broadcastRoom(room);
+    }
+  });
+});
+
+function withReply<T>(reply: unknown, fn: () => T): void {
+  const send = typeof reply === "function" ? reply : undefined;
+
+  try {
+    send?.({ ok: true, data: fn() });
+  } catch (error) {
+    send?.({ ok: false, error: error instanceof Error ? error.message : "Erro desconhecido." });
+  }
+}
+
+const roomMaxAgeMs = Number(process.env.ROOM_MAX_AGE_MS ?? 24 * 60 * 60 * 1000);
+const roomPurgeIntervalMs = 60 * 60 * 1000;
+const purgeTimer = setInterval(() => {
+  flushPendingRoomSaves();
+  const removed = purgeRoomsOlderThan(roomMaxAgeMs);
+  if (removed > 0) {
+    app.log.info({ removed }, "Salas antigas removidas do armazenamento.");
+  }
+}, roomPurgeIntervalMs);
+purgeTimer.unref();
+
+process.once("SIGINT", () => {
+  flushPendingRoomSaves();
+  process.exit(0);
+});
+
+process.once("SIGTERM", () => {
+  flushPendingRoomSaves();
+  process.exit(0);
+});
+
+await app.ready();
+await app.listen({ port, host: "0.0.0.0" });
+
+function getPlayerId(socket: { handshake: { auth: Record<string, unknown> }; id: string }): string {
+  const authPlayerId = socket.handshake.auth.playerId;
+  return typeof authPlayerId === "string" && authPlayerId.trim().length >= 12 ? authPlayerId : socket.id;
+}
+
+function registerSocket(playerId: string, socketId: string): void {
+  const sockets = socketsByPlayerId.get(playerId) ?? new Set<string>();
+  sockets.add(socketId);
+  socketsByPlayerId.set(playerId, sockets);
+}
+
+function unregisterSocket(playerId: string, socketId: string): void {
+  const sockets = socketsByPlayerId.get(playerId);
+  if (!sockets) {
+    return;
+  }
+
+  sockets.delete(socketId);
+  if (sockets.size === 0) {
+    socketsByPlayerId.delete(playerId);
+  }
+}
+
+function hasActiveSocket(playerId: string): boolean {
+  return Boolean(socketsByPlayerId.get(playerId)?.size);
+}

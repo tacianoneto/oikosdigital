@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vite/
+.claude/
+artifacts/
+*.log
+*.tsbuildinfo
+apps/web/public/assets/
+data/
+*.db
+*.db-shm
+*.db-wal

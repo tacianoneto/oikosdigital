@@ -1,0 +1,13 @@
+[build]
+  base = "."
+  command = "npm install && npm run build -w @oikos/web"
+  publish = "apps/web/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback: todas as rotas servem o index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
