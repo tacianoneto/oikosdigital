@@ -2208,51 +2208,6 @@ export function App() {
         )}
 
       <section className="playfield-panel stage-layer">
-        {hasStartedGame && (
-        <div
-          className="tabletop-hud"
-          style={speciesVar(room?.game?.status === "setup" ? setupActivePlayer?.speciesId : activeGamePlayer?.speciesId)}
-        >
-          <div className="tabletop-turn">
-            {activeSpecies && <img src={encodeURI(activeSpecies.meepleAsset)} alt="" />}
-            <div>
-              <span>{room?.game?.status === "setup" ? "Setup" : "Turno"}</span>
-              <strong>
-                {room?.game?.status === "setup"
-                  ? setupActivePlayer?.name ?? "Aguardando setup"
-                  : activeSpecies?.displayName ?? "Aguardando partida"}
-              </strong>
-            </div>
-          </div>
-          {activeSpecies && room?.game?.status === "active" && (
-            <div className="tabletop-actions" aria-label="Ações da espécie atual">
-              {activeSpecies.actions.map((action) => (
-                <span className={action === activeActionId ? "current" : ""} key={action}>
-                  {action}
-                </span>
-              ))}
-            </div>
-          )}
-          {activeGamePlayer && room?.game?.status === "active" && (
-            <div className="tabletop-metrics" aria-label="Resumo do jogador ativo">
-              <span>
-                <img src={encodeURI(resourceAssets.point)} alt="" />
-                {activeGamePlayer.score}
-              </span>
-              <span>Reserva {activeGamePlayer.reservePieces.length}</span>
-              <span>Campo {activeGamePlayer.piecesInForest.length}</span>
-            </div>
-          )}
-          <p>
-            {hasPendingCoatiPairBonus
-              ? "Dupla formada: escolha uma carta adjacente para ganhar o bônus."
-              : room?.game?.status === "setup"
-                ? "Clique em uma carta da floresta inicial para posicionar a peça da espécie ativa."
-                : getActionDescription(activeSpecies?.speciesId, activeActionId)}
-          </p>
-        </div>
-        )}
-
         <div className="tabletop-stage">
           {turnBanner && (
             <div
