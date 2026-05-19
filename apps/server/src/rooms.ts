@@ -33,6 +33,7 @@ interface ServerRoom {
   status: PublicRoomState["status"];
   game: PublicRoomState["game"];
   warnings: string[];
+  botTurnDelayMs?: number;
 }
 
 const rooms = new Map<string, ServerRoom>();
@@ -50,7 +51,8 @@ for (const persisted of loadRooms()) {
     })),
     status: persisted.status,
     game: persisted.game,
-    warnings: persisted.warnings
+    warnings: persisted.warnings,
+    botTurnDelayMs: persisted.botTurnDelayMs
   });
 }
 
@@ -188,6 +190,21 @@ export function removeBots(roomId: string, playerId: string): PublicRoomState {
 
   room.players = room.players.filter((player) => !player.isBot);
   return toPublicRoom(room);
+}
+
+export function setBotTurnDelay(roomId: string, playerId: string, delayMs: number): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (room.hostPlayerId !== playerId) {
+    throw new Error("Apenas o anfitriao pode ajustar a velocidade dos bots.");
+  }
+
+  room.botTurnDelayMs = clampBotTurnDelay(delayMs);
+  return toPublicRoom(room);
+}
+
+export function getBotTurnDelay(roomId: string): number | null {
+  return rooms.get(roomId.trim().toUpperCase())?.botTurnDelayMs ?? null;
 }
 
 export function startGame(roomId: string, playerId: string): PublicRoomState {
@@ -640,7 +657,8 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     hostPlayerId: room.hostPlayerId,
     players: room.players,
     game: room.game,
-    warnings: room.warnings
+    warnings: room.warnings,
+    botTurnDelayMs: room.botTurnDelayMs
   };
 }
 
@@ -678,6 +696,14 @@ function isStaleScoreRequest(room: ServerRoom, playerId: string, speciesId: Spec
   }
 
   return room.game.players.some((player) => player.playerId === playerId && player.speciesId === speciesId);
+}
+
+function clampBotTurnDelay(delayMs: number): number {
+  if (!Number.isFinite(delayMs)) {
+    return 2500;
+  }
+
+  return Math.max(250, Math.min(8000, Math.round(delayMs)));
 }
 
 function createRoomId(): string {

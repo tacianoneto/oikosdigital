@@ -186,4 +186,5 @@ export interface PublicRoomState {
   players: RoomPlayer[];
   game: GameState | null;
   warnings: string[];
+  botTurnDelayMs?: number;
 }

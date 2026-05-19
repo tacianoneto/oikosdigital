@@ -743,6 +743,26 @@ input:focus {
   color: var(--amber);
 }
 
+.bot-speed-control {
+  min-height: 44px;
+  border: var(--bw) solid var(--line-soft);
+  border-radius: 8px;
+  padding: 5px 7px;
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  gap: 8px;
+  align-items: center;
+  background: var(--slot);
+}
+
+.bot-speed-control span {
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+}
+
 .session-card {
   display: grid;
   gap: 12px;

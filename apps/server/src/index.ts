@@ -16,6 +16,7 @@ import {
   createRoom,
   getActiveBotPlayer,
   getAutomaticScorePlayer,
+  getBotTurnDelay,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -33,6 +34,7 @@ import {
   scoreArmadillo,
   scoreMacaw,
   selectSpecies,
+  setBotTurnDelay,
   setReady,
   spendJaguarMeat,
   spendWolfResources,
@@ -114,7 +116,8 @@ function clearBotTurnTimer(roomId: string): void {
 }
 
 function scheduleBotTurn(roomId: string): void {
-  if (botTurnDelayMs < 0 || botTurnTimers.has(roomId) || !getActiveBotPlayer(roomId)) {
+  const roomBotTurnDelayMs = getBotTurnDelay(roomId) ?? botTurnDelayMs;
+  if (roomBotTurnDelayMs < 0 || botTurnTimers.has(roomId) || !getActiveBotPlayer(roomId)) {
     return;
   }
 
@@ -132,7 +135,7 @@ function scheduleBotTurn(roomId: string): void {
     } catch (error) {
       app.log.error({ err: error, roomId }, "Falha ao executar turno de bot.");
     }
-  }, botTurnDelayMs);
+  }, roomBotTurnDelayMs);
 
   timer.unref();
   botTurnTimers.set(roomId, timer);
@@ -252,6 +255,15 @@ io.on("connection", (socket) => {
   socket.on("bots:remove", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
       const room = removeBots(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("bots:speed", (payload: { roomId: string; delayMs: number }, reply) => {
+    withReply(reply, () => {
+      const room = setBotTurnDelay(payload.roomId, playerId, payload.delayMs);
+      clearBotTurnTimer(room.roomId);
       broadcastRoom(room);
       return room;
     });

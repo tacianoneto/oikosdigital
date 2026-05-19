@@ -13,8 +13,10 @@ import {
   LogIn,
   LogOut,
   MapPin,
+  Minus,
   Package,
   Play,
+  Plus,
   RotateCcw,
   RotateCw,
   Settings,
@@ -78,6 +80,10 @@ import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
 
 const speciesList = Object.values(speciesDefinitions);
+const defaultBotTurnDelayMs = 2500;
+const botTurnDelayStepMs = 500;
+const minBotTurnDelayMs = 250;
+const maxBotTurnDelayMs = 8000;
 
 const SPECIES_HEX: Record<SpeciesId, string> = {
   jaguar: "#e8a33d",
@@ -412,6 +418,7 @@ export function App() {
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
+  const botTurnDelayMs = room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
   const setEffectTarget = useCallback((key: string, element: HTMLElement | null) => {
     if (element) {
       effectTargetRefs.current.set(key, element);
@@ -1001,6 +1008,19 @@ export function App() {
     }
 
     return room;
+  }
+
+  function formatBotDelay(delayMs: number): string {
+    return delayMs >= 1000 ? `${(delayMs / 1000).toFixed(delayMs % 1000 === 0 ? 0 : 1)}s` : `${delayMs}ms`;
+  }
+
+  function adjustBotSpeed(deltaMs: number) {
+    if (!room || !isHost) {
+      return;
+    }
+
+    const nextDelay = Math.max(minBotTurnDelayMs, Math.min(maxBotTurnDelayMs, botTurnDelayMs + deltaMs));
+    void run(() => roomApi.setBotSpeed(requireSocket(), room.roomId, nextDelay));
   }
 
   const handleCardClick = useCallback(
@@ -1845,6 +1865,27 @@ export function App() {
                       Remover bots
                     </button>
                   )}
+                  <div className="bot-speed-control" aria-label="Velocidade dos bots">
+                    <button
+                      type="button"
+                      className="icon-button compact"
+                      title="Bots mais rápidos"
+                      aria-label="Bots mais rápidos"
+                      onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
+                    >
+                      <Minus aria-hidden="true" />
+                    </button>
+                    <span>Bots {formatBotDelay(botTurnDelayMs)}</span>
+                    <button
+                      type="button"
+                      className="icon-button compact"
+                      title="Bots mais lentos"
+                      aria-label="Bots mais lentos"
+                      onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
+                    >
+                      <Plus aria-hidden="true" />
+                    </button>
+                  </div>
                   <button className="primary-button" onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}>
                     <Play aria-hidden="true" />
                     Iniciar setup
@@ -1903,6 +1944,29 @@ export function App() {
                 </button>
               )}
             </div>
+            {!isLocalRoom && isHost && (
+              <div className="bot-speed-control" aria-label="Velocidade dos bots">
+                <button
+                  type="button"
+                  className="icon-button compact"
+                  title="Bots mais rápidos"
+                  aria-label="Bots mais rápidos"
+                  onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
+                >
+                  <Minus aria-hidden="true" />
+                </button>
+                <span>Bots {formatBotDelay(botTurnDelayMs)}</span>
+                <button
+                  type="button"
+                  className="icon-button compact"
+                  title="Bots mais lentos"
+                  aria-label="Bots mais lentos"
+                  onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
+                >
+                  <Plus aria-hidden="true" />
+                </button>
+              </div>
+            )}
             <button className="secondary-button exit-button" onClick={leaveTable}>
               <LogOut aria-hidden="true" />
               Sair
