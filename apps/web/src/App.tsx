@@ -192,6 +192,10 @@ function clearOnlineSession(): void {
   window.localStorage.removeItem(lastOnlineNameStorageKey);
 }
 
+function isMissingRoomError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes("sala") && error.message.toLowerCase().includes("encontrada");
+}
+
 function scoreSummaryDetails(messages: string[], scoreDelta: number): string[] {
   const scoring = messages.filter((message) => {
     const lower = message.toLowerCase();
@@ -350,8 +354,14 @@ export function App() {
             applyOnlineRoomState(nextRoom);
             setNotice("Reconectado a sala.");
           })
-          .catch(() => {
+          .catch((err) => {
             clearOnlineSession();
+            clearRoomState();
+            setNotice(
+              isMissingRoomError(err)
+                ? "A sala anterior expirou no servidor gratuito. Crie uma nova sala para continuar."
+                : "Nao foi possivel reconectar a sala anterior."
+            );
           });
       }
     });
@@ -944,6 +954,14 @@ export function App() {
         setNotice(success);
       }
     } catch (err) {
+      if (isMissingRoomError(err)) {
+        clearOnlineSession();
+        clearRoomState();
+        setJoinCode("");
+        setNotice("Essa sala nao existe mais no servidor gratuito. Crie uma nova sala para continuar.");
+        return;
+      }
+
       setError(err instanceof Error ? err.message : "Erro desconhecido.");
     } finally {
       onlineActionInFlightRef.current = false;
