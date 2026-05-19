@@ -50,8 +50,8 @@ const automaticScoreTimers = new Map<string, NodeJS.Timeout>();
 const pendingRoomSaves = new Map<string, PublicRoomState>();
 let roomSaveTimer: NodeJS.Timeout | null = null;
 const turnTimeoutMs = Number(process.env.TURN_TIMEOUT_MS ?? 90000);
-const botTurnDelayMs = Number(process.env.BOT_TURN_DELAY_MS ?? 850);
-const automaticScoreDelayMs = Number(process.env.AUTO_SCORE_DELAY_MS ?? 650);
+const botTurnDelayMs = Number(process.env.BOT_TURN_DELAY_MS ?? 2500);
+const automaticScoreDelayMs = Number(process.env.AUTO_SCORE_DELAY_MS ?? 1500);
 
 await app.register(cors, { origin: allowedOrigin });
 

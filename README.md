@@ -50,6 +50,8 @@ PORT=4173                       # injetado pelo Render
 CLIENT_ORIGIN=https://sua-url-do-frontend
 DB_PATH=/tmp/oikos.db           # caminho do SQLite no modo gratis/efemero
 TURN_TIMEOUT_MS=90000           # pula turno de jogador desconectado
+BOT_TURN_DELAY_MS=2500          # intervalo entre passos dos bots
+AUTO_SCORE_DELAY_MS=1500        # intervalo antes de pontuacoes automaticas
 ROOM_MAX_AGE_MS=86400000        # purga salas inativas ha mais de 24h
 ```
 

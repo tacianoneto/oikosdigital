@@ -15,6 +15,10 @@ services:
         value: /tmp/oikos.db
       - key: TURN_TIMEOUT_MS
         value: "90000"
+      - key: BOT_TURN_DELAY_MS
+        value: "2500"
+      - key: AUTO_SCORE_DELAY_MS
+        value: "1500"
       - key: ROOM_MAX_AGE_MS
         value: "86400000"
       - key: CLIENT_ORIGIN
