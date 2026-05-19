@@ -10,9 +10,10 @@ export interface SocketReply<T> {
 export type OikosSocket = Socket;
 
 const playerIdStorageKey = "oikos:player-id";
+const serverUrlStorageKey = "oikos:server-url";
 
 export function createSocket(): OikosSocket {
-  return io(import.meta.env.VITE_SERVER_URL ?? "http://localhost:4173", {
+  return io(getServerUrl(), {
     auth: {
       playerId: getOrCreatePlayerId()
     },
@@ -23,6 +24,23 @@ export function createSocket(): OikosSocket {
     reconnectionDelay: 500,
     reconnectionDelayMax: 5000
   });
+}
+
+function getServerUrl(): string {
+  const params = new URLSearchParams(window.location.search);
+  const shouldClear = params.get("clearServer") === "1";
+  if (shouldClear) {
+    window.localStorage.removeItem(serverUrlStorageKey);
+  }
+
+  const queryServerUrl = params.get("server");
+  if (queryServerUrl && /^https?:\/\//i.test(queryServerUrl)) {
+    const normalized = queryServerUrl.replace(/\/$/, "");
+    window.localStorage.setItem(serverUrlStorageKey, normalized);
+    return normalized;
+  }
+
+  return window.localStorage.getItem(serverUrlStorageKey) ?? import.meta.env.VITE_SERVER_URL ?? "http://localhost:4173";
 }
 
 function getOrCreatePlayerId(): string {
