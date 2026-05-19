@@ -195,6 +195,21 @@ describe("setup placement", () => {
     ]);
   });
 
+  it("limits forest expansion to the fixed 7x7 grid", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    game = addTestForestCard(game, { x: 2, y: 0 });
+    game = addTestForestCard(game, { x: 3, y: 0 });
+    game = addTestForestCard(game, { x: -2, y: 0 });
+    game = addTestForestCard(game, { x: -3, y: 0 });
+
+    const positions = getAvailableForestExpansionPositions(game.forest.cards);
+
+    expect(positions).not.toContainEqual({ x: 4, y: 0 });
+    expect(positions).not.toContainEqual({ x: -4, y: 0 });
+    expect(positions).toContainEqual({ x: 3, y: -1 });
+    expect(positions).toContainEqual({ x: -3, y: -1 });
+  });
+
   it("exposes internal forest card sites with resource and occupancy validators", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
 
@@ -275,7 +290,18 @@ describe("setup placement", () => {
 
     const cardId = game.players.find((candidate) => candidate.playerId === "coati")?.hand[0];
 
-    expect(() => placeForestCard(game, "coati", cardId!, { x: 4, y: 0 })).toThrow("posicao vazia adjacente");
+    expect(() => placeForestCard(game, "coati", cardId!, { x: 3, y: 3 })).toThrow("posicao vazia adjacente");
+  });
+
+  it("rejects placing a forest card past the 7x7 forest limit", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    game = addTestForestCard(game, { x: 2, y: 0 });
+    game = addTestForestCard(game, { x: 3, y: 0 });
+    game = setActiveAction(game, "coati", 0);
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "coati")?.hand[0];
+
+    expect(() => placeForestCard(game, "coati", cardId!, { x: 4, y: 0 })).toThrow("limite maximo de 7x7");
   });
 
   it("validates river exits and rotation when placing forest cards", () => {

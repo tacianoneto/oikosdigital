@@ -32,6 +32,9 @@ const cardinalDirections = [
   { x: -1, y: 0 }
 ];
 
+const FOREST_LIMIT_MIN = -3;
+const FOREST_LIMIT_MAX = 3;
+
 const surroundingDirections = [
   { x: -1, y: -1 },
   { x: 0, y: -1 },
@@ -425,13 +428,22 @@ export function getAvailableForestExpansionPositions(cards: ForestCardState[]): 
       const candidate = { x: card.x + direction.x, y: card.y + direction.y };
       const key = positionKey(candidate);
 
-      if (!occupied.has(key)) {
+      if (!occupied.has(key) && isWithinForestLimit(candidate)) {
         targets.set(key, candidate);
       }
     }
   }
 
   return [...targets.values()].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+function isWithinForestLimit(position: GridPosition): boolean {
+  return (
+    position.x >= FOREST_LIMIT_MIN &&
+    position.x <= FOREST_LIMIT_MAX &&
+    position.y >= FOREST_LIMIT_MIN &&
+    position.y <= FOREST_LIMIT_MAX
+  );
 }
 
 export function getAvailableForestExpansionPositionsForCard(
@@ -730,6 +742,10 @@ export function placeForestCard(
 
   if (game.forest.cards.some((card) => card.x === location.x && card.y === location.y)) {
     throw new Error("Ja existe uma carta nesta posicao da floresta.");
+  }
+
+  if (!isWithinForestLimit(location)) {
+    throw new Error("A floresta tem limite maximo de 7x7 cartas.");
   }
 
   const availablePositions = getAvailableForestExpansionPositions(game.forest.cards);
