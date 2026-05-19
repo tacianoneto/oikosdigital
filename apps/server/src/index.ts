@@ -128,6 +128,14 @@ io.on("connection", (socket) => {
 
   socket.emit("connected", { playerId });
 
+  socket.on("presence:ping", (payload: { roomId?: string } | undefined, reply) => {
+    withReply(reply, () => ({
+      ok: true,
+      roomId: typeof payload?.roomId === "string" ? payload.roomId : null,
+      now: Date.now()
+    }));
+  });
+
   socket.on("room:create", (payload: { name: string }, reply) => {
     withReply(reply, () => {
       const room = createRoom(playerId, payload.name);

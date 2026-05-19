@@ -379,6 +379,23 @@ export function App() {
     };
   }, [applyOnlineRoomState]);
 
+  useEffect(() => {
+    if (!socket || !room || room.roomId === localRoomId) {
+      return;
+    }
+
+    const roomId = room.roomId;
+    const ping = () => {
+      roomApi.ping(socket, roomId).catch(() => {
+        // Connection errors are handled by Socket.IO reconnection and normal action feedback.
+      });
+    };
+
+    ping();
+    const interval = window.setInterval(ping, 30000);
+    return () => window.clearInterval(interval);
+  }, [room?.roomId, socket]);
+
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom ? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null : playerId;
   const currentPlayer = room?.players.find((player) => player.playerId === controlledPlayerId) ?? null;
