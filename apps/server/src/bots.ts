@@ -292,7 +292,7 @@ function playWolf(game: GameState, playerId: string, action: string): GameState 
   if (action === "C") {
     const spendableCount = getAvailableWolfPointSpendCount(game, playerId);
     const resources = getWolfSpendableResourceTypes(game, playerId).slice(0, spendableCount);
-    if (resources.length > 0 && Math.random() < 0.84) {
+    if (resources.length > 0) {
       return spendWolfResourcesForPoints(game, playerId, resources);
     }
 
@@ -491,6 +491,8 @@ function scoreCapuchinHabitatPotential(game: GameState, playerId: string, positi
     return 0;
   }
 
+  const beforePairCount = getCapuchinHabitatPairCount(game, playerId);
+  const afterPairCount = getCapuchinHabitatPairCount(game, playerId, undefined, position);
   const habitatPositions = new Map<Habitat, Set<string>>();
   for (const piece of game.pieces) {
     if (piece.ownerId !== playerId || piece.speciesId !== "capuchin" || !piece.location) {
@@ -512,8 +514,9 @@ function scoreCapuchinHabitatPotential(game: GameState, playerId: string, positi
   nextPositions.add(positionKey(position));
   const afterSize = nextPositions.size;
   const completedPair = beforeSize < 2 && afterSize >= 2;
+  const scoreGain = Math.max(0, afterPairCount - beforePairCount);
 
-  return (completedPair ? 26 : 0) + (beforeSize === 1 && afterSize === 2 ? 8 : 0) + (beforeSize === 0 ? 8 : 0) + (afterSize >= 2 ? 4 : 0);
+  return scoreGain * 44 + (completedPair ? 32 : 0) + (beforeSize === 1 && afterSize === 2 ? 12 : 0) + (beforeSize === 0 ? 8 : 0) + (afterSize >= 2 ? 8 : 0);
 }
 
 function scoreCapuchinMove(
@@ -529,7 +532,7 @@ function scoreCapuchinMove(
 
   const before = getCapuchinHabitatPairCount(game, playerId);
   const after = getCapuchinHabitatPairCount(game, playerId, pieceId, position);
-  return Math.max(0, after - before) * 36 + scoreCapuchinHabitatPotential(game, playerId, position, habitat);
+  return (after - before) * 72 + after * 18 + scoreCapuchinHabitatPotential(game, playerId, position, habitat);
 }
 
 function scoreCoatiPairPotential(game: GameState, playerId: string, position: GridPosition): number {
@@ -559,7 +562,7 @@ function scoreArmadilloSharingPotential(game: GameState, playerId: string, posit
     score += coveredSpecies.has(speciesId) ? 8 : 32;
   }
 
-  return score;
+  return score + speciesAtTarget.size * 14;
 }
 
 function scoreArmadilloMove(game: GameState, playerId: string, pieceId: string, position: GridPosition): number {
@@ -578,7 +581,7 @@ function scoreArmadilloMove(game: GameState, playerId: string, pieceId: string, 
     }
   }
 
-  return Math.max(0, after.size - before.size) * 42 + newlyCoveredAtTarget * 32 + targetSpecies.size * 10;
+  return (after.size - before.size) * 70 + after.size * 18 + newlyCoveredAtTarget * 40 + targetSpecies.size * 14;
 }
 
 function crowdingPenalty(game: GameState, playerId: string, speciesId: SpeciesId, position: GridPosition): number {

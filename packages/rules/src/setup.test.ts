@@ -1029,6 +1029,22 @@ describe("setup placement", () => {
     expect(game.activePlayerId).toBe("coati");
   });
 
+  it("scores zero for Tatu-bola only when it shares no location with another species", () => {
+    let game = createTestGameState("room", [player("armadillo", "armadillo"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "armadillo", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "armadillo", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = setActiveAction(game, "armadillo", 3);
+
+    expect(getArmadilloShareScore(game, "armadillo")).toBe(0);
+
+    game = scoreArmadilloSharing(game, "armadillo");
+
+    expect(game.players.find((candidate) => candidate.playerId === "armadillo")?.score).toBe(0);
+    expect(game.players.find((candidate) => candidate.playerId === "armadillo")?.turnsTaken).toBe(1);
+  });
+
   it("does not let Onca remove hidden Tatu-bola pieces", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("armadillo", "armadillo")]);
     game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });

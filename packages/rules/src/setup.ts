@@ -1493,6 +1493,7 @@ export function getArmadilloShareScore(game: GameState, playerId: string): numbe
       .map((candidate) => candidate.speciesId!)
   );
 
+  let sharingCount = 0;
   let notSharingCount = 0;
   for (const speciesId of opponentSpecies) {
     const sharesLocation = game.pieces.some(
@@ -1500,7 +1501,13 @@ export function getArmadilloShareScore(game: GameState, playerId: string): numbe
     );
     if (!sharesLocation) {
       notSharingCount += 1;
+    } else {
+      sharingCount += 1;
     }
+  }
+
+  if (sharingCount === 0) {
+    return 0;
   }
 
   return Math.max(1, 3 - notSharingCount);
