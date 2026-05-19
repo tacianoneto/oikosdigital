@@ -137,7 +137,7 @@ function playForestCard(game: GameState, playerId: string, speciesId: SpeciesId)
     }))
     .sort((a, b) => b.score - a.score);
 
-  for (const option of chooseCandidatePool(ranked)) {
+  for (const option of chooseCandidatesForSpecies(ranked, speciesId)) {
     try {
       return placeForestCard(game, playerId, option.cardId, option.position, option.rotation);
     } catch {
@@ -194,7 +194,9 @@ function playCoati(game: GameState, playerId: string, action: string): GameState
 function playCapuchin(game: GameState, playerId: string, action: string): GameState {
   if (action === "A" || action === "C") {
     if (hasReserve(game, playerId)) {
-      return addCapuchinForCurrentAction(game, playerId, pickPosition(game, "capuchin", getCapuchinPlacementPositions(game, playerId)));
+      const targets = getCapuchinPlacementPositions(game, playerId);
+      const target = action === "C" ? pickCapuchinStackTarget(game, playerId, targets) : pickPosition(game, "capuchin", targets);
+      return addCapuchinForCurrentAction(game, playerId, target);
     }
 
     return completeOrSkip(game, playerId);
@@ -339,7 +341,7 @@ function moveBestPiece(game: GameState, playerId: string, speciesId: SpeciesId, 
   );
 
   const ranked = options.sort((a, b) => b.score - a.score);
-  for (const option of chooseCandidatePool(ranked)) {
+  for (const option of chooseCandidatesForSpecies(ranked, speciesId)) {
     try {
       const targetPieceId = pickCaptureTarget(game, playerId, speciesId, option.position);
       return movePieceForCurrentAction(game, playerId, option.pieceId, option.position, targetPieceId);
@@ -372,6 +374,18 @@ function rankSetupPositions(game: GameState, playerId: string, speciesId: Specie
     .map((position) => ({ ...position, score: scoreSetupPosition(game, playerId, speciesId, position) }))
     .sort((a, b) => b.score - a.score)
     .map(({ x, y }) => ({ x, y }));
+}
+
+function pickCapuchinStackTarget(game: GameState, playerId: string, positions: GridPosition[]): GridPosition {
+  const ranked = positions
+    .map((position) => ({ ...position, score: scoreCapuchinStackTarget(game, playerId, position) }))
+    .sort((a, b) => b.score - a.score);
+
+  if (ranked.length === 0) {
+    throw new Error("Bot nao encontrou alvo valido.");
+  }
+
+  return ranked[0];
 }
 
 function scoreCardPlacement(game: GameState, playerId: string, speciesId: SpeciesId, cardId: string, position: GridPosition): number {
@@ -491,32 +505,17 @@ function scoreCapuchinHabitatPotential(game: GameState, playerId: string, positi
     return 0;
   }
 
-  const beforePairCount = getCapuchinHabitatPairCount(game, playerId);
-  const afterPairCount = getCapuchinHabitatPairCount(game, playerId, undefined, position);
-  const habitatPositions = new Map<Habitat, Set<string>>();
-  for (const piece of game.pieces) {
-    if (piece.ownerId !== playerId || piece.speciesId !== "capuchin" || !piece.location) {
-      continue;
-    }
-
-    const pieceHabitat = getHabitatAt(game, piece.location);
-    if (!pieceHabitat) {
-      continue;
-    }
-
-    const positions = habitatPositions.get(pieceHabitat) ?? new Set<string>();
-    positions.add(positionKey(piece.location));
-    habitatPositions.set(pieceHabitat, positions);
-  }
-
-  const nextPositions = habitatPositions.get(habitat) ?? new Set<string>();
-  const beforeSize = nextPositions.size;
-  nextPositions.add(positionKey(position));
-  const afterSize = nextPositions.size;
+  const beforeStats = getCapuchinHabitatStats(game, playerId);
+  const afterStats = getCapuchinHabitatStats(game, playerId, undefined, position);
+  const beforePairCount = countScoringCapuchinHabitats(beforeStats);
+  const afterPairCount = countScoringCapuchinHabitats(afterStats);
+  const beforeSize = beforeStats.get(habitat)?.size ?? 0;
+  const afterSize = afterStats.get(habitat)?.size ?? 0;
   const completedPair = beforeSize < 2 && afterSize >= 2;
   const scoreGain = Math.max(0, afterPairCount - beforePairCount);
+  const newHabitatSeed = beforeSize === 0 && afterPairCount < 3 ? 12 : 0;
 
-  return scoreGain * 44 + (completedPair ? 32 : 0) + (beforeSize === 1 && afterSize === 2 ? 12 : 0) + (beforeSize === 0 ? 8 : 0) + (afterSize >= 2 ? 8 : 0);
+  return scoreGain * 90 + afterPairCount * 24 + (completedPair ? 48 : 0) + (beforeSize === 1 && afterSize === 2 ? 18 : 0) + newHabitatSeed + (afterSize >= 2 ? 10 : 0);
 }
 
 function scoreCapuchinMove(
@@ -532,7 +531,35 @@ function scoreCapuchinMove(
 
   const before = getCapuchinHabitatPairCount(game, playerId);
   const after = getCapuchinHabitatPairCount(game, playerId, pieceId, position);
-  return (after - before) * 72 + after * 18 + scoreCapuchinHabitatPotential(game, playerId, position, habitat);
+  const movedPiece = game.pieces.find((piece) => piece.pieceId === pieceId);
+  const movedFromStack = Boolean(movedPiece?.location && ownSpeciesPiecesAt(game, playerId, "capuchin", movedPiece.location) > 1);
+  const scoreDelta = after - before;
+  const breakPenalty = scoreDelta < 0 ? 180 : 0;
+
+  return scoreDelta * 150 + after * 36 + (movedFromStack ? 36 : 0) - breakPenalty + scoreCapuchinHabitatPotential(game, playerId, position, habitat);
+}
+
+function scoreCapuchinStackTarget(game: GameState, playerId: string, position: GridPosition): number {
+  const habitat = getHabitatAt(game, position);
+  if (!habitat) {
+    return 0;
+  }
+
+  const stats = getCapuchinHabitatStats(game, playerId);
+  const habitatPositionCount = stats.get(habitat)?.size ?? 0;
+  const pairCount = countScoringCapuchinHabitats(stats);
+  const ownCount = ownSpeciesPiecesAt(game, playerId, "capuchin", position);
+  const resourceScore = scoreResource("capuchin", getResourceAt(game, position));
+
+  if (habitatPositionCount === 1) {
+    return 95 + ownCount * 8 + resourceScore;
+  }
+
+  if (habitatPositionCount >= 2) {
+    return 55 + pairCount * 8 + ownCount * 6 + resourceScore;
+  }
+
+  return 20 + resourceScore;
 }
 
 function scoreCoatiPairPotential(game: GameState, playerId: string, position: GridPosition): number {
@@ -662,6 +689,15 @@ function getCapuchinHabitatPairCount(
   excludedPieceId?: string,
   replacement?: GridPosition
 ): number {
+  return countScoringCapuchinHabitats(getCapuchinHabitatStats(game, playerId, excludedPieceId, replacement));
+}
+
+function getCapuchinHabitatStats(
+  game: GameState,
+  playerId: string,
+  excludedPieceId?: string,
+  replacement?: GridPosition
+): Map<Habitat, Set<string>> {
   const positionsByHabitat = new Map<Habitat, Set<string>>();
 
   for (const piece of game.pieces) {
@@ -688,7 +724,11 @@ function getCapuchinHabitatPairCount(
     }
   }
 
-  return [...positionsByHabitat.values()].filter((positions) => positions.size >= 2).length;
+  return positionsByHabitat;
+}
+
+function countScoringCapuchinHabitats(stats: Map<Habitat, Set<string>>): number {
+  return [...stats.values()].filter((positions) => positions.size >= 2).length;
 }
 
 function getArmadilloCoveredSpecies(
@@ -817,6 +857,14 @@ function chooseCandidatePool<T extends { score: number }>(items: T[]): T[] {
 
   const [best, ...rest] = top;
   return [pickOne(rest), best, ...shuffle(rest.filter((item) => item !== rest[0]))];
+}
+
+function chooseCandidatesForSpecies<T extends { score: number }>(items: T[], speciesId: SpeciesId): T[] {
+  if (speciesId === "capuchin") {
+    return items;
+  }
+
+  return chooseCandidatePool(items);
 }
 
 function pickOne<T>(items: T[]): T {

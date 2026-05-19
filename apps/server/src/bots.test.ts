@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createInitialGameState, createPreviewInitialForest, placeInitialPiece } from "@oikos/rules";
+import { createInitialGameState, createPreviewInitialForest, getCapuchinHabitatScore, placeInitialPiece } from "@oikos/rules";
 import type { RoomPlayer } from "@oikos/shared";
 import { playBotStep } from "./bots";
 
@@ -19,6 +19,52 @@ function createTestGameState(gameId: string, roomPlayers: RoomPlayer[]) {
 }
 
 describe("bot decisions", () => {
+  it("moves a stacked Macaco-prego to create a new habitat pair without breaking an existing pair", () => {
+    let game = createTestGameState("room", [player("capuchin", "capuchin"), player("coati", "coati")]);
+    const capuchin = game.players.find((candidate) => candidate.playerId === "capuchin")!;
+    const [firstPieceId, secondPieceId, thirdPieceId, fourthPieceId] = capuchin.reservePieces;
+    const placedPieceIds = [firstPieceId!, secondPieceId!, thirdPieceId!, fourthPieceId!];
+
+    game = {
+      ...game,
+      status: "active",
+      activePlayerId: "capuchin",
+      activeActionIndex: 1,
+      activePlayedForestCardId: "bosque_1",
+      players: game.players.map((candidate) =>
+        candidate.playerId === "capuchin"
+          ? {
+              ...candidate,
+              reservePieces: candidate.reservePieces.filter((pieceId) => !placedPieceIds.includes(pieceId)),
+              piecesInForest: placedPieceIds
+            }
+          : candidate
+      ),
+      pieces: game.pieces.map((piece) => {
+        if (piece.pieceId === firstPieceId || piece.pieceId === secondPieceId) {
+          return { ...piece, location: { x: -1, y: -1, siteId: "main" } };
+        }
+        if (piece.pieceId === thirdPieceId) {
+          return { ...piece, location: { x: 1, y: -1, siteId: "main" } };
+        }
+        if (piece.pieceId === fourthPieceId) {
+          return { ...piece, location: { x: 1, y: 1, siteId: "main" } };
+        }
+        return piece;
+      })
+    };
+
+    game = playBotStep(game, "capuchin");
+
+    const movedToFieldPair = game.pieces.some(
+      (piece) => piece.ownerId === "capuchin" && piece.location?.x === -1 && piece.location.y === 1
+    );
+    const scoreCheckGame = { ...game, activeActionIndex: 3 };
+
+    expect(movedToFieldPair).toBe(true);
+    expect(getCapuchinHabitatScore(scoreCheckGame, "capuchin")).toBe(2);
+  });
+
   it("always spends all available different resources when Lobo-guara can score", () => {
     let game = createTestGameState("room", [player("wolf", "maned_wolf"), player("coati", "coati")]);
     game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
