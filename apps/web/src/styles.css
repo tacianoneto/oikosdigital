@@ -1316,17 +1316,14 @@ input:focus {
 .hand-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   border: var(--bw) solid var(--line-soft);
   border-radius: 999px;
-  padding: 7px 14px;
+  width: 38px;
+  height: 34px;
+  padding: 0;
   background: var(--slot);
   color: var(--paper);
-  font-family: Outfit, sans-serif;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   transition: border-color 120ms ease, background 120ms ease;
 }
 
@@ -1336,8 +1333,8 @@ input:focus {
 }
 
 .hand-toggle svg {
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
 }
 
 .table-hand.collapsed {
@@ -2393,32 +2390,9 @@ input:focus {
     0 6px 14px rgba(0, 0, 0, 0.45);
 }
 
-.hand-card.playable::after {
-  content: "Jogável";
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--leaf, #6fae5f);
-  color: #08120a;
-  font-family: Outfit, sans-serif;
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  z-index: 2;
-}
-
 .hand-card.not-playable {
   border-color: var(--ink);
   filter: grayscale(0.35);
-}
-
-.hand-card.selected.playable::after,
-.hand-rail.has-selection .hand-card:not(.selected)::after {
-  display: none;
 }
 
 .hand-card.selected {

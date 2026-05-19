@@ -2275,9 +2275,6 @@ export function App() {
                 <strong>{currentGamePlayer.speciesId ? speciesDefinitions[currentGamePlayer.speciesId].displayName : "Espécie"}</strong>
               </div>
               <div className="hand-header-side">
-                {room?.game?.status === "setup" && handCards.length > 0 && (
-                  <small>Cartas ja distribuidas para planejar o posicionamento inicial.</small>
-                )}
                 {selectedHandCardId && canPlaceSelectedForestCard && (
                   <small>Gire com as setas ou Q / E e clique num espaço destacado.</small>
                 )}
@@ -2285,10 +2282,11 @@ export function App() {
                 <button
                   type="button"
                   className="hand-toggle"
+                  title={handCollapsed ? "Expandir" : "Recolher"}
+                  aria-label={handCollapsed ? "Expandir mão de cartas" : "Recolher mão de cartas"}
                   onClick={() => setHandCollapsed((value) => !value)}
                 >
                   {handCollapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
-                  {handCollapsed ? "Expandir" : "Recolher"}
                 </button>
               </div>
             </div>
