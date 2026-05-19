@@ -10,10 +10,12 @@ import {
   addCoati,
   addMacaw,
   addWolf,
+  advanceAutomaticScore,
   advanceBot,
   completeAction,
   createRoom,
   getActiveBotPlayer,
+  getAutomaticScorePlayer,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -44,10 +46,12 @@ const allowedOrigin = configuredOrigin && configuredOrigin !== "true" ? configur
 const socketsByPlayerId = new Map<string, Set<string>>();
 const turnSkipTimers = new Map<string, NodeJS.Timeout>();
 const botTurnTimers = new Map<string, NodeJS.Timeout>();
+const automaticScoreTimers = new Map<string, NodeJS.Timeout>();
 const pendingRoomSaves = new Map<string, PublicRoomState>();
 let roomSaveTimer: NodeJS.Timeout | null = null;
 const turnTimeoutMs = Number(process.env.TURN_TIMEOUT_MS ?? 90000);
 const botTurnDelayMs = Number(process.env.BOT_TURN_DELAY_MS ?? 850);
+const automaticScoreDelayMs = Number(process.env.AUTO_SCORE_DELAY_MS ?? 650);
 
 await app.register(cors, { origin: allowedOrigin });
 
@@ -134,14 +138,49 @@ function scheduleBotTurn(roomId: string): void {
   botTurnTimers.set(roomId, timer);
 }
 
+function clearAutomaticScoreTimer(roomId: string): void {
+  const timer = automaticScoreTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    automaticScoreTimers.delete(roomId);
+  }
+}
+
+function scheduleAutomaticScore(roomId: string): void {
+  if (automaticScoreDelayMs < 0 || automaticScoreTimers.has(roomId) || !getAutomaticScorePlayer(roomId)) {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    automaticScoreTimers.delete(roomId);
+    if (!getAutomaticScorePlayer(roomId)) {
+      return;
+    }
+
+    try {
+      const room = advanceAutomaticScore(roomId);
+      if (room) {
+        broadcastRoom(room);
+      }
+    } catch (error) {
+      app.log.error({ err: error, roomId }, "Falha ao pontuar acao automatica.");
+    }
+  }, automaticScoreDelayMs);
+
+  timer.unref();
+  automaticScoreTimers.set(roomId, timer);
+}
+
 function broadcastRoom(room: PublicRoomState): void {
   io.to(room.roomId).emit("room:update", room);
   scheduleRoomSave(room);
   reconcileTurnTimer(room.roomId);
   if (room.status === "finished") {
     clearBotTurnTimer(room.roomId);
+    clearAutomaticScoreTimer(room.roomId);
     return;
   }
+  scheduleAutomaticScore(room.roomId);
   scheduleBotTurn(room.roomId);
 }
 

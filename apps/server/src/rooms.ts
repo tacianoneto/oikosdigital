@@ -372,6 +372,10 @@ export function scoreCapuchin(roomId: string, playerId: string): PublicRoomState
     throw new Error("A partida ainda nÃƒÂ£o foi iniciada.");
   }
 
+  if (isStaleScoreRequest(room, playerId, "capuchin")) {
+    return toPublicRoom(room);
+  }
+
   room.game = scoreCapuchinHabitatPresence(room.game, playerId);
   room.status = room.game.status === "active" ? "active" : room.status;
   room.warnings = room.game.contentWarnings;
@@ -384,6 +388,10 @@ export function scoreMacaw(roomId: string, playerId: string): PublicRoomState {
 
   if (!room.game) {
     throw new Error("A partida ainda nÃƒÆ’Ã‚Â£o foi iniciada.");
+  }
+
+  if (isStaleScoreRequest(room, playerId, "macaw")) {
+    return toPublicRoom(room);
   }
 
   room.game = scoreMacawLines(room.game, playerId);
@@ -412,6 +420,10 @@ export function scoreArmadillo(roomId: string, playerId: string): PublicRoomStat
 
   if (!room.game) {
     throw new Error("A partida ainda nÃƒÆ’Ã‚Â£o foi iniciada.");
+  }
+
+  if (isStaleScoreRequest(room, playerId, "armadillo")) {
+    return toPublicRoom(room);
   }
 
   room.game = scoreArmadilloSharing(room.game, playerId);
@@ -544,6 +556,49 @@ export function getActiveBotPlayer(roomId: string): string | null {
   return activePlayer?.isBot ? activePlayer.playerId : null;
 }
 
+export function getAutomaticScorePlayer(roomId: string): string | null {
+  const room = rooms.get(roomId.trim().toUpperCase());
+  if (!room?.game || room.game.status !== "active" || !room.game.activePlayerId) {
+    return null;
+  }
+
+  const activePlayer = room.game.players.find((player) => player.playerId === room.game?.activePlayerId);
+  const speciesId = activePlayer?.speciesId;
+  if (!speciesId) {
+    return null;
+  }
+
+  const action = speciesDefinitions[speciesId].actions[room.game.activeActionIndex];
+  const isAutomaticScoreAction =
+    action === "D" && (speciesId === "capuchin" || speciesId === "macaw" || speciesId === "armadillo");
+
+  return isAutomaticScoreAction ? activePlayer.playerId : null;
+}
+
+export function advanceAutomaticScore(roomId: string): PublicRoomState | null {
+  const room = getRoom(roomId);
+  const playerId = getAutomaticScorePlayer(roomId);
+  if (!room.game || !playerId) {
+    return null;
+  }
+
+  const player = room.game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId === "capuchin") {
+    room.game = scoreCapuchinHabitatPresence(room.game, playerId);
+  } else if (player?.speciesId === "macaw") {
+    room.game = scoreMacawLines(room.game, playerId);
+  } else if (player?.speciesId === "armadillo") {
+    room.game = scoreArmadilloSharing(room.game, playerId);
+  } else {
+    return null;
+  }
+
+  room.status = room.game.status === "finished" ? "finished" : "active";
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
 export function advanceBot(roomId: string): PublicRoomState | null {
   const room = getRoom(roomId);
   const botPlayerId = getActiveBotPlayer(roomId);
@@ -615,6 +670,14 @@ function assertHostCanManageBots(room: ServerRoom, playerId: string): void {
   if (room.status !== "lobby") {
     throw new Error("Bots so podem ser alterados no lobby.");
   }
+}
+
+function isStaleScoreRequest(room: ServerRoom, playerId: string, speciesId: SpeciesId): boolean {
+  if (!room.game || room.game.activePlayerId === playerId) {
+    return false;
+  }
+
+  return room.game.players.some((player) => player.playerId === playerId && player.speciesId === speciesId);
 }
 
 function createRoomId(): string {
