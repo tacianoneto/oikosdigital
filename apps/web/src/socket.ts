@@ -83,6 +83,8 @@ export const roomApi = {
   ping: (socket: OikosSocket, roomId: string) => emitWithReply<{ ok: true; roomId: string | null; now: number }>(socket, "presence:ping", { roomId }),
   create: (socket: OikosSocket, name: string) => emitWithReply<PublicRoomState>(socket, "room:create", { name }),
   join: (socket: OikosSocket, roomId: string, name: string) => emitWithReply<PublicRoomState>(socket, "room:join", { roomId, name }),
+  addBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:add", { roomId }),
+  removeBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:remove", { roomId }),
   selectSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>
     emitWithReply<PublicRoomState>(socket, "species:select", { roomId, speciesId }),
   ready: (socket: OikosSocket, roomId: string, ready: boolean) =>

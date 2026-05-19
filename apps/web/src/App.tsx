@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   AlertTriangle,
+  Bot,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -410,6 +411,7 @@ export function App() {
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
+  const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const setEffectTarget = useCallback((key: string, element: HTMLElement | null) => {
     if (element) {
       effectTargetRefs.current.set(key, element);
@@ -1832,10 +1834,22 @@ export function App() {
                 {currentPlayer?.ready ? "Pronto" : "Marcar pronto"}
               </button>
               {isHost && (
-                <button className="primary-button" onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}>
-                  <Play aria-hidden="true" />
-                  Iniciar setup
-                </button>
+                <>
+                  <button className="secondary-button" onClick={() => run(() => roomApi.addBots(requireSocket(), room.roomId))}>
+                    <Bot aria-hidden="true" />
+                    Preencher bots
+                  </button>
+                  {roomHasBots && (
+                    <button className="secondary-button" onClick={() => run(() => roomApi.removeBots(requireSocket(), room.roomId))}>
+                      <X aria-hidden="true" />
+                      Remover bots
+                    </button>
+                  )}
+                  <button className="primary-button" onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}>
+                    <Play aria-hidden="true" />
+                    Iniciar setup
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -2436,7 +2450,7 @@ export function App() {
                     <strong>{species?.displayName ?? "Sem especie"}</strong>
                     <span>{player.name}</span>
                   </div>
-                  <small>{isActivePlayer ? "Vez" : player.ready ? "Pronto" : "Aguardando"}</small>
+                  <small>{isActivePlayer ? "Vez" : player.isBot ? "Bot" : player.ready ? "Pronto" : "Aguardando"}</small>
                 </button>
                 {gamePlayer && (
                   <>
@@ -2472,7 +2486,7 @@ export function App() {
                     <span>Pontos: {room.game.players.find((candidate) => candidate.playerId === player.playerId)?.score ?? 0}</span>
                   )}
                 </div>
-                <small>{player.ready ? "Pronto" : "Aguardando"}</small>
+                <small>{player.isBot ? "Bot" : player.ready ? "Pronto" : "Aguardando"}</small>
               </div>
               );
             })}

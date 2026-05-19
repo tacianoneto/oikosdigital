@@ -3,6 +3,7 @@ dist/
 .vite/
 .claude/
 artifacts/
+.tools/
 *.log
 *.tsbuildinfo
 apps/web/public/assets/

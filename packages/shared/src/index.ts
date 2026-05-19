@@ -176,6 +176,7 @@ export interface RoomPlayer {
   speciesId: SpeciesId | null;
   ready: boolean;
   connected: boolean;
+  isBot?: boolean;
 }
 
 export interface PublicRoomState {

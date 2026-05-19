@@ -1,4 +1,4 @@
-import { commonForestCards, speciesDefinitions } from "@oikos/content";
+import { commonForestCards, speciesDefinitions, speciesOrderBySetup } from "@oikos/content";
 import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
@@ -23,6 +23,7 @@ import {
   spendWolfResourcesForPoints
 } from "@oikos/rules";
 import type { ForestCardState, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
+import { playBotStep } from "./bots";
 import { loadRooms } from "./store";
 
 interface ServerRoom {
@@ -36,13 +37,17 @@ interface ServerRoom {
 
 const rooms = new Map<string, ServerRoom>();
 
-// Restore rooms persisted before a restart. No sockets exist yet, so every
-// player starts disconnected until they rejoin.
+// Restore rooms persisted before a restart. No sockets exist yet, so human
+// players start disconnected until they rejoin; bots remain ready and present.
 for (const persisted of loadRooms()) {
   rooms.set(persisted.roomId, {
     roomId: persisted.roomId,
     hostPlayerId: persisted.hostPlayerId,
-    players: persisted.players.map((player) => ({ ...player, connected: false, ready: false })),
+    players: persisted.players.map((player) => ({
+      ...player,
+      connected: Boolean(player.isBot),
+      ready: player.isBot ? true : false
+    })),
     status: persisted.status,
     game: persisted.game,
     warnings: persisted.warnings
@@ -140,11 +145,48 @@ export function setReady(roomId: string, playerId: string, ready: boolean): Publ
   const room = getRoom(roomId);
   const player = getPlayer(room, playerId);
 
+  if (player.isBot) {
+    throw new Error("Bots ficam prontos automaticamente.");
+  }
+
   if (!player.speciesId && ready) {
     throw new Error("Escolha uma espécie antes de ficar pronto.");
   }
 
   player.ready = ready;
+  return toPublicRoom(room);
+}
+
+export function addBots(roomId: string, playerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+  assertHostCanManageBots(room, playerId);
+
+  const selectedSpecies = new Set(room.players.map((player) => player.speciesId).filter(Boolean));
+  const missingSpecies = speciesOrderBySetup.filter((speciesId) => !selectedSpecies.has(speciesId));
+
+  for (const speciesId of missingSpecies) {
+    if (room.players.length >= 6) {
+      break;
+    }
+
+    room.players.push({
+      playerId: `bot_${speciesId}`,
+      name: `Bot ${speciesDefinitions[speciesId].displayName}`,
+      speciesId,
+      ready: true,
+      connected: true,
+      isBot: true
+    });
+  }
+
+  return toPublicRoom(room);
+}
+
+export function removeBots(roomId: string, playerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+  assertHostCanManageBots(room, playerId);
+
+  room.players = room.players.filter((player) => !player.isBot);
   return toPublicRoom(room);
 }
 
@@ -481,6 +523,61 @@ export function getActiveDisconnectedPlayer(roomId: string): string | null {
   return activePlayer.playerId;
 }
 
+export function getActiveBotPlayer(roomId: string): string | null {
+  const room = rooms.get(roomId.trim().toUpperCase());
+  if (!room?.game) {
+    return null;
+  }
+
+  const activePlayerId =
+    room.game.status === "setup"
+      ? room.game.setupActivePlayerId
+      : room.game.status === "active"
+        ? room.game.activePlayerId
+        : null;
+
+  if (!activePlayerId) {
+    return null;
+  }
+
+  const activePlayer = room.players.find((player) => player.playerId === activePlayerId);
+  return activePlayer?.isBot ? activePlayer.playerId : null;
+}
+
+export function advanceBot(roomId: string): PublicRoomState | null {
+  const room = getRoom(roomId);
+  const botPlayerId = getActiveBotPlayer(roomId);
+  if (!room.game || !botPlayerId) {
+    return null;
+  }
+
+  try {
+    room.game = playBotStep(room.game, botPlayerId);
+  } catch (error) {
+    if (room.game.status !== "active") {
+      throw error;
+    }
+
+    try {
+      room.game = completeCurrentAction(room.game, botPlayerId);
+    } catch {
+      room.game = forceEndPlayerTurn(room.game, botPlayerId, "bot sem jogada valida");
+    }
+  }
+
+  room.status =
+    room.game.status === "finished"
+      ? "finished"
+      : room.game.status === "active"
+        ? "active"
+        : room.game.status === "setup"
+          ? "setup"
+          : room.status;
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
 function toPublicRoom(room: ServerRoom): PublicRoomState {
   return {
     roomId: room.roomId,
@@ -508,6 +605,16 @@ function getPlayer(room: ServerRoom, playerId: string): RoomPlayer {
   }
 
   return player;
+}
+
+function assertHostCanManageBots(room: ServerRoom, playerId: string): void {
+  if (room.hostPlayerId !== playerId) {
+    throw new Error("Apenas o anfitriao pode gerenciar bots.");
+  }
+
+  if (room.status !== "lobby") {
+    throw new Error("Bots so podem ser alterados no lobby.");
+  }
 }
 
 function createRoomId(): string {

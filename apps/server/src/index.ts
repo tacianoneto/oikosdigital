@@ -4,13 +4,16 @@ import { Server } from "socket.io";
 import type { PublicRoomState, SpeciesId } from "@oikos/shared";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
+  addBots,
   addArmadillo,
   addCapuchin,
   addCoati,
   addMacaw,
   addWolf,
+  advanceBot,
   completeAction,
   createRoom,
+  getActiveBotPlayer,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -23,6 +26,7 @@ import {
   removeWolfBasePiece,
   removePieces,
   resolveCoatiPair,
+  removeBots,
   scoreCapuchin,
   scoreArmadillo,
   scoreMacaw,
@@ -39,9 +43,11 @@ const configuredOrigin = process.env.CLIENT_ORIGIN;
 const allowedOrigin = configuredOrigin && configuredOrigin !== "true" ? configuredOrigin : true;
 const socketsByPlayerId = new Map<string, Set<string>>();
 const turnSkipTimers = new Map<string, NodeJS.Timeout>();
+const botTurnTimers = new Map<string, NodeJS.Timeout>();
 const pendingRoomSaves = new Map<string, PublicRoomState>();
 let roomSaveTimer: NodeJS.Timeout | null = null;
 const turnTimeoutMs = Number(process.env.TURN_TIMEOUT_MS ?? 90000);
+const botTurnDelayMs = Number(process.env.BOT_TURN_DELAY_MS ?? 850);
 
 await app.register(cors, { origin: allowedOrigin });
 
@@ -95,10 +101,48 @@ function reconcileTurnTimer(roomId: string): void {
   turnSkipTimers.set(roomId, timer);
 }
 
+function clearBotTurnTimer(roomId: string): void {
+  const timer = botTurnTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    botTurnTimers.delete(roomId);
+  }
+}
+
+function scheduleBotTurn(roomId: string): void {
+  if (botTurnDelayMs < 0 || botTurnTimers.has(roomId) || !getActiveBotPlayer(roomId)) {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    botTurnTimers.delete(roomId);
+    if (!getActiveBotPlayer(roomId)) {
+      return;
+    }
+
+    try {
+      const room = advanceBot(roomId);
+      if (room) {
+        broadcastRoom(room);
+      }
+    } catch (error) {
+      app.log.error({ err: error, roomId }, "Falha ao executar turno de bot.");
+    }
+  }, botTurnDelayMs);
+
+  timer.unref();
+  botTurnTimers.set(roomId, timer);
+}
+
 function broadcastRoom(room: PublicRoomState): void {
   io.to(room.roomId).emit("room:update", room);
   scheduleRoomSave(room);
   reconcileTurnTimer(room.roomId);
+  if (room.status === "finished") {
+    clearBotTurnTimer(room.roomId);
+    return;
+  }
+  scheduleBotTurn(room.roomId);
 }
 
 function scheduleRoomSave(room: PublicRoomState): void {
@@ -156,6 +200,22 @@ io.on("connection", (socket) => {
 
   socket.on("room:get", (payload: { roomId: string }, reply) => {
     withReply(reply, () => getPublicRoom(payload.roomId));
+  });
+
+  socket.on("bots:add", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = addBots(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("bots:remove", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = removeBots(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
   });
 
   socket.on("species:select", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
