@@ -135,7 +135,7 @@ label {
   z-index: 6;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: min(330px, 30vw);
   overflow-y: auto;
   overflow-x: hidden;
@@ -166,11 +166,8 @@ label {
 .hud-action.hud-left {
   top: 348px;
   left: 16px;
+  width: min(312px, 27vw);
   max-height: calc(100vh - 372px);
-}
-
-.hud-action.hud-left .panel-block {
-  margin-left: 22px;
 }
 
 .hud-left {
@@ -1874,51 +1871,38 @@ input:focus {
 }
 
 .active-turn-block {
-  position: relative;
-  padding: 14px;
-  border-radius: 14px;
-  background:
-    radial-gradient(
-      ellipse at top left,
-      color-mix(in srgb, var(--species, var(--amber)) 16%, transparent),
-      transparent 60%
-    ),
-    linear-gradient(180deg, var(--slot) 0%, var(--panel) 100%);
-  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 26%, var(--line-soft));
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 14px;
+  border-top: 5px solid var(--species, var(--amber));
+  border-color: color-mix(in srgb, var(--species, var(--line)) 55%, var(--line));
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px color-mix(in srgb, var(--species, transparent) 30%, transparent);
   overflow: hidden;
 }
 
-.active-turn-block .section-title {
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed color-mix(in srgb, var(--paper) 10%, transparent);
-}
-
 .active-turn-block .section-title h2 {
-  color: color-mix(in srgb, var(--species, var(--amber)) 85%, var(--paper));
+  color: var(--species, var(--amber));
   letter-spacing: 0.08em;
 }
 
 .active-turn-card {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 12px;
+  grid-template-columns: 60px 1fr;
+  gap: 13px;
   align-items: center;
   border: 0;
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: color-mix(in srgb, var(--species, var(--amber)) 9%, transparent);
+  padding: 0;
+  background: transparent;
 }
 
 .active-turn-card img {
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
-  background: color-mix(in srgb, var(--species, var(--panel)) 22%, var(--panel));
-  border: 2px solid color-mix(in srgb, var(--species, var(--amber)) 50%, transparent);
+  background: var(--slot);
+  border: 3px solid var(--species, var(--amber));
   border-radius: 50%;
-  padding: 4px;
+  padding: 7px;
 }
 
 .active-turn-card div {
@@ -1928,24 +1912,25 @@ input:focus {
 }
 
 .active-turn-card > div > span {
-  color: color-mix(in srgb, var(--paper) 55%, transparent);
-  font-size: 10px;
+  color: var(--muted);
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
 }
 
 .active-turn-card strong {
   color: var(--paper);
   font-family: Outfit, sans-serif;
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.1;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
 }
 
 .active-turn-card small {
-  font-size: 11px;
-  color: color-mix(in srgb, var(--paper) 60%, transparent);
+  font-size: 13px;
+  color: color-mix(in srgb, var(--paper) 65%, transparent);
 }
 
 .active-turn-block .action-list {
