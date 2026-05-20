@@ -2954,21 +2954,27 @@ export function App() {
                     <div className="player-summary-stats">
                       <span className="stat-score">
                         <img src={encodeURI(resourceAssets.point)} alt="" />
-                        <AnimatedNumber value={gamePlayer.score} />
+                        <b><AnimatedNumber value={gamePlayer.score} /></b>
                       </span>
-                      <span className="stat-divider" aria-hidden="true" />
-                      <span
-                        className="stat-pieces"
-                        ref={(node) => setEffectTarget(`${gamePlayer.playerId}:reserve`, node)}
-                        title="Peças na reserva"
-                      >
-                        <em>Reserva</em>
-                        <b>{gamePlayer.reservePieces.length}</b>
-                      </span>
-                      <span className="stat-pieces" title="Peças em campo">
-                        <em>Campo</em>
-                        <b>{gamePlayer.piecesInForest.length}</b>
-                      </span>
+                      {species && (
+                        <div
+                          className="player-piece-track"
+                          ref={(node) => setEffectTarget(`${gamePlayer.playerId}:reserve`, node)}
+                          title={`${gamePlayer.reservePieces.length} na reserva · ${gamePlayer.piecesInForest.length} na floresta`}
+                        >
+                          {Array.from({ length: species.totalPieces }, (_, pieceIndex) => {
+                            const isInForest = pieceIndex >= gamePlayer.reservePieces.length;
+                            return (
+                              <img
+                                key={`${gamePlayer.playerId}_piece_track_${pieceIndex}`}
+                                src={encodeURI(species.meepleAsset)}
+                                alt=""
+                                className={isInForest ? "is-in-forest" : "is-in-reserve"}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div className="player-summary-resources">
                       {resourceOrder.map((resource) => (

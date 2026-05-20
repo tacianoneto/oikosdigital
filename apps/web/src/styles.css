@@ -1950,53 +1950,69 @@ input:focus {
 .player-summary-stats {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 2px;
+  gap: 10px;
+  padding: 6px 0;
   border-top: 1px solid color-mix(in srgb, var(--paper) 6%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--paper) 6%, transparent);
 }
 
 .player-summary-stats .stat-score {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  position: relative;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
   font-family: Outfit, sans-serif;
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 800;
-  color: var(--amber);
+  color: var(--ink);
 }
 
 .player-summary-stats .stat-score img {
-  width: 18px;
-  height: 18px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 }
 
-.player-summary-stats .stat-divider {
-  width: 1px;
-  height: 18px;
-  background: color-mix(in srgb, var(--paper) 12%, transparent);
+.player-summary-stats .stat-score b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding-top: 1px;
+  font-size: 12px;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 
-.player-summary-stats .stat-pieces {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
+.player-piece-track {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
 }
 
-.player-summary-stats .stat-pieces em {
-  font-style: normal;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: color-mix(in srgb, var(--paper) 60%, transparent);
+.player-piece-track img {
+  width: 21px;
+  height: 21px;
+  object-fit: contain;
+  border-radius: 50%;
+  padding: 2px;
+  background: color-mix(in srgb, var(--species, var(--panel)) 16%, rgba(0, 0, 0, 0.2));
+  transition: filter 120ms ease, opacity 120ms ease;
 }
 
-.player-summary-stats .stat-pieces b {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--paper);
+.player-piece-track img.is-in-forest {
+  opacity: 0.36;
+  filter: grayscale(1) saturate(0.3) brightness(0.75);
+}
+
+.player-piece-track img.is-in-reserve {
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
 .player-summary-resources {
