@@ -445,9 +445,9 @@ label {
 
 .turn-recap {
   position: fixed;
-  right: 18px;
+  left: 18px;
   bottom: 18px;
-  width: min(340px, 92vw);
+  width: min(360px, 92vw);
   z-index: 55;
   background: rgba(16, 26, 20, 0.94);
   border: var(--bw) solid var(--species, var(--line-soft));
@@ -458,6 +458,12 @@ label {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
   animation: turn-recap-in 240ms ease-out;
+  transition: padding 180ms ease;
+}
+
+.turn-recap.is-collapsed {
+  padding: 8px 12px;
+  gap: 0;
 }
 
 @keyframes turn-recap-in {
@@ -467,7 +473,7 @@ label {
 
 .turn-recap-head {
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto auto auto;
   align-items: center;
   gap: 10px;
 }
@@ -525,7 +531,8 @@ label {
   text-transform: uppercase;
 }
 
-.turn-recap-close {
+.turn-recap-close,
+.turn-recap-toggle {
   border: none;
   background: transparent;
   color: var(--muted);
@@ -536,12 +543,14 @@ label {
   place-items: center;
 }
 
-.turn-recap-close:hover {
+.turn-recap-close:hover,
+.turn-recap-toggle:hover {
   color: var(--paper);
   background: rgba(255, 255, 255, 0.08);
 }
 
-.turn-recap-close svg {
+.turn-recap-close svg,
+.turn-recap-toggle svg {
   width: 16px;
   height: 16px;
 }

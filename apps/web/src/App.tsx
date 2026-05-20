@@ -475,10 +475,11 @@ export function App() {
   >(null);
   const [turnSummary, setTurnSummary] = useState<TurnSummary | null>(null);
   const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
+  const [recapCollapsed, setRecapCollapsed] = useState(false);
 
   useEffect(() => {
     if (!turnSummary) return;
-    const timer = window.setTimeout(() => setTurnSummary(null), 12000);
+    const timer = window.setTimeout(() => setTurnSummary(null), 14000);
     return () => window.clearTimeout(timer);
   }, [turnSummary]);
   const [showJaguarScoreModal, setShowJaguarScoreModal] = useState(false);
@@ -1033,7 +1034,12 @@ export function App() {
         const scoreDelta = Math.max(0, finishedPlayer.score - finishedSnapshot.score);
         const turnLog = game.log
           .slice(finishedSnapshot.logLength)
-          .filter((entry) => entry.payload?.actorPlayerId === finishedPlayer.playerId);
+          .filter((entry) => {
+            const payload = entry.payload;
+            if (!payload) return false;
+            if (!payload.actorPlayerId) return true;
+            return payload.actorPlayerId === finishedPlayer.playerId;
+          });
         setTurnSummary({
           key: Date.now(),
           playerName: finishedPlayer.name,
@@ -1041,6 +1047,7 @@ export function App() {
           scoreDelta,
           entries: buildTurnSummaryEntries(turnLog, finishedPlayer.speciesId, scoreDelta)
         });
+        setRecapCollapsed(false);
       }
 
       const nextPlayer = game.players.find((candidate) => candidate.playerId === activePlayerId);
@@ -3085,7 +3092,7 @@ export function App() {
 
       {turnSummary && (
         <aside
-          className="turn-recap"
+          className={`turn-recap ${recapCollapsed ? "is-collapsed" : ""}`}
           role="status"
           aria-live="polite"
           aria-label="Resumo do turno anterior"
@@ -3105,6 +3112,15 @@ export function App() {
             </div>
             <button
               type="button"
+              className="turn-recap-toggle"
+              onClick={() => setRecapCollapsed((value) => !value)}
+              aria-label={recapCollapsed ? "Expandir resumo" : "Recolher resumo"}
+              aria-expanded={!recapCollapsed}
+            >
+              {recapCollapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+            </button>
+            <button
+              type="button"
               className="turn-recap-close"
               onClick={() => setTurnSummary(null)}
               aria-label="Fechar resumo"
@@ -3112,25 +3128,27 @@ export function App() {
               <X aria-hidden="true" />
             </button>
           </header>
-          <ul className="turn-recap-list">
-            {turnSummary.entries.map((entry) => (
-              <li
-                key={`${turnSummary.key}_${entry.id}`}
-                className={`turn-recap-item ${entry.cardInstanceIds.length > 0 ? "is-hoverable" : ""}`}
-                onMouseEnter={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
-                onMouseLeave={() => setHoveredSummaryCardIds([])}
-                onFocus={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
-                onBlur={() => setHoveredSummaryCardIds([])}
-                tabIndex={entry.cardInstanceIds.length > 0 ? 0 : -1}
-              >
-                <span className={`turn-recap-icon turn-recap-icon-${entry.icon}`} aria-hidden="true" />
-                <span className="turn-recap-text">{entry.text}</span>
-                {typeof entry.points === "number" && entry.points > 0 && (
-                  <span className="turn-recap-points">+{entry.points}</span>
-                )}
-              </li>
-            ))}
-          </ul>
+          {!recapCollapsed && (
+            <ul className="turn-recap-list">
+              {turnSummary.entries.map((entry) => (
+                <li
+                  key={`${turnSummary.key}_${entry.id}`}
+                  className={`turn-recap-item ${entry.cardInstanceIds.length > 0 ? "is-hoverable" : ""}`}
+                  onMouseEnter={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
+                  onMouseLeave={() => setHoveredSummaryCardIds([])}
+                  onFocus={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
+                  onBlur={() => setHoveredSummaryCardIds([])}
+                  tabIndex={entry.cardInstanceIds.length > 0 ? 0 : -1}
+                >
+                  <span className={`turn-recap-icon turn-recap-icon-${entry.icon}`} aria-hidden="true" />
+                  <span className="turn-recap-text">{entry.text}</span>
+                  {typeof entry.points === "number" && entry.points > 0 && (
+                    <span className="turn-recap-points">+{entry.points}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </aside>
       )}
 
