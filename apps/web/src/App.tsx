@@ -2472,14 +2472,23 @@ export function App() {
                 {gamePlayer && (
                   <>
                     <div className="player-summary-stats">
-                      <span>
+                      <span className="stat-score">
                         <img src={encodeURI(resourceAssets.point)} alt="" />
                         <AnimatedNumber value={gamePlayer.score} />
                       </span>
-                      <span ref={(node) => setEffectTarget(`${gamePlayer.playerId}:reserve`, node)}>
-                        Reserva {gamePlayer.reservePieces.length}
+                      <span className="stat-divider" aria-hidden="true" />
+                      <span
+                        className="stat-pieces"
+                        ref={(node) => setEffectTarget(`${gamePlayer.playerId}:reserve`, node)}
+                        title="Peças na reserva"
+                      >
+                        <em>Reserva</em>
+                        <b>{gamePlayer.reservePieces.length}</b>
                       </span>
-                      <span>Campo {gamePlayer.piecesInForest.length}</span>
+                      <span className="stat-pieces" title="Peças em campo">
+                        <em>Campo</em>
+                        <b>{gamePlayer.piecesInForest.length}</b>
+                      </span>
                     </div>
                     <div className="player-summary-resources">
                       {resourceOrder.map((resource) => (
@@ -2490,20 +2499,12 @@ export function App() {
                           ref={(node) => setEffectTarget(`${gamePlayer.playerId}:${resource}`, node)}
                         >
                           <img src={encodeURI(resourceAssets[resource])} alt="" />
-                          {gamePlayer.resources[resource] ?? 0}
+                          <b>{gamePlayer.resources[resource] ?? 0}</b>
                         </span>
                       ))}
                     </div>
                   </>
                 )}
-                <div>
-                  <strong>{player.name}</strong>
-                  <span>{player.speciesId ? speciesDefinitions[player.speciesId].displayName : "Sem espécie"}</span>
-                  {room?.game && (
-                    <span>Pontos: {room.game.players.find((candidate) => candidate.playerId === player.playerId)?.score ?? 0}</span>
-                  )}
-                </div>
-                <small>{player.isBot ? "Bot" : player.ready ? "Pronto" : "Aguardando"}</small>
               </div>
               );
             })}
