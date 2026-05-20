@@ -243,102 +243,124 @@ function habitatFromEntry(entry: GameLogEntry): string | null {
   return habitat ? habitatShortLabel[habitat] : null;
 }
 
+function fromPayload(entry: GameLogEntry, speciesId: SpeciesId | null): TurnSummaryEntry | null {
+  const payload = entry.payload;
+  if (!payload) return null;
+  const pieceLabel = pieceShortName(speciesId);
+  const habitat = habitatFromEntry(entry);
+  const cards = payload.cardInstanceId ? [payload.cardInstanceId] : [];
+
+  switch (payload.kind) {
+    case "place_card":
+      return { id: entry.id, icon: "place", text: `Colocou carta de ${habitat ?? "floresta"}`, cardInstanceIds: cards };
+    case "setup_place":
+      return { id: entry.id, icon: "add", text: `Posicionou ${pieceLabel} inicial em ${habitat ?? "carta inicial"}`, cardInstanceIds: cards };
+    case "add_piece":
+      return { id: entry.id, icon: "add", text: `Adicionou 1 ${pieceLabel}${habitat ? ` em ${habitat}` : ""}`, cardInstanceIds: cards };
+    case "move_piece":
+      return { id: entry.id, icon: "move", text: `Moveu 1 ${pieceLabel}${habitat ? ` para ${habitat}` : ""}`, cardInstanceIds: cards };
+    case "remove_piece":
+      return {
+        id: entry.id,
+        icon: "remove",
+        text: payload.count && payload.count > 1
+          ? `Removeu ${payload.count} ${pieceLabel}(s)`
+          : `Removeu 1 peça${habitat ? ` em ${habitat}` : ""}`,
+        cardInstanceIds: cards
+      };
+    case "hide_piece":
+      return { id: entry.id, icon: "hide", text: `Escondeu 1 ${pieceLabel}${habitat ? ` em ${habitat}` : ""}`, cardInstanceIds: cards };
+    case "pair_bonus":
+      return { id: entry.id, icon: "add", text: `Dupla de quatis: +1 ${pieceLabel} adjacente`, points: payload.points, cardInstanceIds: cards };
+    case "score":
+      return { id: entry.id, icon: "score", text: `Pontuou ação ${payload.actionId ?? ""}`.trim(), points: payload.points, cardInstanceIds: cards };
+    case "spend":
+      return {
+        id: entry.id,
+        icon: "spend",
+        text: `Gastou ${payload.count ?? payload.resources?.length ?? 0} recurso(s)`,
+        points: payload.points,
+        cardInstanceIds: cards
+      };
+    default:
+      return null;
+  }
+}
+
+function fromMessage(entry: GameLogEntry, speciesId: SpeciesId | null): TurnSummaryEntry | null {
+  const id = entry.id;
+  const text = entry.message ?? "";
+  const lower = text.toLowerCase();
+  const pieceLabel = pieceShortName(speciesId);
+
+  const cardLabelMatch = text.match(/colocou\s+(Bosque|Campo|Rio|Inicial|Floresta)[^\.]*\sna floresta/i);
+  if (cardLabelMatch) {
+    const raw = cardLabelMatch[1].toLowerCase();
+    const habitat = raw.startsWith("bosque") || raw === "floresta" ? "Bosque"
+      : raw === "campo" ? "Campo"
+      : raw === "rio" ? "Rio"
+      : "floresta";
+    return { id, icon: "place", text: `Colocou carta de ${habitat}`, cardInstanceIds: [] };
+  }
+
+  const pointsMatch = text.match(/marcou\s+(\d+)\s+ponto/i);
+  if (pointsMatch) {
+    return { id, icon: "score", text: "Pontuou ação", points: Number(pointsMatch[1]), cardInstanceIds: [] };
+  }
+
+  const spendMatch = text.match(/gastou\s+(\d+)\s+(carne|recurso)/i);
+  if (spendMatch) {
+    return { id, icon: "spend", text: `Gastou ${spendMatch[1]} recurso(s)`, points: Number(spendMatch[1]), cardInstanceIds: [] };
+  }
+
+  if (lower.includes("dupla de quatis")) {
+    return { id, icon: "add", text: `Dupla de quatis: +1 ${pieceLabel} adjacente`, points: 1, cardInstanceIds: [] };
+  }
+
+  if (lower.includes("adicionou")) {
+    const adicionouMatch = text.match(/adicionou\s+\d+\s+([^\s\.]+)([^\.]*)/i);
+    return { id, icon: "add", text: adicionouMatch ? `Adicionou 1 ${adicionouMatch[1]}` : "Adicionou peça", cardInstanceIds: [] };
+  }
+
+  if (lower.includes("moveu")) {
+    return { id, icon: "move", text: `Moveu 1 ${pieceLabel}`, cardInstanceIds: [] };
+  }
+
+  if (lower.includes("removeu")) {
+    return { id, icon: "remove", text: "Removeu peça(s)", cardInstanceIds: [] };
+  }
+
+  if (lower.includes("escondeu")) {
+    return { id, icon: "hide", text: `Escondeu 1 ${pieceLabel}`, cardInstanceIds: [] };
+  }
+
+  if (lower.includes("posicionou")) {
+    return { id, icon: "add", text: `Posicionou ${pieceLabel} inicial`, cardInstanceIds: [] };
+  }
+
+  if (lower.includes("pulou") || lower.includes("concluiu") || lower.includes("avançou") || lower.includes("avancou")) {
+    return null;
+  }
+
+  return null;
+}
+
 function buildTurnSummaryEntries(
   entries: GameLogEntry[],
   speciesId: SpeciesId | null,
   scoreDelta: number
 ): TurnSummaryEntry[] {
   const out: TurnSummaryEntry[] = [];
-  const pieceLabel = pieceShortName(speciesId);
 
-  for (let i = 0; i < entries.length; i += 1) {
-    const entry = entries[i];
-    const payload = entry.payload;
-    if (!payload) continue;
-
-    const habitat = habitatFromEntry(entry);
-    const cards = payload.cardInstanceId ? [payload.cardInstanceId] : [];
-
-    switch (payload.kind) {
-      case "place_card":
-        out.push({
-          id: entry.id,
-          icon: "place",
-          text: `Colocou carta de ${habitat ?? "floresta"}`,
-          cardInstanceIds: cards
-        });
-        break;
-      case "setup_place":
-        out.push({
-          id: entry.id,
-          icon: "add",
-          text: `Posicionou ${pieceLabel} inicial em ${habitat ?? "carta inicial"}`,
-          cardInstanceIds: cards
-        });
-        break;
-      case "add_piece":
-        out.push({
-          id: entry.id,
-          icon: "add",
-          text: `Adicionou 1 ${pieceLabel}${habitat ? ` em ${habitat}` : ""}`,
-          cardInstanceIds: cards
-        });
-        break;
-      case "move_piece":
-        out.push({
-          id: entry.id,
-          icon: "move",
-          text: `Moveu 1 ${pieceLabel}${habitat ? ` para ${habitat}` : ""}`,
-          cardInstanceIds: cards
-        });
-        break;
-      case "remove_piece":
-        out.push({
-          id: entry.id,
-          icon: "remove",
-          text: payload.count && payload.count > 1
-            ? `Removeu ${payload.count} ${pieceLabel}(s)`
-            : `Removeu 1 peça${habitat ? ` em ${habitat}` : ""}`,
-          cardInstanceIds: cards
-        });
-        break;
-      case "hide_piece":
-        out.push({
-          id: entry.id,
-          icon: "hide",
-          text: `Escondeu 1 ${pieceLabel}${habitat ? ` em ${habitat}` : ""}`,
-          cardInstanceIds: cards
-        });
-        break;
-      case "pair_bonus":
-        out.push({
-          id: entry.id,
-          icon: "add",
-          text: `Dupla de quatis: +1 ${pieceLabel} adjacente`,
-          points: payload.points,
-          cardInstanceIds: cards
-        });
-        break;
-      case "score":
-        out.push({
-          id: entry.id,
-          icon: "score",
-          text: `Pontuou ação ${payload.actionId ?? ""}`.trim(),
-          points: payload.points,
-          cardInstanceIds: cards
-        });
-        break;
-      case "spend":
-        out.push({
-          id: entry.id,
-          icon: "spend",
-          text: `Gastou ${payload.count ?? payload.resources?.length ?? 0} recurso(s)`,
-          points: payload.points,
-          cardInstanceIds: cards
-        });
-        break;
-      default:
-        break;
+  for (const entry of entries) {
+    const fromPayloadEntry = fromPayload(entry, speciesId);
+    if (fromPayloadEntry) {
+      out.push(fromPayloadEntry);
+      continue;
+    }
+    const fromMessageEntry = fromMessage(entry, speciesId);
+    if (fromMessageEntry) {
+      out.push(fromMessageEntry);
     }
   }
 
@@ -1032,14 +1054,13 @@ export function App() {
       const finishedPlayer = game.players.find((candidate) => candidate.playerId === finishedSnapshot.playerId);
       if (finishedPlayer) {
         const scoreDelta = Math.max(0, finishedPlayer.score - finishedSnapshot.score);
-        const turnLog = game.log
-          .slice(finishedSnapshot.logLength)
-          .filter((entry) => {
-            const payload = entry.payload;
-            if (!payload) return false;
-            if (!payload.actorPlayerId) return true;
+        const turnLog = game.log.slice(finishedSnapshot.logLength).filter((entry) => {
+          const payload = entry.payload;
+          if (payload?.actorPlayerId) {
             return payload.actorPlayerId === finishedPlayer.playerId;
-          });
+          }
+          return entry.message?.startsWith(finishedPlayer.name) ?? false;
+        });
         setTurnSummary({
           key: Date.now(),
           playerName: finishedPlayer.name,
