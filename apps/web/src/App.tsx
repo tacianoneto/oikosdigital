@@ -403,6 +403,18 @@ export function App() {
     return () => window.clearInterval(interval);
   }, [room?.roomId, socket]);
 
+  useEffect(() => {
+    if (!notice) return;
+    const id = window.setTimeout(() => setNotice(null), 3200);
+    return () => window.clearTimeout(id);
+  }, [notice]);
+
+  useEffect(() => {
+    if (!error) return;
+    const id = window.setTimeout(() => setError(null), 4500);
+    return () => window.clearTimeout(id);
+  }, [error]);
+
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom ? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null : playerId;
   const currentPlayer = room?.players.find((player) => player.playerId === controlledPlayerId) ?? null;

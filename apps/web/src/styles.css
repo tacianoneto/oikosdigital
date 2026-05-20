@@ -547,7 +547,19 @@ label {
   max-width: min(520px, 70vw);
   backdrop-filter: blur(9px);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
-  animation: toast-rise 220ms ease;
+  animation: toast-rise 220ms ease, toast-fade 360ms ease forwards;
+  animation-delay: 0ms, 2800ms;
+}
+
+.status-message.hud-toast.error {
+  animation-delay: 0ms, 4100ms;
+}
+
+@keyframes toast-fade {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
 }
 
 @keyframes toast-rise {
