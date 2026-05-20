@@ -1522,7 +1522,7 @@ input:focus {
   position: relative;
   display: grid;
   gap: 10px;
-  padding: 12px 12px 12px 16px;
+  padding: 11px 10px 11px 14px;
   border-radius: 12px;
   background: linear-gradient(
     180deg,
@@ -1567,8 +1567,8 @@ input:focus {
 
 .player-summary-head {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
-  gap: 10px;
+  grid-template-columns: auto 40px 1fr auto;
+  gap: 8px;
   align-items: center;
   width: 100%;
   border: 0;
@@ -1578,6 +1578,27 @@ input:focus {
   color: inherit;
   border-radius: 8px;
   transition: opacity 120ms ease;
+}
+
+.player-summary-head .turn-order-badge {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Outfit, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+  background: color-mix(in srgb, var(--species, var(--panel)) 22%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 40%, transparent);
+  border-radius: 50%;
+}
+
+.player-row.active .turn-order-badge {
+  color: var(--species, var(--amber));
+  background: color-mix(in srgb, var(--species, var(--amber)) 22%, var(--panel));
+  border-color: color-mix(in srgb, var(--species, var(--amber)) 55%, transparent);
 }
 
 .player-summary-head.clickable {
@@ -1594,13 +1615,13 @@ input:focus {
 }
 
 .player-summary-head img {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   background: color-mix(in srgb, var(--species, var(--panel)) 18%, var(--panel));
   border: 2px solid color-mix(in srgb, var(--species, var(--line-soft)) 55%, transparent);
   border-radius: 50%;
-  padding: 4px;
+  padding: 3px;
 }
 
 .player-summary-head div {
@@ -1615,7 +1636,7 @@ input:focus {
   color: var(--paper);
   font-family: Outfit, sans-serif;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -1631,11 +1652,11 @@ input:focus {
 }
 
 .player-summary-head small {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 3px 8px;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--species, var(--amber)) 20%, transparent);
   color: var(--species, var(--amber));

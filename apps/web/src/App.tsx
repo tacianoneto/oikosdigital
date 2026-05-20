@@ -2444,7 +2444,21 @@ export function App() {
         <section className="panel-block">
           <h2>Jogadores</h2>
           <div className="player-list">
-            {(room?.players ?? []).map((player) => {
+            {(() => {
+              const players = room?.players ?? [];
+              if (!room?.game) return players;
+              const order =
+                room.game.status === "setup" ? room.game.setupOrder : room.game.turnOrder;
+              const indexBy = new Map(order.map((id, i) => [id, i]));
+              return [...players].sort((a, b) => {
+                const ai = indexBy.get(a.playerId);
+                const bi = indexBy.get(b.playerId);
+                if (ai === undefined && bi === undefined) return 0;
+                if (ai === undefined) return 1;
+                if (bi === undefined) return -1;
+                return ai - bi;
+              });
+            })().map((player, displayIndex) => {
               const gamePlayer = room?.game?.players.find((candidate) => candidate.playerId === player.playerId);
               const species = player.speciesId ? speciesDefinitions[player.speciesId] : null;
               const isActivePlayer = player.playerId === room?.game?.activePlayerId || player.playerId === room?.game?.setupActivePlayerId;
@@ -2462,10 +2476,13 @@ export function App() {
                   title={species ? `Ver tabuleiro de ${species.displayName}` : undefined}
                   onClick={() => player.speciesId && setBoardSpecies(player.speciesId)}
                 >
+                  {room?.game && <span className="turn-order-badge" aria-hidden="true">{displayIndex + 1}</span>}
                   {species && <img src={encodeURI(species.meepleAsset)} alt="" />}
                   <div>
                     <strong>{species?.displayName ?? "Sem especie"}</strong>
-                    <span>{player.name}</span>
+                    {!player.isBot && player.name && player.name !== species?.displayName && (
+                      <span>{player.name}</span>
+                    )}
                   </div>
                   <small>{isActivePlayer ? "Vez" : player.isBot ? "Bot" : player.ready ? "Pronto" : "Aguardando"}</small>
                 </button>
@@ -2511,32 +2528,6 @@ export function App() {
             {!room && <p className="empty-state">Crie ou entre em uma sala para ver jogadores.</p>}
           </div>
         </section>
-
-        {room?.game && (
-          <section className="panel-block">
-            <h2>{room.game.status === "setup" ? "Ordem de Setup" : "Ordem da Partida"}</h2>
-            <div className="turn-order">
-              {room.game.setupOrder.map((setupPlayerId, index) => {
-                const player = room.game?.players.find((candidate) => candidate.playerId === setupPlayerId);
-                const species = player?.speciesId ? speciesDefinitions[player.speciesId] : null;
-                const isActive =
-                  setupPlayerId === room.game?.setupActivePlayerId || setupPlayerId === room.game?.activePlayerId;
-
-                return (
-                  <div
-                    className={`turn-order-row ${isActive ? "active" : ""}`}
-                    key={setupPlayerId}
-                    style={speciesVar(player?.speciesId)}
-                  >
-                    <span>{index + 1}</span>
-                    <strong>{species?.displayName ?? "Espécie"}</strong>
-                    <small>{player?.name}</small>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
 
       </aside>
 
