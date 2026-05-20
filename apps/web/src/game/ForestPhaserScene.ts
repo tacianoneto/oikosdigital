@@ -25,9 +25,9 @@ export interface ForestSceneCallbacks {
 }
 
 const CARD = 196;
-const GAP = 22;
+const GAP = 6;
 const STEP = CARD + GAP;
-const RADIUS = 16;
+const RADIUS = 14;
 
 const SPECIES_COLOR: Record<string, number> = {
   jaguar: 0xe8a33d,
@@ -278,25 +278,16 @@ export class ForestPhaserScene extends Phaser.Scene {
     const c = this.add.container(0, 0);
 
     const shadow = this.add.graphics();
-    shadow.fillStyle(0x000000, 0.4);
-    shadow.fillRoundedRect(-CARD / 2 + 3, -CARD / 2 + 8, CARD, CARD, RADIUS);
+    shadow.fillStyle(0x000000, 0.22);
+    shadow.fillRoundedRect(-CARD / 2 + 2, -CARD / 2 + 5, CARD, CARD, RADIUS);
 
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0a1410, 1);
-    bg.fillRoundedRect(-CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
-
-    const art = CARD - 14;
-    const img = this.add.image(0, 0, `card:${def.id}`).setDisplaySize(art, art);
-
-    const corners = this.add.graphics();
-    corners.lineStyle(14, 0x0a1410, 1);
-    corners.strokeRoundedRect(-CARD / 2 + 7, -CARD / 2 + 7, CARD - 14, CARD - 14, RADIUS - 4);
+    const img = this.add.image(0, 0, `card:${def.id}`).setDisplaySize(CARD, CARD);
 
     const frame = this.add.graphics();
 
     const hit = this.add.rectangle(0, 0, CARD, CARD, 0xffffff, 0);
 
-    c.add([shadow, bg, img, corners, frame, hit]);
+    c.add([shadow, img, frame, hit]);
     c.setData("frame", frame);
     c.setData("hit", hit);
     return c;
