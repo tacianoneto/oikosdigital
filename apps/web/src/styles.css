@@ -1874,81 +1874,173 @@ input:focus {
 }
 
 .active-turn-block {
-  border-top: 5px solid var(--teal);
+  position: relative;
+  padding: 14px;
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      ellipse at top left,
+      color-mix(in srgb, var(--species, var(--amber)) 16%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--slot) 0%, var(--panel) 100%);
+  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 26%, var(--line-soft));
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.active-turn-block .section-title {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--paper) 10%, transparent);
+}
+
+.active-turn-block .section-title h2 {
+  color: color-mix(in srgb, var(--species, var(--amber)) 85%, var(--paper));
+  letter-spacing: 0.08em;
 }
 
 .active-turn-card {
   display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: 11px;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
   align-items: center;
-  border: var(--bw) solid var(--amber);
-  border-radius: 8px;
-  padding: 11px;
-  background: rgba(242, 193, 78, 0.1);
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--species, var(--amber)) 9%, transparent);
 }
 
 .active-turn-card img {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
+  background: color-mix(in srgb, var(--species, var(--panel)) 22%, var(--panel));
+  border: 2px solid color-mix(in srgb, var(--species, var(--amber)) 50%, transparent);
+  border-radius: 50%;
+  padding: 4px;
 }
 
 .active-turn-card div {
   display: grid;
-  gap: 3px;
+  gap: 2px;
+  min-width: 0;
+}
+
+.active-turn-card > div > span {
+  color: color-mix(in srgb, var(--paper) 55%, transparent);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .active-turn-card strong {
   color: var(--paper);
   font-family: Outfit, sans-serif;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
+  line-height: 1.1;
 }
 
-.action-list {
+.active-turn-card small {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--paper) 60%, transparent);
+}
+
+.active-turn-block .action-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  justify-content: center;
+  margin: 14px 0 12px;
+  padding: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.active-turn-block .action-list span {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-family: Outfit, sans-serif;
+  font-weight: 900;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--paper) 45%, transparent);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--paper) 12%, transparent);
+  transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.active-turn-block .action-list span.current {
+  color: var(--ink);
+  background: var(--species, var(--amber));
+  border-color: var(--species, var(--amber));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--species, var(--amber)) 25%, transparent);
+  transform: scale(1.08);
 }
 
 .current-action-card {
-  margin-top: 12px;
-  border: var(--bw) solid var(--line-soft);
-  border-radius: 8px;
-  padding: 12px;
-  background: var(--slot);
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
   display: grid;
-  gap: 8px;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  align-items: start;
 }
 
 .current-action-card > span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
+  grid-column: 1 / -1;
+  color: color-mix(in srgb, var(--paper) 50%, transparent);
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+  margin-bottom: -4px;
 }
 
 .current-action-card strong {
-  color: var(--amber);
+  color: var(--species, var(--amber));
   font-family: Outfit, sans-serif;
-  font-size: 26px;
+  font-size: 38px;
   font-weight: 900;
-  line-height: 1;
+  line-height: 0.9;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--species, var(--amber)) 14%, var(--ink));
+  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 40%, transparent);
 }
 
 .current-action-card p {
   font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: var(--paper);
+  font-weight: 500;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--paper) 88%, transparent);
+  align-self: center;
+}
+
+.current-action-card small,
+.current-action-card button {
+  grid-column: 1 / -1;
 }
 
 .current-action-card small {
-  color: var(--teal);
-  font-weight: 600;
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--species, var(--teal)) 12%, var(--ink));
+  border-left: 3px solid color-mix(in srgb, var(--species, var(--teal)) 55%, transparent);
+  color: color-mix(in srgb, var(--paper) 92%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .action-button-row {
@@ -2378,14 +2470,6 @@ input:focus {
 }
 
 .species-hud-header > img,
-.active-turn-card img {
-  border-color: var(--species, var(--line-soft));
-}
-
-.active-turn-block {
-  border-left: 4px solid var(--species, var(--amber));
-}
-
 .tabletop-turn img {
   border-color: var(--species, var(--line-soft));
 }
