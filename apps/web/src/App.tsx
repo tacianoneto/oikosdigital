@@ -2414,7 +2414,7 @@ export function App() {
         )}
 
         {hasStartedGame && (
-        <div className={`hud-action hud-dock hud-left ${hudLeftCollapsed ? "is-collapsed" : ""}`}>
+        <div className={`hud-action hud-dock hud-left ${hudLeftCollapsed ? "is-collapsed" : ""} ${turnSummary ? "has-turn-recap" : ""}`}>
         {room?.game?.status === "setup" && (
           <section className="panel-block setup-block">
             <div className="section-title">

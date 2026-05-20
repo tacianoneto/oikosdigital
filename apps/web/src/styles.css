@@ -32,6 +32,7 @@
   --r: 10px;
   --bw: 2px;
   --shadow: 0 10px 0 rgba(0, 0, 0, 0.28);
+  --left-recap-reserve: 210px;
 
   background: var(--bg);
   color: var(--paper);
@@ -159,15 +160,20 @@ label {
   z-index: 6;
   top: 16px;
   left: 16px;
-  width: min(312px, 27vw);
+  width: min(296px, 26vw);
 }
 
 /* action / setup panel — left, below species HUD, collapsible */
 .hud-action.hud-left {
-  top: 348px;
+  top: 284px;
   left: 16px;
-  width: min(312px, 27vw);
-  max-height: calc(100vh - 372px);
+  width: min(296px, 26vw);
+  max-height: calc(100vh - 308px);
+}
+
+.hud-action.hud-left.has-turn-recap {
+  bottom: calc(var(--left-recap-reserve) + 18px);
+  max-height: none;
 }
 
 .hud-left {
@@ -445,9 +451,10 @@ label {
 
 .turn-recap {
   position: fixed;
-  top: 82px;
-  left: 50%;
-  width: min(390px, 86vw);
+  left: 18px;
+  bottom: 18px;
+  width: min(360px, 92vw);
+  max-height: calc(var(--left-recap-reserve) - 28px);
   z-index: 55;
   background: rgba(16, 26, 20, 0.94);
   border: var(--bw) solid var(--species, var(--line-soft));
@@ -458,7 +465,6 @@ label {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
   animation: turn-recap-in 240ms ease-out;
-  transform: translateX(-50%);
   transition: padding 180ms ease;
 }
 
@@ -468,8 +474,8 @@ label {
 }
 
 @keyframes turn-recap-in {
-  from { transform: translateX(-50%) translateY(-12px); opacity: 0; }
-  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .turn-recap-head {
@@ -601,7 +607,7 @@ label {
   padding: 0;
   display: grid;
   gap: 4px;
-  max-height: 240px;
+  max-height: 94px;
   overflow-y: auto;
 }
 
@@ -660,7 +666,8 @@ label {
 
 @media (max-width: 520px) {
   .turn-recap {
-    top: 70px;
+    left: 12px;
+    bottom: 12px;
     width: calc(100vw - 24px);
     padding: 10px;
   }
@@ -1030,65 +1037,66 @@ input:focus {
 /* ---- species HUD ---- */
 .species-hud {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   border-top: 5px solid var(--amber);
+  padding: 12px;
 }
 
 .species-hud-header {
   display: grid;
-  grid-template-columns: 60px 1fr;
-  gap: 13px;
+  grid-template-columns: 50px 1fr;
+  gap: 10px;
   align-items: center;
 }
 
 .species-hud-header > img {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   object-fit: contain;
   border-radius: 50%;
-  padding: 7px;
+  padding: 5px;
   background: var(--slot);
-  border: 3px solid var(--amber);
+  border: 2px solid var(--amber);
 }
 
 .species-hud-header h2 {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 900;
   text-transform: none;
   letter-spacing: -0.01em;
 }
 
 .species-hud-header p {
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .hud-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 9px;
+  gap: 7px;
 }
 
 .hud-stat-card {
-  min-height: 78px;
+  min-height: 58px;
   border: var(--bw) solid var(--line-soft);
   border-radius: 8px;
-  padding: 10px;
+  padding: 7px;
   display: grid;
-  gap: 4px;
+  gap: 2px;
   align-content: center;
   background: var(--slot);
 }
 
 .hud-stat-card svg,
 .hud-stat-card img {
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   object-fit: contain;
   color: var(--amber);
 }
 
 .hud-stat-card span {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1096,7 +1104,7 @@ input:focus {
 
 .hud-stat-card strong {
   color: var(--paper);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 900;
   line-height: 1;
 }
@@ -1104,35 +1112,35 @@ input:focus {
 .resource-bank {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  gap: 7px;
 }
 
 .resource-chip {
-  min-height: 46px;
+  min-height: 38px;
   border: var(--bw) solid var(--line-soft);
   border-radius: 8px;
-  padding: 7px 9px;
+  padding: 5px 7px;
   display: grid;
-  grid-template-columns: 26px 1fr auto;
-  gap: 8px;
+  grid-template-columns: 22px 1fr auto;
+  gap: 6px;
   align-items: center;
   background: var(--slot);
 }
 
 .resource-chip img {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
 }
 
 .resource-chip span {
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
 }
 
 .resource-chip strong {
   color: var(--paper);
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 900;
 }
 
@@ -2109,7 +2117,8 @@ input:focus {
 
 .active-turn-block {
   display: grid;
-  gap: 14px;
+  gap: 10px;
+  padding: 12px;
   border-top: 5px solid var(--species, var(--amber));
   border-color: color-mix(in srgb, var(--species, var(--line)) 55%, var(--line));
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55),
@@ -2122,10 +2131,15 @@ input:focus {
   letter-spacing: 0.08em;
 }
 
+.active-turn-block .section-title {
+  margin-bottom: 4px;
+  padding-bottom: 7px;
+}
+
 .active-turn-card {
   display: grid;
-  grid-template-columns: 60px 1fr;
-  gap: 13px;
+  grid-template-columns: 48px 1fr;
+  gap: 10px;
   align-items: center;
   border: 0;
   padding: 0;
@@ -2133,13 +2147,13 @@ input:focus {
 }
 
 .active-turn-card img {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   background: var(--slot);
-  border: 3px solid var(--species, var(--amber));
+  border: 2px solid var(--species, var(--amber));
   border-radius: 50%;
-  padding: 7px;
+  padding: 5px;
 }
 
 .active-turn-card div {
@@ -2159,37 +2173,37 @@ input:focus {
 .active-turn-card strong {
   color: var(--paper);
   font-family: Outfit, sans-serif;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 900;
   line-height: 1.05;
   letter-spacing: -0.01em;
 }
 
 .active-turn-card small {
-  font-size: 13px;
+  font-size: 12px;
   color: color-mix(in srgb, var(--paper) 65%, transparent);
 }
 
 .active-turn-block .action-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   justify-content: center;
-  margin: 14px 0 12px;
-  padding: 8px;
+  margin: 6px 0 4px;
+  padding: 6px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--ink) 35%, transparent);
 }
 
 .active-turn-block .action-list span {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: inline-grid;
   place-items: center;
   font-family: Outfit, sans-serif;
   font-weight: 900;
-  font-size: 13px;
+  font-size: 12px;
   color: color-mix(in srgb, var(--paper) 45%, transparent);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--paper) 12%, transparent);
@@ -2205,13 +2219,13 @@ input:focus {
 }
 
 .current-action-card {
-  margin-top: 4px;
+  margin-top: 0;
   border: 0;
   background: transparent;
   padding: 0;
   display: grid;
-  grid-template-columns: 52px 1fr;
-  gap: 12px;
+  grid-template-columns: 42px 1fr;
+  gap: 9px;
   align-items: start;
 }
 
@@ -2228,11 +2242,11 @@ input:focus {
 .current-action-card strong {
   color: var(--species, var(--amber));
   font-family: Outfit, sans-serif;
-  font-size: 38px;
+  font-size: 30px;
   font-weight: 900;
   line-height: 0.9;
-  width: 52px;
-  height: 52px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border-radius: 14px;
@@ -2241,9 +2255,9 @@ input:focus {
 }
 
 .current-action-card p {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.32;
   color: color-mix(in srgb, var(--paper) 88%, transparent);
   align-self: center;
 }
@@ -2255,14 +2269,14 @@ input:focus {
 
 .current-action-card small {
   display: block;
-  padding: 8px 10px;
+  padding: 7px 9px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--species, var(--teal)) 12%, var(--ink));
   border-left: 3px solid color-mix(in srgb, var(--species, var(--teal)) 55%, transparent);
   color: color-mix(in srgb, var(--paper) 92%, transparent);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
-  line-height: 1.4;
+  line-height: 1.3;
 }
 
 .action-button-row {
