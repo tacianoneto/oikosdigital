@@ -1983,7 +1983,15 @@ input:focus {
   padding-top: 1px;
   font-size: 12px;
   line-height: 1;
+  color: #000;
+  opacity: 1;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.player-summary-stats .stat-score .num-roll,
+.player-summary-stats .stat-score .num-roll.active {
+  color: #000;
+  opacity: 1;
 }
 
 .player-piece-track {
