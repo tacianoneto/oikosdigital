@@ -1966,7 +1966,7 @@ input:focus {
   font-family: Outfit, sans-serif;
   font-size: 12px;
   font-weight: 800;
-  color: var(--ink);
+  color: #000;
 }
 
 .player-summary-stats .stat-score img {
@@ -1999,9 +1999,6 @@ input:focus {
   width: 21px;
   height: 21px;
   object-fit: contain;
-  border-radius: 50%;
-  padding: 2px;
-  background: color-mix(in srgb, var(--species, var(--panel)) 16%, rgba(0, 0, 0, 0.2));
   transition: filter 120ms ease, opacity 120ms ease;
 }
 
