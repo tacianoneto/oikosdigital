@@ -149,6 +149,15 @@ interface TravelEffect {
   to: { x: number; y: number };
 }
 
+interface FlyingCard {
+  id: number;
+  src: string;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  size: number;
+  rotation: 0 | 90 | 180 | 270;
+}
+
 interface TurnSummary {
   key: number;
   playerName: string;
@@ -314,6 +323,27 @@ export function App() {
   const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
   const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
   const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
+  const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);
+  const flyingCardSeqRef = useRef(0);
+  const [cardDrag, setCardDrag] = useState<{
+    cardId: string;
+    src: string;
+    size: number;
+    x: number;
+    y: number;
+    target: { x: number; y: number } | null;
+  } | null>(null);
+  const dragJustHandledRef = useRef(false);
+  const pendingDragRef = useRef<
+    | {
+        cardId: string;
+        src: string;
+        size: number;
+        startX: number;
+        startY: number;
+      }
+    | null
+  >(null);
   const [turnSummary, setTurnSummary] = useState<TurnSummary | null>(null);
   const [showJaguarScoreModal, setShowJaguarScoreModal] = useState(false);
   const prevTurnRef = useRef<string | null>(null);
@@ -408,6 +438,7 @@ export function App() {
     const id = window.setTimeout(() => setNotice(null), 3200);
     return () => window.clearTimeout(id);
   }, [notice]);
+
 
   useEffect(() => {
     if (!error) return;
@@ -1063,19 +1094,62 @@ export function App() {
         return;
       }
 
+      // Capture flying-card animation source (hand card) and target (grid cell).
+      const handEl = document.querySelector(
+        `[data-card-id="${selectedHandCardId}"] img`
+      ) as HTMLImageElement | null;
+      const handRect = handEl?.getBoundingClientRect();
+      const dest = forestCanvasRef.current?.getCardCenter(position);
+      let flyingId: number | null = null;
+      if (handEl && handRect && dest) {
+        const def = getForestCardDefinition(selectedHandCardId);
+        flyingId = ++flyingCardSeqRef.current;
+        const id = flyingId;
+        const size = handRect.width;
+        setFlyingCards((current) => [
+          ...current,
+          {
+            id,
+            src: encodeURI(def.imagePath),
+            from: { x: handRect.left + handRect.width / 2, y: handRect.top + handRect.height / 2 },
+            to: { x: dest.x, y: dest.y },
+            size,
+            rotation: selectedCardRotation
+          }
+        ]);
+        window.setTimeout(() => {
+          setFlyingCards((current) => current.filter((c) => c.id !== id));
+        }, 560);
+      }
+      const placementDelay = flyingId !== null ? 420 : 0;
+
       if (isLocalRoom) {
-        const nextGame = placeForestCard(room.game, room.game.activePlayerId, selectedHandCardId, position, selectedCardRotation);
-        setRoom({
-          ...room,
-          status: "active",
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setSelectedHandCardId(null);
-        setSelectedCardRotation(0);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice("Carta colocada na floresta.");
+        const game = room.game;
+        const activePlayerId = game.activePlayerId;
+        if (!activePlayerId) {
+          return;
+        }
+        const cardId = selectedHandCardId;
+        const rotation = selectedCardRotation;
+        const apply = () => {
+          const nextGame = placeForestCard(game, activePlayerId, cardId, position, rotation);
+          setRoom((current) => current ? {
+            ...current,
+            status: "active",
+            game: nextGame,
+            warnings: nextGame.contentWarnings
+          } : current);
+          setSelectedHandCardId(null);
+          setSelectedCardRotation(0);
+          setSelectedPieceId(null);
+          setSelectedRemovalPieceIds([]);
+          setNotice("Carta colocada na floresta.");
+        };
+        if (placementDelay > 0) {
+          window.setTimeout(apply, placementDelay);
+        } else {
+          apply();
+        }
         return;
       }
 
@@ -1673,6 +1747,44 @@ export function App() {
 
   return (
     <main className={`app-shell ${hasStartedGame ? "game-active" : "menu-active"}`}>
+      {cardDrag && (
+        <div className="card-drag-layer" aria-hidden="true">
+          <span
+            className={`card-drag-ghost ${cardDrag.target ? "locked" : ""}`}
+            style={
+              {
+                "--ghost-x": `${cardDrag.x}px`,
+                "--ghost-y": `${cardDrag.y}px`,
+                "--ghost-size": `${cardDrag.size}px`
+              } as CSSProperties
+            }
+          >
+            <img src={cardDrag.src} alt="" />
+          </span>
+        </div>
+      )}
+      {flyingCards.length > 0 && (
+        <div className="flying-card-layer" aria-hidden="true">
+          {flyingCards.map((fc) => (
+            <span
+              key={fc.id}
+              className="flying-card"
+              style={
+                {
+                  "--from-x": `${fc.from.x}px`,
+                  "--from-y": `${fc.from.y}px`,
+                  "--to-x": `${fc.to.x}px`,
+                  "--to-y": `${fc.to.y}px`,
+                  "--card-size": `${fc.size}px`,
+                  "--rot": `${fc.rotation}deg`
+                } as CSSProperties
+              }
+            >
+              <img src={fc.src} alt="" />
+            </span>
+          ))}
+        </div>
+      )}
       {travelEffects.length > 0 && (
         <div className="travel-effect-layer" aria-hidden="true">
           {travelEffects.map((effect) => {
@@ -2383,11 +2495,98 @@ export function App() {
                         key={card.id}
                         role="button"
                         tabIndex={canSelectHandCards ? 0 : -1}
+                        data-card-id={card.id}
                         className={`hand-card ${isSelected ? "selected" : ""} ${
                           handPlayableThisAction ? "playable" : "not-playable"
-                        }`}
+                        } ${cardDrag?.cardId === card.id ? "dragging" : ""}`}
                         style={{ ["--hand-index" as string]: handIndex }}
+                        onPointerDown={(event) => {
+                          if (!canSelectHandCards || event.button !== 0) {
+                            return;
+                          }
+                          if (!handPlayableThisAction || !canPlaceSelectedForestCard) {
+                            return;
+                          }
+                          const target = event.currentTarget as HTMLDivElement;
+                          const rect = target.getBoundingClientRect();
+                          const startX = event.clientX;
+                          const startY = event.clientY;
+                          pendingDragRef.current = {
+                            cardId: card.id,
+                            src: encodeURI(card.imagePath),
+                            size: rect.width,
+                            startX,
+                            startY
+                          };
+                          let activated = false;
+                          const handleMove = (e: PointerEvent) => {
+                            const pending = pendingDragRef.current;
+                            if (!pending) return;
+                            const x = e.clientX;
+                            const y = e.clientY;
+                            if (!activated) {
+                              const dx = x - pending.startX;
+                              const dy = y - pending.startY;
+                              if (dx * dx + dy * dy < 36) return;
+                              activated = true;
+                              if (selectedHandCardId !== pending.cardId) {
+                                setSelectedHandCardId(pending.cardId);
+                                setSelectedCardRotation(0);
+                              }
+                            }
+                            const currentTargets =
+                              forestCanvasRef.current && expansionTargets.length > 0
+                                ? expansionTargets
+                                : [];
+                            let nearest: { x: number; y: number } | null = null;
+                            let nearestDist = Infinity;
+                            for (const t of currentTargets) {
+                              const center = forestCanvasRef.current?.getCardCenter(t);
+                              if (!center) continue;
+                              const ddx = center.x - x;
+                              const ddy = center.y - y;
+                              const d = ddx * ddx + ddy * ddy;
+                              if (d < nearestDist && d < 110 * 110) {
+                                nearestDist = d;
+                                nearest = t;
+                              }
+                            }
+                            setCardDrag({
+                              cardId: pending.cardId,
+                              src: pending.src,
+                              size: pending.size,
+                              x,
+                              y,
+                              target: nearest
+                            });
+                          };
+                          const handleUp = () => {
+                            document.removeEventListener("pointermove", handleMove);
+                            document.removeEventListener("pointerup", handleUp);
+                            document.removeEventListener("pointercancel", handleUp);
+                            const pending = pendingDragRef.current;
+                            pendingDragRef.current = null;
+                            if (!activated || !pending) {
+                              setCardDrag(null);
+                              return;
+                            }
+                            dragJustHandledRef.current = true;
+                            setCardDrag((current) => {
+                              if (current?.target) {
+                                handleExpansionTargetClick(current.target);
+                              }
+                              return null;
+                            });
+                          };
+                          document.addEventListener("pointermove", handleMove);
+                          document.addEventListener("pointerup", handleUp);
+                          document.addEventListener("pointercancel", handleUp);
+                        }}
                         onClick={() => {
+                          if (dragJustHandledRef.current) {
+                            dragJustHandledRef.current = false;
+                            return;
+                          }
                           if (!canSelectHandCards) {
                             return;
                           }

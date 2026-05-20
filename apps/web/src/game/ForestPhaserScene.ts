@@ -210,21 +210,38 @@ export class ForestPhaserScene extends Phaser.Scene {
       if (!obj) {
         const root = this.buildCard(def);
         root.setPosition(w.x, w.y);
-        root.setScale(0.7);
-        root.setAlpha(0);
         root.setAngle(card.rotation - 6);
         this.cardLayer.add(root);
         obj = { root };
         this.cardObjs.set(card.instanceId, obj);
-        this.tweens.add({
-          targets: root,
-          scale: 1,
-          alpha: 1,
-          angle: card.rotation,
-          duration: 380,
-          ease: "Back.easeOut"
-        });
-        if (!card.isInitial) {
+
+        if (card.isInitial) {
+          const diagonal = card.x - card.y + 2; // 0..4 across 3x3 anti-diagonals
+          const delay = Math.max(0, diagonal) * 90;
+          root.setScale(0.55);
+          root.setAlpha(0);
+          root.setY(w.y - 36);
+          this.tweens.add({
+            targets: root,
+            y: w.y,
+            scale: 1,
+            alpha: 1,
+            angle: card.rotation,
+            duration: 460,
+            delay,
+            ease: "Back.easeOut"
+          });
+        } else {
+          root.setScale(0.7);
+          root.setAlpha(0);
+          this.tweens.add({
+            targets: root,
+            scale: 1,
+            alpha: 1,
+            angle: card.rotation,
+            duration: 380,
+            ease: "Back.easeOut"
+          });
           this.spawnLeafBurst(w.x, w.y);
         }
       } else {
