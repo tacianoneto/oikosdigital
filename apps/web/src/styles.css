@@ -32,7 +32,7 @@
   --r: 10px;
   --bw: 2px;
   --shadow: 0 10px 0 rgba(0, 0, 0, 0.28);
-  --left-recap-reserve: 210px;
+  --left-recap-reserve: 260px;
 
   background: var(--bg);
   color: var(--paper);
@@ -461,7 +461,9 @@ label {
   border-radius: 14px;
   padding: 12px 14px;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 10px;
+  overflow: hidden;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
   animation: turn-recap-in 240ms ease-out;
@@ -628,7 +630,8 @@ label {
   padding: 0;
   display: grid;
   gap: 4px;
-  max-height: 94px;
+  min-height: 0;
+  max-height: 122px;
   overflow-y: auto;
 }
 
