@@ -445,9 +445,9 @@ label {
 
 .turn-recap {
   position: fixed;
-  left: 18px;
-  bottom: 18px;
-  width: min(360px, 92vw);
+  top: 82px;
+  left: 50%;
+  width: min(390px, 86vw);
   z-index: 55;
   background: rgba(16, 26, 20, 0.94);
   border: var(--bw) solid var(--species, var(--line-soft));
@@ -458,6 +458,7 @@ label {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(6px);
   animation: turn-recap-in 240ms ease-out;
+  transform: translateX(-50%);
   transition: padding 180ms ease;
 }
 
@@ -467,13 +468,13 @@ label {
 }
 
 @keyframes turn-recap-in {
-  from { transform: translateY(12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { transform: translateX(-50%) translateY(-12px); opacity: 0; }
+  to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
 
 .turn-recap-head {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto auto;
   align-items: center;
   gap: 10px;
 }
@@ -529,6 +530,45 @@ label {
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.turn-recap-history {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: var(--bw) solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.turn-recap-history span {
+  min-width: 36px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.turn-recap-history-btn {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--paper);
+}
+
+.turn-recap-history-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.turn-recap-history-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .turn-recap-close,
@@ -616,6 +656,45 @@ label {
   color: var(--amber);
   font-weight: 800;
   font-size: 12px;
+}
+
+@media (max-width: 520px) {
+  .turn-recap {
+    top: 70px;
+    width: calc(100vw - 24px);
+    padding: 10px;
+  }
+
+  .turn-recap-head {
+    gap: 6px;
+  }
+
+  .turn-recap-head img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .turn-recap-title h3 {
+    font-size: 13px;
+  }
+
+  .turn-recap-score {
+    padding: 3px 6px;
+  }
+
+  .turn-recap-score span {
+    font-size: 15px;
+  }
+
+  .turn-recap-history span {
+    min-width: 26px;
+    font-size: 9px;
+  }
+
+  .turn-recap-history-btn {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .choice-count-grid {

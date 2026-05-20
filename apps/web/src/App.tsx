@@ -75,7 +75,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { ActionId, GameLogEntry, GameState, GridPosition, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
+import type { ActionId, GameLogEntry, GameState, GridPosition, PieceState, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
 
@@ -174,6 +174,12 @@ interface TurnSummary {
   entries: TurnSummaryEntry[];
 }
 
+interface TurnRecapState {
+  history: TurnSummary[];
+  index: number;
+  visible: boolean;
+}
+
 const categoryLabels = {
   predator: "Predador",
   subpredator: "Subpredador",
@@ -185,6 +191,7 @@ const localRoomId = "LOCAL";
 const resourceOrder: Resource[] = ["meat", "egg", "fruit", "seed"];
 const lastOnlineRoomStorageKey = "oikos:last-online-room";
 const lastOnlineNameStorageKey = "oikos:last-online-name";
+const maxTurnHistory = 20;
 
 function elementCenter(element: HTMLElement | null | undefined): { x: number; y: number } | null {
   if (!element) {
@@ -238,17 +245,42 @@ function pieceShortName(speciesId: SpeciesId | null | undefined): string {
   }
 }
 
+function pieceDisplayName(speciesId: SpeciesId | null | undefined): string {
+  return speciesId ? speciesDefinitions[speciesId]?.displayName ?? pieceShortName(speciesId) : "peca";
+}
+
+function summarizePiecesBySpecies(pieces: PieceState[], fallbackSpeciesId: SpeciesId | null, fallbackCount = 1): string {
+  const counts = new Map<SpeciesId, number>();
+  for (const piece of pieces) {
+    counts.set(piece.speciesId, (counts.get(piece.speciesId) ?? 0) + 1);
+  }
+
+  if (counts.size === 0) {
+    const count = Math.max(1, fallbackCount);
+    const label = pieceDisplayName(fallbackSpeciesId);
+    return count === 1 ? label : `${count}x ${label}`;
+  }
+
+  return [...counts.entries()]
+    .map(([pieceSpeciesId, count]) => (count === 1 ? pieceDisplayName(pieceSpeciesId) : `${count}x ${pieceDisplayName(pieceSpeciesId)}`))
+    .join(", ");
+}
+
 function habitatFromEntry(entry: GameLogEntry): string | null {
   const habitat = entry.payload?.habitat;
   return habitat ? habitatShortLabel[habitat] : null;
 }
 
-function fromPayload(entry: GameLogEntry, speciesId: SpeciesId | null): TurnSummaryEntry | null {
+function fromPayload(entry: GameLogEntry, speciesId: SpeciesId | null, pieceById: Map<string, PieceState>): TurnSummaryEntry | null {
   const payload = entry.payload;
   if (!payload) return null;
   const pieceLabel = pieceShortName(speciesId);
+  const actorLabel = pieceDisplayName(speciesId);
   const habitat = habitatFromEntry(entry);
   const cards = payload.cardInstanceId ? [payload.cardInstanceId] : [];
+  const payloadPieces = (payload.pieceIds ?? [])
+    .map((pieceId) => pieceById.get(pieceId))
+    .filter((piece): piece is PieceState => Boolean(piece));
 
   switch (payload.kind) {
     case "place_card":
@@ -260,12 +292,19 @@ function fromPayload(entry: GameLogEntry, speciesId: SpeciesId | null): TurnSumm
     case "move_piece":
       return { id: entry.id, icon: "move", text: `Moveu 1 ${pieceLabel}${habitat ? ` para ${habitat}` : ""}`, cardInstanceIds: cards };
     case "remove_piece":
+      const removedPieces =
+        payloadPieces.length > 1 && payload.actorPlayerId
+          ? payloadPieces.filter((piece) => piece.ownerId !== payload.actorPlayerId)
+          : payloadPieces;
+      const removedLabel = summarizePiecesBySpecies(
+        removedPieces.length > 0 ? removedPieces : payloadPieces,
+        speciesId,
+        payload.count ?? 1
+      );
       return {
         id: entry.id,
         icon: "remove",
-        text: payload.count && payload.count > 1
-          ? `Removeu ${payload.count} ${pieceLabel}(s)`
-          : `Removeu 1 peça${habitat ? ` em ${habitat}` : ""}`,
+        text: `${actorLabel} removeu ${removedLabel}${habitat ? ` em ${habitat}` : ""}`,
         cardInstanceIds: cards
       };
     case "hide_piece":
@@ -348,12 +387,14 @@ function fromMessage(entry: GameLogEntry, speciesId: SpeciesId | null): TurnSumm
 function buildTurnSummaryEntries(
   entries: GameLogEntry[],
   speciesId: SpeciesId | null,
-  scoreDelta: number
+  scoreDelta: number,
+  pieces: PieceState[]
 ): TurnSummaryEntry[] {
   const out: TurnSummaryEntry[] = [];
+  const pieceById = new Map(pieces.map((piece) => [piece.pieceId, piece]));
 
   for (const entry of entries) {
-    const fromPayloadEntry = fromPayload(entry, speciesId);
+    const fromPayloadEntry = fromPayload(entry, speciesId, pieceById);
     if (fromPayloadEntry) {
       out.push(fromPayloadEntry);
       continue;
@@ -495,15 +536,29 @@ export function App() {
       }
     | null
   >(null);
-  const [turnSummary, setTurnSummary] = useState<TurnSummary | null>(null);
+  const [turnRecap, setTurnRecap] = useState<TurnRecapState>({ history: [], index: -1, visible: false });
   const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
-  const [recapCollapsed, setRecapCollapsed] = useState(false);
+  const [recapCollapsed, setRecapCollapsed] = useState(true);
+  const turnSummary =
+    turnRecap.visible && turnRecap.index >= 0 ? turnRecap.history[turnRecap.index] ?? null : null;
 
   useEffect(() => {
-    if (!turnSummary) return;
-    const timer = window.setTimeout(() => setTurnSummary(null), 14000);
-    return () => window.clearTimeout(timer);
-  }, [turnSummary]);
+    if (recapCollapsed || !turnSummary) {
+      setHoveredSummaryCardIds([]);
+    }
+  }, [recapCollapsed, turnSummary?.key]);
+
+  useEffect(() => {
+    if (room?.game?.status === "active") {
+      return;
+    }
+
+    setHoveredSummaryCardIds([]);
+    setRecapCollapsed(true);
+    setTurnRecap((current) =>
+      current.history.length > 0 || current.visible ? { history: [], index: -1, visible: false } : current
+    );
+  }, [room?.game?.gameId, room?.game?.status]);
   const [showJaguarScoreModal, setShowJaguarScoreModal] = useState(false);
   const prevTurnRef = useRef<string | null>(null);
   const prevSnapshotRef = useRef<{ playerId: string; score: number; resources: Record<string, number> } | null>(null);
@@ -689,10 +744,10 @@ export function App() {
     [canPlaceSelectedForestCard, room?.game, selectedCardRotation, selectedHandCardId]
   );
   const spotlightInstanceIds = useMemo(() => {
-    if (!room?.game || hoveredSummaryCardIds.length === 0) return [];
+    if (!room?.game || room.game.status !== "active" || recapCollapsed || !turnSummary || hoveredSummaryCardIds.length === 0) return [];
     const alive = new Set(room.game.forest.cards.map((card) => card.instanceId));
     return hoveredSummaryCardIds.filter((id) => alive.has(id));
-  }, [hoveredSummaryCardIds, room?.game]);
+  }, [hoveredSummaryCardIds, recapCollapsed, room?.game, turnSummary?.key]);
   const selectablePieceIds = useMemo(() => {
     if (!room?.game || hasPendingCoatiPairBonus || !canControlActivePlayer) {
       return [];
@@ -905,6 +960,32 @@ export function App() {
     return [...new Set(warnings)];
   }, [room]);
 
+  function appendTurnSummary(summary: TurnSummary): void {
+    setTurnRecap((current) => {
+      const history = [...current.history, summary].slice(-maxTurnHistory);
+      return { history, index: history.length - 1, visible: true };
+    });
+    setRecapCollapsed(true);
+    setHoveredSummaryCardIds([]);
+  }
+
+  function closeTurnRecap(): void {
+    setTurnRecap((current) => ({ ...current, visible: false }));
+    setHoveredSummaryCardIds([]);
+  }
+
+  function moveTurnRecapHistory(delta: -1 | 1): void {
+    setTurnRecap((current) => {
+      if (current.history.length === 0) {
+        return current;
+      }
+
+      const nextIndex = Math.max(0, Math.min(current.history.length - 1, current.index + delta));
+      return { ...current, index: nextIndex, visible: true };
+    });
+    setHoveredSummaryCardIds([]);
+  }
+
   useEffect(() => {
     if (selectedHandCardId && !handCards.some((card) => card.id === selectedHandCardId)) {
       setSelectedHandCardId(null);
@@ -1061,14 +1142,13 @@ export function App() {
           }
           return entry.message?.startsWith(finishedPlayer.name) ?? false;
         });
-        setTurnSummary({
+        appendTurnSummary({
           key: Date.now(),
           playerName: finishedPlayer.name,
           speciesId: finishedPlayer.speciesId,
           scoreDelta,
-          entries: buildTurnSummaryEntries(turnLog, finishedPlayer.speciesId, scoreDelta)
+          entries: buildTurnSummaryEntries(turnLog, finishedPlayer.speciesId, scoreDelta, game.pieces)
         });
-        setRecapCollapsed(false);
       }
 
       const nextPlayer = game.players.find((candidate) => candidate.playerId === activePlayerId);
@@ -3111,7 +3191,7 @@ export function App() {
           </div>
         )}
 
-      {turnSummary && (
+      {turnSummary && room?.game?.status === "active" && (
         <aside
           className={`turn-recap ${recapCollapsed ? "is-collapsed" : ""}`}
           role="status"
@@ -3126,6 +3206,27 @@ export function App() {
             <div className="turn-recap-title">
               <span>Turno anterior</span>
               <h3>{turnSummary.playerName}</h3>
+            </div>
+            <div className="turn-recap-history" aria-label="Historico de turnos">
+              <button
+                type="button"
+                className="turn-recap-history-btn"
+                onClick={() => moveTurnRecapHistory(-1)}
+                disabled={turnRecap.index <= 0}
+                aria-label="Ver turno mais antigo"
+              >
+                <ChevronLeft aria-hidden="true" />
+              </button>
+              <span>{turnRecap.index + 1}/{turnRecap.history.length}</span>
+              <button
+                type="button"
+                className="turn-recap-history-btn"
+                onClick={() => moveTurnRecapHistory(1)}
+                disabled={turnRecap.index >= turnRecap.history.length - 1}
+                aria-label="Ver turno mais recente"
+              >
+                <ChevronRight aria-hidden="true" />
+              </button>
             </div>
             <div className="turn-recap-score" title="Pontos no turno">
               <span>+{turnSummary.scoreDelta}</span>
@@ -3143,7 +3244,7 @@ export function App() {
             <button
               type="button"
               className="turn-recap-close"
-              onClick={() => setTurnSummary(null)}
+              onClick={closeTurnRecap}
               aria-label="Fechar resumo"
             >
               <X aria-hidden="true" />
