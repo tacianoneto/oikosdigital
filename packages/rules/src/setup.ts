@@ -675,7 +675,16 @@ export function placeInitialPiece(game: GameState, playerId: string, location: G
     {
       id: `setup_place_${pieceId}`,
       message: `${nextPlayer.name} posicionou uma peça inicial.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "setup_place",
+        actorPlayerId: playerId,
+        cardInstanceId: targetCard.instanceId,
+        cardDefinitionId: targetCard.definitionId,
+        habitat: getCardDefinitionOrNull(targetCard.definitionId)?.habitat ?? undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId]
+      }
     }
   ];
 
@@ -764,10 +773,11 @@ export function placeForestCard(
   const nextPlayer = findPlayer(next, playerId);
   const cardIndex = nextPlayer.hand.indexOf(cardId);
   nextPlayer.hand = nextPlayer.hand.filter((candidate, index) => candidate !== cardId || index !== cardIndex);
+  const newCardInstanceId = `played_${cardId}_${next.forest.cards.length + 1}`;
   next.forest.cards = [
     ...next.forest.cards,
     {
-      instanceId: `played_${cardId}_${next.forest.cards.length + 1}`,
+      instanceId: newCardInstanceId,
       definitionId: cardId,
       x: location.x,
       y: location.y,
@@ -781,7 +791,15 @@ export function placeForestCard(
     {
       id: `place_card_${cardId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} colocou ${cardDefinition.label} na floresta.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "place_card",
+        actorPlayerId: playerId,
+        cardInstanceId: newCardInstanceId,
+        cardDefinitionId: cardId,
+        habitat: cardDefinition.habitat ?? undefined,
+        location: { x: location.x, y: location.y }
+      }
     }
   ];
 
@@ -884,7 +902,16 @@ export function addCoatiForCurrentAction(game: GameState, playerId: string, loca
     {
       id: `add_coati_${pieceId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} adicionou 1 quati em local de fruta.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: targetCard.instanceId,
+        cardDefinitionId: targetCard.definitionId,
+        habitat: getCardDefinitionOrNull(targetCard.definitionId)?.habitat ?? undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId]
+      }
     }
   ];
 
@@ -957,12 +984,23 @@ export function resolveCoatiPairBonus(game: GameState, playerId: string, locatio
   nextPlayer.score += 1;
   next.resolvedCoatiPairBonuses = [...new Set([...next.resolvedCoatiPairBonuses, pending.pairKey])];
   next.pendingCoatiPairBonus = null;
+  const bonusTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
     {
       id: `coati_pair_bonus_${pieceId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} formou uma dupla de quatis, adicionou 1 quati adjacente e marcou 1 ponto.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "pair_bonus",
+        actorPlayerId: playerId,
+        cardInstanceId: bonusTargetCard?.instanceId,
+        cardDefinitionId: bonusTargetCard?.definitionId,
+        habitat: bonusTargetCard ? getCardDefinitionOrNull(bonusTargetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        points: 1
+      }
     }
   ];
 
@@ -1061,6 +1099,7 @@ export function addCapuchinForCurrentAction(game: GameState, playerId: string, l
   nextPiece.location = createPieceLocation(game, location);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  const capuchinTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
     {
@@ -1069,7 +1108,17 @@ export function addCapuchinForCurrentAction(game: GameState, playerId: string, l
         action === "A"
           ? `${nextPlayer.name} adicionou 1 macaco-prego na carta jogada.`
           : `${nextPlayer.name} adicionou 1 macaco-prego em local com outro macaco.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: capuchinTargetCard?.instanceId,
+        cardDefinitionId: capuchinTargetCard?.definitionId,
+        habitat: capuchinTargetCard ? getCardDefinitionOrNull(capuchinTargetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: action
+      }
     }
   ];
 
@@ -1134,7 +1183,13 @@ export function scoreCapuchinHabitatPresence(game: GameState, playerId: string):
     {
       id: `capuchin_score_${playerId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} marcou ${points} ponto(s) por presenca em habitats diferentes.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "score",
+        actorPlayerId: playerId,
+        points,
+        actionId: "D"
+      }
     }
   ];
 
@@ -1199,12 +1254,23 @@ export function addMacawForCurrentAction(game: GameState, playerId: string, loca
   nextPiece.location = createPieceLocation(game, location, action === "A" ? findFirstForestSiteWithResource(game, location, "egg")?.siteId : undefined);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  const macawTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
     {
       id: `add_macaw_${pieceId}_${next.log.length + 1}`,
       message: action === "A" ? `${nextPlayer.name} adicionou 1 arara em local de ovo.` : `${nextPlayer.name} adicionou 1 arara ao redor da arara movida.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: macawTargetCard?.instanceId,
+        cardDefinitionId: macawTargetCard?.definitionId,
+        habitat: macawTargetCard ? getCardDefinitionOrNull(macawTargetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: action
+      }
     }
   ];
 
@@ -1279,12 +1345,24 @@ export function relocateMacawForCurrentAction(game: GameState, playerId: string,
   nextPiece.location = createPieceLocation(game, location);
   const collectedResource = collectMovementDestinationResource(next, playerId, location);
   next.pendingMacawMovedPiece = null;
+  const relocateTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
     {
       id: `relocate_macaw_${pieceId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} realocou 1 arara ao redor da arara movida${collectedResource ? " e coletou recurso do destino" : ""}.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "move_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: relocateTargetCard?.instanceId,
+        cardDefinitionId: relocateTargetCard?.definitionId,
+        habitat: relocateTargetCard ? getCardDefinitionOrNull(relocateTargetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: "C",
+        resources: collectedResource ? [collectedResource] : undefined
+      }
     }
   ];
 
@@ -1355,7 +1433,8 @@ export function scoreMacawLines(game: GameState, playerId: string): GameState {
     {
       id: `macaw_score_${playerId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} marcou ${points} ponto(s) por linhas retas de 3 araras.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
     }
   ];
 
@@ -1420,12 +1499,23 @@ export function addArmadilloForCurrentAction(game: GameState, playerId: string, 
   nextPiece.state.hidden = false;
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  const armadilloTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
     {
       id: `add_armadillo_${pieceId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} adicionou 1 tatu em local de pinha.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: armadilloTargetCard?.instanceId,
+        cardDefinitionId: armadilloTargetCard?.definitionId,
+        habitat: armadilloTargetCard ? getCardDefinitionOrNull(armadilloTargetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: "A"
+      }
     }
   ];
 
@@ -1474,12 +1564,24 @@ export function hideArmadilloForCurrentAction(game: GameState, playerId: string,
   }
 
   nextPiece.state.hidden = true;
+  const hideLocation = nextPiece.location ? { x: nextPiece.location.x, y: nextPiece.location.y } : undefined;
+  const hideCard = hideLocation ? next.forest.cards.find((card) => card.x === hideLocation.x && card.y === hideLocation.y) : undefined;
   next.log = [
     ...next.log,
     {
       id: `hide_armadillo_${pieceId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} escondeu 1 Tatu-bola.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "hide_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: hideCard?.instanceId,
+        cardDefinitionId: hideCard?.definitionId,
+        habitat: hideCard ? getCardDefinitionOrNull(hideCard.definitionId)?.habitat ?? undefined : undefined,
+        location: hideLocation,
+        pieceIds: [pieceId],
+        actionId: "C"
+      }
     }
   ];
 
@@ -1552,7 +1654,8 @@ export function scoreArmadilloSharing(game: GameState, playerId: string): GameSt
     {
       id: `armadillo_score_${playerId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} marcou ${points} ponto(s) por compartilhamento de locais.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
     }
   ];
 
@@ -1644,7 +1747,18 @@ export function removeBasePieceForWolfAction(game: GameState, playerId: string, 
     {
       id: `wolf_remove_base_${targetPieceId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} removeu 1 peca de base com o Lobo-guara e coletou recurso junto com o dono removido.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "remove_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: card?.instanceId,
+        cardDefinitionId: card?.definitionId,
+        habitat: cardDefinition?.habitat ?? undefined,
+        location: targetPiece.location ? { x: targetPiece.location.x, y: targetPiece.location.y } : undefined,
+        pieceIds: [targetPieceId],
+        actionId: "B",
+        resources: resource ? [resource] : undefined
+      }
     }
   ];
 
@@ -1731,7 +1845,15 @@ export function spendWolfResourcesForPoints(game: GameState, playerId: string, r
     {
       id: `wolf_spend_resources_${playerId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} gastou ${resources.length} recurso(s) diferente(s) e marcou ${resources.length} ponto(s).`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "spend",
+        actorPlayerId: playerId,
+        points: resources.length,
+        actionId: "C",
+        resources: [...resources],
+        count: resources.length
+      }
     }
   ];
 
@@ -1791,12 +1913,23 @@ export function addWolfForCurrentAction(game: GameState, playerId: string, locat
   nextPiece.location = createPieceLocation(game, location, findFirstForestSiteWithResource(game, location, "meat")?.siteId);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  const wolfTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
     {
       id: `add_wolf_${pieceId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} adicionou 1 Lobo-guara em local de carne.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: wolfTargetCard?.instanceId,
+        cardDefinitionId: wolfTargetCard?.definitionId,
+        habitat: wolfTargetCard ? getCardDefinitionOrNull(wolfTargetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: "D"
+      }
     }
   ];
 
@@ -2036,7 +2169,15 @@ export function spendJaguarMeatForPoints(game: GameState, playerId: string, coun
     {
       id: `jaguar_spend_meat_${playerId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} gastou ${count} carne(s) e marcou ${count} ponto(s).`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "spend",
+        actorPlayerId: playerId,
+        points: count,
+        actionId: "C",
+        resources: Array.from({ length: count }, () => "meat" as Resource),
+        count
+      }
     }
   ];
 
@@ -2103,7 +2244,14 @@ export function removePiecesForCurrentAction(game: GameState, playerId: string, 
     {
       id: `remove_pieces_${playerId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} removeu ${requiredRemovalCount} quatis da floresta.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "remove_piece",
+        actorPlayerId: playerId,
+        pieceIds: [...uniquePieceIds],
+        actionId: "C",
+        count: requiredRemovalCount
+      }
     }
   ];
 
@@ -2264,12 +2412,24 @@ export function movePieceForCurrentAction(
   nextPiece.location = createPieceLocation(game, destination);
   nextPiece.state.hidden = false;
   const collectedResource = collectMovementDestinationResource(next, playerId, destination);
+  const moveDestCard = next.forest.cards.find((card) => card.x === destination.x && card.y === destination.y);
   next.log = [
     ...next.log,
     {
       id: `move_piece_${pieceId}_${next.log.length + 1}`,
       message: `${player.name} moveu 1 ${getSpeciesPieceLogName(player.speciesId)}${collectedResource ? " e coletou recurso do destino" : ""}.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: "move_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: moveDestCard?.instanceId,
+        cardDefinitionId: moveDestCard?.definitionId,
+        habitat: moveDestCard ? getCardDefinitionOrNull(moveDestCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: destination.x, y: destination.y },
+        pieceIds: [pieceId],
+        actionId: (getCurrentAction(game) as "A" | "B" | "C" | "D" | null) ?? undefined,
+        resources: collectedResource ? [collectedResource] : undefined
+      }
     }
   ];
 
@@ -2371,6 +2531,7 @@ export function moveJaguarForCurrentAction(
     }
   }
 
+  const jaguarDestCard = next.forest.cards.find((card) => card.x === destination.x && card.y === destination.y);
   next.log = [
     ...next.log,
     {
@@ -2378,7 +2539,18 @@ export function moveJaguarForCurrentAction(
       message: nextTargetPiece
         ? `${nextPlayer.name} moveu a Onca, removeu 1 peca, coletou 1 carne e o recurso do destino.`
         : `${nextPlayer.name} moveu a Onca e coletou o recurso do destino.`,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      payload: {
+        kind: nextTargetPiece ? "remove_piece" : "move_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: jaguarDestCard?.instanceId,
+        cardDefinitionId: jaguarDestCard?.definitionId,
+        habitat: jaguarDestCard ? getCardDefinitionOrNull(jaguarDestCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: destination.x, y: destination.y },
+        pieceIds: nextTargetPiece ? [nextJaguarPiece.pieceId, nextTargetPiece.pieceId] : [nextJaguarPiece.pieceId],
+        actionId: (getCurrentAction(game) as "A" | "B" | "C" | "D" | null) ?? undefined,
+        resources: nextTargetPiece ? ["meat"] : undefined
+      }
     }
   ];
 

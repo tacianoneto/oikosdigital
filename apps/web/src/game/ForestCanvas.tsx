@@ -13,6 +13,7 @@ interface ForestCanvasProps {
   addPieceLabel?: string;
   addPieceHint?: string;
   bonusTargets?: GridPosition[];
+  spotlightInstanceIds?: string[];
   selectedHandCardId?: string | null;
   selectedPieceId?: string | null;
   selectedPieceIds?: string[];
@@ -39,6 +40,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
     addPieceTargets = [],
     addPieceHint = "Clique em uma carta destacada para adicionar uma peça",
     bonusTargets = [],
+    spotlightInstanceIds = [],
     selectedHandCardId,
     selectedPieceId = null,
     selectedPieceIds = [],
@@ -53,6 +55,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       movementTargets,
       addPieceTargets,
       bonusTargets,
+      spotlightInstanceIds,
       selectedPieceId,
       selectedPieceIds,
       selectablePieceIds
@@ -67,7 +70,8 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       pieces,
       selectablePieceIds,
       selectedPieceId,
-      selectedPieceIds
+      selectedPieceIds,
+      spotlightInstanceIds
     ]
   );
 

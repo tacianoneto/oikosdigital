@@ -98,10 +98,40 @@ export interface PlayerState {
   turnsTaken: number;
 }
 
+export type GameLogPayloadKind =
+  | "place_card"
+  | "add_piece"
+  | "move_piece"
+  | "remove_piece"
+  | "hide_piece"
+  | "pair_bonus"
+  | "score"
+  | "spend"
+  | "skip"
+  | "complete_action"
+  | "advance_turn"
+  | "setup_place"
+  | "finish";
+
+export interface GameLogPayload {
+  kind: GameLogPayloadKind;
+  actorPlayerId?: string;
+  cardInstanceId?: string;
+  cardDefinitionId?: string;
+  habitat?: Habitat;
+  location?: GridPosition;
+  pieceIds?: string[];
+  points?: number;
+  actionId?: ActionId;
+  resources?: Resource[];
+  count?: number;
+}
+
 export interface GameLogEntry {
   id: string;
   message: string;
   createdAt: number;
+  payload?: GameLogPayload;
 }
 
 export interface ResourceMajorityResult {

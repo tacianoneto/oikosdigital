@@ -75,7 +75,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { ActionId, GameState, GridPosition, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
+import type { ActionId, GameLogEntry, GameState, GridPosition, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
 
@@ -158,12 +158,20 @@ interface FlyingCard {
   rotation: 0 | 90 | 180 | 270;
 }
 
+interface TurnSummaryEntry {
+  id: string;
+  icon: "place" | "add" | "move" | "remove" | "hide" | "score" | "spend" | "info";
+  text: string;
+  points?: number;
+  cardInstanceIds: string[];
+}
+
 interface TurnSummary {
   key: number;
   playerName: string;
   speciesId: SpeciesId | null;
   scoreDelta: number;
-  details: string[];
+  entries: TurnSummaryEntry[];
 }
 
 const categoryLabels = {
@@ -212,17 +220,138 @@ function isMissingRoomError(error: unknown): boolean {
   return error instanceof Error && error.message.toLowerCase().includes("sala") && error.message.toLowerCase().includes("encontrada");
 }
 
-function scoreSummaryDetails(messages: string[], scoreDelta: number): string[] {
-  const scoring = messages.filter((message) => {
-    const lower = message.toLowerCase();
-    return lower.includes("marcou") || lower.includes("pontu") || lower.includes("gastou");
-  });
+const habitatShortLabel: Record<"forest" | "field" | "river", string> = {
+  forest: "Bosque",
+  field: "Campo",
+  river: "Rio"
+};
 
-  if (scoring.length > 0) {
-    return scoring.slice(-3);
+function pieceShortName(speciesId: SpeciesId | null | undefined): string {
+  switch (speciesId) {
+    case "jaguar": return "Onça";
+    case "maned_wolf": return "Lobo";
+    case "armadillo": return "Tatu";
+    case "macaw": return "Arara";
+    case "capuchin": return "Macaco";
+    case "coati": return "Quati";
+    default: return "peça";
+  }
+}
+
+function habitatFromEntry(entry: GameLogEntry): string | null {
+  const habitat = entry.payload?.habitat;
+  return habitat ? habitatShortLabel[habitat] : null;
+}
+
+function buildTurnSummaryEntries(
+  entries: GameLogEntry[],
+  speciesId: SpeciesId | null,
+  scoreDelta: number
+): TurnSummaryEntry[] {
+  const out: TurnSummaryEntry[] = [];
+  const pieceLabel = pieceShortName(speciesId);
+
+  for (let i = 0; i < entries.length; i += 1) {
+    const entry = entries[i];
+    const payload = entry.payload;
+    if (!payload) continue;
+
+    const habitat = habitatFromEntry(entry);
+    const cards = payload.cardInstanceId ? [payload.cardInstanceId] : [];
+
+    switch (payload.kind) {
+      case "place_card":
+        out.push({
+          id: entry.id,
+          icon: "place",
+          text: `Colocou carta de ${habitat ?? "floresta"}`,
+          cardInstanceIds: cards
+        });
+        break;
+      case "setup_place":
+        out.push({
+          id: entry.id,
+          icon: "add",
+          text: `Posicionou ${pieceLabel} inicial em ${habitat ?? "carta inicial"}`,
+          cardInstanceIds: cards
+        });
+        break;
+      case "add_piece":
+        out.push({
+          id: entry.id,
+          icon: "add",
+          text: `Adicionou 1 ${pieceLabel}${habitat ? ` em ${habitat}` : ""}`,
+          cardInstanceIds: cards
+        });
+        break;
+      case "move_piece":
+        out.push({
+          id: entry.id,
+          icon: "move",
+          text: `Moveu 1 ${pieceLabel}${habitat ? ` para ${habitat}` : ""}`,
+          cardInstanceIds: cards
+        });
+        break;
+      case "remove_piece":
+        out.push({
+          id: entry.id,
+          icon: "remove",
+          text: payload.count && payload.count > 1
+            ? `Removeu ${payload.count} ${pieceLabel}(s)`
+            : `Removeu 1 peça${habitat ? ` em ${habitat}` : ""}`,
+          cardInstanceIds: cards
+        });
+        break;
+      case "hide_piece":
+        out.push({
+          id: entry.id,
+          icon: "hide",
+          text: `Escondeu 1 ${pieceLabel}${habitat ? ` em ${habitat}` : ""}`,
+          cardInstanceIds: cards
+        });
+        break;
+      case "pair_bonus":
+        out.push({
+          id: entry.id,
+          icon: "add",
+          text: `Dupla de quatis: +1 ${pieceLabel} adjacente`,
+          points: payload.points,
+          cardInstanceIds: cards
+        });
+        break;
+      case "score":
+        out.push({
+          id: entry.id,
+          icon: "score",
+          text: `Pontuou ação ${payload.actionId ?? ""}`.trim(),
+          points: payload.points,
+          cardInstanceIds: cards
+        });
+        break;
+      case "spend":
+        out.push({
+          id: entry.id,
+          icon: "spend",
+          text: `Gastou ${payload.count ?? payload.resources?.length ?? 0} recurso(s)`,
+          points: payload.points,
+          cardInstanceIds: cards
+        });
+        break;
+      default:
+        break;
+    }
   }
 
-  return scoreDelta > 0 ? ["Pontuou por efeito da acao final."] : ["Nao marcou pontos neste turno."];
+  if (out.length === 0) {
+    out.push({
+      id: "fallback",
+      icon: "info",
+      text: scoreDelta > 0 ? "Pontuou por efeito de ação final." : "Não marcou pontos neste turno.",
+      cardInstanceIds: []
+    });
+  }
+
+  return out;
 }
 
 const coatiActionDescriptions: Partial<Record<ActionId, string>> = {
@@ -345,6 +474,13 @@ export function App() {
     | null
   >(null);
   const [turnSummary, setTurnSummary] = useState<TurnSummary | null>(null);
+  const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!turnSummary) return;
+    const timer = window.setTimeout(() => setTurnSummary(null), 12000);
+    return () => window.clearTimeout(timer);
+  }, [turnSummary]);
   const [showJaguarScoreModal, setShowJaguarScoreModal] = useState(false);
   const prevTurnRef = useRef<string | null>(null);
   const prevSnapshotRef = useRef<{ playerId: string; score: number; resources: Record<string, number> } | null>(null);
@@ -529,6 +665,11 @@ export function App() {
         : [],
     [canPlaceSelectedForestCard, room?.game, selectedCardRotation, selectedHandCardId]
   );
+  const spotlightInstanceIds = useMemo(() => {
+    if (!room?.game || hoveredSummaryCardIds.length === 0) return [];
+    const alive = new Set(room.game.forest.cards.map((card) => card.instanceId));
+    return hoveredSummaryCardIds.filter((id) => alive.has(id));
+  }, [hoveredSummaryCardIds, room?.game]);
   const selectablePieceIds = useMemo(() => {
     if (!room?.game || hasPendingCoatiPairBonus || !canControlActivePlayer) {
       return [];
@@ -890,13 +1031,15 @@ export function App() {
       const finishedPlayer = game.players.find((candidate) => candidate.playerId === finishedSnapshot.playerId);
       if (finishedPlayer) {
         const scoreDelta = Math.max(0, finishedPlayer.score - finishedSnapshot.score);
-        const messages = game.log.slice(finishedSnapshot.logLength).map((entry) => entry.message);
+        const turnLog = game.log
+          .slice(finishedSnapshot.logLength)
+          .filter((entry) => entry.payload?.actorPlayerId === finishedPlayer.playerId);
         setTurnSummary({
           key: Date.now(),
           playerName: finishedPlayer.name,
           speciesId: finishedPlayer.speciesId,
           scoreDelta,
-          details: scoreSummaryDetails(messages, scoreDelta)
+          entries: buildTurnSummaryEntries(turnLog, finishedPlayer.speciesId, scoreDelta)
         });
       }
 
@@ -2442,6 +2585,7 @@ export function App() {
                   : "Clique em uma carta com fruta para adicionar 1 quati"
             }
             bonusTargets={coatiPairBonusTargets}
+            spotlightInstanceIds={spotlightInstanceIds}
             selectedHandCardId={selectedHandCardId}
             selectedPieceId={selectedPieceId}
             selectedPieceIds={highlightedPieceIds}
@@ -2940,39 +3084,54 @@ export function App() {
         )}
 
       {turnSummary && (
-        <div className="choice-modal-backdrop turn-summary-backdrop" role="presentation">
-          <div
-            className="choice-modal turn-summary-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Resumo do turno"
-            style={speciesVar(turnSummary.speciesId)}
-          >
-            <header className="choice-modal-head">
-              {turnSummary.speciesId && (
-                <img src={encodeURI(speciesDefinitions[turnSummary.speciesId].meepleAsset)} alt="" />
-              )}
-              <div>
-                <span>Fim do turno</span>
-                <h2>{turnSummary.playerName}</h2>
-              </div>
-            </header>
-            <div className="turn-summary-score">
-              <span>Pontos neste turno</span>
-              <strong>+{turnSummary.scoreDelta}</strong>
+        <aside
+          className="turn-recap"
+          role="status"
+          aria-live="polite"
+          aria-label="Resumo do turno anterior"
+          style={speciesVar(turnSummary.speciesId)}
+        >
+          <header className="turn-recap-head">
+            {turnSummary.speciesId && (
+              <img src={encodeURI(speciesDefinitions[turnSummary.speciesId].meepleAsset)} alt="" />
+            )}
+            <div className="turn-recap-title">
+              <span>Turno anterior</span>
+              <h3>{turnSummary.playerName}</h3>
             </div>
-            <div className="turn-summary-list">
-              {turnSummary.details.map((detail, index) => (
-                <p key={`${turnSummary.key}_${index}`}>{detail}</p>
-              ))}
+            <div className="turn-recap-score" title="Pontos no turno">
+              <span>+{turnSummary.scoreDelta}</span>
+              <small>pts</small>
             </div>
-            <div className="choice-modal-actions">
-              <button className="primary-button" onClick={() => setTurnSummary(null)}>
-                Finalizar turno
-              </button>
-            </div>
-          </div>
-        </div>
+            <button
+              type="button"
+              className="turn-recap-close"
+              onClick={() => setTurnSummary(null)}
+              aria-label="Fechar resumo"
+            >
+              <X aria-hidden="true" />
+            </button>
+          </header>
+          <ul className="turn-recap-list">
+            {turnSummary.entries.map((entry) => (
+              <li
+                key={`${turnSummary.key}_${entry.id}`}
+                className={`turn-recap-item ${entry.cardInstanceIds.length > 0 ? "is-hoverable" : ""}`}
+                onMouseEnter={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
+                onMouseLeave={() => setHoveredSummaryCardIds([])}
+                onFocus={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
+                onBlur={() => setHoveredSummaryCardIds([])}
+                tabIndex={entry.cardInstanceIds.length > 0 ? 0 : -1}
+              >
+                <span className={`turn-recap-icon turn-recap-icon-${entry.icon}`} aria-hidden="true" />
+                <span className="turn-recap-text">{entry.text}</span>
+                {typeof entry.points === "number" && entry.points > 0 && (
+                  <span className="turn-recap-points">+{entry.points}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </aside>
       )}
 
       {boardSpecies && (

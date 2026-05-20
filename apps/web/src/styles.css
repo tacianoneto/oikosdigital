@@ -443,51 +443,170 @@ label {
   flex: 1 1 140px;
 }
 
-.turn-summary-backdrop {
-  z-index: 68;
-}
-
-.turn-summary-modal {
-  width: min(430px, 94vw);
-}
-
-.turn-summary-score {
-  border: var(--bw) solid var(--line-soft);
-  border-radius: 10px;
-  padding: 12px;
+.turn-recap {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: min(340px, 92vw);
+  z-index: 55;
+  background: rgba(16, 26, 20, 0.94);
+  border: var(--bw) solid var(--species, var(--line-soft));
+  border-radius: 14px;
+  padding: 12px 14px;
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  background: rgba(242, 193, 78, 0.12);
+  gap: 10px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  animation: turn-recap-in 240ms ease-out;
 }
 
-.turn-summary-score span {
+@keyframes turn-recap-in {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.turn-recap-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.turn-recap-head img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.turn-recap-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.turn-recap-title span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.turn-summary-score strong {
-  color: var(--amber);
-  font-size: 30px;
+.turn-recap-title h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.turn-recap-score {
+  display: grid;
+  justify-items: center;
+  background: rgba(242, 193, 78, 0.14);
+  border: var(--bw) solid rgba(242, 193, 78, 0.4);
+  padding: 4px 10px;
+  border-radius: 10px;
   line-height: 1;
 }
 
-.turn-summary-list {
-  display: grid;
-  gap: 8px;
+.turn-recap-score span {
+  color: var(--amber);
+  font-size: 20px;
+  font-weight: 800;
 }
 
-.turn-summary-list p {
-  border-left: 3px solid var(--species, var(--amber));
-  padding: 8px 10px;
+.turn-recap-score small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.turn-recap-close {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
+  display: grid;
+  place-items: center;
+}
+
+.turn-recap-close:hover {
   color: var(--paper);
-  font-size: 13px;
-  line-height: 1.35;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.turn-recap-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.turn-recap-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.turn-recap-item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--species, var(--amber));
+  color: var(--paper);
+  font-size: 12px;
+  line-height: 1.3;
+  transition: background 120ms;
+}
+
+.turn-recap-item.is-hoverable {
+  cursor: pointer;
+}
+
+.turn-recap-item.is-hoverable:hover,
+.turn-recap-item.is-hoverable:focus {
+  background: rgba(242, 193, 78, 0.14);
+  outline: none;
+}
+
+.turn-recap-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--species, var(--amber));
+  display: inline-block;
+  opacity: 0.8;
+}
+
+.turn-recap-icon-place { background: #f2c14e; }
+.turn-recap-icon-add { background: #5fd08a; }
+.turn-recap-icon-move { background: #3a7fc4; }
+.turn-recap-icon-remove { background: #c8553d; }
+.turn-recap-icon-hide { background: #7f8780; }
+.turn-recap-icon-score { background: #ffd479; }
+.turn-recap-icon-spend { background: #b98a4b; }
+.turn-recap-icon-info { background: var(--muted); }
+
+.turn-recap-text {
+  min-width: 0;
+}
+
+.turn-recap-points {
+  color: var(--amber);
+  font-weight: 800;
+  font-size: 12px;
 }
 
 .choice-count-grid {

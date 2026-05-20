@@ -46,19 +46,14 @@ Assets encontrados:
 
 Detalhe importante das cartas:
 
-- 28 cartas são cartas comuns de floresta: 8 `bosque`, 8 `campos`, 12 `rios`.
-- 12 cartas são candidatas iniciais de floresta.
-- A partida começa com 9 dessas 12 cartas iniciais, formando a floresta inicial em grade 3x3.
-- As 3 cartas iniciais excedentes existem para variar a composição inicial e evitar repetição.
+- 36 cartas são cartas comuns de floresta: 12 `bosque`, 12 `campos`, 12 `rios`. Suficiente para distribuir 6 cartas para cada uma das 5 espécies que usam cartas em uma partida de 6 jogadores (5 × 6 = 30, sobram 6).
+- 14 cartas são candidatas iniciais de floresta (12 ilustrações + 2 reaproveitamentos de canais retos para variar mesas).
+- A partida começa com 9 dessas candidatas formando a floresta inicial em grade 3x3, escolhidas a partir de mesas pré-validadas em `packages/rules/src/setup.ts` (`FOREST_TEMPLATES`). Cada mesa garante que toda boca de rio conecta com outra boca ou sai pela borda do grid, nunca encosta em mata.
 
-Pontos que precisam ser fechados antes da implementação fiel:
+Status dos manifestos:
 
-- Como escolher as 9 cartas iniciais entre as 12 candidatas: sorteio, seleção fixa, seleção manual ou outra regra aprovada.
-- Se as 9 cartas iniciais escolhidas têm layout e rotação fixos ou se são montadas por regra de validação.
-- A distribuição de mãos em partida com 6 jogadores precisa de confirmação: o GDD diz que cada espécie que usa cartas começa com 6 cartas, o que exige 30 cartas de mão quando cinco espécies usam cartas, mas a pasta atual contém 28 cartas comuns.
-- Metadados de cada carta: habitat, recurso, conexões por lado, rios por lado e rotações legais.
-
-Esses pontos não devem ser inventados durante a implementação. Eles devem virar um manifesto de conteúdo validado.
+- Manifestos de cartas, espécies, recursos e padrões de movimento já estão transcritos em `packages/content/src` e `packages/rules/src`.
+- Sites internos por carta ainda são modelados como `main` único; sublocais finos por carta entram em iteração posterior se confirmados pelo GDD.
 
 ## 2.1 Movimentos Conferidos
 
@@ -522,15 +517,17 @@ Resultado esperado:
 
 ## 10. Bloqueadores de Fidelidade Antes do Código de Regra
 
-Estes itens precisam ser respondidos para não inventarmos nada:
+Resolvidos:
 
-1. Como escolher as 9 cartas iniciais entre as 12 candidatas.
-2. Qual é o layout exato dessas 9 cartas no 3x3.
-3. Se as rotações iniciais são fixas ou livres.
-4. Como resolver a distribuição de mãos em partida com 6 jogadores: o GDD pede 6 cartas para cada espécie que usa cartas, mas os assets atuais têm 28 cartas comuns.
-5. O manifesto completo de cada carta comum.
-6. A política de desconexão no turno ativo: aguardar indefinidamente ou aplicar tempo.
-7. Se o chat opcional do lobby entra na versão 1.0 ou fica fora.
-8. Se haverá assets de som aprovados para o polimento.
+- ~~Como escolher as 9 cartas iniciais, layout 3x3 e rotações.~~ Resolvido por mesas pré-validadas em `FOREST_TEMPLATES` (`packages/rules/src/setup.ts`). Uma mesa é sorteada no início da partida; toda mesa é checada na carga do módulo e quebra o build se o encaixe de rios for inválido.
+- ~~Distribuição de mãos em partida com 6 jogadores.~~ Resolvido: a pasta tem 36 cartas comuns (12 bosque + 12 campo + 12 rio), suficientes para 5 espécies × 6 cartas = 30, com sobra de 6 cartas para reposição/cobrir cenários futuros.
+- ~~Manifesto completo de cada carta comum.~~ Resolvido em `packages/content/src/cards.ts`.
+- ~~Política de desconexão no turno ativo.~~ Resolvido: o servidor pula o turno do jogador desconectado após `TURN_TIMEOUT_MS` (default 90s). O jogador pode reconectar e retomar nas próximas jogadas.
 
-Sem esses itens, ainda é possível construir a fundação técnica, lobby, renderização, movimentos e parte do fluxo, mas não é seguro finalizar regras de cartas iniciais e distribuição de mãos.
+Em aberto:
+
+1. Se os sublocais internos de cada carta (sites finos com recurso/habitat distintos) devem ser modelados ou se cada carta continua como um único site `main`. Hoje o motor trata cada carta como um site só.
+2. Se o chat opcional do lobby entra na versão 1.0 ou fica fora.
+3. Se haverá assets de som aprovados para o polimento.
+
+Sem esses itens, ainda assim é possível levar o jogo até o lançamento. Eles afetam apenas refinamento de pontuação por sublocal, comunicação no lobby e camada de áudio.

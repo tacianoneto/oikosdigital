@@ -10,6 +10,7 @@ export interface ForestViewModel {
   movementTargets: GridPosition[];
   addPieceTargets: GridPosition[];
   bonusTargets: GridPosition[];
+  spotlightInstanceIds: string[];
   selectedPieceId: string | null;
   selectedPieceIds: string[];
   selectablePieceIds: string[];
@@ -376,6 +377,33 @@ export class ForestPhaserScene extends Phaser.Scene {
     ringFor(vm.movementTargets, SELECT);
     ringFor(vm.addPieceTargets, 0xf2c14e);
     ringFor(vm.bonusTargets, 0x7fe9d8);
+
+    const spotlightSet = new Set(vm.spotlightInstanceIds);
+    if (spotlightSet.size > 0) {
+      for (const card of vm.cards) {
+        if (!spotlightSet.has(card.instanceId)) continue;
+        const w = this.worldOf(card);
+        const ring = this.add.graphics();
+        ring.lineStyle(5, 0xffd479, 1);
+        ring.strokeRoundedRect(-CARD / 2 - 6, -CARD / 2 - 6, CARD + 12, CARD + 12, RADIUS + 6);
+        const glow = this.add.graphics();
+        glow.fillStyle(0xffd479, 0.18);
+        glow.fillRoundedRect(-CARD / 2 - 6, -CARD / 2 - 6, CARD + 12, CARD + 12, RADIUS + 6);
+        const cont = this.add.container(w.x, w.y, [glow, ring]);
+        cont.setDepth(50);
+        this.highlightLayer.add(cont);
+        this.pulses.push(
+          this.tweens.add({
+            targets: cont,
+            alpha: { from: 0.55, to: 1 },
+            duration: 540,
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut"
+          })
+        );
+      }
+    }
   }
 
   private dashedRoundRect(
@@ -784,6 +812,7 @@ function viewSignature(vm: ForestViewModel): string {
     positions(vm.movementTargets),
     positions(vm.addPieceTargets),
     positions(vm.bonusTargets),
+    vm.spotlightInstanceIds.join("|"),
     vm.selectedPieceId ?? "",
     vm.selectedPieceIds.join("|"),
     vm.selectablePieceIds.join("|")
