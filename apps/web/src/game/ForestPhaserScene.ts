@@ -224,6 +224,9 @@ export class ForestPhaserScene extends Phaser.Scene {
           duration: 380,
           ease: "Back.easeOut"
         });
+        if (!card.isInitial) {
+          this.spawnLeafBurst(w.x, w.y);
+        }
       } else {
         obj.root.setPosition(w.x, w.y);
         obj.root.setAngle(card.rotation);
@@ -398,11 +401,12 @@ export class ForestPhaserScene extends Phaser.Scene {
       const [gx, gy] = k.split(":").map(Number);
       const base = this.worldOf({ x: gx, y: gy });
       const n = list.length;
-      const ps = n <= 3 ? 1 : n <= 6 ? 0.85 : 0.7;
-      const cols = Math.min(n, 3);
+      const layout = pieceLayout(n);
+      const ps = layout.scale;
+      const cols = layout.cols;
       const rows = Math.ceil(n / cols);
-      const sx = 40 * ps;
-      const sy = 36 * ps;
+      const sx = layout.sx;
+      const sy = layout.sy;
 
       list.forEach((piece, i) => {
         alive.add(piece.pieceId);
@@ -524,6 +528,52 @@ export class ForestPhaserScene extends Phaser.Scene {
         root.setScale(scale);
         root.setDepth(100);
       }
+    });
+  }
+
+  private spawnLeafBurst(x: number, y: number): void {
+    const count = 14;
+    const colors = [0x6fae5f, 0x4f9d4a, 0x8dc472, 0xa3d489, 0x3f8a3d];
+    for (let i = 0; i < count; i += 1) {
+      const angle = (Math.PI * 2 * i) / count + Phaser.Math.FloatBetween(-0.15, 0.15);
+      const dist = Phaser.Math.FloatBetween(40, 110);
+      const tx = x + Math.cos(angle) * dist;
+      const ty = y + Math.sin(angle) * dist + Phaser.Math.FloatBetween(-10, 30);
+      const color = colors[i % colors.length];
+      const size = Phaser.Math.FloatBetween(6, 11);
+
+      const leaf = this.add.ellipse(x, y, size, size * 0.55, color, 0.92);
+      leaf.setAngle(Phaser.Math.FloatBetween(0, 360));
+      leaf.setDepth(500);
+      this.pieceLayer.add(leaf);
+
+      const duration = Phaser.Math.Between(640, 980);
+      this.tweens.add({
+        targets: leaf,
+        x: tx,
+        y: ty,
+        angle: leaf.angle + Phaser.Math.FloatBetween(140, 360),
+        scaleX: { from: 1, to: 0.3 },
+        scaleY: { from: 1, to: 0.3 },
+        alpha: { from: 0.95, to: 0 },
+        duration,
+        ease: "Cubic.easeOut",
+        onComplete: () => leaf.destroy()
+      });
+    }
+
+    const flash = this.add.graphics();
+    flash.fillStyle(0xffffff, 0.25);
+    flash.fillCircle(x, y, 18);
+    flash.setDepth(499);
+    this.pieceLayer.add(flash);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scale: 3,
+      duration: 420,
+      ease: "Quad.easeOut",
+      onComplete: () => flash.destroy()
     });
   }
 
@@ -677,6 +727,23 @@ export class ForestPhaserScene extends Phaser.Scene {
       ly = p.y;
     });
   }
+}
+
+interface PieceLayout {
+  cols: number;
+  sx: number;
+  sy: number;
+  scale: number;
+}
+
+function pieceLayout(n: number): PieceLayout {
+  if (n <= 1) return { cols: 1, sx: 0, sy: 0, scale: 1 };
+  if (n === 2) return { cols: 2, sx: 72, sy: 0, scale: 1 };
+  if (n === 3) return { cols: 3, sx: 56, sy: 0, scale: 1 };
+  if (n === 4) return { cols: 2, sx: 70, sy: 52, scale: 0.95 };
+  if (n <= 6) return { cols: 3, sx: 56, sy: 50, scale: 0.85 };
+  if (n <= 9) return { cols: 3, sx: 52, sy: 46, scale: 0.75 };
+  return { cols: 4, sx: 44, sy: 42, scale: 0.7 };
 }
 
 function viewSignature(vm: ForestViewModel): string {

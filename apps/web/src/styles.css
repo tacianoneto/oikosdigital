@@ -1046,9 +1046,39 @@ input:focus {
   border-radius: 0;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 38%, rgba(46, 110, 78, 0.4), transparent 62%),
-    radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.45), transparent 55%),
-    linear-gradient(180deg, #11261d, #0c1a14);
+    radial-gradient(ellipse at 50% 42%, rgba(58, 128, 92, 0.42), transparent 55%),
+    radial-gradient(circle at 18% 12%, rgba(108, 178, 130, 0.12), transparent 38%),
+    radial-gradient(circle at 82% 18%, rgba(74, 156, 106, 0.1), transparent 42%),
+    linear-gradient(180deg, #11261d 0%, #0d1c15 60%, #050b08 100%);
+}
+
+.playfield-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.035) 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 64%, rgba(255, 255, 255, 0.03) 0 1.5px, transparent 3px),
+    radial-gradient(circle at 38% 82%, rgba(255, 255, 255, 0.035) 0 1px, transparent 2px),
+    radial-gradient(circle at 64% 18%, rgba(255, 255, 255, 0.025) 0 1.2px, transparent 2.4px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.55  0 0 0 0 0.4  0 0 0 0.16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: auto, auto, auto, auto, 220px 220px;
+  opacity: 0.55;
+  mix-blend-mode: overlay;
+}
+
+.playfield-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent 38%,
+    rgba(0, 0, 0, 0.35) 72%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
 }
 
 .tabletop-hud {
