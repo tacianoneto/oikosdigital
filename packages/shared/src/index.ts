@@ -74,6 +74,7 @@ export interface SpeciesDefinition {
   movementPatternsByHabitat: Record<Habitat, MovementKind>;
   boardAsset: string;
   meepleAsset: string;
+  movementAsset: string;
 }
 
 export interface PieceState {

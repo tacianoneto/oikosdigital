@@ -29,7 +29,8 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       river: "straight_jump"
     },
     boardAsset: "/assets/boards/1. Onça-pintada.png",
-    meepleAsset: "/assets/meeples/Onça.png"
+    meepleAsset: "/assets/meeples/Onça.png",
+    movementAsset: "/assets/movimentos/movimento_onca.png"
   },
   maned_wolf: {
     speciesId: "maned_wolf",
@@ -46,7 +47,8 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       river: "diagonal"
     },
     boardAsset: "/assets/boards/3. Lobo-guará.png",
-    meepleAsset: "/assets/meeples/Lobo.png"
+    meepleAsset: "/assets/meeples/Lobo.png",
+    movementAsset: "/assets/movimentos/movimento_lobo.png"
   },
   armadillo: {
     speciesId: "armadillo",
@@ -63,7 +65,8 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       river: "straight_jump"
     },
     boardAsset: "/assets/boards/4. Tatu-bola.png",
-    meepleAsset: "/assets/meeples/Tatu.png"
+    meepleAsset: "/assets/meeples/Tatu.png",
+    movementAsset: "/assets/movimentos/movimento_tatu.png"
   },
   macaw: {
     speciesId: "macaw",
@@ -80,7 +83,8 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       river: "straight_jump"
     },
     boardAsset: "/assets/boards/6. Arara-azul.png",
-    meepleAsset: "/assets/meeples/Arara.png"
+    meepleAsset: "/assets/meeples/Arara.png",
+    movementAsset: "/assets/movimentos/movimento_arara.png"
   },
   capuchin: {
     speciesId: "capuchin",
@@ -97,7 +101,8 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       river: "diagonal"
     },
     boardAsset: "/assets/boards/7. Macaco-prego.png",
-    meepleAsset: "/assets/meeples/Macaco.png"
+    meepleAsset: "/assets/meeples/Macaco.png",
+    movementAsset: "/assets/movimentos/movimento_macaco.png"
   },
   coati: {
     speciesId: "coati",
@@ -114,7 +119,8 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       river: "adjacent"
     },
     boardAsset: "/assets/boards/8. Quati.png",
-    meepleAsset: "/assets/meeples/Quati.png"
+    meepleAsset: "/assets/meeples/Quati.png",
+    movementAsset: "/assets/movimentos/movimento_quati.png"
   }
 };
 

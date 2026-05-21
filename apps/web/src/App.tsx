@@ -3659,6 +3659,22 @@ export function App() {
                   </div>
                   <small>{isActivePlayer ? "Vez" : player.isBot ? "Bot" : player.ready ? "Pronto" : "Aguardando"}</small>
                 </button>
+                {species && (
+                  <span className="movement-guide">
+                    <button
+                      type="button"
+                      className="movement-guide-button"
+                      aria-label={`Ver movimentos de ${species.displayName}`}
+                      title={`Movimentos de ${species.displayName}`}
+                    >
+                      <MapPin aria-hidden="true" />
+                    </button>
+                    <span className="movement-guide-popover" role="tooltip">
+                      <strong>{species.displayName}</strong>
+                      <img src={encodeURI(species.movementAsset)} alt={`Movimentos de ${species.displayName}`} />
+                    </span>
+                  </span>
+                )}
                 {gamePlayer && (
                   <>
                     <div className="player-summary-stats">
