@@ -3119,11 +3119,18 @@ export function App() {
                   <small>Dupla de quatis formada: escolha uma carta adjacente para adicionar 1 quati e marcar 1 ponto.</small>
                 )}
                 {activeSpecies.speciesId === "coati" && !hasPendingCoatiPairBonus && activeActionId === "A" && canControlActivePlayer && (
-                  <small>
-                    {room.game.activePlayedForestCardId
-                      ? "Escolha uma carta com fruta para adicionar 1 quati."
-                      : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
-                  </small>
+                  <>
+                    <small>
+                      {room.game.activePlayedForestCardId
+                        ? "Escolha uma carta com fruta para adicionar 1 quati, ou conclua sem adicionar."
+                        : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
+                    </small>
+                    {room.game.activePlayedForestCardId && (
+                      <button className="secondary-button" onClick={handleCompleteAction}>
+                        Concluir sem adicionar
+                      </button>
+                    )}
+                  </>
                 )}
                 {activeSpecies.speciesId === "coati" && !hasPendingCoatiPairBonus && activeActionId === "B" && canControlActivePlayer && (
                   <small>Selecione um meeple do Quati no tabuleiro e clique em um destino destacado.</small>
@@ -3180,19 +3187,19 @@ export function App() {
                     <small>Escolha quantas carnes gastar na janela central.</small>
                   )}
                 {activeSpecies.speciesId === "capuchin" && activeActionId === "A" && canControlActivePlayer && (() => {
-                  const canSkipAdd = Boolean(room.game.activePlayedForestCardId && (capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0));
+                  const canSkipAdd = Boolean(room.game.activePlayedForestCardId);
                   return (
                     <>
                       <small>
                         {!room.game.activePlayedForestCardId
                           ? "Selecione uma carta na mao e coloque em um espaco vazio destacado."
-                          : canSkipAdd
+                          : capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
                             ? "Sem macacos na reserva. Conclua a acao para seguir."
-                            : `Clique na carta jogada destacada para adicionar 1 macaco. Reserva: ${capuchinReserveCount}.`}
+                            : `Clique na carta jogada destacada para adicionar 1 macaco, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
                       </small>
                       {canSkipAdd && (
                         <button className="secondary-button" onClick={handleCompleteAction}>
-                          Concluir acao A
+                          Concluir sem adicionar
                         </button>
                       )}
                     </>
@@ -3202,19 +3209,16 @@ export function App() {
                   <small>Selecione um meeple do Macaco-prego e clique em um destino destacado conforme a carta jogada.</small>
                 )}
                 {activeSpecies.speciesId === "capuchin" && activeActionId === "C" && canControlActivePlayer && (() => {
-                  const canSkipAdd = capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0;
                   return (
                     <>
                       <small>
-                        {canSkipAdd
+                        {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
                           ? "Sem macaco na reserva ou sem local valido. Conclua a acao para pontuar."
-                          : `Clique em um local destacado que ja tenha outro Macaco-prego. Reserva: ${capuchinReserveCount}.`}
+                          : `Clique em um local destacado que ja tenha outro Macaco-prego, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
                       </small>
-                      {canSkipAdd && (
-                        <button className="secondary-button" onClick={handleCompleteAction}>
-                          Concluir acao C
-                        </button>
-                      )}
+                      <button className="secondary-button" onClick={handleCompleteAction}>
+                        Concluir sem adicionar
+                      </button>
                     </>
                   );
                 })()}
@@ -3234,11 +3238,11 @@ export function App() {
                             ? "Sem araras na reserva. Conclua a ação para seguir."
                             : noEggTargets
                               ? "Nenhuma carta com ovo disponível. Conclua a ação para seguir."
-                              : `Clique em uma carta com ovo destacada para adicionar 1 arara. Reserva: ${reserveCount}.`}
+                              : `Clique em uma carta com ovo destacada para adicionar 1 arara, ou conclua sem adicionar. Reserva: ${reserveCount}.`}
                       </small>
-                      {room.game.activePlayedForestCardId && (noReserve || noEggTargets) && (
+                      {room.game.activePlayedForestCardId && (
                         <button className="secondary-button" onClick={handleCompleteAction}>
-                          Concluir acao A
+                          Concluir sem adicionar
                         </button>
                       )}
                     </>
@@ -3248,20 +3252,31 @@ export function App() {
                   <small>Selecione uma Arara-azul e clique em um destino destacado conforme a carta jogada.</small>
                 )}
                 {activeSpecies.speciesId === "macaw" && activeActionId === "C" && canControlActivePlayer && (
-                  <small>
-                    Clique em uma carta destacada para adicionar uma arara da reserva, ou selecione outra arara para realocar ao
-                    redor da arara movida.
-                  </small>
+                  <>
+                    <small>
+                      Adicione uma arara da reserva ou selecione outra arara para realocar ao redor da arara movida.
+                    </small>
+                    <button className="secondary-button" onClick={handleCompleteAction}>
+                      Concluir sem adicionar/realocar
+                    </button>
+                  </>
                 )}
                 {activeSpecies.speciesId === "macaw" && activeActionId === "D" && canControlActivePlayer && (
                   <small>Pontuação automática: +{macawLineScore} ponto(s) por linha de 3 araras.</small>
                 )}
                 {activeSpecies.speciesId === "armadillo" && activeActionId === "A" && canControlActivePlayer && (
-                  <small>
-                    {room.game.activePlayedForestCardId
-                      ? "Clique em uma carta com pinha destacada para adicionar 1 tatu."
-                      : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
-                  </small>
+                  <>
+                    <small>
+                      {room.game.activePlayedForestCardId
+                        ? "Clique em uma carta com pinha destacada para adicionar 1 tatu, ou conclua sem adicionar."
+                        : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
+                    </small>
+                    {room.game.activePlayedForestCardId && (
+                      <button className="secondary-button" onClick={handleCompleteAction}>
+                        Concluir sem adicionar
+                      </button>
+                    )}
+                  </>
                 )}
                 {activeSpecies.speciesId === "armadillo" && activeActionId === "B" && canControlActivePlayer && (
                   <small>Selecione um Tatu-bola e clique em um destino destacado conforme a carta jogada.</small>
@@ -3325,13 +3340,11 @@ export function App() {
                 {activeSpecies.speciesId === "maned_wolf" && activeActionId === "D" && canControlActivePlayer && (
                   <>
                     <small>
-                      Clique em uma carta com carne para adicionar 1 lobo. Locais validos: {wolfMeatTargets.length}.
+                      Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais validos: {wolfMeatTargets.length}.
                     </small>
-                    {wolfMeatTargets.length === 0 && (
-                      <button className="secondary-button" onClick={handleCompleteAction}>
-                        Concluir acao {activeActionId}
-                      </button>
-                    )}
+                    <button className="secondary-button" onClick={handleCompleteAction}>
+                      Concluir sem adicionar
+                    </button>
                   </>
                 )}
               </div>

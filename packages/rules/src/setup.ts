@@ -6,6 +6,7 @@ import {
   speciesOrderByTurn
 } from "@oikos/content";
 import type {
+  ActionId,
   CardConnections,
   ForestCardDefinition,
   ForestCardSiteDefinition,
@@ -2148,21 +2149,8 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     if (player.speciesId === "capuchin") {
       const action = getCurrentAction(game);
       if (action === "A") {
-        if (game.activePlayedForestCardId && (player.reservePieces.length === 0 || getCapuchinPlacementPositions(game, playerId).length === 0)) {
-          const next = cloneGameState(game);
-          const nextPlayer = findPlayer(next, playerId);
-          next.log = [
-            ...next.log,
-            {
-              id: `capuchin_skip_A_${playerId}_${next.log.length + 1}`,
-              message: `${nextPlayer.name} pulou a adicao da acao A do Macaco-prego porque nao havia macaco na reserva.`,
-              createdAt: Date.now(),
-              payload: { kind: "skip", actorPlayerId: playerId, actionId: "A" }
-            }
-          ];
-
-          advanceActiveAction(next);
-          return next;
+        if (game.activePlayedForestCardId) {
+          return completeActionWithoutOptionalAddition(game, playerId, action, "Macaco-prego");
         }
 
         throw new Error("A acao A do Macaco-prego e concluida ao adicionar 1 macaco na carta jogada.");
@@ -2173,24 +2161,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
       }
 
       if (action === "C") {
-        if (player.reservePieces.length === 0 || getCapuchinPlacementPositions(game, playerId).length === 0) {
-          const next = cloneGameState(game);
-          const nextPlayer = findPlayer(next, playerId);
-          next.log = [
-            ...next.log,
-            {
-              id: `capuchin_skip_C_${playerId}_${next.log.length + 1}`,
-              message: `${nextPlayer.name} pulou a adicao da acao C do Macaco-prego porque nao havia macaco na reserva ou local valido.`,
-              createdAt: Date.now(),
-              payload: { kind: "skip", actorPlayerId: playerId, actionId: "C" }
-            }
-          ];
-
-          advanceActiveAction(next);
-          return next;
-        }
-
-        throw new Error("A acao C do Macaco-prego e concluida ao adicionar 1 macaco em local com outro macaco.");
+        return completeActionWithoutOptionalAddition(game, playerId, action, "Macaco-prego");
       }
 
       if (action === "D") {
@@ -2201,21 +2172,8 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     if (player.speciesId === "macaw") {
       const action = getCurrentAction(game);
       if (action === "A") {
-        if (player.reservePieces.length === 0 || getMacawEggPlacementPositions(game, playerId).length === 0) {
-          const next = cloneGameState(game);
-          const nextPlayer = findPlayer(next, playerId);
-          next.log = [
-            ...next.log,
-            {
-              id: `macaw_skip_A_${playerId}_${next.log.length + 1}`,
-              message: `${nextPlayer.name} pulou a acao A da Arara-azul porque nao havia arara na reserva ou local de ovo disponivel.`,
-              createdAt: Date.now(),
-              payload: { kind: "skip", actorPlayerId: playerId, actionId: "A" }
-            }
-          ];
-
-          advanceActiveAction(next);
-          return next;
+        if (game.activePlayedForestCardId) {
+          return completeActionWithoutOptionalAddition(game, playerId, action, "Arara-azul");
         }
 
         throw new Error("A acao A da Arara-azul e concluida ao adicionar 1 arara em local de ovo.");
@@ -2226,7 +2184,9 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
       }
 
       if (action === "C") {
-        throw new Error("A acao C da Arara-azul e concluida ao adicionar ou realocar outra arara.");
+        const next = completeActionWithoutOptionalAddition(game, playerId, action, "Arara-azul");
+        next.pendingMacawMovedPiece = null;
+        return next;
       }
 
       if (action === "D") {
@@ -2237,6 +2197,10 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     if (player.speciesId === "armadillo") {
       const action = getCurrentAction(game);
       if (action === "A") {
+        if (game.activePlayedForestCardId) {
+          return completeActionWithoutOptionalAddition(game, playerId, action, "Tatu-bola");
+        }
+
         throw new Error("A acao A do Tatu-bola e concluida ao adicionar 1 tatu em local de pinha.");
       }
 
@@ -2259,10 +2223,6 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
         throw new Error("A acao A do Lobo-guara e concluida ao colocar carta e mover todos os lobos possiveis.");
       }
 
-      if (action === "D" && getWolfMeatPlacementPositions(game, playerId).length > 0) {
-        throw new Error("A acao D do Lobo-guara e concluida ao adicionar 1 lobo em local de carne.");
-      }
-
       const next = cloneGameState(game);
       const nextPlayer = findPlayer(next, playerId);
       next.log = [
@@ -2283,6 +2243,10 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
 
   const action = getCurrentAction(game);
   if (action === "A") {
+    if (game.activePlayedForestCardId) {
+      return completeActionWithoutOptionalAddition(game, playerId, action, "Quati");
+    }
+
     throw new Error("A acao A do Quati e concluida ao colocar uma carta de floresta.");
   }
 
@@ -3297,6 +3261,28 @@ function getWolfCompletionLogMessage(playerName: string, action: string | null):
   }
 
   return `${playerName} concluiu a acao ${action}.`;
+}
+
+function completeActionWithoutOptionalAddition(
+  game: GameState,
+  playerId: string,
+  action: string | null,
+  speciesName: string
+): GameState {
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  next.log = [
+    ...next.log,
+    {
+      id: `skip_optional_add_${playerId}_${action}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} concluiu a acao ${action} sem adicionar ${speciesName}.`,
+      createdAt: Date.now(),
+      payload: { kind: "skip", actorPlayerId: playerId, actionId: (action as ActionId | null) ?? undefined }
+    }
+  ];
+
+  advanceActiveAction(next);
+  return next;
 }
 
 function pieceLocationKey(location: PieceLocation): string {

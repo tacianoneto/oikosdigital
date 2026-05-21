@@ -283,6 +283,24 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(1);
   });
 
+  it("lets Quati skip the optional add after expanding in action A", () => {
+    let game = createTestGameState("room", [player("coati", "coati"), player("capuchin", "capuchin")]);
+    game = placeInitialPiece(game, "capuchin", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: -1 });
+    game = setActiveAction(game, "coati", 0);
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "coati")?.hand[0];
+    const reserveBefore = game.players.find((candidate) => candidate.playerId === "coati")!.reservePieces.length;
+    game = placeForestCard(game, "coati", cardId!, { x: 2, y: 0 });
+    game = completeCurrentAction(game, "coati");
+
+    expect(game.players.find((candidate) => candidate.playerId === "coati")?.reservePieces).toHaveLength(reserveBefore);
+    expect(game.activeActionIndex).toBe(1);
+  });
+
   it("rejects placing a hand card outside an adjacent empty forest position", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
 
@@ -876,6 +894,30 @@ describe("setup placement", () => {
     expect(game.players.find((candidate) => candidate.playerId === "capuchin")?.score).toBe(1);
   });
 
+  it("lets Macaco-prego skip optional adds in actions A and C", () => {
+    let game = createTestGameState("room", [player("capuchin", "capuchin"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "capuchin", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "capuchin", { x: 1, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = setActiveAction(game, "capuchin", 0);
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "capuchin")?.hand[0];
+    const reserveBefore = game.players.find((candidate) => candidate.playerId === "capuchin")!.reservePieces.length;
+    game = placeForestCard(game, "capuchin", cardId!, { x: 2, y: 0 });
+    game = completeCurrentAction(game, "capuchin");
+
+    expect(game.players.find((candidate) => candidate.playerId === "capuchin")?.reservePieces).toHaveLength(reserveBefore);
+    expect(game.activeActionIndex).toBe(1);
+
+    game = setActiveAction(game, "capuchin", 2);
+    game = completeCurrentAction(game, "capuchin");
+
+    expect(game.players.find((candidate) => candidate.playerId === "capuchin")?.reservePieces).toHaveLength(reserveBefore);
+    expect(game.activeActionIndex).toBe(3);
+  });
+
   it("plays Arara-azul action A by expanding and adding a macaw on an egg card", () => {
     let game = createTestGameState("room", [player("macaw", "macaw"), player("coati", "coati")]);
     game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
@@ -898,6 +940,24 @@ describe("setup placement", () => {
     expect(macaw?.reservePieces).toHaveLength(reserveBefore - 1);
     expect(game.pieces.filter((piece) => piece.ownerId === "macaw" && piece.location?.x === -1 && piece.location.y === -1)).toHaveLength(2);
     expect(game.activePlayerId).toBe("macaw");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
+  it("lets Arara-azul skip adding in action A", () => {
+    let game = createTestGameState("room", [player("macaw", "macaw"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 1, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = setActiveAction(game, "macaw", 0);
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "macaw")?.hand[0];
+    const reserveBefore = game.players.find((candidate) => candidate.playerId === "macaw")!.reservePieces.length;
+    game = placeForestCard(game, "macaw", cardId!, { x: 2, y: 0 });
+    game = completeCurrentAction(game, "macaw");
+
+    expect(game.players.find((candidate) => candidate.playerId === "macaw")?.reservePieces).toHaveLength(reserveBefore);
     expect(game.activeActionIndex).toBe(1);
   });
 
@@ -979,6 +1039,28 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(3);
   });
 
+  it("lets Arara-azul skip the action C add or relocation choice", () => {
+    let game = createTestGameState("room", [player("macaw", "macaw"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 1, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = {
+      ...setActiveAction(game, "macaw", 2),
+      pendingMacawMovedPiece: {
+        playerId: "macaw",
+        pieceId: game.players.find((candidate) => candidate.playerId === "macaw")!.piecesInForest[0]!,
+        location: { x: -1, y: -1 }
+      }
+    };
+
+    game = completeCurrentAction(game, "macaw");
+
+    expect(game.pendingMacawMovedPiece).toBeNull();
+    expect(game.activeActionIndex).toBe(3);
+  });
+
   it("scores Arara-azul action D by straight lines of three macaws", () => {
     let game = createTestGameState("room", [player("macaw", "macaw"), player("coati", "coati")]);
     game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
@@ -1036,6 +1118,23 @@ describe("setup placement", () => {
       )
     ).toHaveLength(1);
     expect(game.activePlayerId).toBe("armadillo");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
+  it("lets Tatu-bola skip adding in action A", () => {
+    let game = createTestGameState("room", [player("armadillo", "armadillo"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "armadillo", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "armadillo", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = setActiveAction(game, "armadillo", 0);
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "armadillo")?.hand[0];
+    const reserveBefore = game.players.find((candidate) => candidate.playerId === "armadillo")!.reservePieces.length;
+    game = placeForestCard(game, "armadillo", cardId!, { x: 2, y: 0 });
+    game = completeCurrentAction(game, "armadillo");
+
+    expect(game.players.find((candidate) => candidate.playerId === "armadillo")?.reservePieces).toHaveLength(reserveBefore);
     expect(game.activeActionIndex).toBe(1);
   });
 
@@ -1261,6 +1360,23 @@ describe("setup placement", () => {
     const wolf = game.players.find((candidate) => candidate.playerId === "wolf");
     expect(wolf?.reservePieces).toHaveLength(reserveBefore - 1);
     expect(game.pieces.filter((piece) => piece.ownerId === "wolf" && piece.location?.x === target.x && piece.location.y === target.y)).toHaveLength(1);
+    expect(game.activePlayerId).toBe("coati");
+  });
+
+  it("lets Lobo-guara skip adding in action D even with a valid meat location", () => {
+    let game = createTestGameState("room", [player("wolf", "maned_wolf"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "wolf", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = setActiveAction(game, "wolf", 3);
+
+    const reserveBefore = game.players.find((candidate) => candidate.playerId === "wolf")!.reservePieces.length;
+    expect(getWolfMeatPlacementPositions(game, "wolf").length).toBeGreaterThan(0);
+
+    game = completeCurrentAction(game, "wolf");
+
+    expect(game.players.find((candidate) => candidate.playerId === "wolf")?.reservePieces).toHaveLength(reserveBefore);
     expect(game.activePlayerId).toBe("coati");
   });
 
