@@ -1860,8 +1860,9 @@ input:focus {
 }
 
 .player-summary-head .turn-order-badge {
-  width: 18px;
-  height: 18px;
+  position: relative;
+  width: 22px;
+  height: 22px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1872,6 +1873,11 @@ input:focus {
   background: color-mix(in srgb, var(--species, var(--panel)) 22%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 40%, transparent);
   border-radius: 50%;
+}
+
+.player-summary-head .turn-order-badge svg {
+  width: 13px;
+  height: 13px;
 }
 
 .player-row.active .turn-order-badge {
@@ -1949,40 +1955,21 @@ input:focus {
 }
 
 .movement-guide {
-  position: absolute;
-  z-index: 5;
-  right: 10px;
-  top: 58px;
-}
-
-.movement-guide-button {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 45%, transparent);
-  border-radius: 50%;
-  color: var(--species, var(--amber));
-  background: color-mix(in srgb, var(--species, var(--panel)) 18%, var(--panel));
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28);
+  z-index: 8;
   cursor: help;
-}
-
-.movement-guide-button svg {
-  width: 15px;
-  height: 15px;
+  overflow: visible;
 }
 
 .movement-guide-popover {
   position: absolute;
-  right: calc(100% + 10px);
+  right: calc(100% + 8px);
   top: 50%;
-  width: min(300px, 42vw);
-  padding: 10px;
+  width: min(220px, 34vw);
+  padding: 8px;
   border: var(--bw) solid color-mix(in srgb, var(--species, var(--line)) 58%, var(--line));
-  border-radius: 10px;
+  border-radius: 8px;
   background: rgba(13, 24, 19, 0.97);
-  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.56);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.52);
   opacity: 0;
   pointer-events: none;
   transform: translate(8px, -50%) scale(0.98);
@@ -1997,10 +1984,10 @@ input:focus {
 
 .movement-guide-popover strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--paper);
   font-family: Outfit, sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
 }
 

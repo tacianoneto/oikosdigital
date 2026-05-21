@@ -3649,7 +3649,21 @@ export function App() {
                   title={species ? `Ver tabuleiro de ${species.displayName}` : undefined}
                   onClick={() => player.speciesId && setBoardSpecies(player.speciesId)}
                 >
-                  {room?.game && <span className="turn-order-badge" aria-hidden="true">{displayIndex + 1}</span>}
+                  {room?.game && species ? (
+                    <span
+                      className="turn-order-badge movement-guide"
+                      aria-label={`Movimentos de ${species.displayName}`}
+                      title={`Movimentos de ${species.displayName}`}
+                    >
+                      <MapPin aria-hidden="true" />
+                      <span className="movement-guide-popover" role="tooltip">
+                        <strong>{species.displayName}</strong>
+                        <img src={encodeURI(species.movementAsset)} alt={`Movimentos de ${species.displayName}`} />
+                      </span>
+                    </span>
+                  ) : room?.game ? (
+                    <span className="turn-order-badge" aria-hidden="true">{displayIndex + 1}</span>
+                  ) : null}
                   {species && <img src={encodeURI(species.meepleAsset)} alt="" />}
                   <div>
                     <strong>{species?.displayName ?? "Sem especie"}</strong>
@@ -3659,22 +3673,6 @@ export function App() {
                   </div>
                   <small>{isActivePlayer ? "Vez" : player.isBot ? "Bot" : player.ready ? "Pronto" : "Aguardando"}</small>
                 </button>
-                {species && (
-                  <span className="movement-guide">
-                    <button
-                      type="button"
-                      className="movement-guide-button"
-                      aria-label={`Ver movimentos de ${species.displayName}`}
-                      title={`Movimentos de ${species.displayName}`}
-                    >
-                      <MapPin aria-hidden="true" />
-                    </button>
-                    <span className="movement-guide-popover" role="tooltip">
-                      <strong>{species.displayName}</strong>
-                      <img src={encodeURI(species.movementAsset)} alt={`Movimentos de ${species.displayName}`} />
-                    </span>
-                  </span>
-                )}
                 {gamePlayer && (
                   <>
                     <div className="player-summary-stats">
