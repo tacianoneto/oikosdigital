@@ -28,7 +28,9 @@ interface ForestCanvasProps {
 
 export interface ForestCanvasHandle {
   getCardCenter: (position: GridPosition) => { x: number; y: number } | null;
+  getCardLocal: (position: GridPosition) => { x: number; y: number } | null;
   getCardScreenSize: () => number;
+  getHostElement: () => HTMLDivElement | null;
 }
 
 const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(function ForestCanvas(props, ref) {
@@ -96,8 +98,16 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
         y: rect.top + local.y
       };
     },
+    getCardLocal(position: GridPosition) {
+      const local = sceneRef.current?.gridToScreenPoint(position);
+      if (!local) return null;
+      return { x: local.x, y: local.y };
+    },
     getCardScreenSize() {
       return sceneRef.current?.getCardScreenSize() ?? 0;
+    },
+    getHostElement() {
+      return hostRef.current;
     }
   }), []);
 

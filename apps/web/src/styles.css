@@ -4563,12 +4563,13 @@ input:focus {
    ===================================================== */
 
 .macaw-score-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 20;
   pointer-events: none;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .macaw-line-main {
@@ -4624,7 +4625,7 @@ input:focus {
 }
 
 .macaw-score-stamps {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 21;
   pointer-events: none;
@@ -4760,12 +4761,13 @@ input:focus {
    ===================================================== */
 
 .capuchin-score-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 20;
   pointer-events: none;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .capuchin-card-rect {
@@ -4802,7 +4804,7 @@ input:focus {
 }
 
 .capuchin-score-stamps {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 21;
   pointer-events: none;

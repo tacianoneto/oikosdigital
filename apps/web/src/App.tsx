@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import {
   AlertTriangle,
@@ -2166,24 +2167,21 @@ export function App() {
       )}
       {macawScoreAnim && (() => {
         void macawAnimTick;
+        const hostEl = forestCanvasRef.current?.getHostElement();
+        if (!hostEl) return null;
         const resolved = macawScoreAnim.lines
           .map((line) => {
-            const a = forestCanvasRef.current?.getCardCenter(line.positions[0]);
-            const m = forestCanvasRef.current?.getCardCenter(line.positions[1]);
-            const c = forestCanvasRef.current?.getCardCenter(line.positions[2]);
+            const a = forestCanvasRef.current?.getCardLocal(line.positions[0]);
+            const m = forestCanvasRef.current?.getCardLocal(line.positions[1]);
+            const c = forestCanvasRef.current?.getCardLocal(line.positions[2]);
             if (!a || !m || !c) return null;
             return { from: a, mid: m, to: c };
           })
           .filter((value): value is { from: { x: number; y: number }; mid: { x: number; y: number }; to: { x: number; y: number } } => value !== null);
 
-        return (
+        const overlay = (
           <>
-            <svg
-              className="macaw-score-overlay"
-              aria-hidden="true"
-              viewBox={`0 0 ${typeof window !== "undefined" ? window.innerWidth : 1920} ${typeof window !== "undefined" ? window.innerHeight : 1080}`}
-              preserveAspectRatio="none"
-            >
+            <svg className="macaw-score-overlay" aria-hidden="true">
               <defs>
                 <filter id="macawGlow" x="-50%" y="-50%" width="200%" height="200%">
                   <feGaussianBlur stdDeviation="4" result="blur" />
@@ -2267,25 +2265,33 @@ export function App() {
                 );
               })}
             </div>
-          <div className="macaw-score-panel" role="status">
-            <div className="macaw-score-panel-icon">
-              <img src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="" />
+          </>
+        );
+
+        return (
+          <>
+            {createPortal(overlay, hostEl)}
+            <div className="macaw-score-panel" role="status">
+              <div className="macaw-score-panel-icon">
+                <img src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="" />
+              </div>
+              <div className="macaw-score-panel-text">
+                <small>{macawScoreAnim.playerName}</small>
+                <strong>
+                  {macawScoreAnim.points} linha{macawScoreAnim.points > 1 ? "s" : ""} de 3 araras
+                </strong>
+                <span className="macaw-score-panel-total">
+                  = <em>+{macawScoreAnim.points}</em> ponto{macawScoreAnim.points > 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
-            <div className="macaw-score-panel-text">
-              <small>{macawScoreAnim.playerName}</small>
-              <strong>
-                {macawScoreAnim.points} linha{macawScoreAnim.points > 1 ? "s" : ""} de 3 araras
-              </strong>
-              <span className="macaw-score-panel-total">
-                = <em>+{macawScoreAnim.points}</em> ponto{macawScoreAnim.points > 1 ? "s" : ""}
-              </span>
-            </div>
-          </div>
           </>
         );
       })()}
       {capuchinScoreAnim && (() => {
         void capuchinAnimTick;
+        const hostEl = forestCanvasRef.current?.getHostElement();
+        if (!hostEl) return null;
         const HABITAT_COLORS: Record<string, { fill: string; stroke: string; tagBg: string }> = {
           forest: { fill: "rgba(79, 174, 110, 0.32)", stroke: "#4fae6e", tagBg: "#2d8553" },
           field: { fill: "rgba(242, 193, 78, 0.32)", stroke: "#f2c14e", tagBg: "#d29a2f" },
@@ -2300,7 +2306,7 @@ export function App() {
         const resolvedGroups = capuchinScoreAnim.groups.map((group, idx) => {
           const rects = group.positions
             .map((pos) => {
-              const c = forestCanvasRef.current?.getCardCenter(pos);
+              const c = forestCanvasRef.current?.getCardLocal(pos);
               if (!c) return null;
               return { center: c };
             })
@@ -2317,14 +2323,9 @@ export function App() {
           return { rects, centroid, colors, name, delay, habitat: group.habitat };
         });
 
-        return (
+        const overlay = (
           <>
-            <svg
-              className="capuchin-score-overlay"
-              aria-hidden="true"
-              viewBox={`0 0 ${typeof window !== "undefined" ? window.innerWidth : 1920} ${typeof window !== "undefined" ? window.innerHeight : 1080}`}
-              preserveAspectRatio="none"
-            >
+            <svg className="capuchin-score-overlay" aria-hidden="true">
               {resolvedGroups.flatMap((group, gIdx) =>
                 group.rects.map((rect, rIdx) => (
                   <rect
@@ -2366,6 +2367,12 @@ export function App() {
                 ) : null
               )}
             </div>
+          </>
+        );
+
+        return (
+          <>
+            {createPortal(overlay, hostEl)}
             <div className="capuchin-score-panel" role="status">
               <div className="capuchin-score-panel-icon">
                 <img src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="" />
