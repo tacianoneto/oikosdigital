@@ -154,16 +154,6 @@ interface TravelEffect {
   to: { x: number; y: number };
 }
 
-interface FlyingCard {
-  id: number;
-  src: string;
-  from: { x: number; y: number };
-  to: { x: number; y: number };
-  size: number;
-  toSize: number;
-  rotation: 0 | 90 | 180 | 270;
-}
-
 interface TurnSummaryEntry {
   id: string;
   icon: "place" | "add" | "move" | "remove" | "hide" | "score" | "spend" | "info";
@@ -534,8 +524,6 @@ export function App() {
   const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
   const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
   const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
-  const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);
-  const flyingCardSeqRef = useRef(0);
   const [cardDrag, setCardDrag] = useState<{
     cardId: string;
     src: string;
@@ -1386,36 +1374,7 @@ export function App() {
         return;
       }
 
-      // Capture flying-card animation source (hand card) and target (grid cell).
-      const handEl = document.querySelector(
-        `[data-card-id="${selectedHandCardId}"] img`
-      ) as HTMLImageElement | null;
-      const handRect = handEl?.getBoundingClientRect();
-      const dest = forestCanvasRef.current?.getCardCenter(position);
-      let flyingId: number | null = null;
-      if (handEl && handRect && dest) {
-        const def = getForestCardDefinition(selectedHandCardId);
-        flyingId = ++flyingCardSeqRef.current;
-        const id = flyingId;
-        const size = handRect.width;
-        const targetSize = forestCanvasRef.current?.getCardScreenSize() ?? size;
-        setFlyingCards((current) => [
-          ...current,
-          {
-            id,
-            src: encodeURI(def.imagePath),
-            from: { x: handRect.left + handRect.width / 2, y: handRect.top + handRect.height / 2 },
-            to: { x: dest.x, y: dest.y },
-            size,
-            toSize: targetSize,
-            rotation: selectedCardRotation
-          }
-        ]);
-        window.setTimeout(() => {
-          setFlyingCards((current) => current.filter((c) => c.id !== id));
-        }, 640);
-      }
-      const placementDelay = flyingId !== null ? 540 : 0;
+      const placementDelay = 0;
 
       if (isLocalRoom) {
         const game = room.game;
@@ -2109,31 +2068,6 @@ export function App() {
           >
             <img src={cardDrag.src} alt="" />
           </span>
-        </div>
-      )}
-      {flyingCards.length > 0 && (
-        <div className="flying-card-layer" aria-hidden="true">
-          {flyingCards.map((fc) => (
-            <span
-              key={fc.id}
-              className="flying-card"
-              style={
-                {
-                  "--from-x": `${fc.from.x}px`,
-                  "--from-y": `${fc.from.y}px`,
-                  "--to-x": `${fc.to.x}px`,
-                  "--to-y": `${fc.to.y}px`,
-                  "--card-size": `${fc.size}px`,
-                  "--target-size": `${fc.toSize}px`,
-                  "--scale-end": fc.toSize / fc.size,
-                  "--mid-lift": `${Math.min(60, Math.abs(fc.to.y - fc.from.y) * 0.18 + 18)}px`,
-                  "--rot": `${fc.rotation}deg`
-                } as CSSProperties
-              }
-            >
-              <img src={fc.src} alt="" />
-            </span>
-          ))}
         </div>
       )}
       {travelEffects.length > 0 && (

@@ -239,16 +239,19 @@ export class ForestPhaserScene extends Phaser.Scene {
             ease: "Back.easeOut"
           });
         } else {
-          root.setScale(0.7);
+          root.setScale(0.55);
           root.setAlpha(0);
+          root.setY(w.y - 36);
           this.tweens.add({
             targets: root,
+            y: w.y,
             scale: 1,
             alpha: 1,
             angle: card.rotation,
-            duration: 380,
+            duration: 460,
             ease: "Back.easeOut"
           });
+          this.spawnCardLandingPulse(w.x, w.y);
           this.spawnLeafBurst(w.x, w.y);
         }
       } else {
@@ -579,6 +582,40 @@ export class ForestPhaserScene extends Phaser.Scene {
         root.setScale(scale);
         root.setDepth(100);
       }
+    });
+  }
+
+  private spawnCardLandingPulse(x: number, y: number): void {
+    const ring = this.add.graphics();
+    ring.lineStyle(4, 0xf2c14e, 0.9);
+    ring.strokeCircle(0, 0, CARD * 0.42);
+    ring.setPosition(x, y);
+    ring.setDepth(498);
+    ring.setScale(0.4);
+    ring.setAlpha(0.95);
+    this.pieceLayer.add(ring);
+    this.tweens.add({
+      targets: ring,
+      scale: 1.35,
+      alpha: 0,
+      duration: 620,
+      ease: "Cubic.easeOut",
+      onComplete: () => ring.destroy()
+    });
+
+    const inner = this.add.graphics();
+    inner.fillStyle(0xffffff, 0.18);
+    inner.fillRoundedRect(-CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
+    inner.setPosition(x, y);
+    inner.setDepth(497);
+    inner.setAlpha(0);
+    this.pieceLayer.add(inner);
+    this.tweens.add({
+      targets: inner,
+      alpha: { from: 0.45, to: 0 },
+      duration: 480,
+      ease: "Quad.easeOut",
+      onComplete: () => inner.destroy()
     });
   }
 
