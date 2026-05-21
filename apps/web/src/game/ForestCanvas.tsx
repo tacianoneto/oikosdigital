@@ -1,7 +1,7 @@
 import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import Phaser from "phaser";
 import type { ForestCardState, GridPosition, PieceState } from "@oikos/shared";
-import { ForestPhaserScene } from "./ForestPhaserScene";
+import { ForestPhaserScene, type ScoringCardHighlight, type ScoringLineHighlight } from "./ForestPhaserScene";
 
 interface ForestCanvasProps {
   cards: ForestCardState[];
@@ -18,6 +18,8 @@ interface ForestCanvasProps {
   selectedPieceId?: string | null;
   selectedPieceIds?: string[];
   selectablePieceIds?: string[];
+  scoringCardHighlights?: ScoringCardHighlight[];
+  scoringLineHighlights?: ScoringLineHighlight[];
   onCardClick?: (position: GridPosition) => void;
   onExpansionTargetClick?: (position: GridPosition) => void;
   onAddPieceTargetClick?: (position: GridPosition) => void;
@@ -47,7 +49,9 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
     selectedHandCardId,
     selectedPieceId = null,
     selectedPieceIds = [],
-    selectablePieceIds = []
+    selectablePieceIds = [],
+    scoringCardHighlights = [],
+    scoringLineHighlights = []
   } = props;
   const viewModel = useMemo(
     () => ({
@@ -61,7 +65,9 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       spotlightInstanceIds,
       selectedPieceId,
       selectedPieceIds,
-      selectablePieceIds
+      selectablePieceIds,
+      scoringCardHighlights,
+      scoringLineHighlights
     }),
     [
       addPieceTargets,
@@ -74,6 +80,8 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       selectablePieceIds,
       selectedPieceId,
       selectedPieceIds,
+      scoringCardHighlights,
+      scoringLineHighlights,
       spotlightInstanceIds
     ]
   );

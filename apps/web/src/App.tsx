@@ -46,6 +46,7 @@ import {
   getAvailableJaguarPointSpendCount,
   getAvailableWolfPointSpendCount,
   getArmadilloHidePieceIds,
+  getArmadilloSharingDetails,
   getArmadilloSeedPlacementPositions,
   getArmadilloShareScore,
   getCapuchinHabitatScore,
@@ -98,6 +99,12 @@ const SPECIES_HEX: Record<SpeciesId, string> = {
   capuchin: "#6b8a76",
   coati: "#b6815f"
 };
+
+const HABITAT_SCORE_COLORS = {
+  forest: 0x5fd08a,
+  field: 0xf2c14e,
+  river: 0x3a7fc4
+} as const;
 
 function speciesColor(speciesId: SpeciesId | null | undefined): string {
   return speciesId ? SPECIES_HEX[speciesId] : "var(--amber)";
@@ -972,6 +979,68 @@ export function App() {
   const capuchinHabitatScore = room?.game && room.game.activePlayerId ? getCapuchinHabitatScore(room.game, room.game.activePlayerId) : 0;
   const macawLineScore = room?.game && room.game.activePlayerId ? getMacawLineScore(room.game, room.game.activePlayerId) : 0;
   const armadilloShareScore = room?.game && room.game.activePlayerId ? getArmadilloShareScore(room.game, room.game.activePlayerId) : 0;
+  const scoringPreview = useMemo(() => {
+    if (!room?.game || room.game.status !== "active" || !room.game.activePlayerId || activeActionId !== "D") {
+      return {
+        cardHighlights: [],
+        lineHighlights: [],
+        lines: 0,
+        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
+        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
+      };
+    }
+
+    if (activeSpecies?.speciesId === "macaw") {
+      const lines = getMacawScoringLines(room.game, room.game.activePlayerId);
+      return {
+        cardHighlights: [],
+        lineHighlights: lines.map((line) => ({ positions: line.positions, label: "+1", color: 0x3a7fc4 })),
+        lines: lines.length,
+        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
+        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
+      };
+    }
+
+    if (activeSpecies?.speciesId === "capuchin") {
+      const habitats = getCapuchinScoringHabitats(room.game, room.game.activePlayerId);
+      return {
+        cardHighlights: habitats.flatMap((group) =>
+          group.positions.map((position) => ({
+            position,
+            label: `${habitatShortLabel[group.habitat as keyof typeof habitatShortLabel]} +1`,
+            color: HABITAT_SCORE_COLORS[group.habitat as keyof typeof HABITAT_SCORE_COLORS]
+          }))
+        ),
+        lineHighlights: [],
+        lines: 0,
+        habitats,
+        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
+      };
+    }
+
+    if (activeSpecies?.speciesId === "armadillo") {
+      const armadillo = getArmadilloSharingDetails(room.game, room.game.activePlayerId);
+      return {
+        cardHighlights: armadillo.sharedPositions.map((position) => ({
+          position,
+          label: "compartilha",
+          color: 0xf2c14e
+        })),
+        lineHighlights: [],
+        lines: 0,
+        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
+        armadillo
+      };
+    }
+
+    return {
+      cardHighlights: [],
+      lineHighlights: [],
+      lines: 0,
+      habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
+      armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
+    };
+  }, [activeActionId, activeSpecies?.speciesId, room?.game]);
   const wolfRemovableBasePieceIds =
     room?.game && room.game.activePlayerId ? getWolfRemovableBasePieceIds(room.game, room.game.activePlayerId) : [];
   const wolfSpendableResources =
@@ -2028,13 +2097,17 @@ export function App() {
       return;
     }
     autoScoredRef.current = key;
-    if (species === "capuchin") {
-      handleScoreCapuchin();
-    } else if (species === "macaw") {
-      handleScoreMacaw();
-    } else {
-      handleScoreArmadillo();
-    }
+    const timer = window.setTimeout(() => {
+      if (species === "capuchin") {
+        handleScoreCapuchin();
+      } else if (species === "macaw") {
+        handleScoreMacaw();
+      } else {
+        handleScoreArmadillo();
+      }
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
   }, [
     activeActionId,
     activeSpecies?.speciesId,
@@ -3289,6 +3362,8 @@ export function App() {
             }
             bonusTargets={coatiPairBonusTargets}
             spotlightInstanceIds={spotlightInstanceIds}
+            scoringCardHighlights={scoringPreview.cardHighlights}
+            scoringLineHighlights={scoringPreview.lineHighlights}
             selectedHandCardId={selectedHandCardId}
             selectedPieceId={selectedPieceId}
             selectedPieceIds={highlightedPieceIds}

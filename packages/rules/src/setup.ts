@@ -1726,6 +1726,61 @@ export function getArmadilloShareScore(game: GameState, playerId: string): numbe
   return Math.max(1, 3 - notSharingCount);
 }
 
+export function getArmadilloSharingDetails(game: GameState, playerId: string): {
+  points: number;
+  sharedSpecies: SpeciesId[];
+  missingSpecies: SpeciesId[];
+  sharedPositions: GridPosition[];
+} {
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return { points: 0, sharedSpecies: [], missingSpecies: [], sharedPositions: [] };
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId !== "armadillo" || getCurrentAction(game) !== "D") {
+    return { points: 0, sharedSpecies: [], missingSpecies: [], sharedPositions: [] };
+  }
+
+  const armadilloPositions = new Map(
+    game.pieces
+      .filter((piece) => piece.ownerId === playerId && piece.speciesId === "armadillo" && piece.location)
+      .map((piece) => [positionKey(piece.location!), { x: piece.location!.x, y: piece.location!.y }])
+  );
+  const opponentSpecies = new Set(
+    game.players
+      .filter((candidate) => candidate.playerId !== playerId && candidate.speciesId)
+      .map((candidate) => candidate.speciesId!)
+  );
+  const sharedSpecies: SpeciesId[] = [];
+  const missingSpecies: SpeciesId[] = [];
+  const sharedPositionKeys = new Set<string>();
+
+  for (const speciesId of opponentSpecies) {
+    const sharedPieces = game.pieces.filter(
+      (piece) => piece.speciesId === speciesId && piece.location && armadilloPositions.has(positionKey(piece.location))
+    );
+    if (sharedPieces.length === 0) {
+      missingSpecies.push(speciesId);
+      continue;
+    }
+
+    sharedSpecies.push(speciesId);
+    for (const piece of sharedPieces) {
+      if (piece.location) {
+        sharedPositionKeys.add(positionKey(piece.location));
+      }
+    }
+  }
+
+  const points = sharedSpecies.length === 0 ? 0 : Math.max(1, 3 - missingSpecies.length);
+  return {
+    points,
+    sharedSpecies,
+    missingSpecies,
+    sharedPositions: [...sharedPositionKeys].map((key) => armadilloPositions.get(key)).filter((position): position is GridPosition => Boolean(position))
+  };
+}
+
 export function scoreArmadilloSharing(game: GameState, playerId: string): GameState {
   if (game.status !== "active") {
     throw new Error("Pontuacao so pode acontecer durante a fase ativa.");
@@ -2112,6 +2167,23 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     if (player.speciesId === "macaw") {
       const action = getCurrentAction(game);
       if (action === "A") {
+        if (player.reservePieces.length === 0 || getMacawEggPlacementPositions(game, playerId).length === 0) {
+          const next = cloneGameState(game);
+          const nextPlayer = findPlayer(next, playerId);
+          next.log = [
+            ...next.log,
+            {
+              id: `macaw_skip_A_${playerId}_${next.log.length + 1}`,
+              message: `${nextPlayer.name} pulou a acao A da Arara-azul porque nao havia arara na reserva ou local de ovo disponivel.`,
+              createdAt: Date.now(),
+              payload: { kind: "skip", actorPlayerId: playerId, actionId: "A" }
+            }
+          ];
+
+          advanceActiveAction(next);
+          return next;
+        }
+
         throw new Error("A acao A da Arara-azul e concluida ao adicionar 1 arara em local de ovo.");
       }
 

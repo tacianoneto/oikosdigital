@@ -14,6 +14,20 @@ export interface ForestViewModel {
   selectedPieceId: string | null;
   selectedPieceIds: string[];
   selectablePieceIds: string[];
+  scoringCardHighlights: ScoringCardHighlight[];
+  scoringLineHighlights: ScoringLineHighlight[];
+}
+
+export interface ScoringCardHighlight {
+  position: GridPosition;
+  label: string;
+  color: number;
+}
+
+export interface ScoringLineHighlight {
+  positions: GridPosition[];
+  label: string;
+  color: number;
 }
 
 export interface ForestSceneCallbacks {
@@ -105,6 +119,11 @@ export class ForestPhaserScene extends Phaser.Scene {
     this.highlightLayer = this.add.container(0, 0);
     this.cardLayer = this.add.container(0, 0);
     this.pieceLayer = this.add.container(0, 0);
+    this.surfaceLayer.setDepth(0);
+    this.gridLayer.setDepth(1);
+    this.cardLayer.setDepth(10);
+    this.highlightLayer.setDepth(20);
+    this.pieceLayer.setDepth(30);
 
     this.setupCameraControls();
 
@@ -386,6 +405,79 @@ export class ForestPhaserScene extends Phaser.Scene {
     ringFor(vm.movementTargets, SELECT);
     ringFor(vm.addPieceTargets, 0xf2c14e);
     ringFor(vm.bonusTargets, 0x7fe9d8);
+
+    for (const item of vm.scoringCardHighlights) {
+      const w = this.worldOf(item.position);
+      const glow = this.add.graphics();
+      glow.fillStyle(item.color, 0.18);
+      glow.fillRoundedRect(-CARD / 2 - 7, -CARD / 2 - 7, CARD + 14, CARD + 14, RADIUS + 7);
+      glow.lineStyle(5, item.color, 0.96);
+      glow.strokeRoundedRect(-CARD / 2 - 7, -CARD / 2 - 7, CARD + 14, CARD + 14, RADIUS + 7);
+      const label = this.add
+        .text(0, -CARD / 2 - 22, item.label, {
+          fontFamily: "Outfit, sans-serif",
+          fontSize: "16px",
+          fontStyle: "800",
+          color: "#fff7c7",
+          backgroundColor: "rgba(12, 23, 18, 0.82)",
+          padding: { x: 8, y: 4 }
+        })
+        .setOrigin(0.5);
+      const cont = this.add.container(w.x, w.y, [glow, label]);
+      cont.setDepth(80);
+      this.highlightLayer.add(cont);
+      this.pulses.push(
+        this.tweens.add({
+          targets: cont,
+          alpha: { from: 0.62, to: 1 },
+          duration: 620,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut"
+        })
+      );
+    }
+
+    for (const item of vm.scoringLineHighlights) {
+      if (item.positions.length < 2) continue;
+      const points = item.positions.map((position) => this.worldOf(position));
+      const line = this.add.graphics();
+      line.lineStyle(12, 0x08130f, 0.76);
+      for (let i = 1; i < points.length; i += 1) {
+        line.lineBetween(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+      }
+      line.lineStyle(6, item.color, 1);
+      for (let i = 1; i < points.length; i += 1) {
+        line.lineBetween(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+      }
+      const mid = points[Math.floor(points.length / 2)];
+      const badge = this.add.container(mid.x, mid.y - 64);
+      const bg = this.add.graphics();
+      bg.fillStyle(item.color, 0.94);
+      bg.fillRoundedRect(-28, -18, 56, 36, 18);
+      const text = this.add
+        .text(0, 0, item.label, {
+          fontFamily: "Outfit, sans-serif",
+          fontSize: "17px",
+          fontStyle: "900",
+          color: "#06110d"
+        })
+        .setOrigin(0.5);
+      badge.add([bg, text]);
+      line.setDepth(90);
+      badge.setDepth(91);
+      this.highlightLayer.add([line, badge]);
+      this.pulses.push(
+        this.tweens.add({
+          targets: [line, badge],
+          alpha: { from: 0.68, to: 1 },
+          duration: 520,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut"
+        })
+      );
+    }
 
     const spotlightSet = new Set(vm.spotlightInstanceIds);
     if (spotlightSet.size > 0) {
@@ -858,6 +950,10 @@ function viewSignature(vm: ForestViewModel): string {
     vm.spotlightInstanceIds.join("|"),
     vm.selectedPieceId ?? "",
     vm.selectedPieceIds.join("|"),
-    vm.selectablePieceIds.join("|")
+    vm.selectablePieceIds.join("|"),
+    vm.scoringCardHighlights.map((item) => `${item.position.x},${item.position.y}:${item.label}:${item.color}`).join("|"),
+    vm.scoringLineHighlights
+      .map((item) => `${item.positions.map((position) => `${position.x},${position.y}`).join(">")}:${item.label}:${item.color}`)
+      .join("|")
   ].join(";");
 }

@@ -18,6 +18,7 @@ import {
   getArmadilloShareScore,
   getCapuchinHabitatScore,
   getCapuchinPlacementPositions,
+  getCapuchinScoringHabitats,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
   getRequiredCoatiRemovalCount,
@@ -27,6 +28,7 @@ import {
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawLineScore,
+  getMacawScoringLines,
   getMacawRelocatablePieceIds,
   getValidPieceMovementDestinations,
   getWolfMeatPlacementPositions,
@@ -828,6 +830,15 @@ describe("setup placement", () => {
     game = setActiveAction(game, "capuchin", 3);
 
     expect(getCapuchinHabitatScore(game, "capuchin")).toBe(1);
+    expect(getCapuchinScoringHabitats(game, "capuchin")).toEqual([
+      {
+        habitat: "forest",
+        positions: [
+          { x: -1, y: -1, siteId: "main" },
+          { x: 1, y: -1, siteId: "main" }
+        ]
+      }
+    ]);
 
     game = scoreCapuchinHabitatPresence(game, "capuchin");
 
@@ -949,6 +960,17 @@ describe("setup placement", () => {
     game = setActiveAction(game, "macaw", 3);
 
     expect(getMacawLineScore(game, "macaw")).toBe(1);
+    expect(getMacawScoringLines(game, "macaw")).toEqual([
+      {
+        origin: { x: -1, y: -1 },
+        direction: { x: 1, y: 0 },
+        positions: [
+          { x: -1, y: -1 },
+          { x: 0, y: -1 },
+          { x: 1, y: -1 }
+        ]
+      }
+    ]);
 
     game = scoreMacawLines(game, "macaw");
 
