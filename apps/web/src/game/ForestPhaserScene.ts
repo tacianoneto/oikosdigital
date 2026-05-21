@@ -144,10 +144,16 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     const world = this.worldOf(position);
     const camera = this.cameras.main;
+    // Account for camera display offset (camera.x/y) plus world-to-screen transform via zoom + scroll.
     return {
-      x: (world.x - camera.scrollX) * camera.zoom,
-      y: (world.y - camera.scrollY) * camera.zoom
+      x: camera.x + (world.x - camera.scrollX) * camera.zoom,
+      y: camera.y + (world.y - camera.scrollY) * camera.zoom
     };
+  }
+
+  getCardScreenSize(): number {
+    if (!this.ready) return 0;
+    return CARD * this.cameras.main.zoom;
   }
 
   private worldOf(p: GridPosition): { x: number; y: number } {

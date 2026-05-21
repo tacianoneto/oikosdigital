@@ -1156,6 +1156,47 @@ export function getCapuchinHabitatScore(game: GameState, playerId: string): numb
   return [...positionsByHabitat.values()].filter((positions) => positions.size >= 2).length;
 }
 
+export interface CapuchinHabitatGroup {
+  habitat: string;
+  positions: GridPosition[];
+}
+
+export function getCapuchinScoringHabitats(game: GameState, playerId: string): CapuchinHabitatGroup[] {
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return [];
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId !== "capuchin" || getCurrentAction(game) !== "D") {
+    return [];
+  }
+
+  const positionsByHabitat = new Map<string, Map<string, GridPosition>>();
+  for (const piece of game.pieces) {
+    if (piece.ownerId !== playerId || piece.speciesId !== "capuchin" || !piece.location) {
+      continue;
+    }
+
+    const card = getForestCardAtPosition(game, piece.location);
+    const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
+    if (!definition?.habitat) {
+      continue;
+    }
+
+    const map = positionsByHabitat.get(definition.habitat) ?? new Map<string, GridPosition>();
+    map.set(positionKey(piece.location), piece.location);
+    positionsByHabitat.set(definition.habitat, map);
+  }
+
+  const groups: CapuchinHabitatGroup[] = [];
+  for (const [habitat, map] of positionsByHabitat.entries()) {
+    if (map.size >= 2) {
+      groups.push({ habitat, positions: [...map.values()] });
+    }
+  }
+  return groups;
+}
+
 export function scoreCapuchinHabitatPresence(game: GameState, playerId: string): GameState {
   if (game.status !== "active") {
     throw new Error("Pontuacao so pode acontecer durante a fase ativa.");
@@ -1408,6 +1449,60 @@ export function getMacawLineScore(game: GameState, playerId: string): number {
   }
 
   return lineKeys.size;
+}
+
+export interface MacawScoringLine {
+  origin: GridPosition;
+  direction: GridPosition;
+  positions: [GridPosition, GridPosition, GridPosition];
+}
+
+export function getMacawScoringLines(game: GameState, playerId: string): MacawScoringLine[] {
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return [];
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId !== "macaw" || getCurrentAction(game) !== "D") {
+    return [];
+  }
+
+  const positionSet = new Set(
+    game.pieces
+      .filter((piece) => piece.ownerId === playerId && piece.speciesId === "macaw" && piece.location)
+      .map((piece) => positionKey(piece.location!))
+  );
+  const directions: GridPosition[] = [
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 1, y: 1 },
+    { x: 1, y: -1 }
+  ];
+  const lines: MacawScoringLine[] = [];
+
+  for (const key of positionSet) {
+    const [x, y] = key.split(":").map(Number);
+    for (const direction of directions) {
+      const before = `${x - direction.x}:${y - direction.y}`;
+      const second = `${x + direction.x}:${y + direction.y}`;
+      const third = `${x + direction.x * 2}:${y + direction.y * 2}`;
+      if (positionSet.has(before) || !positionSet.has(second) || !positionSet.has(third)) {
+        continue;
+      }
+
+      lines.push({
+        origin: { x, y },
+        direction,
+        positions: [
+          { x, y },
+          { x: x + direction.x, y: y + direction.y },
+          { x: x + direction.x * 2, y: y + direction.y * 2 }
+        ]
+      });
+    }
+  }
+
+  return lines;
 }
 
 export function scoreMacawLines(game: GameState, playerId: string): GameState {

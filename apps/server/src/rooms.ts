@@ -192,6 +192,48 @@ export function removeBots(roomId: string, playerId: string): PublicRoomState {
   return toPublicRoom(room);
 }
 
+export function addBotForSpecies(roomId: string, playerId: string, speciesId: SpeciesId): PublicRoomState {
+  const room = getRoom(roomId);
+  assertHostCanManageBots(room, playerId);
+
+  if (room.players.length >= 6) {
+    throw new Error("Sala já está cheia.");
+  }
+
+  const existing = room.players.find((player) => player.speciesId === speciesId);
+  if (existing) {
+    throw new Error("Espécie já está em uso.");
+  }
+
+  if (!speciesDefinitions[speciesId]) {
+    throw new Error("Espécie inválida.");
+  }
+
+  room.players.push({
+    playerId: `bot_${speciesId}`,
+    name: `Bot ${speciesDefinitions[speciesId].displayName}`,
+    speciesId,
+    ready: true,
+    connected: true,
+    isBot: true
+  });
+
+  return toPublicRoom(room);
+}
+
+export function removeBotForSpecies(roomId: string, playerId: string, speciesId: SpeciesId): PublicRoomState {
+  const room = getRoom(roomId);
+  assertHostCanManageBots(room, playerId);
+
+  const target = room.players.find((player) => player.isBot && player.speciesId === speciesId);
+  if (!target) {
+    throw new Error("Bot não encontrado para esta espécie.");
+  }
+
+  room.players = room.players.filter((player) => player.playerId !== target.playerId);
+  return toPublicRoom(room);
+}
+
 export function setBotTurnDelay(roomId: string, playerId: string, delayMs: number): PublicRoomState {
   const room = getRoom(roomId);
 

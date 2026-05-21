@@ -5,6 +5,8 @@ import type { PublicRoomState, SpeciesId } from "@oikos/shared";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
+  addBotForSpecies,
+  removeBotForSpecies,
   addArmadillo,
   addCapuchin,
   addCoati,
@@ -255,6 +257,22 @@ io.on("connection", (socket) => {
   socket.on("bots:remove", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
       const room = removeBots(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("bots:add-species", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
+    withReply(reply, () => {
+      const room = addBotForSpecies(payload.roomId, playerId, payload.speciesId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("bots:remove-species", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
+    withReply(reply, () => {
+      const room = removeBotForSpecies(payload.roomId, playerId, payload.speciesId);
       broadcastRoom(room);
       return room;
     });

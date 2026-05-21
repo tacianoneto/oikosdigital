@@ -54,8 +54,12 @@ import {
   getAvailableForestExpansionPositions,
   getAvailableForestExpansionPositionsForCard,
   getMacawActionCTargets,
+  getCapuchinScoringHabitats,
+  type CapuchinHabitatGroup,
   getMacawEggPlacementPositions,
   getMacawLineScore,
+  getMacawScoringLines,
+  type MacawScoringLine,
   getMacawRelocatablePieceIds,
   getRequiredCoatiRemovalCount,
   getValidPieceMovementDestinations,
@@ -512,6 +516,19 @@ export function App() {
   const [configOpen, setConfigOpen] = useState(false);
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(false);
   const [hudRightCollapsed, setHudRightCollapsed] = useState(false);
+  const [landingMode, setLandingMode] = useState<"idle" | "join" | "local">("idle");
+  const [macawScoreAnim, setMacawScoreAnim] = useState<{
+    lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
+    points: number;
+    playerName: string;
+  } | null>(null);
+  const [macawAnimTick, setMacawAnimTick] = useState(0);
+  const [capuchinScoreAnim, setCapuchinScoreAnim] = useState<{
+    groups: CapuchinHabitatGroup[];
+    points: number;
+    playerName: string;
+  } | null>(null);
+  const [capuchinAnimTick, setCapuchinAnimTick] = useState(0);
   const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
   const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
   const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
@@ -652,6 +669,28 @@ export function App() {
     const id = window.setTimeout(() => setNotice(null), 3200);
     return () => window.clearTimeout(id);
   }, [notice]);
+
+  useEffect(() => {
+    if (!macawScoreAnim) return;
+    let raf = 0;
+    const tick = () => {
+      setMacawAnimTick((t) => t + 1);
+      raf = window.requestAnimationFrame(tick);
+    };
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [macawScoreAnim]);
+
+  useEffect(() => {
+    if (!capuchinScoreAnim) return;
+    let raf = 0;
+    const tick = () => {
+      setCapuchinAnimTick((t) => t + 1);
+      raf = window.requestAnimationFrame(tick);
+    };
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [capuchinScoreAnim]);
 
 
   useEffect(() => {
@@ -1711,26 +1750,51 @@ export function App() {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = scoreCapuchinHabitatPresence(room.game, room.game.activePlayerId);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
+    const activeId = room.game.activePlayerId;
+    const groups = getCapuchinScoringHabitats(room.game, activeId);
+    const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Macaco-prego";
+
+    const finalize = () => {
+      if (isLocalRoom) {
+        const currentGame = room.game;
+        if (!currentGame) return;
+        const nextGame = scoreCapuchinHabitatPresence(currentGame, activeId);
+        setRoom((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: nextGame.status === "active" ? "active" : prev.status,
+                game: nextGame,
+                warnings: nextGame.contentWarnings
+              }
+            : prev
+        );
+        setSelectedHandCardId(null);
+        setSelectedPieceId(null);
+        setSelectedRemovalPieceIds([]);
+        setNotice("Macaco-prego pontuado.");
+        return;
+      }
+
+      void run(() => roomApi.scoreCapuchin(requireSocket(), room.roomId)).then(() => {
+        setSelectedHandCardId(null);
+        setSelectedPieceId(null);
+        setSelectedRemovalPieceIds([]);
       });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Macaco-prego pontuado.");
+    };
+
+    if (groups.length === 0) {
+      finalize();
       return;
     }
 
-    void run(() => roomApi.scoreCapuchin(requireSocket(), room.roomId)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-    });
+    setCapuchinScoreAnim({ groups, points: groups.length, playerName });
+    setCapuchinAnimTick((t) => t + 1);
+
+    window.setTimeout(() => {
+      setCapuchinScoreAnim(null);
+      finalize();
+    }, 2400);
   }, [canControlActivePlayer, isLocalRoom, room, socket]);
 
   const handleScoreMacaw = useCallback(() => {
@@ -1738,26 +1802,55 @@ export function App() {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = scoreMacawLines(room.game, room.game.activePlayerId);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
+    const activeId = room.game.activePlayerId;
+    const lines: MacawScoringLine[] = getMacawScoringLines(room.game, activeId);
+    const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Arara-azul";
+
+    const finalize = () => {
+      if (isLocalRoom) {
+        const currentGame = room.game;
+        if (!currentGame) return;
+        const nextGame = scoreMacawLines(currentGame, activeId);
+        setRoom((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: nextGame.status === "active" ? "active" : prev.status,
+                game: nextGame,
+                warnings: nextGame.contentWarnings
+              }
+            : prev
+        );
+        setSelectedHandCardId(null);
+        setSelectedPieceId(null);
+        setSelectedRemovalPieceIds([]);
+        setNotice("Arara-azul pontuada.");
+        return;
+      }
+
+      void run(() => roomApi.scoreMacaw(requireSocket(), room.roomId)).then(() => {
+        setSelectedHandCardId(null);
+        setSelectedPieceId(null);
+        setSelectedRemovalPieceIds([]);
       });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Arara-azul pontuada.");
+    };
+
+    if (lines.length === 0) {
+      finalize();
       return;
     }
 
-    void run(() => roomApi.scoreMacaw(requireSocket(), room.roomId)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
+    setMacawScoreAnim({
+      lines: lines.map((line) => ({ positions: line.positions })),
+      points: lines.length,
+      playerName
     });
+    setMacawAnimTick((tick) => tick + 1);
+
+    window.setTimeout(() => {
+      setMacawScoreAnim(null);
+      finalize();
+    }, 2400);
   }, [canControlActivePlayer, isLocalRoom, room, socket]);
 
   const handleHideArmadillo = useCallback(() => {
@@ -2065,6 +2158,225 @@ export function App() {
           })}
         </div>
       )}
+      {macawScoreAnim && (() => {
+        void macawAnimTick;
+        const resolved = macawScoreAnim.lines
+          .map((line) => {
+            const a = forestCanvasRef.current?.getCardCenter(line.positions[0]);
+            const m = forestCanvasRef.current?.getCardCenter(line.positions[1]);
+            const c = forestCanvasRef.current?.getCardCenter(line.positions[2]);
+            if (!a || !m || !c) return null;
+            return { from: a, mid: m, to: c };
+          })
+          .filter((value): value is { from: { x: number; y: number }; mid: { x: number; y: number }; to: { x: number; y: number } } => value !== null);
+
+        return (
+          <>
+            <svg
+              className="macaw-score-overlay"
+              aria-hidden="true"
+              viewBox={`0 0 ${typeof window !== "undefined" ? window.innerWidth : 1920} ${typeof window !== "undefined" ? window.innerHeight : 1080}`}
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <filter id="macawGlow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {resolved.map((line, idx) => {
+                const hueShift = idx * 22;
+                const stroke = `hsl(${210 + hueShift}, 85%, 62%)`;
+                const length = Math.hypot(line.to.x - line.from.x, line.to.y - line.from.y);
+                const delay = idx * 280;
+                return (
+                  <g key={idx}>
+                    <line
+                      className="macaw-line-stroke macaw-line-glow"
+                      x1={line.from.x}
+                      y1={line.from.y}
+                      x2={line.to.x}
+                      y2={line.to.y}
+                      stroke={stroke}
+                      strokeOpacity="0.35"
+                      strokeWidth={18}
+                      strokeLinecap="round"
+                      style={{ animationDelay: `${delay}ms` } as CSSProperties}
+                    />
+                    <line
+                      className="macaw-line-stroke macaw-line-main"
+                      x1={line.from.x}
+                      y1={line.from.y}
+                      x2={line.to.x}
+                      y2={line.to.y}
+                      stroke={stroke}
+                      strokeWidth={6}
+                      strokeLinecap="round"
+                      strokeDasharray={length}
+                      strokeDashoffset={length}
+                      filter="url(#macawGlow)"
+                      style={{ animationDelay: `${delay}ms`, ["--dash" as string]: `${length}` } as CSSProperties}
+                    />
+                    {[line.from, line.mid, line.to].map((dot, dotIdx) => (
+                      <circle
+                        key={dotIdx}
+                        className="macaw-line-dot"
+                        cx={dot.x}
+                        cy={dot.y}
+                        r={10}
+                        fill={stroke}
+                        style={{ animationDelay: `${delay + dotIdx * 120}ms` } as CSSProperties}
+                      />
+                    ))}
+                  </g>
+                );
+              })}
+            </svg>
+            <div className="macaw-score-stamps" aria-hidden="true">
+              {resolved.map((line, idx) => {
+                const cx = (line.from.x + line.to.x) / 2;
+                const cy = (line.from.y + line.to.y) / 2;
+                const angle = Math.atan2(line.to.y - line.from.y, line.to.x - line.from.x) * (180 / Math.PI);
+                const normalAngle = angle + 90;
+                const offset = 32;
+                const offX = Math.cos((normalAngle * Math.PI) / 180) * offset;
+                const offY = Math.sin((normalAngle * Math.PI) / 180) * offset;
+                return (
+                  <span
+                    key={idx}
+                    className="macaw-score-stamp"
+                    style={
+                      {
+                        left: `${cx + offX}px`,
+                        top: `${cy + offY}px`,
+                        animationDelay: `${idx * 280 + 600}ms`
+                      } as CSSProperties
+                    }
+                  >
+                    +1
+                  </span>
+                );
+              })}
+            </div>
+          <div className="macaw-score-panel" role="status">
+            <div className="macaw-score-panel-icon">
+              <img src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="" />
+            </div>
+            <div className="macaw-score-panel-text">
+              <small>{macawScoreAnim.playerName}</small>
+              <strong>
+                {macawScoreAnim.points} linha{macawScoreAnim.points > 1 ? "s" : ""} de 3 araras
+              </strong>
+              <span className="macaw-score-panel-total">
+                = <em>+{macawScoreAnim.points}</em> ponto{macawScoreAnim.points > 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+          </>
+        );
+      })()}
+      {capuchinScoreAnim && (() => {
+        void capuchinAnimTick;
+        const HABITAT_COLORS: Record<string, { fill: string; stroke: string; tagBg: string }> = {
+          forest: { fill: "rgba(79, 174, 110, 0.32)", stroke: "#4fae6e", tagBg: "#2d8553" },
+          field: { fill: "rgba(242, 193, 78, 0.32)", stroke: "#f2c14e", tagBg: "#d29a2f" },
+          river: { fill: "rgba(79, 159, 216, 0.32)", stroke: "#4f9fd8", tagBg: "#2d70b5" }
+        };
+        const HABITAT_NAMES: Record<string, string> = {
+          forest: "Bosque",
+          field: "Campo",
+          river: "Rio"
+        };
+        const cardSize = forestCanvasRef.current?.getCardScreenSize() ?? 0;
+        const resolvedGroups = capuchinScoreAnim.groups.map((group, idx) => {
+          const rects = group.positions
+            .map((pos) => {
+              const c = forestCanvasRef.current?.getCardCenter(pos);
+              if (!c) return null;
+              return { center: c };
+            })
+            .filter((value): value is { center: { x: number; y: number } } => value !== null);
+          const centroid = rects.length
+            ? {
+                x: rects.reduce((acc, r) => acc + r.center.x, 0) / rects.length,
+                y: rects.reduce((acc, r) => acc + r.center.y, 0) / rects.length
+              }
+            : null;
+          const colors = HABITAT_COLORS[group.habitat] ?? HABITAT_COLORS.forest;
+          const name = HABITAT_NAMES[group.habitat] ?? group.habitat;
+          const delay = idx * 320;
+          return { rects, centroid, colors, name, delay, habitat: group.habitat };
+        });
+
+        return (
+          <>
+            <svg
+              className="capuchin-score-overlay"
+              aria-hidden="true"
+              viewBox={`0 0 ${typeof window !== "undefined" ? window.innerWidth : 1920} ${typeof window !== "undefined" ? window.innerHeight : 1080}`}
+              preserveAspectRatio="none"
+            >
+              {resolvedGroups.flatMap((group, gIdx) =>
+                group.rects.map((rect, rIdx) => (
+                  <rect
+                    key={`${gIdx}-${rIdx}`}
+                    className="capuchin-card-rect"
+                    x={rect.center.x - cardSize / 2}
+                    y={rect.center.y - cardSize / 2}
+                    width={cardSize}
+                    height={cardSize}
+                    rx={14}
+                    ry={14}
+                    fill={group.colors.fill}
+                    stroke={group.colors.stroke}
+                    strokeWidth={4}
+                    style={{ animationDelay: `${group.delay + rIdx * 90}ms` } as CSSProperties}
+                  />
+                ))
+              )}
+            </svg>
+            <div className="capuchin-score-stamps" aria-hidden="true">
+              {resolvedGroups.map((group, idx) =>
+                group.centroid ? (
+                  <span
+                    key={idx}
+                    className="capuchin-score-stamp"
+                    style={
+                      {
+                        left: `${group.centroid.x}px`,
+                        top: `${group.centroid.y}px`,
+                        background: group.colors.tagBg,
+                        borderColor: group.colors.stroke,
+                        animationDelay: `${group.delay + 500}ms`
+                      } as CSSProperties
+                    }
+                  >
+                    <strong>{group.name}</strong>
+                    <em>+1</em>
+                  </span>
+                ) : null
+              )}
+            </div>
+            <div className="capuchin-score-panel" role="status">
+              <div className="capuchin-score-panel-icon">
+                <img src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="" />
+              </div>
+              <div className="capuchin-score-panel-text">
+                <small>{capuchinScoreAnim.playerName}</small>
+                <strong>
+                  {capuchinScoreAnim.points} habitat{capuchinScoreAnim.points > 1 ? "s" : ""} com 2+ macacos
+                </strong>
+                <span className="capuchin-score-panel-total">
+                  = <em>+{capuchinScoreAnim.points}</em> ponto{capuchinScoreAnim.points > 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+          </>
+        );
+      })()}
       {hasStartedGame && (
         <button
           type="button"
@@ -2087,193 +2399,513 @@ export function App() {
           {hudRightCollapsed ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
         </button>
       )}
-      {!hasStartedGame && (
-      <aside className="left-panel menu-card">
-        <header className="brand-strip">
-          <Leaf aria-hidden="true" />
-          <div>
-            <h1>Oikos Digital</h1>
-          </div>
-        </header>
-
-        {!hasStartedGame && (
-          <div className="menu-grid">
-          <div className="menu-col">
-        <section className="panel-block">
-          <div className="section-title">
-            <Users aria-hidden="true" />
-            <h2>Sala</h2>
+      {!hasStartedGame && !room && landingMode === "idle" && (
+        <div className="landing-screen" role="main">
+          <div className="landing-bg-orbs" aria-hidden="true">
+            <span className="orb orb-1" />
+            <span className="orb orb-2" />
+            <span className="orb orb-3" />
           </div>
 
-          <label>
-            Nome
-            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={24} />
-          </label>
+          <header className="landing-header landing-header-minimal">
+            <span aria-hidden="true" />
+            <span className="landing-version">v0.1 · beta</span>
+          </header>
 
-          <div className="room-actions">
-            <button
-              className="primary-button"
-              onClick={() => run(() => roomApi.create(requireSocket(), name), "Sala criada.")}
-            >
-              <Play aria-hidden="true" />
-              Criar sala
-            </button>
-            <div className="join-row">
+          <div className="landing-hero landing-hero-logo">
+            <img className="brand-logo-hero" src="/oikos-logo.png" alt="Oikos Digital" />
+          </div>
+
+          <div className="landing-panel">
+            <label className="landing-name-field">
+              <Users aria-hidden="true" />
               <input
-                value={joinCode}
-                onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
-                placeholder="Código"
-                maxLength={5}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={24}
+                placeholder="Seu nome"
+                aria-label="Seu nome"
               />
+            </label>
+
+            <div className="landing-actions">
               <button
-                className="icon-button"
-                title="Entrar na sala"
-                onClick={() => run(() => roomApi.join(requireSocket(), joinCode, name), "Entrada confirmada.")}
+                type="button"
+                className="landing-action landing-action-primary"
+                onClick={() => run(() => roomApi.create(requireSocket(), name), "Sala criada.")}
               >
-                <LogIn aria-hidden="true" />
+                <span className="landing-action-icon">
+                  <Play aria-hidden="true" />
+                </span>
+                <span className="landing-action-text">
+                  <strong>Criar Sala</strong>
+                  <small>Hospede uma partida online</small>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="landing-action landing-action-secondary"
+                onClick={() => setLandingMode("join")}
+              >
+                <span className="landing-action-icon">
+                  <LogIn aria-hidden="true" />
+                </span>
+                <span className="landing-action-text">
+                  <strong>Entrar com Código</strong>
+                  <small>Junte-se a uma sala existente</small>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="landing-action landing-action-secondary"
+                onClick={() => setLandingMode("local")}
+              >
+                <span className="landing-action-icon">
+                  <MapPin aria-hidden="true" />
+                </span>
+                <span className="landing-action-text">
+                  <strong>Teste Local</strong>
+                  <small>Controle 2-6 espécies nesta tela</small>
+                </span>
               </button>
             </div>
           </div>
 
-          {room && (
-            <div className="room-code">
-              <span>{room.roomId}</span>
-              <button
-                className="icon-button compact"
-                title="Copiar código da sala"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(room.roomId);
-                  setNotice("Código copiado.");
-                }}
+          <div className="landing-species-rail" aria-hidden="true">
+            {speciesList.map((species) => (
+              <div
+                key={species.speciesId}
+                className="landing-species-card"
+                style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
               >
-                <Copy aria-hidden="true" />
-              </button>
-            </div>
-          )}
-        </section>
-
-        <section className="panel-block local-test-block">
-          <div className="section-title">
-            <MapPin aria-hidden="true" />
-            <h2>Teste local</h2>
+                <img src={encodeURI(species.meepleAsset)} alt="" />
+                <span>{species.displayName}</span>
+              </div>
+            ))}
           </div>
-          <p>Controle 2 a 6 espécies nesta tela para validar setup e regras sem abrir outros navegadores.</p>
-          <div className="local-species-grid">
-            {speciesList.map((species) => {
-              const selected = localSpeciesIds.includes(species.speciesId);
 
-              return (
-                <button
-                  key={species.speciesId}
-                  className={`local-species-chip ${selected ? "selected" : ""}`}
-                  disabled={isLocalRoom}
-                  onClick={() => toggleLocalSpecies(species.speciesId)}
-                >
-                  <img src={encodeURI(species.meepleAsset)} alt="" />
-                  <span>{species.displayName}</span>
-                </button>
-              );
-            })}
+          <footer className="landing-footer">
+            <span>Oikos Digital</span>
+            <span className="landing-footer-sep">·</span>
+            <span>Servidor autoritativo · Socket.IO</span>
+          </footer>
+        </div>
+      )}
+
+      {!hasStartedGame && !room && landingMode === "join" && (
+        <div className="flow-screen flow-screen-join" role="main">
+          <div className="landing-bg-orbs" aria-hidden="true">
+            <span className="orb orb-1" />
+            <span className="orb orb-2" />
           </div>
-          <div className="ready-row">
-            <button className="primary-button" disabled={isLocalRoom || localSpeciesIds.length < 2} onClick={startLocalTest}>
-              <Play aria-hidden="true" />
-              Iniciar teste local
+
+          <header className="flow-header">
+            <button
+              type="button"
+              className="flow-back"
+              onClick={() => setLandingMode("idle")}
+              aria-label="Voltar"
+            >
+              <ChevronLeft aria-hidden="true" />
+              <span>Voltar</span>
             </button>
-            {isLocalRoom && (
-              <button className="secondary-button" onClick={stopLocalTest}>
-                Encerrar teste
+            <div className="landing-logo flow-logo">
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+            </div>
+            <span className="flow-spacer" aria-hidden="true" />
+          </header>
+
+          <div className="flow-body">
+            <div className="flow-icon-large">
+              <LogIn aria-hidden="true" />
+            </div>
+            <h2 className="flow-title">Entrar em Sala</h2>
+            <p className="flow-subtitle">
+              Digite o código de 5 caracteres compartilhado pelo anfitrião.
+            </p>
+
+            <form
+              className="flow-card flow-card-join"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (joinCode.length >= 4) {
+                  void run(() => roomApi.join(requireSocket(), joinCode, name), "Entrada confirmada.");
+                }
+              }}
+            >
+              <label className="landing-name-field flow-name">
+                <Users aria-hidden="true" />
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={24}
+                  placeholder="Seu nome"
+                />
+              </label>
+
+              <div className="flow-code-field">
+                <span className="flow-code-label">Código da sala</span>
+                <input
+                  className="landing-code-input flow-code-input"
+                  value={joinCode}
+                  onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+                  placeholder="ABCDE"
+                  maxLength={5}
+                  autoFocus
+                />
+              </div>
+
+              <button type="submit" className="flow-submit" disabled={joinCode.length < 4}>
+                <LogIn aria-hidden="true" />
+                Entrar na Sala
               </button>
-            )}
+            </form>
           </div>
-        </section>
-          </div>
-        <section className="panel-block menu-species">
-          <div className="section-title">
-            <ShieldCheck aria-hidden="true" />
-            <h2>Espécie</h2>
+        </div>
+      )}
+
+      {!hasStartedGame && !room && landingMode === "local" && (
+        <div className="flow-screen flow-screen-local" role="main">
+          <div className="landing-bg-orbs" aria-hidden="true">
+            <span className="orb orb-1" />
+            <span className="orb orb-3" />
           </div>
 
-          <div className="species-grid">
-            {speciesList.map((species) => {
-              const takenBy = room?.players.find((player) => player.speciesId === species.speciesId);
-              const selected = currentPlayer?.speciesId === species.speciesId || selectedSpecies === species.speciesId;
+          <header className="flow-header">
+            <button
+              type="button"
+              className="flow-back"
+              onClick={() => setLandingMode("idle")}
+              aria-label="Voltar"
+            >
+              <ChevronLeft aria-hidden="true" />
+              <span>Voltar</span>
+            </button>
+            <div className="landing-logo flow-logo">
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+            </div>
+            <span className="flow-spacer" aria-hidden="true" />
+          </header>
 
-              return (
-                <button
-                  key={species.speciesId}
-                  className={`species-option ${selected ? "selected" : ""}`}
-                  disabled={Boolean(takenBy && takenBy.playerId !== playerId) || room?.status !== "lobby"}
-                  onClick={() => {
-                    setSelectedSpecies(species.speciesId);
-                    if (room) {
-                      void run(() => roomApi.selectSpecies(requireSocket(), room.roomId, species.speciesId));
-                    }
-                  }}
-                >
-                  <img src={encodeURI(species.meepleAsset)} alt="" />
-                  <span>{species.displayName}</span>
-                  <small>{categoryLabels[species.category]}</small>
-                </button>
-              );
-            })}
-          </div>
+          <div className="flow-body flow-body-wide">
+            <div className="flow-icon-large flow-icon-amber">
+              <MapPin aria-hidden="true" />
+            </div>
+            <h2 className="flow-title">Teste Local</h2>
+            <p className="flow-subtitle">
+              Controle de 2 a 6 espécies nesta mesma tela. Ideal para aprender as regras e testar estratégias.
+            </p>
 
-          {room && (
-            <div className="ready-row">
+            <div className="flow-card flow-card-local">
+              <div className="flow-card-header">
+                <span>Escolha as espécies</span>
+                <span className="flow-counter">
+                  {localSpeciesIds.length}/6
+                </span>
+              </div>
+              <div className="flow-species-grid">
+                {speciesList.map((species) => {
+                  const selected = localSpeciesIds.includes(species.speciesId);
+                  return (
+                    <button
+                      key={species.speciesId}
+                      type="button"
+                      className={`flow-species-card ${selected ? "selected" : ""}`}
+                      onClick={() => toggleLocalSpecies(species.speciesId)}
+                      style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
+                    >
+                      <div className="flow-species-thumb">
+                        <img src={encodeURI(species.meepleAsset)} alt="" />
+                      </div>
+                      <div className="flow-species-text">
+                        <strong>{species.displayName}</strong>
+                        <small>{categoryLabels[species.category]}</small>
+                      </div>
+                      {selected && (
+                        <span className="flow-species-check" aria-hidden="true">
+                          <Check />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
               <button
-                className="secondary-button"
-                onClick={() => run(() => roomApi.ready(requireSocket(), requireRoom().roomId, !currentPlayer?.ready))}
+                type="button"
+                className="flow-submit"
+                onClick={startLocalTest}
+                disabled={localSpeciesIds.length < 2}
               >
-                <Check aria-hidden="true" />
-                {currentPlayer?.ready ? "Pronto" : "Marcar pronto"}
+                <Play aria-hidden="true" />
+                Iniciar Partida ({localSpeciesIds.length} espécies)
               </button>
-              {isHost && (
-                <>
-                  <button className="secondary-button" onClick={() => run(() => roomApi.addBots(requireSocket(), room.roomId))}>
-                    <Bot aria-hidden="true" />
-                    Preencher bots
-                  </button>
-                  {roomHasBots && (
-                    <button className="secondary-button" onClick={() => run(() => roomApi.removeBots(requireSocket(), room.roomId))}>
-                      <X aria-hidden="true" />
-                      Remover bots
-                    </button>
-                  )}
-                  <div className="bot-speed-control" aria-label="Velocidade dos bots">
-                    <button
-                      type="button"
-                      className="icon-button compact"
-                      title="Bots mais rápidos"
-                      aria-label="Bots mais rápidos"
-                      onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
-                    >
-                      <Minus aria-hidden="true" />
-                    </button>
-                    <span>Bots {formatBotDelay(botTurnDelayMs)}</span>
-                    <button
-                      type="button"
-                      className="icon-button compact"
-                      title="Bots mais lentos"
-                      aria-label="Bots mais lentos"
-                      onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
-                    >
-                      <Plus aria-hidden="true" />
-                    </button>
-                  </div>
-                  <button className="primary-button" onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}>
-                    <Play aria-hidden="true" />
-                    Iniciar setup
-                  </button>
-                </>
+              {localSpeciesIds.length < 2 && (
+                <small className="flow-hint">Mínimo 2 espécies para iniciar.</small>
               )}
             </div>
-          )}
-        </section>
           </div>
-        )}
-      </aside>
+        </div>
       )}
+
+      {!hasStartedGame && room && (
+        <div className="flow-screen flow-screen-lobby" role="main">
+          <div className="landing-bg-orbs" aria-hidden="true">
+            <span className="orb orb-1" />
+            <span className="orb orb-2" />
+            <span className="orb orb-3" />
+          </div>
+
+          <header className="flow-header">
+            <button
+              type="button"
+              className="flow-back"
+              onClick={() => {
+                if (isLocalRoom) {
+                  stopLocalTest();
+                } else {
+                  leaveTable();
+                }
+                setLandingMode("idle");
+              }}
+              aria-label="Sair da sala"
+            >
+              <LogOut aria-hidden="true" />
+              <span>Sair</span>
+            </button>
+            <div className="landing-logo flow-logo">
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+            </div>
+            <span className="flow-spacer" aria-hidden="true" />
+          </header>
+
+          <div className="flow-body flow-body-lobby">
+            <div className="lobby-hero">
+              <span className="lobby-badge">{isLocalRoom ? "Teste Local" : "Sala Online"}</span>
+              <h2 className="flow-title lobby-title">
+                {isLocalRoom ? "Mesa Local" : "Sala de Espera"}
+              </h2>
+              {!isLocalRoom && (
+                <div className="lobby-code-card">
+                  <span className="lobby-code-label">Código da Sala</span>
+                  <div className="lobby-code-display">
+                    <span className="lobby-code-value">{room.roomId}</span>
+                    <button
+                      type="button"
+                      className="lobby-code-copy"
+                      title="Copiar código"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(room.roomId);
+                        setNotice("Código copiado.");
+                      }}
+                    >
+                      <Copy aria-hidden="true" />
+                    </button>
+                  </div>
+                  <small>Compartilhe com seus amigos para entrarem.</small>
+                </div>
+              )}
+            </div>
+
+            <div className="lobby-columns">
+              <section className="lobby-card lobby-players">
+                <header className="lobby-card-header">
+                  <Users aria-hidden="true" />
+                  <h3>Jogadores</h3>
+                  <span className="lobby-count">{room.players.length}</span>
+                </header>
+                <ul className="lobby-player-list">
+                  {room.players.map((player) => {
+                    const species = player.speciesId ? speciesDefinitions[player.speciesId] : null;
+                    const isYou = player.playerId === playerId;
+                    const isThisHost = player.playerId === room.hostPlayerId;
+                    return (
+                      <li
+                        key={player.playerId}
+                        className={`lobby-player ${player.ready ? "ready" : ""} ${isYou ? "you" : ""}`}
+                        style={
+                          species
+                            ? ({ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties)
+                            : undefined
+                        }
+                      >
+                        <div className="lobby-player-avatar">
+                          {species ? (
+                            <img src={encodeURI(species.meepleAsset)} alt="" />
+                          ) : (
+                            <Users aria-hidden="true" />
+                          )}
+                        </div>
+                        <div className="lobby-player-text">
+                          <strong>
+                            {player.name || "Jogador"}
+                            {isYou && <span className="lobby-tag lobby-tag-you">Você</span>}
+                            {isThisHost && !isLocalRoom && <span className="lobby-tag lobby-tag-host">Host</span>}
+                            {player.isBot && <span className="lobby-tag lobby-tag-bot">Bot</span>}
+                          </strong>
+                          <small>
+                            {species ? species.displayName : "Sem espécie"}
+                            {player.ready && " · Pronto"}
+                          </small>
+                        </div>
+                        {player.ready && (
+                          <span className="lobby-player-check" aria-hidden="true">
+                            <Check />
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {isHost && !isLocalRoom && (
+                  <div className="lobby-host-controls">
+                    <p className="lobby-hint">
+                      <Bot aria-hidden="true" />
+                      <span>Clique no botão de bot em cada espécie para adicionar/remover bots.</span>
+                    </p>
+                    {roomHasBots && (
+                      <button
+                        type="button"
+                        className="lobby-mini-button"
+                        onClick={() => run(() => roomApi.removeBots(requireSocket(), room.roomId), "Bots removidos.")}
+                      >
+                        <X aria-hidden="true" />
+                        Remover todos os bots
+                      </button>
+                    )}
+                    <div className="lobby-bot-speed">
+                      <button
+                        type="button"
+                        className="icon-button compact"
+                        title="Bots mais rápidos"
+                        onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
+                      >
+                        <Minus aria-hidden="true" />
+                      </button>
+                      <span>Velocidade: {formatBotDelay(botTurnDelayMs)}</span>
+                      <button
+                        type="button"
+                        className="icon-button compact"
+                        title="Bots mais lentos"
+                        onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
+                      >
+                        <Plus aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <section className="lobby-card lobby-species">
+                <header className="lobby-card-header">
+                  <ShieldCheck aria-hidden="true" />
+                  <h3>Escolha sua Espécie</h3>
+                </header>
+                <div className="lobby-species-grid">
+                  {speciesList.map((species) => {
+                    const takenBy = room.players.find((player) => player.speciesId === species.speciesId);
+                    const selected =
+                      currentPlayer?.speciesId === species.speciesId || selectedSpecies === species.speciesId;
+                    const takenByOther = Boolean(takenBy && takenBy.playerId !== controlledPlayerId);
+                    const isBotSlot = Boolean(takenBy?.isBot);
+                    const isHumanSlot = Boolean(takenBy && !takenBy.isBot);
+                    const disabled = takenByOther || room.status !== "lobby";
+                    const canToggleBot = isHost && !isLocalRoom && room.status === "lobby" && !isHumanSlot;
+                    return (
+                      <div
+                        key={species.speciesId}
+                        className={`lobby-species-card-wrap ${isBotSlot ? "is-bot" : ""}`}
+                        style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
+                      >
+                        <button
+                          type="button"
+                          className={`lobby-species-card ${selected ? "selected" : ""}`}
+                          disabled={disabled}
+                          onClick={() => {
+                            setSelectedSpecies(species.speciesId);
+                            void run(() => roomApi.selectSpecies(requireSocket(), room.roomId, species.speciesId));
+                          }}
+                        >
+                          <div className="lobby-species-thumb">
+                            <img src={encodeURI(species.meepleAsset)} alt="" />
+                          </div>
+                          <div className="lobby-species-text">
+                            <strong>{species.displayName}</strong>
+                            <small>{categoryLabels[species.category]}</small>
+                          </div>
+                          {isBotSlot && (
+                            <span className="lobby-species-taken lobby-species-bot-tag">
+                              <Bot aria-hidden="true" />
+                              Bot
+                            </span>
+                          )}
+                          {isHumanSlot && takenBy?.playerId !== controlledPlayerId && (
+                            <span className="lobby-species-taken">{takenBy?.name || "Em uso"}</span>
+                          )}
+                        </button>
+                        {canToggleBot && (
+                          <button
+                            type="button"
+                            className={`lobby-species-bot-btn ${isBotSlot ? "active" : ""}`}
+                            title={isBotSlot ? "Remover bot" : "Adicionar bot"}
+                            aria-label={isBotSlot ? "Remover bot" : "Adicionar bot"}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (isBotSlot) {
+                                void run(
+                                  () => roomApi.removeBotSpecies(requireSocket(), room.roomId, species.speciesId),
+                                  "Bot removido."
+                                );
+                              } else {
+                                void run(
+                                  () => roomApi.addBotSpecies(requireSocket(), room.roomId, species.speciesId),
+                                  "Bot adicionado."
+                                );
+                              }
+                            }}
+                          >
+                            {isBotSlot ? <X aria-hidden="true" /> : <Bot aria-hidden="true" />}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+
+            <div className="lobby-footer-actions">
+              {!isLocalRoom && (
+                <button
+                  type="button"
+                  className={`lobby-ready-btn ${currentPlayer?.ready ? "is-ready" : ""}`}
+                  onClick={() =>
+                    run(() => roomApi.ready(requireSocket(), requireRoom().roomId, !currentPlayer?.ready))
+                  }
+                  disabled={!currentPlayer?.speciesId}
+                >
+                  <Check aria-hidden="true" />
+                  {currentPlayer?.ready ? "Pronto!" : "Marcar Pronto"}
+                </button>
+              )}
+              {isHost && !isLocalRoom && (
+                <button
+                  type="button"
+                  className="flow-submit lobby-start-btn"
+                  onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}
+                >
+                  <Play aria-hidden="true" />
+                  Iniciar Partida
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {hasStartedGame && (
         <button
@@ -2542,13 +3174,29 @@ export function App() {
                 {activeSpecies.speciesId === "capuchin" && activeActionId === "D" && canControlActivePlayer && (
                   <small>Pontuação automática: +{capuchinHabitatScore} ponto(s) por habitat com macacos.</small>
                 )}
-                {activeSpecies.speciesId === "macaw" && activeActionId === "A" && canControlActivePlayer && (
-                  <small>
-                    {room.game.activePlayedForestCardId
-                      ? "Clique em uma carta com ovo destacada para adicionar 1 arara."
-                      : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
-                  </small>
-                )}
+                {activeSpecies.speciesId === "macaw" && activeActionId === "A" && canControlActivePlayer && (() => {
+                  const reserveCount = activeGamePlayer?.reservePieces.length ?? 0;
+                  const noReserve = reserveCount === 0;
+                  const noEggTargets = room.game.activePlayedForestCardId && macawEggTargets.length === 0;
+                  return (
+                    <>
+                      <small>
+                        {!room.game.activePlayedForestCardId
+                          ? "Selecione uma carta na mao e coloque em um espaco vazio destacado."
+                          : noReserve
+                            ? "Sem araras na reserva. Conclua a ação para seguir."
+                            : noEggTargets
+                              ? "Nenhuma carta com ovo disponível. Conclua a ação para seguir."
+                              : `Clique em uma carta com ovo destacada para adicionar 1 arara. Reserva: ${reserveCount}.`}
+                      </small>
+                      {room.game.activePlayedForestCardId && (noReserve || noEggTargets) && (
+                        <button className="secondary-button" onClick={handleCompleteAction}>
+                          Concluir acao A
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
                 {activeSpecies.speciesId === "macaw" && activeActionId === "B" && canControlActivePlayer && (
                   <small>Selecione uma Arara-azul e clique em um destino destacado conforme a carta jogada.</small>
                 )}

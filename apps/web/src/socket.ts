@@ -85,6 +85,10 @@ export const roomApi = {
   join: (socket: OikosSocket, roomId: string, name: string) => emitWithReply<PublicRoomState>(socket, "room:join", { roomId, name }),
   addBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:add", { roomId }),
   removeBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:remove", { roomId }),
+  addBotSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>
+    emitWithReply<PublicRoomState>(socket, "bots:add-species", { roomId, speciesId }),
+  removeBotSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>
+    emitWithReply<PublicRoomState>(socket, "bots:remove-species", { roomId, speciesId }),
   setBotSpeed: (socket: OikosSocket, roomId: string, delayMs: number) =>
     emitWithReply<PublicRoomState>(socket, "bots:speed", { roomId, delayMs }),
   selectSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>
