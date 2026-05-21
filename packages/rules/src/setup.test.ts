@@ -1004,10 +1004,12 @@ describe("setup placement", () => {
 
     const reserveBefore = game.players.find((candidate) => candidate.playerId === "macaw")!.reservePieces.length;
     const addTarget = getMacawActionCTargets(game, "macaw")[0];
+    const resourcesBefore = { ...game.players.find((candidate) => candidate.playerId === "macaw")!.resources };
 
     game = addMacawForCurrentAction(game, "macaw", addTarget);
 
     expect(game.players.find((candidate) => candidate.playerId === "macaw")?.reservePieces).toHaveLength(reserveBefore - 1);
+    expect(game.players.find((candidate) => candidate.playerId === "macaw")?.resources).toEqual(resourcesBefore);
     expect(game.pendingMacawMovedPiece).toBeNull();
     expect(game.activeActionIndex).toBe(3);
   });
@@ -1031,10 +1033,17 @@ describe("setup placement", () => {
 
     const relocatedPieceId = getMacawRelocatablePieceIds(game, "macaw")[0];
     const relocationTarget = getValidPieceMovementDestinations(game, "macaw", relocatedPieceId)[0];
+    const resourcesBefore = { ...game.players.find((candidate) => candidate.playerId === "macaw")!.resources };
+    const relocationResource = getResourceAt(game, relocationTarget);
 
     game = movePieceForCurrentAction(game, "macaw", relocatedPieceId, relocationTarget);
 
     expect(game.pieces.find((piece) => piece.pieceId === relocatedPieceId)?.location).toEqual({ ...relocationTarget, siteId: "main" });
+    if (relocationResource) {
+      expect(game.players.find((candidate) => candidate.playerId === "macaw")?.resources[relocationResource]).toBe(
+        resourcesBefore[relocationResource] + 1
+      );
+    }
     expect(game.pendingMacawMovedPiece).toBeNull();
     expect(game.activeActionIndex).toBe(3);
   });
