@@ -159,6 +159,7 @@ interface FlyingCard {
   from: { x: number; y: number };
   to: { x: number; y: number };
   size: number;
+  toSize: number;
   rotation: 0 | 90 | 180 | 270;
 }
 
@@ -1396,6 +1397,7 @@ export function App() {
         flyingId = ++flyingCardSeqRef.current;
         const id = flyingId;
         const size = handRect.width;
+        const targetSize = forestCanvasRef.current?.getCardScreenSize() ?? size;
         setFlyingCards((current) => [
           ...current,
           {
@@ -1404,14 +1406,15 @@ export function App() {
             from: { x: handRect.left + handRect.width / 2, y: handRect.top + handRect.height / 2 },
             to: { x: dest.x, y: dest.y },
             size,
+            toSize: targetSize,
             rotation: selectedCardRotation
           }
         ]);
         window.setTimeout(() => {
           setFlyingCards((current) => current.filter((c) => c.id !== id));
-        }, 560);
+        }, 640);
       }
-      const placementDelay = flyingId !== null ? 420 : 0;
+      const placementDelay = flyingId !== null ? 540 : 0;
 
       if (isLocalRoom) {
         const game = room.game;
@@ -2120,6 +2123,9 @@ export function App() {
                   "--to-x": `${fc.to.x}px`,
                   "--to-y": `${fc.to.y}px`,
                   "--card-size": `${fc.size}px`,
+                  "--target-size": `${fc.toSize}px`,
+                  "--scale-end": fc.toSize / fc.size,
+                  "--mid-lift": `${Math.min(60, Math.abs(fc.to.y - fc.from.y) * 0.18 + 18)}px`,
                   "--rot": `${fc.rotation}deg`
                 } as CSSProperties
               }
