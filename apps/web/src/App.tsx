@@ -515,6 +515,7 @@ export function App() {
   const [configOpen, setConfigOpen] = useState(false);
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(false);
   const [hudRightCollapsed, setHudRightCollapsed] = useState(false);
+  const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<"idle" | "join" | "local">("idle");
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
     lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
@@ -585,6 +586,22 @@ export function App() {
   const autoScoredRef = useRef<string | null>(null);
   const lastOnlineRoomSnapshotRef = useRef("");
   const onlineActionInFlightRef = useRef(false);
+
+  const showMovementPreview = useCallback((speciesId: SpeciesId, rect: DOMRect) => {
+    const previewWidth = 220;
+    const previewHeight = 300;
+    const gap = 12;
+    const safeMargin = 12;
+    const left = Math.max(
+      safeMargin,
+      Math.min(window.innerWidth - previewWidth - safeMargin, rect.left - previewWidth - gap)
+    );
+    const top = Math.max(
+      safeMargin,
+      Math.min(window.innerHeight - previewHeight - safeMargin, rect.top - 8)
+    );
+    setMovementPreview({ speciesId, left, top });
+  }, []);
 
   const applyOnlineRoomState = useCallback((nextRoom: PublicRoomState) => {
     const snapshot = JSON.stringify(nextRoom);
@@ -3616,7 +3633,7 @@ export function App() {
       <aside className={`right-panel hud-dock hud-right ${hudRightCollapsed ? "is-collapsed" : ""}`}>
         <section className="panel-block">
           <h2>Jogadores</h2>
-          <div className="player-list">
+          <div className="player-list" onScroll={() => setMovementPreview(null)}>
             {(() => {
               const players = room?.players ?? [];
               if (!room?.game) return players;
@@ -3654,12 +3671,10 @@ export function App() {
                       className="turn-order-badge movement-guide"
                       aria-label={`Movimentos de ${species.displayName}`}
                       title={`Movimentos de ${species.displayName}`}
+                      onMouseEnter={(event) => showMovementPreview(species.speciesId, event.currentTarget.getBoundingClientRect())}
+                      onMouseLeave={() => setMovementPreview(null)}
                     >
                       <MapPin aria-hidden="true" />
-                      <span className="movement-guide-popover" role="tooltip">
-                        <strong>{species.displayName}</strong>
-                        <img src={encodeURI(species.movementAsset)} alt={`Movimentos de ${species.displayName}`} />
-                      </span>
                     </span>
                   ) : room?.game ? (
                     <span className="turn-order-badge" aria-hidden="true">{displayIndex + 1}</span>
@@ -3723,6 +3738,29 @@ export function App() {
         </section>
 
       </aside>
+
+      {movementPreview && typeof document !== "undefined" && createPortal(
+        (() => {
+          const species = speciesDefinitions[movementPreview.speciesId];
+          return (
+            <div
+              className="movement-guide-floating"
+              role="tooltip"
+              style={
+                {
+                  ...speciesVar(movementPreview.speciesId),
+                  left: movementPreview.left,
+                  top: movementPreview.top
+                } as CSSProperties
+              }
+            >
+              <strong>{species.displayName}</strong>
+              <img src={encodeURI(species.movementAsset)} alt={`Movimentos de ${species.displayName}`} />
+            </div>
+          );
+        })(),
+        document.body
+      )}
 
       {shouldShowJaguarScoreModal && showJaguarScoreModal && (
           <div className="choice-modal-backdrop" role="presentation">

@@ -1991,51 +1991,20 @@ input:focus {
   overflow: visible;
 }
 
-.movement-guide-popover {
-  position: absolute;
-  right: calc(100% + 8px);
-  top: 50%;
+.movement-guide-floating {
+  position: fixed;
+  z-index: 80;
   width: min(220px, 34vw);
   padding: 8px;
   border: var(--bw) solid color-mix(in srgb, var(--species, var(--line)) 58%, var(--line));
   border-radius: 8px;
   background: rgba(13, 24, 19, 0.97);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.52);
-  opacity: 0;
   pointer-events: none;
-  transform: translate(8px, -50%) scale(0.98);
-  transition: opacity 140ms ease, transform 140ms ease;
+  animation: movement-guide-float 140ms ease both;
 }
 
-.hud-right .movement-guide-popover {
-  right: auto;
-  left: 0;
-  top: calc(100% + 6px);
-  transform: translateY(6px) scale(0.98);
-}
-
-.movement-guide:hover .movement-guide-popover,
-.movement-guide:focus-within .movement-guide-popover {
-  opacity: 1;
-  transform: translate(0, -50%) scale(1);
-}
-
-.hud-right .movement-guide:hover .movement-guide-popover,
-.hud-right .movement-guide:focus-within .movement-guide-popover {
-  transform: translateY(0) scale(1);
-}
-
-.player-row:first-child .movement-guide-popover {
-  top: 0;
-  transform: translate(8px, 0) scale(0.98);
-}
-
-.player-row:first-child .movement-guide:hover .movement-guide-popover,
-.player-row:first-child .movement-guide:focus-within .movement-guide-popover {
-  transform: translate(0, 0) scale(1);
-}
-
-.movement-guide-popover strong {
+.movement-guide-floating strong {
   display: block;
   margin-bottom: 6px;
   color: var(--paper);
@@ -2044,11 +2013,23 @@ input:focus {
   font-weight: 900;
 }
 
-.movement-guide-popover img {
+.movement-guide-floating img {
   display: block;
   width: 100%;
   height: auto;
   border-radius: 8px;
+}
+
+@keyframes movement-guide-float {
+  from {
+    opacity: 0;
+    transform: translate(8px, 6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
 }
 
 .player-summary-stats {
