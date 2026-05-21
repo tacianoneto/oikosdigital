@@ -847,6 +847,35 @@ describe("setup placement", () => {
     expect(game.activePlayerId).toBe("coati");
   });
 
+  it("lets Macaco-prego skip action C without reserve and still score habitats", () => {
+    let game = createTestGameState("room", [player("capuchin", "capuchin"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "capuchin", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "capuchin", { x: 1, y: -1 });
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 1 });
+    game = {
+      ...setActiveAction(game, "capuchin", 2),
+      players: game.players.map((candidate) =>
+        candidate.playerId === "capuchin" ? { ...candidate, reservePieces: [] } : candidate
+      )
+    };
+
+    game = completeCurrentAction(game, "capuchin");
+
+    expect(game.activePlayerId).toBe("capuchin");
+    expect(game.activeActionIndex).toBe(3);
+    expect(getCapuchinHabitatScore(game, "capuchin")).toBe(1);
+    expect(getCapuchinScoringHabitats(game, "capuchin")[0]?.positions).toEqual([
+      { x: -1, y: -1, siteId: "main" },
+      { x: 1, y: -1, siteId: "main" }
+    ]);
+
+    game = scoreCapuchinHabitatPresence(game, "capuchin");
+
+    expect(game.players.find((candidate) => candidate.playerId === "capuchin")?.score).toBe(1);
+  });
+
   it("plays Arara-azul action A by expanding and adding a macaw on an egg card", () => {
     let game = createTestGameState("room", [player("macaw", "macaw"), player("coati", "coati")]);
     game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });

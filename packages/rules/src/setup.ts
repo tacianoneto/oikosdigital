@@ -2148,6 +2148,23 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     if (player.speciesId === "capuchin") {
       const action = getCurrentAction(game);
       if (action === "A") {
+        if (game.activePlayedForestCardId && (player.reservePieces.length === 0 || getCapuchinPlacementPositions(game, playerId).length === 0)) {
+          const next = cloneGameState(game);
+          const nextPlayer = findPlayer(next, playerId);
+          next.log = [
+            ...next.log,
+            {
+              id: `capuchin_skip_A_${playerId}_${next.log.length + 1}`,
+              message: `${nextPlayer.name} pulou a adicao da acao A do Macaco-prego porque nao havia macaco na reserva.`,
+              createdAt: Date.now(),
+              payload: { kind: "skip", actorPlayerId: playerId, actionId: "A" }
+            }
+          ];
+
+          advanceActiveAction(next);
+          return next;
+        }
+
         throw new Error("A acao A do Macaco-prego e concluida ao adicionar 1 macaco na carta jogada.");
       }
 
@@ -2156,6 +2173,23 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
       }
 
       if (action === "C") {
+        if (player.reservePieces.length === 0 || getCapuchinPlacementPositions(game, playerId).length === 0) {
+          const next = cloneGameState(game);
+          const nextPlayer = findPlayer(next, playerId);
+          next.log = [
+            ...next.log,
+            {
+              id: `capuchin_skip_C_${playerId}_${next.log.length + 1}`,
+              message: `${nextPlayer.name} pulou a adicao da acao C do Macaco-prego porque nao havia macaco na reserva ou local valido.`,
+              createdAt: Date.now(),
+              payload: { kind: "skip", actorPlayerId: playerId, actionId: "C" }
+            }
+          ];
+
+          advanceActiveAction(next);
+          return next;
+        }
+
         throw new Error("A acao C do Macaco-prego e concluida ao adicionar 1 macaco em local com outro macaco.");
       }
 

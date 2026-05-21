@@ -931,6 +931,7 @@ export function App() {
 
     return getCapuchinPlacementPositions(room.game, room.game.activePlayerId);
   }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
+  const capuchinReserveCount = activeSpecies?.speciesId === "capuchin" ? activeGamePlayer?.reservePieces.length ?? 0 : 0;
   const macawEggTargets = useMemo(() => {
     if (!room?.game || activeSpecies?.speciesId !== "macaw" || !room.game.activePlayerId || !canControlActivePlayer) {
       return [];
@@ -3178,19 +3179,45 @@ export function App() {
                   canControlActivePlayer && (
                     <small>Escolha quantas carnes gastar na janela central.</small>
                   )}
-                {activeSpecies.speciesId === "capuchin" && activeActionId === "A" && canControlActivePlayer && (
-                  <small>
-                    {room.game.activePlayedForestCardId
-                      ? "Clique na carta jogada destacada para adicionar 1 macaco."
-                      : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
-                  </small>
-                )}
+                {activeSpecies.speciesId === "capuchin" && activeActionId === "A" && canControlActivePlayer && (() => {
+                  const canSkipAdd = Boolean(room.game.activePlayedForestCardId && (capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0));
+                  return (
+                    <>
+                      <small>
+                        {!room.game.activePlayedForestCardId
+                          ? "Selecione uma carta na mao e coloque em um espaco vazio destacado."
+                          : canSkipAdd
+                            ? "Sem macacos na reserva. Conclua a acao para seguir."
+                            : `Clique na carta jogada destacada para adicionar 1 macaco. Reserva: ${capuchinReserveCount}.`}
+                      </small>
+                      {canSkipAdd && (
+                        <button className="secondary-button" onClick={handleCompleteAction}>
+                          Concluir acao A
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
                 {activeSpecies.speciesId === "capuchin" && activeActionId === "B" && canControlActivePlayer && (
                   <small>Selecione um meeple do Macaco-prego e clique em um destino destacado conforme a carta jogada.</small>
                 )}
-                {activeSpecies.speciesId === "capuchin" && activeActionId === "C" && canControlActivePlayer && (
-                  <small>Clique em um local destacado que ja tenha outro Macaco-prego para adicionar 1 macaco.</small>
-                )}
+                {activeSpecies.speciesId === "capuchin" && activeActionId === "C" && canControlActivePlayer && (() => {
+                  const canSkipAdd = capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0;
+                  return (
+                    <>
+                      <small>
+                        {canSkipAdd
+                          ? "Sem macaco na reserva ou sem local valido. Conclua a acao para pontuar."
+                          : `Clique em um local destacado que ja tenha outro Macaco-prego. Reserva: ${capuchinReserveCount}.`}
+                      </small>
+                      {canSkipAdd && (
+                        <button className="secondary-button" onClick={handleCompleteAction}>
+                          Concluir acao C
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
                 {activeSpecies.speciesId === "capuchin" && activeActionId === "D" && canControlActivePlayer && (
                   <small>Pontuação automática: +{capuchinHabitatScore} ponto(s) por habitat com macacos.</small>
                 )}
