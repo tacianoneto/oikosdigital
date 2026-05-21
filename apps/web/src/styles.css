@@ -1982,6 +1982,16 @@ input:focus {
   transform: translate(0, -50%) scale(1);
 }
 
+.player-row:first-child .movement-guide-popover {
+  top: 0;
+  transform: translate(8px, 0) scale(0.98);
+}
+
+.player-row:first-child .movement-guide:hover .movement-guide-popover,
+.player-row:first-child .movement-guide:focus-within .movement-guide-popover {
+  transform: translate(0, 0) scale(1);
+}
+
 .movement-guide-popover strong {
   display: block;
   margin-bottom: 6px;
