@@ -474,7 +474,24 @@ function scoreMove(game: GameState, playerId: string, speciesId: SpeciesId, piec
     return base + scoreJaguarMove(game, playerId, position, habitat);
   }
 
+  if (speciesId === "maned_wolf") {
+    return base + scoreWolfMove(game, playerId, position);
+  }
+
   return base;
+}
+
+function scoreWolfMove(game: GameState, playerId: string, position: GridPosition): number {
+  const resource = getResourceAt(game, position);
+  if (!resource) {
+    return 0;
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  const have = player?.resources[resource] ?? 0;
+  // Lobo pontua gastando tipos de recurso DIFERENTES; prioriza coletar o
+  // recurso que ele tem em menor quantidade (0 = prioridade maxima).
+  return Math.max(0, 60 - have * 22);
 }
 
 function scoreJaguarMove(game: GameState, playerId: string, position: GridPosition, habitat: Habitat | null): number {
@@ -504,7 +521,7 @@ function scoreMacawLinePotential(game: GameState, playerId: string, position: Gr
   const afterTriples = countLineTriples(ownKeys);
   const completedTriples = Math.max(0, afterTriples - beforeTriples);
 
-  return completedTriples * 45 + countNearLineWindows(ownKeys, position) * 9 + (definition?.resource === "egg" ? 4 : 0);
+  return completedTriples * 130 + countNearLineWindows(ownKeys, position) * 28 + (definition?.resource === "egg" ? 4 : 0);
 }
 
 function scoreMacawMove(game: GameState, playerId: string, pieceId: string, position: GridPosition): number {
@@ -514,7 +531,9 @@ function scoreMacawMove(game: GameState, playerId: string, pieceId: string, posi
 
   const completedTriples = Math.max(0, countLineTriples(afterKeys) - countLineTriples(beforeKeys));
   const brokenTriples = Math.max(0, countLineTriples(beforeKeys) - countLineTriples(afterKeys));
-  return completedTriples * 55 - brokenTriples * 35 + countNearLineWindows(afterKeys, position) * 10;
+  // Arara pontua 1 ponto por linha reta de 3; prioridade maxima e completar
+  // e nunca quebrar linhas, alem de preparar janelas com 2 araras.
+  return completedTriples * 150 - brokenTriples * 110 + countNearLineWindows(afterKeys, position) * 30;
 }
 
 function scoreCapuchinHabitatPotential(game: GameState, playerId: string, position: GridPosition, habitat: Habitat | null): number {
@@ -603,7 +622,8 @@ function scoreArmadilloSharingPotential(game: GameState, playerId: string, posit
   );
   let score = 0;
   for (const speciesId of speciesAtTarget) {
-    score += coveredSpecies.has(speciesId) ? 8 : 32;
+    // Especie ainda sem tatu junto vale muito mais que uma ja coberta.
+    score += coveredSpecies.has(speciesId) ? 6 : 50;
   }
 
   return score + speciesAtTarget.size * 14;
@@ -625,7 +645,8 @@ function scoreArmadilloMove(game: GameState, playerId: string, pieceId: string, 
     }
   }
 
-  return (after.size - before.size) * 70 + after.size * 18 + newlyCoveredAtTarget * 40 + targetSpecies.size * 14;
+  // Mover para carta com especie sem tatu junto (cobertura nova) e prioridade.
+  return (after.size - before.size) * 130 + after.size * 16 + newlyCoveredAtTarget * 90 + targetSpecies.size * 12;
 }
 
 function crowdingPenalty(game: GameState, playerId: string, speciesId: SpeciesId, position: GridPosition): number {
