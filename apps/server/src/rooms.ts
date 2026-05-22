@@ -316,7 +316,7 @@ export function placeCardInForest(
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = placeForestCard(room.game, playerId, cardId, { x, y }, rotation);
@@ -330,7 +330,7 @@ export function addCoati(roomId: string, playerId: string, x: number, y: number)
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = addCoatiForCurrentAction(room.game, playerId, { x, y });
@@ -344,7 +344,7 @@ export function resolveCoatiPair(roomId: string, playerId: string, x: number, y:
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÂ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = resolveCoatiPairBonus(room.game, playerId, { x, y });
@@ -358,7 +358,7 @@ export function addCapuchin(roomId: string, playerId: string, x: number, y: numb
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÂ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = addCapuchinForCurrentAction(room.game, playerId, { x, y });
@@ -372,7 +372,7 @@ export function addMacaw(roomId: string, playerId: string, x: number, y: number)
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = addMacawForCurrentAction(room.game, playerId, { x, y });
@@ -386,7 +386,7 @@ export function addArmadillo(roomId: string, playerId: string, x: number, y: num
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = addArmadilloForCurrentAction(room.game, playerId, { x, y });
@@ -400,7 +400,7 @@ export function addWolf(roomId: string, playerId: string, x: number, y: number):
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = addWolfForCurrentAction(room.game, playerId, { x, y });
@@ -414,7 +414,7 @@ export function completeAction(roomId: string, playerId: string): PublicRoomStat
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = completeCurrentAction(room.game, playerId);
@@ -428,7 +428,7 @@ export function scoreCapuchin(roomId: string, playerId: string): PublicRoomState
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÂ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   if (isStaleScoreRequest(room, playerId, "capuchin")) {
@@ -446,7 +446,7 @@ export function scoreMacaw(roomId: string, playerId: string): PublicRoomState {
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   if (isStaleScoreRequest(room, playerId, "macaw")) {
@@ -464,7 +464,7 @@ export function hideArmadillo(roomId: string, playerId: string, pieceId: string)
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = hideArmadilloForCurrentAction(room.game, playerId, pieceId);
@@ -478,7 +478,7 @@ export function scoreArmadillo(roomId: string, playerId: string): PublicRoomStat
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   if (isStaleScoreRequest(room, playerId, "armadillo")) {
@@ -496,7 +496,7 @@ export function removeWolfBasePiece(roomId: string, playerId: string, pieceId: s
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = removeBasePieceForWolfAction(room.game, playerId, pieceId);
@@ -510,7 +510,7 @@ export function spendWolfResources(roomId: string, playerId: string, resources: 
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = spendWolfResourcesForPoints(room.game, playerId, resources);
@@ -524,7 +524,7 @@ export function movePiece(roomId: string, playerId: string, pieceId: string, x: 
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = movePieceForCurrentAction(room.game, playerId, pieceId, { x, y }, targetPieceId);
@@ -538,7 +538,7 @@ export function removePieces(roomId: string, playerId: string, pieceIds: string[
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = removePiecesForCurrentAction(room.game, playerId, pieceIds);
@@ -552,7 +552,7 @@ export function spendJaguarMeat(roomId: string, playerId: string, count: number)
   const room = getRoom(roomId);
 
   if (!room.game) {
-    throw new Error("A partida ainda nÃƒÂ£o foi iniciada.");
+    throw new Error("A partida ainda não foi iniciada.");
   }
 
   room.game = spendJaguarMeatForPoints(room.game, playerId, count);
