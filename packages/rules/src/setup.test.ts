@@ -1034,16 +1034,12 @@ describe("setup placement", () => {
     const relocatedPieceId = getMacawRelocatablePieceIds(game, "macaw")[0];
     const relocationTarget = getValidPieceMovementDestinations(game, "macaw", relocatedPieceId)[0];
     const resourcesBefore = { ...game.players.find((candidate) => candidate.playerId === "macaw")!.resources };
-    const relocationResource = getResourceAt(game, relocationTarget);
 
     game = movePieceForCurrentAction(game, "macaw", relocatedPieceId, relocationTarget);
 
     expect(game.pieces.find((piece) => piece.pieceId === relocatedPieceId)?.location).toEqual({ ...relocationTarget, siteId: "main" });
-    if (relocationResource) {
-      expect(game.players.find((candidate) => candidate.playerId === "macaw")?.resources[relocationResource]).toBe(
-        resourcesBefore[relocationResource] + 1
-      );
-    }
+    // Realocacao (acao C) NAO coleta recurso do destino; so o movimento (acao B) coleta.
+    expect(game.players.find((candidate) => candidate.playerId === "macaw")?.resources).toEqual(resourcesBefore);
     expect(game.pendingMacawMovedPiece).toBeNull();
     expect(game.activeActionIndex).toBe(3);
   });

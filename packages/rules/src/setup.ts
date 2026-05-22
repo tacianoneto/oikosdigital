@@ -1385,14 +1385,13 @@ export function relocateMacawForCurrentAction(game: GameState, playerId: string,
   }
 
   nextPiece.location = createPieceLocation(game, location);
-  const collectedResource = collectMovementDestinationResource(next, playerId, location);
   next.pendingMacawMovedPiece = null;
   const relocateTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
     {
       id: `relocate_macaw_${pieceId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} realocou 1 arara ao redor da arara movida${collectedResource ? " e coletou recurso do destino" : ""}.`,
+      message: `${nextPlayer.name} realocou 1 arara ao redor da arara movida.`,
       createdAt: Date.now(),
       payload: {
         kind: "move_piece",
@@ -1402,8 +1401,7 @@ export function relocateMacawForCurrentAction(game: GameState, playerId: string,
         habitat: relocateTargetCard ? getCardDefinitionOrNull(relocateTargetCard.definitionId)?.habitat ?? undefined : undefined,
         location: { x: location.x, y: location.y },
         pieceIds: [pieceId],
-        actionId: "C",
-        resources: collectedResource ? [collectedResource] : undefined
+        actionId: "C"
       }
     }
   ];
