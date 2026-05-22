@@ -440,7 +440,10 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     for (const item of vm.scoringLineHighlights) {
       if (item.positions.length < 2) continue;
-      const points = item.positions.map((position) => this.worldOf(position));
+      const points = item.positions.map((position) => {
+        const w = this.worldOf(position);
+        return { x: w.x, y: w.y + 28 };
+      });
       const line = this.add.graphics();
       line.lineStyle(12, 0x08130f, 0.76);
       for (let i = 1; i < points.length; i += 1) {
