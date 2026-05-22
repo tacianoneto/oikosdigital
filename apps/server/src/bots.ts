@@ -150,9 +150,10 @@ function playForestCard(game: GameState, playerId: string, speciesId: SpeciesId)
 
 function playJaguar(game: GameState, playerId: string, action: string): GameState {
   if (action === "C") {
+    // Onca sempre gasta o maximo de carne possivel (capado em 3 pela regra).
     const spendable = getAvailableJaguarPointSpendCount(game, playerId);
-    if (spendable > 0 && Math.random() < 0.78) {
-      return spendJaguarMeatForPoints(game, playerId, Math.max(1, Math.min(spendable, randomInt(1, 3))));
+    if (spendable > 0) {
+      return spendJaguarMeatForPoints(game, playerId, spendable);
     }
 
     return completeOrSkip(game, playerId);
@@ -469,7 +470,23 @@ function scoreMove(game: GameState, playerId: string, speciesId: SpeciesId, piec
     return base + scoreArmadilloMove(game, playerId, pieceId, position);
   }
 
+  if (speciesId === "jaguar") {
+    return base + scoreJaguarMove(game, playerId, position, habitat);
+  }
+
   return base;
+}
+
+function scoreJaguarMove(game: GameState, playerId: string, position: GridPosition, habitat: Habitat | null): number {
+  void habitat;
+  const card = game.forest.cards.find((candidate) => candidate.x === position.x && candidate.y === position.y);
+  const definition = card ? getForestCardDefinition(card.definitionId) : null;
+  const canCapture = game.pieces.some(
+    (piece) => piece.ownerId !== playerId && !piece.state.hidden && piece.location?.x === position.x && piece.location.y === position.y
+  );
+  const isMeatCard = definition?.resource === "meat";
+  // Prioridade da Onca: 1) remover peca (captura), 2) ir para carta de carne.
+  return (canCapture ? 120 : 0) + (isMeatCard ? 70 : 0);
 }
 
 function scoreMacawLinePotential(game: GameState, playerId: string, position: GridPosition, placedCardId?: string): number {
@@ -869,10 +886,6 @@ function chooseCandidatesForSpecies<T extends { score: number }>(items: T[], spe
 
 function pickOne<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
-}
-
-function randomInt(min: number, max: number): number {
-  return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 function shuffle<T>(items: T[]): T[] {
