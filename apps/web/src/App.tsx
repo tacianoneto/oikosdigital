@@ -174,6 +174,12 @@ export function App() {
   // Last pointer position during a drag, read by the live drag handlers so
   // rotating mid-drag recomputes targets without a stale closure.
   const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
+  // Chosen-but-unconfirmed card placement: shows a preview with confirm/cancel
+  // over the slot to guard against misclicks.
+  const [pendingPlacement, setPendingPlacement] = useState<{
+    position: { x: number; y: number };
+    rotation: 0 | 90 | 180 | 270;
+  } | null>(null);
   const [turnRecap, setTurnRecap] = useState<TurnRecapState>({ history: [], index: -1, visible: false });
   const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
   const [recapCollapsed, setRecapCollapsed] = useState(true);
@@ -393,7 +399,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!selectedHandCardId || !canPlaceSelectedForestCard) {
+    // No rotation while a placement is awaiting confirmation: the preview is at a
+    // fixed orientation; the player confirms or cancels first.
+    if (!selectedHandCardId || !canPlaceSelectedForestCard || pendingPlacement) {
       return;
     }
 
@@ -420,19 +428,27 @@ export function App() {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("contextmenu", onContextMenu);
     };
-  }, [canPlaceSelectedForestCard, rotateSelectedCard, selectedHandCardId]);
+  }, [canPlaceSelectedForestCard, rotateSelectedCard, selectedHandCardId, pendingPlacement]);
+
+  // Drop the staged placement if the card can no longer be played (turn change,
+  // card left the hand, etc.).
+  useEffect(() => {
+    if (pendingPlacement && !canPlaceSelectedForestCard) {
+      setPendingPlacement(null);
+    }
+  }, [canPlaceSelectedForestCard, pendingPlacement]);
 
   const expansionTargets = useMemo(
     () =>
-      canPlaceSelectedForestCard && room?.game && selectedHandCardId
+      canPlaceSelectedForestCard && room?.game && selectedHandCardId && !pendingPlacement
         ? getAvailableForestExpansionPositionsForCard(room.game, selectedHandCardId, selectedCardRotation)
         : [],
-    [canPlaceSelectedForestCard, room?.game, selectedCardRotation, selectedHandCardId]
+    [canPlaceSelectedForestCard, room?.game, selectedCardRotation, selectedHandCardId, pendingPlacement]
   );
   // River cards that only fit after rotating: positions invalid at the current
   // rotation but valid at another, plus the rotation that connects there.
   const rotateFitTargets = useMemo(() => {
-    if (!canPlaceSelectedForestCard || !room?.game || !selectedHandCardId) return [];
+    if (!canPlaceSelectedForestCard || !room?.game || !selectedHandCardId || pendingPlacement) return [];
     const game = room.game;
     const currentKeys = new Set(expansionTargets.map((p) => `${p.x}:${p.y}`));
     const seen = new Set<string>();
@@ -447,7 +463,7 @@ export function App() {
       }
     }
     return result;
-  }, [canPlaceSelectedForestCard, room?.game, selectedHandCardId, selectedCardRotation, expansionTargets]);
+  }, [canPlaceSelectedForestCard, room?.game, selectedHandCardId, selectedCardRotation, expansionTargets, pendingPlacement]);
 
   // Keep a ref of the current drop targets so async drag handlers always see the
   // set for the latest rotation (the pointermove closure is captured once).
@@ -1174,6 +1190,7 @@ export function App() {
         setSelectedCardRotation(0);
         setSelectedPieceId(null);
         setSelectedRemovalPieceIds([]);
+        setPendingPlacement(null);
         setNotice("Carta colocada na floresta.");
         return;
       }
@@ -1185,23 +1202,55 @@ export function App() {
         setSelectedCardRotation(0);
         setSelectedPieceId(null);
         setSelectedRemovalPieceIds([]);
+        setPendingPlacement(null);
       });
     },
     [canPlaceSelectedForestCard, isLocalRoom, room, selectedHandCardId, socket]
   );
 
+  // Selecting a slot does not place immediately: it stages a preview the player
+  // then confirms or cancels, avoiding accidental placements from a misclick.
   const handleExpansionTargetClick = useCallback(
-    (position: { x: number; y: number }) => placeCard(position, selectedCardRotation),
-    [placeCard, selectedCardRotation]
+    (position: { x: number; y: number }) =>
+      setPendingPlacement({ position, rotation: selectedCardRotation }),
+    [selectedCardRotation]
   );
 
-  // Clicking/dropping on a rotate-to-fit ghost auto-rotates the card to the
-  // orientation that connects, then places it.
+  // Choosing a rotate-to-fit ghost stages the placement at the rotation that
+  // connects there.
   const handleRotateFitTargetClick = useCallback(
     (position: { x: number; y: number }, rotation: number) =>
-      placeCard(position, (rotation % 360) as 0 | 90 | 180 | 270),
-    [placeCard]
+      setPendingPlacement({ position, rotation: (rotation % 360) as 0 | 90 | 180 | 270 }),
+    []
   );
+
+  const handleConfirmPlacement = useCallback(() => {
+    if (!pendingPlacement) return;
+    placeCard(pendingPlacement.position, pendingPlacement.rotation);
+    setPendingPlacement(null);
+  }, [pendingPlacement, placeCard]);
+
+  // Cancel returns the card to the hand (still selected) so the player can place
+  // the same or another card anywhere valid.
+  const handleCancelPlacement = useCallback(() => {
+    setPendingPlacement(null);
+  }, []);
+
+  // Enter confirms / Escape cancels the staged placement.
+  useEffect(() => {
+    if (!pendingPlacement) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleConfirmPlacement();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        handleCancelPlacement();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pendingPlacement, handleConfirmPlacement, handleCancelPlacement]);
 
   const executeSelectedPieceMove = useCallback(
     (position: { x: number; y: number }, targetPieceId?: string) => {
@@ -3097,6 +3146,15 @@ export function App() {
             expansionTargets={expansionTargets}
             rotateFitTargets={rotateFitTargets}
             rotateFitCardId={canPlaceSelectedForestCard ? selectedHandCardId : null}
+            placementPreview={
+              pendingPlacement && selectedHandCardId
+                ? {
+                    position: pendingPlacement.position,
+                    rotation: pendingPlacement.rotation,
+                    cardId: selectedHandCardId
+                  }
+                : null
+            }
             movementTargets={movementTargets}
             addPieceTargets={addPieceTargets}
             addPieceLabel={
@@ -3132,6 +3190,8 @@ export function App() {
             onCardClick={handleCardClick}
             onExpansionTargetClick={handleExpansionTargetClick}
             onRotateFitTargetClick={handleRotateFitTargetClick}
+            onConfirmPlacement={handleConfirmPlacement}
+            onCancelPlacement={handleCancelPlacement}
             onAddPieceTargetClick={handleAddPieceTargetClick}
             onBonusTargetClick={handleCoatiPairBonusTargetClick}
             onPieceClick={handlePieceClick}
@@ -3187,7 +3247,7 @@ export function App() {
                           // Allow grabbing any playable card directly: no need to
                           // pre-select with a click. Selection happens on drag
                           // activation below, which unlocks the valid slots.
-                          if (!handPlayableThisAction) {
+                          if (!handPlayableThisAction || pendingPlacement) {
                             return;
                           }
                           const target = event.currentTarget as HTMLDivElement;
@@ -3242,10 +3302,11 @@ export function App() {
                             dragJustHandledRef.current = true;
                             setCardDrag((current) => {
                               if (current?.target) {
-                                placeCard(
-                                  { x: current.target.x, y: current.target.y },
-                                  current.target.rotation
-                                );
+                                const t = current.target;
+                                setPendingPlacement({
+                                  position: { x: t.x, y: t.y },
+                                  rotation: t.rotation
+                                });
                               }
                               return null;
                             });

@@ -17,12 +17,19 @@ export interface ForestViewModel {
   movementTargets: GridPosition[];
   addPieceTargets: GridPosition[];
   bonusTargets: GridPosition[];
+  placementPreview: PlacementPreview | null;
   spotlightInstanceIds: string[];
   selectedPieceId: string | null;
   selectedPieceIds: string[];
   selectablePieceIds: string[];
   scoringCardHighlights: ScoringCardHighlight[];
   scoringLineHighlights: ScoringLineHighlight[];
+}
+
+export interface PlacementPreview {
+  position: GridPosition;
+  rotation: number;
+  cardId: string;
 }
 
 export interface ScoringCardHighlight {
@@ -41,6 +48,8 @@ export interface ForestSceneCallbacks {
   onCardClick?: (position: GridPosition) => void;
   onExpansionTargetClick?: (position: GridPosition) => void;
   onRotateFitTargetClick?: (position: GridPosition, rotation: number) => void;
+  onConfirmPlacement?: () => void;
+  onCancelPlacement?: () => void;
   onAddPieceTargetClick?: (position: GridPosition) => void;
   onBonusTargetClick?: (position: GridPosition) => void;
   onPieceClick?: (pieceId: string) => void;
@@ -211,9 +220,10 @@ export class ForestPhaserScene extends Phaser.Scene {
     this.syncCards(vm);
     this.drawHighlights(vm);
     this.drawRotateFitGhosts(vm);
+    this.drawPlacementPreview(vm);
     this.syncPieces(vm);
 
-    const slots = vm.cards.length + vm.expansionTargets.length;
+    const slots = vm.cards.length + vm.expansionTargets.length + (vm.placementPreview ? 1 : 0);
     if (slots !== this.lastSlotCount) {
       this.lastSlotCount = slots;
       if (!this.userAdjusted) this.fitCamera(this.cardObjs.size <= slots);
@@ -600,6 +610,76 @@ export class ForestPhaserScene extends Phaser.Scene {
     }
   }
 
+  // Pending placement: a solid preview of the card at the chosen slot with
+  // confirm/cancel buttons floating above it, to guard against misclicks.
+  private drawPlacementPreview(vm: ForestViewModel): void {
+    const preview = vm.placementPreview;
+    if (!preview) return;
+    const textureKey = `card:${preview.cardId}`;
+    if (!this.textures.exists(textureKey)) return;
+
+    const w = this.worldOf(preview.position);
+    const slot = this.add.container(w.x, w.y);
+
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.28);
+    shadow.fillRoundedRect(-CARD / 2 + 3, -CARD / 2 + 6, CARD - 2, CARD, RADIUS);
+
+    const img = this.add
+      .image(0, 0, textureKey)
+      .setDisplaySize(CARD, CARD)
+      .setAngle(preview.rotation)
+      .setAlpha(0.95);
+
+    const frame = this.add.graphics();
+    frame.lineStyle(4, 0xf2c14e, 1);
+    frame.strokeRoundedRect(-CARD / 2 - 2, -CARD / 2 - 2, CARD + 4, CARD + 4, RADIUS + 2);
+
+    slot.add([shadow, img, frame]);
+
+    // Confirm / cancel buttons, centered above the card.
+    const makeButton = (
+      offsetX: number,
+      fill: number,
+      glyph: string,
+      handler?: () => void
+    ): Phaser.GameObjects.Container => {
+      const g = this.add.graphics();
+      g.fillStyle(0x0d1a14, 0.95);
+      g.fillCircle(0, 0, 24);
+      g.fillStyle(fill, 1);
+      g.fillCircle(0, 0, 21);
+      g.lineStyle(2, 0xffffff, 0.9);
+      g.strokeCircle(0, 0, 24);
+      const icon = this.add
+        .text(0, -1, glyph, {
+          fontFamily: "Outfit, sans-serif",
+          fontSize: "24px",
+          fontStyle: "800",
+          color: "#0d1a14"
+        })
+        .setOrigin(0.5);
+      const hit = this.add.circle(0, 0, 26, 0xffffff, 0).setInteractive({ useHandCursor: true });
+      hit.on("pointerdown", (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) => {
+        e?.stopPropagation?.();
+        handler?.();
+      });
+      const btn = this.add.container(offsetX, -CARD / 2 - 34, [g, icon, hit]);
+      hit.on("pointerover", () => this.tweens.add({ targets: btn, scale: 1.12, duration: 110 }));
+      hit.on("pointerout", () => this.tweens.add({ targets: btn, scale: 1, duration: 110 }));
+      return btn;
+    };
+
+    const confirm = makeButton(-30, 0x5fd08a, "✓", () => this.cb.onConfirmPlacement?.());
+    const cancel = makeButton(30, 0xe06a5a, "✕", () => this.cb.onCancelPlacement?.());
+    slot.add([confirm, cancel]);
+
+    this.highlightLayer.add(slot);
+    this.pulses.push(
+      this.tweens.add({ targets: frame, alpha: { from: 0.6, to: 1 }, duration: 760, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
+    );
+  }
+
   private dashedRoundRect(
     g: Phaser.GameObjects.Graphics,
     x: number,
@@ -925,7 +1005,11 @@ export class ForestPhaserScene extends Phaser.Scene {
   }
 
   private contentBounds(vm: ForestViewModel): Phaser.Geom.Rectangle {
-    const slots = [...vm.cards, ...vm.expansionTargets];
+    const slots = [
+      ...vm.cards,
+      ...vm.expansionTargets,
+      ...(vm.placementPreview ? [vm.placementPreview.position] : [])
+    ];
     if (slots.length === 0) {
       return new Phaser.Geom.Rectangle(-CARD * 1.5, -CARD * 1.5, CARD * 3, CARD * 3);
     }
@@ -1038,6 +1122,9 @@ function viewSignature(vm: ForestViewModel): string {
     vm.canPlaceSetupPiece ? 1 : 0,
     positions(vm.expansionTargets),
     `${vm.rotateFitCardId ?? ""}#${vm.rotateFitTargets.map((t) => `${t.position.x},${t.position.y}:${t.rotation}`).join("|")}`,
+    vm.placementPreview
+      ? `${vm.placementPreview.cardId}:${vm.placementPreview.position.x},${vm.placementPreview.position.y}:${vm.placementPreview.rotation}`
+      : "",
     positions(vm.movementTargets),
     positions(vm.addPieceTargets),
     positions(vm.bonusTargets),

@@ -1,7 +1,13 @@
 import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef } from "react";
 import Phaser from "phaser";
 import type { ForestCardState, GridPosition, PieceState } from "@oikos/shared";
-import { ForestPhaserScene, type RotateFitTarget, type ScoringCardHighlight, type ScoringLineHighlight } from "./ForestPhaserScene";
+import {
+  ForestPhaserScene,
+  type PlacementPreview,
+  type RotateFitTarget,
+  type ScoringCardHighlight,
+  type ScoringLineHighlight
+} from "./ForestPhaserScene";
 
 interface ForestCanvasProps {
   cards: ForestCardState[];
@@ -10,6 +16,7 @@ interface ForestCanvasProps {
   expansionTargets?: GridPosition[];
   rotateFitTargets?: RotateFitTarget[];
   rotateFitCardId?: string | null;
+  placementPreview?: PlacementPreview | null;
   movementTargets?: GridPosition[];
   addPieceTargets?: GridPosition[];
   addPieceLabel?: string;
@@ -25,6 +32,8 @@ interface ForestCanvasProps {
   onCardClick?: (position: GridPosition) => void;
   onExpansionTargetClick?: (position: GridPosition) => void;
   onRotateFitTargetClick?: (position: GridPosition, rotation: number) => void;
+  onConfirmPlacement?: () => void;
+  onCancelPlacement?: () => void;
   onAddPieceTargetClick?: (position: GridPosition) => void;
   onBonusTargetClick?: (position: GridPosition) => void;
   onPieceClick?: (pieceId: string) => void;
@@ -46,6 +55,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
     expansionTargets = [],
     rotateFitTargets = [],
     rotateFitCardId = null,
+    placementPreview = null,
     movementTargets = [],
     addPieceTargets = [],
     addPieceHint = "Clique em uma carta destacada para adicionar uma peça",
@@ -66,6 +76,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       expansionTargets,
       rotateFitTargets,
       rotateFitCardId,
+      placementPreview,
       movementTargets,
       addPieceTargets,
       bonusTargets,
@@ -84,6 +95,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       expansionTargets,
       rotateFitTargets,
       rotateFitCardId,
+      placementPreview,
       movementTargets,
       pieces,
       selectablePieceIds,
@@ -167,6 +179,8 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       onCardClick: props.onCardClick,
       onExpansionTargetClick: props.onExpansionTargetClick,
       onRotateFitTargetClick: props.onRotateFitTargetClick,
+      onConfirmPlacement: props.onConfirmPlacement,
+      onCancelPlacement: props.onCancelPlacement,
       onAddPieceTargetClick: props.onAddPieceTargetClick,
       onBonusTargetClick: props.onBonusTargetClick,
       onPieceClick: props.onPieceClick,
@@ -178,6 +192,8 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
     props.onCardClick,
     props.onExpansionTargetClick,
     props.onRotateFitTargetClick,
+    props.onConfirmPlacement,
+    props.onCancelPlacement,
     props.onMovementTargetClick,
     props.onPieceClick
   ]);
