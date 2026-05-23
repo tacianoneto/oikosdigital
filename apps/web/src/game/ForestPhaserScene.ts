@@ -768,11 +768,29 @@ export class ForestPhaserScene extends Phaser.Scene {
           }
         }
         if (isPicked) {
-          glow.fillStyle(SELECT, 0.16);
-          glow.fillEllipse(0, 11, 30, 9);
+          glow.fillStyle(SELECT, 0.28);
+          glow.fillCircle(0, -4, 31);
+          glow.lineStyle(5, SELECT, 1);
+          glow.strokeCircle(0, -4, 33);
+          glow.lineStyle(2, 0xffffff, 0.9);
+          glow.strokeCircle(0, -4, 38);
         } else if (isSel) {
-          glow.lineStyle(2, 0xf2c14e, 0.75);
-          glow.strokeEllipse(0, 11, 26, 8);
+          glow.fillStyle(SELECT, 0.2);
+          glow.fillCircle(0, -4, 29);
+          glow.lineStyle(4, SELECT, 0.98);
+          glow.strokeCircle(0, -4, 32);
+          glow.lineStyle(2, 0xffffff, 0.75);
+          glow.strokeCircle(0, -4, 37);
+          this.pulses.push(
+            this.tweens.add({
+              targets: glow,
+              alpha: { from: 0.62, to: 1 },
+              duration: 620,
+              yoyo: true,
+              repeat: -1,
+              ease: "Sine.easeInOut"
+            })
+          );
         }
 
         const hit = po.root.getData("hit") as Phaser.GameObjects.Arc;
