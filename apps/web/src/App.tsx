@@ -171,6 +171,10 @@ export function App() {
       }
     | null
   >(null);
+  // Latest valid expansion slots + last pointer position, read by the live drag
+  // handlers so rotating mid-drag recomputes targets without a stale closure.
+  const expansionTargetsRef = useRef<{ x: number; y: number }[]>([]);
+  const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   const [turnRecap, setTurnRecap] = useState<TurnRecapState>({ history: [], index: -1, visible: false });
   const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
   const [recapCollapsed, setRecapCollapsed] = useState(true);
@@ -399,14 +403,24 @@ export function App() {
       if (key === "q") {
         event.preventDefault();
         rotateSelectedCard(-1);
-      } else if (key === "e") {
+      } else if (key === "e" || key === "r") {
         event.preventDefault();
         rotateSelectedCard(1);
       }
     };
 
+    // Right-click rotates while a placeable card is selected (e.g. mid-drag).
+    const onContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
+      rotateSelectedCard(1);
+    };
+
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("contextmenu", onContextMenu);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("contextmenu", onContextMenu);
+    };
   }, [canPlaceSelectedForestCard, rotateSelectedCard, selectedHandCardId]);
 
   const expansionTargets = useMemo(
@@ -416,6 +430,41 @@ export function App() {
         : [],
     [canPlaceSelectedForestCard, room?.game, selectedCardRotation, selectedHandCardId]
   );
+  // Keep a ref of the current valid slots so async drag handlers always see the
+  // set for the latest rotation (the pointermove closure is captured once).
+  expansionTargetsRef.current = expansionTargets;
+
+  // Nearest valid slot to a screen point, or null if none within snap range.
+  const computeNearestTarget = useCallback((x: number, y: number) => {
+    const targets = expansionTargetsRef.current;
+    const canvas = forestCanvasRef.current;
+    if (!canvas || targets.length === 0) return null;
+    let nearest: { x: number; y: number } | null = null;
+    let nearestDist = 110 * 110;
+    for (const t of targets) {
+      const center = canvas.getCardCenter(t);
+      if (!center) continue;
+      const ddx = center.x - x;
+      const ddy = center.y - y;
+      const d = ddx * ddx + ddy * ddy;
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearest = t;
+      }
+    }
+    return nearest;
+  }, []);
+
+  // Rotating mid-drag (without moving the pointer) must re-magnetize: the valid
+  // slots changed, so recompute the target from the last known pointer position.
+  useEffect(() => {
+    if (!cardDrag) return;
+    const p = dragPointerRef.current;
+    if (!p) return;
+    const target = computeNearestTarget(p.x, p.y);
+    setCardDrag((current) => (current ? { ...current, target } : current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCardRotation]);
   const spotlightInstanceIds = useMemo(() => {
     if (!room?.game || room.game.status !== "active" || recapCollapsed || !turnSummary || hoveredSummaryCardIds.length === 0) return [];
     const alive = new Set(room.game.forest.cards.map((card) => card.instanceId));
@@ -1777,7 +1826,11 @@ export function App() {
               } as CSSProperties
             }
           >
-            <img src={cardDrag.src} alt="" />
+            <img
+              src={cardDrag.src}
+              alt=""
+              style={{ transform: `rotate(${selectedCardRotation}deg)` }}
+            />
           </span>
         </div>
       )}
@@ -3063,7 +3116,7 @@ export function App() {
               </div>
               <div className="hand-header-side">
                 {selectedHandCardId && canPlaceSelectedForestCard && (
-                  <small>Gire com as setas ou Q / E e clique num espaço destacado.</small>
+                  <small>Arraste para um espaço destacado. Gire com Q / E / R, setas ou botão direito.</small>
                 )}
                 {selectedHandCardId && !canPlaceSelectedForestCard && <small>Carta usável só na ação A da espécie ativa.</small>}
                 <button
@@ -3133,23 +3186,8 @@ export function App() {
                                 setSelectedCardRotation(0);
                               }
                             }
-                            const currentTargets =
-                              forestCanvasRef.current && expansionTargets.length > 0
-                                ? expansionTargets
-                                : [];
-                            let nearest: { x: number; y: number } | null = null;
-                            let nearestDist = Infinity;
-                            for (const t of currentTargets) {
-                              const center = forestCanvasRef.current?.getCardCenter(t);
-                              if (!center) continue;
-                              const ddx = center.x - x;
-                              const ddy = center.y - y;
-                              const d = ddx * ddx + ddy * ddy;
-                              if (d < nearestDist && d < 110 * 110) {
-                                nearestDist = d;
-                                nearest = t;
-                              }
-                            }
+                            dragPointerRef.current = { x, y };
+                            const nearest = computeNearestTarget(x, y);
                             setCardDrag({
                               cardId: pending.cardId,
                               src: pending.src,
@@ -3165,6 +3203,7 @@ export function App() {
                             document.removeEventListener("pointercancel", handleUp);
                             const pending = pendingDragRef.current;
                             pendingDragRef.current = null;
+                            dragPointerRef.current = null;
                             if (!activated || !pending) {
                               setCardDrag(null);
                               return;

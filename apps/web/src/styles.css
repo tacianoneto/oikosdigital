@@ -3003,6 +3003,7 @@ input:focus {
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 130ms ease-out;
 }
 
 .card-drag-ghost.locked {
