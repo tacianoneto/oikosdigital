@@ -14,7 +14,8 @@
     "build": "npm run build -ws --if-present",
     "test": "npm run test -ws --if-present",
     "typecheck": "npm run typecheck -ws --if-present",
-    "sync:assets": "node scripts/sync-assets.mjs"
+    "sync:assets": "node scripts/sync-assets.mjs",
+    "tunnel": "node scripts/tunnel.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
