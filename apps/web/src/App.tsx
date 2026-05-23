@@ -145,7 +145,8 @@ const TUTORIAL_COATI_DONE_KEY = "oikos-tutorial-coati";
 //   score      -> use a modal/side action while the board stays read-only
 //   addPiece   -> add a species piece to a highlighted card
 //   resolvePair -> resolve the Coati pair passive on an adjacent highlighted card
-type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece" | "resolvePair";
+//   removeCoati -> select own Coatis and confirm the action-C removal
+type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece" | "resolvePair" | "removeCoati";
 
 interface TutorialStepDef {
   title: string;
@@ -269,7 +270,7 @@ const CAPUCHIN_TUTORIAL_CARD = "bosque_4_copy";
 const CAPUCHIN_TUTORIAL_MOVE_ID = `${CAPUCHIN_TUTORIAL_PLAYER_ID}_piece_3`;
 const COATI_TUTORIAL_PLAYER_ID = "local_coati_species";
 const COATI_TUTORIAL_CARD = "campo_2_copy_2";
-const COATI_TUTORIAL_MOVE_ID = `${COATI_TUTORIAL_PLAYER_ID}_piece_2`;
+const COATI_TUTORIAL_MOVE_ID = `${COATI_TUTORIAL_PLAYER_ID}_piece_3`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
@@ -659,75 +660,95 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+// 3x3. Macacos... digo, quatis pre-posicionados em F=(-1,0) e L1=(-1,-1) para a
+// cadeia da acao A; mover em (1,1) e par-alvo em (0,0) para a acao B. A carta de
+// campo entra em (2,0). A cadeia de pares marca 3 pontos e esvazia a reserva,
+// forcando a remocao de 2 quatis na acao C.
 const COATI_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "coa_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+  { instanceId: "coa_tut_0", definitionId: "bosque_2", x: -1, y: -1, rotation: 0, isInitial: true }, // L1 (Q_b)
+  { instanceId: "coa_tut_1", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true }, // L2 (resolve2)
+  { instanceId: "coa_tut_2", definitionId: "campo_4", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_3", definitionId: "campo_3", x: -1, y: 0, rotation: 0, isInitial: true }, // F fruta (Q_a)
+  { instanceId: "coa_tut_4", definitionId: "bosque_4", x: 0, y: 0, rotation: 0, isInitial: true }, // M (Q_d)
+  { instanceId: "coa_tut_5", definitionId: "campo_1", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_6", definitionId: "campo_2", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_7", definitionId: "bosque_2_copy", x: 0, y: 1, rotation: 0, isInitial: true }, // L3 (resolve3)
+  { instanceId: "coa_tut_8", definitionId: "campo_4_copy", x: 1, y: 1, rotation: 0, isInitial: true } // mover (Q_c)
 ];
 
 const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Quati",
-    body: "Vamos aprender a jogar de Quati! Ao formar um par exato de 2 quatis, ele adiciona 1 quati da reserva num local adjacente e marca 1 ponto. Importante: o ponto só conta se ele conseguir adicionar esse quati — sem reserva ou sem espaço adjacente, o par não pontua. Dica: mantenha quatis na reserva e espaço livre ao lado dos pares.",
+    body: "Vamos aprender a jogar de Quati! Quando ele forma um par exato de 2 quatis, adiciona 1 quati da reserva num local vizinho e só então marca 1 ponto. Ou seja: formar o par não basta — sem adicionar o quati (sem reserva ou sem espaço), não há ponto. Dica: encadeie pares para fazer combos.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Cenário preparado",
-    body: "Vamos treinar como se a partida já estivesse no segundo turno: um quati está num bosque com fruta à esquerda e outro num campo no centro. O objetivo é formar uma dupla e disparar a passiva.",
+    title: "O plano",
+    body: "Você vai disparar uma cadeia de pares e marcar 3 pontos neste turno. No fim, sua reserva esvazia e a ação C te obriga a remover 2 quatis. Bora jogar.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Ação A: jogar carta",
-    body: "Na ação A, o Quati expande a floresta com uma carta. Jogue a carta de campo destacada no espaço à direita. O habitat da carta jogada define o movimento da ação B.",
+    title: "Jogue a carta",
+    body: "Ação A: arraste a carta de campo destacada para o espaço à direita.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: COATI_TUTORIAL_CARD,
     markedSlot: { x: 2, y: 0 }
   },
   {
-    title: "Ação A: adicionar em fruta",
-    body: "Depois de jogar a carta, o Quati adiciona 1 peça da reserva em qualquer local com fruta. Clique na carta de fruta destacada, onde já há um quati seu: isso forma uma dupla e dispara a passiva.",
+    title: "Forme o primeiro par",
+    body: "Adicione 1 quati na carta de fruta destacada, onde já há um quati seu. Isso forma um par e dispara a passiva.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: -1, y: 0 },
     completeWhenCoatiPairPending: true
   },
   {
-    title: "Passiva: dupla de quatis",
-    body: "Dupla formada! A passiva pede para você adicionar 1 quati da reserva num local adjacente à dupla e marcar 1 ponto. Clique no local adjacente destacado para resolver o bônus.",
+    title: "Resolva o par (+1)",
+    body: "Clique no local vizinho destacado para adicionar 1 quati e marcar 1 ponto. Ele cai ao lado de outro quati e forma um novo par!",
     gate: "resolvePair",
     autoAdvance: true,
-    markedPairTarget: { x: -2, y: 0 },
-    completeWhenActionIndex: 1
+    markedPairTarget: { x: -1, y: -1 },
+    completeWhenScoreAtLeast: 1
   },
   {
-    title: "Ação B: mover pela carta jogada",
-    body: "A carta jogada foi de campo. Para o Quati, campo permite movimento diagonal. Mova o quati destacado para o espaço destacado; ao mover, ele coleta o recurso do destino.",
+    title: "Combo! (+1)",
+    body: "O par encadeou. Clique no vizinho destacado para resolver de novo e marcar mais 1 ponto. Já são 2.",
+    gate: "resolvePair",
+    autoAdvance: true,
+    markedPairTarget: { x: 0, y: -1 },
+    completeWhenScoreAtLeast: 2
+  },
+  {
+    title: "Mova e forme outro par",
+    body: "Ação B: campo = movimento diagonal. Mova o quati destacado para o local destacado, onde já há um quati. Forma mais um par.",
     gate: "move",
     autoAdvance: true,
     markedPieceId: COATI_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: 1, y: -1 },
-    highlightMovementGuideSpecies: "coati"
+    markedMoveTarget: { x: 0, y: 0 },
+    highlightMovementGuideSpecies: "coati",
+    completeWhenCoatiPairPending: true
   },
   {
-    title: "Ação C: controle de reserva",
-    body: "Repare que o turno avançou direto: a ação C foi pulada automaticamente. Ela só tem efeito quando há menos de 2 quatis na reserva, e nesse caso obriga você a remover 2 quatis da floresta. Como sua reserva está cheia, não havia nada a remover.",
-    gate: "none",
-    autoAdvance: false
+    title: "Terceiro ponto (+1)",
+    body: "Clique no vizinho destacado para resolver o par. 3 pontos no turno!",
+    gate: "resolvePair",
+    autoAdvance: true,
+    markedPairTarget: { x: 0, y: 1 },
+    completeWhenScoreAtLeast: 3
+  },
+  {
+    title: "Ação C: remova 2 quatis",
+    body: "Sua reserva ficou abaixo de 2, então a ação C obriga remover 2 quatis da floresta. Clique em 2 quatis seus e confirme a remoção.",
+    gate: "removeCoati",
+    autoAdvance: true,
+    completeWhenRoundAtLeast: 3
   },
   {
     title: "Turno do Quati completo",
-    body: "Resumo: a passiva dispara em todo par exato de 2 quatis (adiciona 1 adjacente + 1 ponto, podendo encadear); A joga carta e adiciona 1 quati em fruta; B move conforme o habitat da carta e coleta recurso; C remove 2 quatis da floresta apenas se a reserva tiver menos de 2.",
+    body: "Pares geram combos: cada par fecha com 1 quati adicionado e 1 ponto. Sem reserva, a ação C cobra o preço de 2 quatis. Equilibre crescer e gastar.",
     gate: "none",
     autoAdvance: false
   }
@@ -1176,8 +1197,13 @@ function createCoatiTutorialRoom(): PublicRoomState {
     player.hand = [COATI_TUTORIAL_CARD];
   }
 
+  // Q_a em F=(-1,0) fruta; Q_b em L1=(-1,-1); Q_c (mover) em (1,1); Q_d em M=(0,0).
+  // 4 na floresta + 4 na reserva: a cadeia de 3 pares consome 4 da reserva
+  // (add da acao A + 3 bonus), zerando a reserva para forcar a remocao na acao C.
   placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
-  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 2, { x: 0, y: 0 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 2, { x: -1, y: -1 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 3, { x: 1, y: 1 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 4, { x: 0, y: 0 });
 
   game.status = "active";
   game.round = 2;
@@ -1969,7 +1995,7 @@ export function App() {
     if (tutorialDef?.markedPieceId) {
       return ids.filter((pieceId) => pieceId === tutorialDef.markedPieceId);
     }
-    if (tutorialGate === "move") {
+    if (tutorialGate === "move" || tutorialGate === "removeCoati") {
       return ids;
     }
     return [];
