@@ -126,13 +126,14 @@ import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
 
 // --- Tutorials --------------------------------------------------------------
-type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw";
+type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw" | "capuchin";
 
 const TUTORIAL_INITIAL_DONE_KEY = "oikos-tutorial-initial";
 const TUTORIAL_JAGUAR_DONE_KEY = "oikos-tutorial-jaguar";
 const TUTORIAL_WOLF_DONE_KEY = "oikos-tutorial-wolf";
 const TUTORIAL_ARMADILLO_DONE_KEY = "oikos-tutorial-armadillo";
 const TUTORIAL_MACAW_DONE_KEY = "oikos-tutorial-macaw";
+const TUTORIAL_CAPUCHIN_DONE_KEY = "oikos-tutorial-capuchin";
 
 // Each scripted step locks the board to a single taught interaction:
 //   none      -> read-only, advance with the coach button
@@ -259,6 +260,9 @@ const ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE = `${ARMADILLO_TUTORIAL_JAGUAR_ID}_piec
 const MACAW_TUTORIAL_PLAYER_ID = "local_macaw_species";
 const MACAW_TUTORIAL_CARD = "campo_2_copy";
 const MACAW_TUTORIAL_MOVE_ID = `${MACAW_TUTORIAL_PLAYER_ID}_piece_1`;
+const CAPUCHIN_TUTORIAL_PLAYER_ID = "local_capuchin_species";
+const CAPUCHIN_TUTORIAL_CARD = "bosque_4_copy";
+const CAPUCHIN_TUTORIAL_MOVE_ID = `${CAPUCHIN_TUTORIAL_PLAYER_ID}_piece_2`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
@@ -576,11 +580,88 @@ const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+const CAPUCHIN_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "cap_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+];
+
+const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Macaco-prego: ocupar habitats",
+    body: "O Macaco-prego espalha peças e pontua presença em habitats. Ele joga cartas, adiciona na carta jogada, move pela carta jogada e pontua cada tipo de habitat onde tem macacos em 2 ou mais cartas diferentes. Movimento: bosque = salto reto, campo = salto em curva, rio = diagonal.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Cenário preparado",
+    body: "Vamos treinar como se a partida já estivesse no segundo turno: um macaco está num bosque à direita e outro num campo no centro. O objetivo é juntar macacos em bosques diferentes para pontuar.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação A: jogar carta",
+    body: "Na ação A, o Macaco-prego expande a floresta com uma carta. Jogue a carta de bosque destacada no espaço à direita. O habitat da carta jogada define o movimento da ação B.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: CAPUCHIN_TUTORIAL_CARD,
+    markedSlot: { x: 2, y: 0 }
+  },
+  {
+    title: "Ação A: adicionar na carta jogada",
+    body: "Depois de jogar a carta, o Macaco-prego adiciona 1 peça da reserva na própria carta jogada. Clique na carta destacada para adicionar o macaco. Diferente da Arara, a adição é sempre na carta que você acabou de jogar.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: 2, y: 0 },
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Ação B: mover pela carta jogada",
+    body: "A carta jogada foi de bosque. Para o Macaco-prego, bosque permite salto reto: 2 espaços em linha reta. Mova o macaco destacado para o espaço destacado; ao mover, ele coleta o recurso do destino.",
+    gate: "move",
+    autoAdvance: true,
+    markedPieceId: CAPUCHIN_TUTORIAL_MOVE_ID,
+    markedMoveTarget: { x: -2, y: 0 },
+    highlightMovementGuideSpecies: "capuchin",
+    completeWhenActionIndex: 2
+  },
+  {
+    title: "Ação C: reforçar um local",
+    body: "Na ação C, você pode adicionar 1 macaco da reserva em qualquer local que já tenha outro macaco seu. A ação C não coleta recurso. Clique no local destacado para empilhar mais um macaco.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: 1, y: 0 },
+    completeWhenActionIndex: 3
+  },
+  {
+    title: "Ação D: pontuar habitats",
+    body: "Na ação D, o Macaco-prego marca 1 ponto por tipo de habitat onde tem macacos em 2 ou mais cartas diferentes. Seus macacos estão em vários bosques: isso vale 1 ponto, marcado automaticamente.",
+    gate: "score",
+    autoAdvance: true,
+    completeWhenScoreAtLeast: 1
+  },
+  {
+    title: "Turno do Macaco-prego completo",
+    body: "Resumo: A joga carta e adiciona 1 macaco na carta jogada; B move conforme o habitat da carta e coleta recurso; C adiciona 1 macaco onde já há outro, sem coletar; D pontua cada tipo de habitat com macacos em 2+ cartas diferentes.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
 function getTutorialDoneKey(tutorialId: TutorialId): string {
   if (tutorialId === "jaguar") return TUTORIAL_JAGUAR_DONE_KEY;
   if (tutorialId === "wolf") return TUTORIAL_WOLF_DONE_KEY;
   if (tutorialId === "armadillo") return TUTORIAL_ARMADILLO_DONE_KEY;
   if (tutorialId === "macaw") return TUTORIAL_MACAW_DONE_KEY;
+  if (tutorialId === "capuchin") return TUTORIAL_CAPUCHIN_DONE_KEY;
   return TUTORIAL_INITIAL_DONE_KEY;
 }
 
@@ -619,6 +700,10 @@ function isTutorialArmadilloDone(): boolean {
 
 function isTutorialMacawDone(): boolean {
   return isTutorialDone("macaw");
+}
+
+function isTutorialCapuchinDone(): boolean {
+  return isTutorialDone("capuchin");
 }
 
 function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
@@ -933,6 +1018,57 @@ function createMacawTutorialRoom(): PublicRoomState {
   };
 }
 
+function createCapuchinTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: CAPUCHIN_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Macaco",
+      speciesId: "capuchin",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, CAPUCHIN_TUTORIAL_FOREST);
+
+  const player = game.players.find((candidate) => candidate.playerId === CAPUCHIN_TUTORIAL_PLAYER_ID);
+  if (player) {
+    player.score = 0;
+    player.turnsTaken = 1;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+    player.hand = [CAPUCHIN_TUTORIAL_CARD];
+  }
+
+  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 1, { x: 1, y: 0 });
+  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 2, { x: 0, y: 0 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = CAPUCHIN_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.turnOrder = [CAPUCHIN_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "capuchin_tutorial_ready",
+      message: "Tutorial do Macaco-prego preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    game,
+    warnings: game.contentWarnings
+  };
+}
+
 export function App() {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -1180,6 +1316,8 @@ export function App() {
         ? ARMADILLO_TUTORIAL_STEPS
         : tutorialId === "macaw"
           ? MACAW_TUTORIAL_STEPS
+        : tutorialId === "capuchin"
+          ? CAPUCHIN_TUTORIAL_STEPS
           : INITIAL_TUTORIAL_STEPS;
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
@@ -1264,6 +1402,8 @@ export function App() {
             ? ARMADILLO_TUTORIAL_PLAYER_ID
             : tutorialId === "macaw"
               ? MACAW_TUTORIAL_PLAYER_ID
+            : tutorialId === "capuchin"
+              ? CAPUCHIN_TUTORIAL_PLAYER_ID
               : game.activePlayerId;
 
     if (def.gate === "setup") {
@@ -3087,6 +3227,26 @@ export function App() {
     setTutorialId("macaw");
   }
 
+  function startCapuchinTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createCapuchinTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("capuchin");
+  }
+
   function exitTutorial(completed: boolean) {
     if (completed && tutorialId) markTutorialDone(tutorialId);
     autoScoredRef.current = null;
@@ -3685,7 +3845,31 @@ export function App() {
                 )}
               </button>
 
-              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf" && species.speciesId !== "armadillo" && species.speciesId !== "macaw").map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialCapuchinDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.capuchin } as CSSProperties}
+                onClick={startCapuchinTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.capuchin.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.capuchin.displayName}</strong>
+                  <small>Aprenda a jogar com esta espécie.</small>
+                </span>
+                {isTutorialCapuchinDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+
+              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf" && species.speciesId !== "armadillo" && species.speciesId !== "macaw" && species.speciesId !== "capuchin").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
