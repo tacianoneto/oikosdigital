@@ -150,14 +150,20 @@ interface TutorialStepDef {
 const TUTORIAL_NONRIVER_CARD = "bosque_1"; // bosque (forest), no river
 const TUTORIAL_RIVER_CARD = "rio_3"; // rio bend, must be rotated to connect
 
-// Deterministic starting forest (2x2 block with one river card whose mouth faces
-// east into the empty cell at (2,1)). The player extends the forest at (2,0) and
-// then continues the river at (2,1), which only connects after a rotation.
+// Deterministic 3x3 starting forest (coords -1..1). The river card at (1,0) has
+// a single mouth facing east into the empty cell (2,0). The player extends the
+// forest at (0,-2) with a non-river card, then continues the river at (2,0),
+// which only connects after rotating the river card.
 const TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "tut_0", definitionId: "bosque_2", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "tut_1", definitionId: "campo_1", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "tut_2", definitionId: "bosque_4", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "tut_3", definitionId: "rio_4", x: 1, y: 1, rotation: 90, isInitial: true } // rio_4 end mouth -> east
+  { instanceId: "tut_0", definitionId: "bosque_2", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "tut_1", definitionId: "campo_1", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "tut_2", definitionId: "bosque_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "tut_3", definitionId: "bosque_4", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "tut_4", definitionId: "campo_3", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "tut_5", definitionId: "rio_4", x: 1, y: 0, rotation: 90, isInitial: true }, // end mouth -> east
+  { instanceId: "tut_6", definitionId: "campo_2", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "tut_7", definitionId: "bosque_2_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "tut_8", definitionId: "campo_4", x: 1, y: 1, rotation: 0, isInitial: true }
 ];
 
 // The initial tutorial runs a real local game with a single species (Tatu-bola)
@@ -172,7 +178,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Habitats e recursos",
-    body: "Toda carta tem um habitat (bosque, campo ou rio) e exatamente um recurso: carne, ovo, fruta ou pinha. Os recursos ficam sempre na carta. No fim, marca pontos quem tiver a maioria de cada recurso, e cada 2 pinhas valem 1 ponto.",
+    body: "Toda carta tem um habitat (bosque, campo ou rio) e exatamente um recurso: carne, ovo, fruta ou pinha. Os recursos ficam sempre na carta. No fim, quem tiver a maioria de cada recurso marca 1 ponto extra, exceto a pinha, que marca 1 ponto a cada 2 pinhas.",
     gate: "none",
     autoAdvance: false
   },
@@ -188,7 +194,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_NONRIVER_CARD,
-    markedSlot: { x: 2, y: 0 }
+    markedSlot: { x: 0, y: -2 }
   },
   {
     title: "Continue o rio",
@@ -196,7 +202,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_RIVER_CARD,
-    markedSlot: { x: 2, y: 1 },
+    markedSlot: { x: 2, y: 0 },
     requiresRiver: true
   },
   {
