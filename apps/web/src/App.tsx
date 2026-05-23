@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   Trophy,
   Users,
+  Volume2,
+  VolumeX,
   X
 } from "lucide-react";
 import {
@@ -85,6 +87,16 @@ import type { GameState, GridPosition, PublicRoomState, Resource, RoomPlayer, Sp
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
 import { AnimatedNumber } from "./ui/AnimatedNumber";
+import {
+  getAudioSettings,
+  initAudioOnGesture,
+  playClick,
+  playLogEvent,
+  setAudioSettings,
+  startAmbient,
+  stopAmbient,
+  type AudioSettings
+} from "./ui/audio";
 import { getActionDescription } from "./ui/actionDescriptions";
 import {
   HABITAT_SCORE_COLORS,
@@ -133,6 +145,9 @@ export function App() {
   const [handCollapsed, setHandCollapsed] = useState(false);
   const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
+  const seenLogIdRef = useRef<Set<string>>(new Set());
+  const logInitializedRef = useRef(false);
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(false);
   const [hudRightCollapsed, setHudRightCollapsed] = useState(false);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
@@ -353,6 +368,62 @@ export function App() {
   const canControlActivePlayer = Boolean(room?.game?.activePlayerId && currentGamePlayer?.playerId === room.game.activePlayerId);
   const hasPendingCoatiPairBonus = Boolean(room?.game?.pendingCoatiPairBonus);
   const hasStartedGame = Boolean(room?.game);
+  const gameLog = room?.game?.log;
+
+  // Unlock the audio context on the first user gesture (browser autoplay policy)
+  // and play a soft click on every button press.
+  useEffect(() => {
+    const onFirstGesture = () => initAudioOnGesture();
+    const onPointerDown = (event: PointerEvent) => {
+      initAudioOnGesture();
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("button")) {
+        playClick();
+      }
+    };
+    window.addEventListener("keydown", onFirstGesture);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onFirstGesture);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, []);
+
+  // Play sound effects for new game-log entries (covers local, server, and bots).
+  useEffect(() => {
+    if (!gameLog) {
+      seenLogIdRef.current = new Set();
+      logInitializedRef.current = false;
+      return;
+    }
+    const seen = seenLogIdRef.current;
+    if (!logInitializedRef.current) {
+      // First time we see this game: mark everything as already heard so a
+      // reconnect or page reload does not replay the whole history.
+      for (const entry of gameLog) seen.add(entry.id);
+      logInitializedRef.current = true;
+      return;
+    }
+    for (const entry of gameLog) {
+      if (seen.has(entry.id)) continue;
+      seen.add(entry.id);
+      playLogEvent(entry.payload?.kind);
+    }
+  }, [gameLog]);
+
+  // Ambient pad runs during a game when music is enabled.
+  useEffect(() => {
+    if (hasStartedGame && !audioSettings.muted && audioSettings.musicVolume > 0) {
+      startAmbient();
+    } else {
+      stopAmbient();
+    }
+  }, [hasStartedGame, audioSettings.muted, audioSettings.musicVolume]);
+
+  const updateAudio = useCallback((partial: Partial<AudioSettings>) => {
+    setAudioSettingsState(setAudioSettings(partial));
+  }, []);
+
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
@@ -2771,6 +2842,45 @@ export function App() {
               <X aria-hidden="true" />
               Fechar
             </button>
+          </section>
+
+          <section className="panel-block audio-card">
+            <div className="section-title">
+              {audioSettings.muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+              <h2>Áudio</h2>
+            </div>
+            <button
+              type="button"
+              className={`secondary-button ${audioSettings.muted ? "" : "is-active"}`}
+              onClick={() => updateAudio({ muted: !audioSettings.muted })}
+            >
+              {audioSettings.muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+              {audioSettings.muted ? "Som desligado" : "Som ligado"}
+            </button>
+            <label className="audio-slider">
+              <span>Efeitos</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(audioSettings.sfxVolume * 100)}
+                disabled={audioSettings.muted}
+                onChange={(event) => updateAudio({ sfxVolume: Number(event.target.value) / 100 })}
+              />
+              <small>{Math.round(audioSettings.sfxVolume * 100)}%</small>
+            </label>
+            <label className="audio-slider">
+              <span>Música</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(audioSettings.musicVolume * 100)}
+                disabled={audioSettings.muted}
+                onChange={(event) => updateAudio({ musicVolume: Number(event.target.value) / 100 })}
+              />
+              <small>{Math.round(audioSettings.musicVolume * 100)}%</small>
+            </label>
           </section>
           </div>
         </div>

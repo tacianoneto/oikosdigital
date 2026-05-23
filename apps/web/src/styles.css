@@ -1023,6 +1023,52 @@ input:focus {
   gap: 12px;
 }
 
+.audio-card {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.audio-card .secondary-button.is-active {
+  border-color: color-mix(in srgb, var(--amber) 60%, transparent);
+  color: var(--amber);
+}
+
+.audio-slider {
+  display: grid;
+  grid-template-columns: 64px 1fr 42px;
+  align-items: center;
+  gap: 10px;
+  border: var(--bw) solid var(--line-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--slot);
+}
+
+.audio-slider span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--paper);
+}
+
+.audio-slider small {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--paper-soft, var(--paper));
+}
+
+.audio-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--amber);
+  cursor: pointer;
+}
+
+.audio-slider input[type="range"]:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .session-row {
   display: flex;
   align-items: center;
