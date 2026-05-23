@@ -126,11 +126,12 @@ import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
 
 // --- Tutorials --------------------------------------------------------------
-type TutorialId = "initial" | "jaguar" | "wolf";
+type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo";
 
 const TUTORIAL_INITIAL_DONE_KEY = "oikos-tutorial-initial";
 const TUTORIAL_JAGUAR_DONE_KEY = "oikos-tutorial-jaguar";
 const TUTORIAL_WOLF_DONE_KEY = "oikos-tutorial-wolf";
+const TUTORIAL_ARMADILLO_DONE_KEY = "oikos-tutorial-armadillo";
 
 // Each scripted step locks the board to a single taught interaction:
 //   none      -> read-only, advance with the coach button
@@ -245,6 +246,11 @@ const WOLF_TUTORIAL_CARD = "campo_3_copy";
 const WOLF_TUTORIAL_FIRST_WOLF_ID = `${WOLF_TUTORIAL_PLAYER_ID}_piece_1`;
 const WOLF_TUTORIAL_SECOND_WOLF_ID = `${WOLF_TUTORIAL_PLAYER_ID}_piece_2`;
 const WOLF_TUTORIAL_BASE_TARGET_ID = `${WOLF_TUTORIAL_COATI_ID}_piece_1`;
+const ARMADILLO_TUTORIAL_PLAYER_ID = "local_armadillo_species";
+const ARMADILLO_TUTORIAL_COATI_ID = "local_armadillo_coati";
+const ARMADILLO_TUTORIAL_CAPUCHIN_ID = "local_armadillo_capuchin";
+const ARMADILLO_TUTORIAL_CARD = "bosque_4_copy";
+const ARMADILLO_TUTORIAL_MOVE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
@@ -403,9 +409,86 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+const ARMADILLO_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "arm_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+];
+
+const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Tatu-bola: convivência e defesa",
+    body: "O Tatu-bola joga com presença compartilhada. Ele cresce perto de pinhas, se move conforme a carta jogada, pode se esconder e pontua por dividir locais com outras espécies.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Cenário preparado",
+    body: "Vamos treinar como se a partida já estivesse no segundo turno: há quatis e macacos na floresta, dois tatus em campo e dois tatus ainda na reserva.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação A: jogar carta",
+    body: "Na ação A, o Tatu-bola expande a floresta com uma carta da mão. Jogue a carta de bosque destacada no espaço destacado à direita. O habitat dessa carta vai definir o movimento da ação B.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: ARMADILLO_TUTORIAL_CARD,
+    markedSlot: { x: 2, y: 0 }
+  },
+  {
+    title: "Ação A: adicionar em pinha",
+    body: "Depois de jogar a carta, o Tatu-bola pode adicionar 1 tatu da reserva em qualquer local com pinha. Clique na carta de pinha destacada para aumentar sua presença.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: 0, y: 1 },
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Ação B: mover pelo habitat jogado",
+    body: "A carta jogada foi um bosque. Para o Tatu-bola, bosque permite movimento adjacente. Clique no tatu destacado e mova para o macaco-prego destacado para preparar a pontuação por compartilhamento.",
+    gate: "move",
+    autoAdvance: true,
+    markedPieceId: ARMADILLO_TUTORIAL_MOVE_ID,
+    markedMoveTarget: { x: -1, y: -1 },
+    highlightMovementGuideSpecies: "armadillo",
+    completeWhenActionIndex: 2
+  },
+  {
+    title: "Ação C: esconder",
+    body: "Na ação C, o Tatu-bola pode se esconder. Um tatu escondido fica protegido da Onça e continua ocupando o local. Selecione o tatu destacado e clique em Esconder Tatu-bola.",
+    gate: "score",
+    autoAdvance: true,
+    markedPieceId: ARMADILLO_TUTORIAL_MOVE_ID,
+    completeWhenActionIndex: 3
+  },
+  {
+    title: "Ação D: pontuar compartilhamento",
+    body: "Na ação D, o Tatu-bola pontua por ter tatus em locais compartilhados com outras espécies. Aqui ele divide local com Quati e Macaco-prego, então marca 3 pontos automaticamente.",
+    gate: "score",
+    autoAdvance: true,
+    completeWhenScoreAtLeast: 3
+  },
+  {
+    title: "Turno do Tatu-bola completo",
+    body: "Resumo: A joga carta e adiciona tatu em pinha; B move conforme o habitat da carta; C esconde um tatu; D pontua por compartilhar locais com outras espécies. Esse é o ciclo principal do Tatu-bola.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
 function getTutorialDoneKey(tutorialId: TutorialId): string {
   if (tutorialId === "jaguar") return TUTORIAL_JAGUAR_DONE_KEY;
   if (tutorialId === "wolf") return TUTORIAL_WOLF_DONE_KEY;
+  if (tutorialId === "armadillo") return TUTORIAL_ARMADILLO_DONE_KEY;
   return TUTORIAL_INITIAL_DONE_KEY;
 }
 
@@ -436,6 +519,10 @@ function isTutorialJaguarDone(): boolean {
 
 function isTutorialWolfDone(): boolean {
   return isTutorialDone("wolf");
+}
+
+function isTutorialArmadilloDone(): boolean {
+  return isTutorialDone("armadillo");
 }
 
 function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
@@ -574,6 +661,76 @@ function createWolfTutorialRoom(): PublicRoomState {
     {
       id: "wolf_tutorial_ready",
       message: "Tutorial do Lobo-guará preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    game,
+    warnings: game.contentWarnings
+  };
+}
+
+function createArmadilloTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: ARMADILLO_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Tatu",
+      speciesId: "armadillo",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: ARMADILLO_TUTORIAL_COATI_ID,
+      name: "Quati de treino",
+      speciesId: "coati",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: ARMADILLO_TUTORIAL_CAPUCHIN_ID,
+      name: "Macaco de treino",
+      speciesId: "capuchin",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, ARMADILLO_TUTORIAL_FOREST);
+
+  for (const player of game.players) {
+    player.score = 0;
+    player.turnsTaken = player.playerId === ARMADILLO_TUTORIAL_PLAYER_ID ? 1 : 0;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+    if (player.playerId === ARMADILLO_TUTORIAL_PLAYER_ID) {
+      player.hand = [ARMADILLO_TUTORIAL_CARD];
+    }
+  }
+
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 1, { x: 0, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 1, { x: 0, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 2, { x: 1, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 1, { x: -1, y: -1 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 2, { x: 1, y: -1 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = ARMADILLO_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.turnOrder = [ARMADILLO_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "armadillo_tutorial_ready",
+      message: "Tutorial do Tatu-bola preparado no segundo turno.",
       createdAt: Date.now()
     }
   ];
@@ -831,7 +988,9 @@ export function App() {
       ? JAGUAR_TUTORIAL_STEPS
       : tutorialId === "wolf"
         ? WOLF_TUTORIAL_STEPS
-        : INITIAL_TUTORIAL_STEPS;
+        : tutorialId === "armadillo"
+          ? ARMADILLO_TUTORIAL_STEPS
+          : INITIAL_TUTORIAL_STEPS;
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
   const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
@@ -911,7 +1070,9 @@ export function App() {
         ? JAGUAR_TUTORIAL_PLAYER_ID
         : tutorialId === "wolf"
           ? WOLF_TUTORIAL_PLAYER_ID
-          : game.activePlayerId;
+          : tutorialId === "armadillo"
+            ? ARMADILLO_TUTORIAL_PLAYER_ID
+            : game.activePlayerId;
 
     if (def.gate === "setup") {
       if (game.status === "active") setTutorialStep((step) => (step === null ? step : step + 1));
@@ -2396,6 +2557,9 @@ export function App() {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedPieceId) {
       return;
     }
+    if (tutorialActive && tutorialDef?.markedPieceId && selectedPieceId !== tutorialDef.markedPieceId) {
+      return;
+    }
 
     if (isLocalRoom) {
       const nextGame = hideArmadilloForCurrentAction(room.game, room.game.activePlayerId, selectedPieceId);
@@ -2417,7 +2581,7 @@ export function App() {
       setSelectedPieceId(null);
       setSelectedRemovalPieceIds([]);
     });
-  }, [canControlActivePlayer, isLocalRoom, room, selectedPieceId, socket]);
+  }, [canControlActivePlayer, isLocalRoom, room, selectedPieceId, socket, tutorialActive, tutorialDef?.markedPieceId]);
 
   const handleScoreArmadillo = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
@@ -2675,6 +2839,25 @@ export function App() {
     setRoom(createWolfTutorialRoom());
     setTutorialStep(0);
     setTutorialId("wolf");
+  }
+
+  function startArmadilloTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createArmadilloTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("armadillo");
   }
 
   function exitTutorial(completed: boolean) {
@@ -3222,7 +3405,31 @@ export function App() {
                 )}
               </button>
 
-              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf").map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialArmadilloDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.armadillo } as CSSProperties}
+                onClick={startArmadilloTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.armadillo.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.armadillo.displayName}</strong>
+                  <small>Aprenda a jogar com esta espécie.</small>
+                </span>
+                {isTutorialArmadilloDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+
+              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf" && species.speciesId !== "armadillo").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
