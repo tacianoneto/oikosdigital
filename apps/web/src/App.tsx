@@ -168,13 +168,11 @@ export function App() {
     points: number;
     playerName: string;
   } | null>(null);
-  const [macawAnimTick, setMacawAnimTick] = useState(0);
   const [capuchinScoreAnim, setCapuchinScoreAnim] = useState<{
     groups: CapuchinHabitatGroup[];
     points: number;
     playerName: string;
   } | null>(null);
-  const [capuchinAnimTick, setCapuchinAnimTick] = useState(0);
   const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
   const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
   const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
@@ -338,29 +336,6 @@ export function App() {
     const id = window.setTimeout(() => setNotice(null), 3200);
     return () => window.clearTimeout(id);
   }, [notice]);
-
-  useEffect(() => {
-    if (!macawScoreAnim) return;
-    let raf = 0;
-    const tick = () => {
-      setMacawAnimTick((t) => t + 1);
-      raf = window.requestAnimationFrame(tick);
-    };
-    raf = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(raf);
-  }, [macawScoreAnim]);
-
-  useEffect(() => {
-    if (!capuchinScoreAnim) return;
-    let raf = 0;
-    const tick = () => {
-      setCapuchinAnimTick((t) => t + 1);
-      raf = window.requestAnimationFrame(tick);
-    };
-    raf = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(raf);
-  }, [capuchinScoreAnim]);
-
 
   useEffect(() => {
     if (!error) return;
@@ -1659,7 +1634,6 @@ export function App() {
     }
 
     setCapuchinScoreAnim({ groups, points: groups.length, playerName });
-    setCapuchinAnimTick((t) => t + 1);
 
     window.setTimeout(() => {
       setCapuchinScoreAnim(null);
@@ -1715,7 +1689,6 @@ export function App() {
       points: lines.length,
       playerName
     });
-    setMacawAnimTick((tick) => tick + 1);
 
     window.setTimeout(() => {
       setMacawScoreAnim(null);
@@ -2019,231 +1992,42 @@ export function App() {
           })}
         </div>
       )}
-      {macawScoreAnim && (() => {
-        void macawAnimTick;
-        const hostEl = forestCanvasRef.current?.getHostElement();
-        if (!hostEl) return null;
-        const resolved = macawScoreAnim.lines
-          .map((line) => {
-            const a = forestCanvasRef.current?.getCardLocal(line.positions[0]);
-            const m = forestCanvasRef.current?.getCardLocal(line.positions[1]);
-            const c = forestCanvasRef.current?.getCardLocal(line.positions[2]);
-            if (!a || !m || !c) return null;
-            return { from: a, mid: m, to: c };
-          })
-          .filter((value): value is { from: { x: number; y: number }; mid: { x: number; y: number }; to: { x: number; y: number } } => value !== null);
-
-        const overlay = (
-          <>
-            <svg className="macaw-score-overlay" aria-hidden="true">
-              <defs>
-                <filter id="macawGlow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="4" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              {resolved.map((line, idx) => {
-                const hueShift = idx * 22;
-                const stroke = `hsl(${210 + hueShift}, 85%, 62%)`;
-                const length = Math.hypot(line.to.x - line.from.x, line.to.y - line.from.y);
-                const delay = idx * 280;
-                return (
-                  <g key={idx}>
-                    <line
-                      className="macaw-line-stroke macaw-line-glow"
-                      x1={line.from.x}
-                      y1={line.from.y}
-                      x2={line.to.x}
-                      y2={line.to.y}
-                      stroke={stroke}
-                      strokeOpacity="0.35"
-                      strokeWidth={18}
-                      strokeLinecap="round"
-                      style={{ animationDelay: `${delay}ms` } as CSSProperties}
-                    />
-                    <line
-                      className="macaw-line-stroke macaw-line-main"
-                      x1={line.from.x}
-                      y1={line.from.y}
-                      x2={line.to.x}
-                      y2={line.to.y}
-                      stroke={stroke}
-                      strokeWidth={6}
-                      strokeLinecap="round"
-                      strokeDasharray={length}
-                      strokeDashoffset={length}
-                      filter="url(#macawGlow)"
-                      style={{ animationDelay: `${delay}ms`, ["--dash" as string]: `${length}` } as CSSProperties}
-                    />
-                    {[line.from, line.mid, line.to].map((dot, dotIdx) => (
-                      <circle
-                        key={dotIdx}
-                        className="macaw-line-dot"
-                        cx={dot.x}
-                        cy={dot.y}
-                        r={10}
-                        fill={stroke}
-                        style={{ animationDelay: `${delay + dotIdx * 120}ms` } as CSSProperties}
-                      />
-                    ))}
-                  </g>
-                );
-              })}
-            </svg>
-            <div className="macaw-score-stamps" aria-hidden="true">
-              {resolved.map((line, idx) => {
-                const cx = (line.from.x + line.to.x) / 2;
-                const cy = (line.from.y + line.to.y) / 2;
-                const angle = Math.atan2(line.to.y - line.from.y, line.to.x - line.from.x) * (180 / Math.PI);
-                const normalAngle = angle + 90;
-                const offset = 32;
-                const offX = Math.cos((normalAngle * Math.PI) / 180) * offset;
-                const offY = Math.sin((normalAngle * Math.PI) / 180) * offset;
-                return (
-                  <span
-                    key={idx}
-                    className="macaw-score-stamp"
-                    style={
-                      {
-                        left: `${cx + offX}px`,
-                        top: `${cy + offY}px`,
-                        animationDelay: `${idx * 280 + 600}ms`
-                      } as CSSProperties
-                    }
-                  >
-                    +1
-                  </span>
-                );
-              })}
-            </div>
-          </>
-        );
-
-        return (
-          <>
-            {createPortal(overlay, hostEl)}
-            <div className="macaw-score-panel" role="status">
-              <div className="macaw-score-panel-icon">
-                <img src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="" />
-              </div>
-              <div className="macaw-score-panel-text">
-                <small>{macawScoreAnim.playerName}</small>
-                <strong>
-                  {macawScoreAnim.points} linha{macawScoreAnim.points > 1 ? "s" : ""} de 3 araras
-                </strong>
-                <span className="macaw-score-panel-total">
-                  = <em>+{macawScoreAnim.points}</em> ponto{macawScoreAnim.points > 1 ? "s" : ""}
-                </span>
-              </div>
-            </div>
-          </>
-        );
-      })()}
-      {capuchinScoreAnim && (() => {
-        void capuchinAnimTick;
-        const hostEl = forestCanvasRef.current?.getHostElement();
-        if (!hostEl) return null;
-        const HABITAT_COLORS: Record<string, { fill: string; stroke: string; tagBg: string }> = {
-          forest: { fill: "rgba(79, 174, 110, 0.32)", stroke: "#4fae6e", tagBg: "#2d8553" },
-          field: { fill: "rgba(242, 193, 78, 0.32)", stroke: "#f2c14e", tagBg: "#d29a2f" },
-          river: { fill: "rgba(79, 159, 216, 0.32)", stroke: "#4f9fd8", tagBg: "#2d70b5" }
-        };
-        const HABITAT_NAMES: Record<string, string> = {
-          forest: "Bosque",
-          field: "Campo",
-          river: "Rio"
-        };
-        const cardSize = forestCanvasRef.current?.getCardScreenSize() ?? 0;
-        const resolvedGroups = capuchinScoreAnim.groups.map((group, idx) => {
-          const rects = group.positions
-            .map((pos) => {
-              const c = forestCanvasRef.current?.getCardLocal(pos);
-              if (!c) return null;
-              return { center: c };
-            })
-            .filter((value): value is { center: { x: number; y: number } } => value !== null);
-          const centroid = rects.length
-            ? {
-                x: rects.reduce((acc, r) => acc + r.center.x, 0) / rects.length,
-                y: rects.reduce((acc, r) => acc + r.center.y, 0) / rects.length
-              }
-            : null;
-          const colors = HABITAT_COLORS[group.habitat] ?? HABITAT_COLORS.forest;
-          const name = HABITAT_NAMES[group.habitat] ?? group.habitat;
-          const delay = idx * 320;
-          return { rects, centroid, colors, name, delay, habitat: group.habitat };
-        });
-
-        const overlay = (
-          <>
-            <svg className="capuchin-score-overlay" aria-hidden="true">
-              {resolvedGroups.flatMap((group, gIdx) =>
-                group.rects.map((rect, rIdx) => (
-                  <rect
-                    key={`${gIdx}-${rIdx}`}
-                    className="capuchin-card-rect"
-                    x={rect.center.x - cardSize / 2}
-                    y={rect.center.y - cardSize / 2}
-                    width={cardSize}
-                    height={cardSize}
-                    rx={14}
-                    ry={14}
-                    fill={group.colors.fill}
-                    stroke={group.colors.stroke}
-                    strokeWidth={4}
-                    style={{ animationDelay: `${group.delay + rIdx * 90}ms` } as CSSProperties}
-                  />
-                ))
-              )}
-            </svg>
-            <div className="capuchin-score-stamps" aria-hidden="true">
-              {resolvedGroups.map((group, idx) =>
-                group.centroid ? (
-                  <span
-                    key={idx}
-                    className="capuchin-score-stamp"
-                    style={
-                      {
-                        left: `${group.centroid.x}px`,
-                        top: `${group.centroid.y}px`,
-                        background: group.colors.tagBg,
-                        borderColor: group.colors.stroke,
-                        animationDelay: `${group.delay + 500}ms`
-                      } as CSSProperties
-                    }
-                  >
-                    <strong>{group.name}</strong>
-                    <em>+1</em>
-                  </span>
-                ) : null
-              )}
-            </div>
-          </>
-        );
-
-        return (
-          <>
-            {createPortal(overlay, hostEl)}
-            <div className="capuchin-score-panel" role="status">
-              <div className="capuchin-score-panel-icon">
-                <img src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="" />
-              </div>
-              <div className="capuchin-score-panel-text">
-                <small>{capuchinScoreAnim.playerName}</small>
-                <strong>
-                  {capuchinScoreAnim.points} habitat{capuchinScoreAnim.points > 1 ? "s" : ""} com 2+ macacos
-                </strong>
-                <span className="capuchin-score-panel-total">
-                  = <em>+{capuchinScoreAnim.points}</em> ponto{capuchinScoreAnim.points > 1 ? "s" : ""}
-                </span>
-              </div>
-            </div>
-          </>
-        );
-      })()}
+      {macawScoreAnim && (
+        // The scoring lines themselves are drawn on the board by the Phaser scene
+        // (scoringLineHighlights); this panel just narrates the result.
+        <div className="macaw-score-panel" role="status">
+          <div className="macaw-score-panel-icon">
+            <img src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="" />
+          </div>
+          <div className="macaw-score-panel-text">
+            <small>{macawScoreAnim.playerName}</small>
+            <strong>
+              {macawScoreAnim.points} linha{macawScoreAnim.points > 1 ? "s" : ""} de 3 araras
+            </strong>
+            <span className="macaw-score-panel-total">
+              = <em>+{macawScoreAnim.points}</em> ponto{macawScoreAnim.points > 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+      )}
+      {capuchinScoreAnim && (
+        // The scored habitat cards are highlighted on the board by the Phaser
+        // scene (scoringCardHighlights); this panel narrates the result.
+        <div className="capuchin-score-panel" role="status">
+          <div className="capuchin-score-panel-icon">
+            <img src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="" />
+          </div>
+          <div className="capuchin-score-panel-text">
+            <small>{capuchinScoreAnim.playerName}</small>
+            <strong>
+              {capuchinScoreAnim.points} habitat{capuchinScoreAnim.points > 1 ? "s" : ""} com 2+ macacos
+            </strong>
+            <span className="capuchin-score-panel-total">
+              = <em>+{capuchinScoreAnim.points}</em> ponto{capuchinScoreAnim.points > 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+      )}
       {hasStartedGame && (
         <button
           type="button"
