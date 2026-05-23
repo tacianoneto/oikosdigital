@@ -86,7 +86,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { GameState, GridPosition, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
+import type { ForestCardState, GameState, GridPosition, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
 import { AnimatedNumber } from "./ui/AnimatedNumber";
@@ -141,13 +141,24 @@ interface TutorialStepDef {
   gate: TutorialGate;
   autoAdvance: boolean;
   requiredCardId?: string; // the only hand card the player may place this step
-  requiresRiver?: boolean; // marked slot must need a rotation to connect the river
+  markedSlot?: GridPosition; // the only slot where the card may be placed
+  requiresRiver?: boolean; // the marked slot continues an existing river
   openBoard?: SpeciesId; // open this species board when the step starts
 }
 
 // Fixed cards dealt to the tutorial hand so the scenario is deterministic.
 const TUTORIAL_NONRIVER_CARD = "bosque_1"; // bosque (forest), no river
-const TUTORIAL_RIVER_CARD = "rio_3"; // rio bend, needs rotating to connect
+const TUTORIAL_RIVER_CARD = "rio_3"; // rio bend, must be rotated to connect
+
+// Deterministic starting forest (2x2 block with one river card whose mouth faces
+// east into the empty cell at (2,1)). The player extends the forest at (2,0) and
+// then continues the river at (2,1), which only connects after a rotation.
+const TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "tut_0", definitionId: "bosque_2", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "tut_1", definitionId: "campo_1", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "tut_2", definitionId: "bosque_4", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "tut_3", definitionId: "rio_4", x: 1, y: 1, rotation: 90, isInitial: true } // rio_4 end mouth -> east
+];
 
 // The initial tutorial runs a real local game with a single species (Tatu-bola)
 // so the base mechanics are taught with the genuine rules engine. We click a
@@ -161,13 +172,13 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Habitats e recursos",
-    body: "Toda carta tem um habitat (bosque, campo ou rio) e exatamente um recurso: carne, ovo, fruta ou pinha. Os recursos ficam sempre na carta. No fim, marca pontos quem tiver a maioria de cada recurso — e cada 2 pinhas valem 1 ponto.",
+    body: "Toda carta tem um habitat (bosque, campo ou rio) e exatamente um recurso: carne, ovo, fruta ou pinha. Os recursos ficam sempre na carta. No fim, marca pontos quem tiver a maioria de cada recurso, e cada 2 pinhas valem 1 ponto.",
     gate: "none",
     autoAdvance: false
   },
   {
     title: "Posicione seus meeples",
-    body: "Cada espécie tem um total de meeples e uma quantidade inicial para o setup. Clique numa carta para posicionar cada meeple inicial — e você ganha o recurso daquele local. Atenção: ganhar recurso ao adicionar só acontece no setup.",
+    body: "Cada espécie tem um total de meeples e uma quantidade inicial para o setup. Clique numa carta para posicionar cada meeple inicial e você ganha o recurso daquele local. Atenção: ganhar recurso ao adicionar só acontece no setup.",
     gate: "setup",
     autoAdvance: true
   },
@@ -176,26 +187,28 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     body: "Para expandir a floresta, clique na carta destacada na sua mão e depois clique no espaço destacado no tabuleiro. Vamos começar com uma carta sem rio: ela encaixa em qualquer espaço livre.",
     gate: "placeCard",
     autoAdvance: true,
-    requiredCardId: TUTORIAL_NONRIVER_CARD
+    requiredCardId: TUTORIAL_NONRIVER_CARD,
+    markedSlot: { x: 2, y: 0 }
   },
   {
-    title: "Cartas de rio",
-    body: "Cartas de rio têm margens de água que precisam se conectar com outra água (ou sair pela borda) — nunca encostar na mata. Gire a carta com Q/E até o rio encaixar e coloque-a no espaço destacado.",
+    title: "Continue o rio",
+    body: "Cartas de rio têm margens de água que precisam se conectar com outra água (ou sair pela borda), nunca encostar na mata. O espaço destacado fica ao lado de um rio: gire a carta com Q/E até a água encaixar com o rio vizinho e coloque-a ali.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_RIVER_CARD,
+    markedSlot: { x: 2, y: 1 },
     requiresRiver: true
   },
   {
     title: "Mova um meeple",
-    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada — veja o tabuleiro dele à esquerda.",
+    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada, veja o tabuleiro dele à direita.",
     gate: "move",
     autoAdvance: true,
     openBoard: "armadillo"
   },
   {
     title: "Você aprendeu o básico!",
-    body: "As ações de cada espécie acontecem em ordem. O jogo dura 5 rodadas e vence quem fizer mais pontos. Os tutoriais de cada espécie chegam em breve. Bom jogo!",
+    body: "As ações de cada espécie acontecem em ordem. O jogo dura 5 rodadas e vence quem fizer mais pontos. Você pode aprender a jogar com cada espécie nos tutoriais dela. Bom jogo!",
     gate: "none",
     autoAdvance: false
   }
@@ -702,14 +715,10 @@ export function App() {
 
   // During a tutorial placeCard step, restrict placement to a single marked slot.
   const tutorialPlaceStep = tutorialActive && tutorialGate === "placeCard" && Boolean(tutorialDef?.requiredCardId);
-  const tutorialMarkedSlot = useMemo(() => {
+  const tutorialMarkedSlot = useMemo<GridPosition | null>(() => {
     if (!tutorialPlaceStep) return null;
-    if (tutorialDef?.requiresRiver && rotateFitTargets.length > 0) {
-      return rotateFitTargets[0].position;
-    }
-    if (rotateFitTargets.length > 0) return rotateFitTargets[0].position;
-    return expansionTargets[0] ?? null;
-  }, [tutorialPlaceStep, tutorialDef?.requiresRiver, expansionTargets, rotateFitTargets]);
+    return tutorialDef?.markedSlot ?? null;
+  }, [tutorialPlaceStep, tutorialDef?.markedSlot]);
 
   const displayExpansionTargets = useMemo(() => {
     if (!tutorialPlaceStep || !tutorialMarkedSlot) return expansionTargets;
@@ -2129,7 +2138,7 @@ export function App() {
         connected: true
       }
     ];
-    const game = createInitialGameState(localRoomId, tutorialPlayers);
+    const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, TUTORIAL_FOREST);
     // Deterministic hand: one non-river card then one river card to teach both.
     if (game.players[0]) {
       game.players[0].hand = [TUTORIAL_NONRIVER_CARD, TUTORIAL_RIVER_CARD];
