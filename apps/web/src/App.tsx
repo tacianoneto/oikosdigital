@@ -154,6 +154,7 @@ interface TutorialStepDef {
   markedAddPieceTarget?: GridPosition;
   markedPieceId?: string;
   highlightMovementGuideSpecies?: SpeciesId;
+  jaguarProbeTarget?: GridPosition;
   requiresRiver?: boolean; // the marked slot continues an existing river
   openBoard?: SpeciesId; // open this species board when the step starts
   completeWhenActionIndex?: number;
@@ -249,8 +250,10 @@ const WOLF_TUTORIAL_BASE_TARGET_ID = `${WOLF_TUTORIAL_COATI_ID}_piece_1`;
 const ARMADILLO_TUTORIAL_PLAYER_ID = "local_armadillo_species";
 const ARMADILLO_TUTORIAL_COATI_ID = "local_armadillo_coati";
 const ARMADILLO_TUTORIAL_CAPUCHIN_ID = "local_armadillo_capuchin";
+const ARMADILLO_TUTORIAL_JAGUAR_ID = "local_armadillo_jaguar";
 const ARMADILLO_TUTORIAL_CARD = "bosque_4_copy";
 const ARMADILLO_TUTORIAL_MOVE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
+const ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE = `${ARMADILLO_TUTORIAL_JAGUAR_ID}_piece_1`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
@@ -471,8 +474,15 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
     completeWhenActionIndex: 3
   },
   {
+    title: "Onça encontra o tatu escondido",
+    body: "A Onça entrou no mesmo local do Tatu-bola escondido, mas não consegue removê-lo. Enquanto estiver escondido, ele continua protegido. Se esse tatu se mover em uma ação futura, ele deixa de ficar escondido.",
+    gate: "none",
+    autoAdvance: false,
+    jaguarProbeTarget: { x: -1, y: -1 }
+  },
+  {
     title: "Ação D: pontuar compartilhamento",
-    body: "Na ação D, o Tatu-bola pontua por ter tatus em locais compartilhados com outras espécies. Aqui ele divide local com Quati e Macaco-prego, então marca 3 pontos automaticamente.",
+    body: "Na ação D, o Tatu-bola pontua por ter tatus em locais compartilhados com outras espécies. Aqui ele divide local com Quati, Macaco-prego e Onça, então marca 3 pontos automaticamente.",
     gate: "score",
     autoAdvance: true,
     completeWhenScoreAtLeast: 3
@@ -697,6 +707,13 @@ function createArmadilloTutorialRoom(): PublicRoomState {
       speciesId: "capuchin",
       ready: true,
       connected: true
+    },
+    {
+      playerId: ARMADILLO_TUTORIAL_JAGUAR_ID,
+      name: "Onça de treino",
+      speciesId: "jaguar",
+      ready: true,
+      connected: true
     }
   ];
   const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, ARMADILLO_TUTORIAL_FOREST);
@@ -716,6 +733,7 @@ function createArmadilloTutorialRoom(): PublicRoomState {
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 2, { x: 1, y: 0 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 1, { x: -1, y: -1 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 2, { x: 1, y: -1 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_JAGUAR_ID, 1, { x: -2, y: -1 });
 
   game.status = "active";
   game.round = 2;
@@ -742,6 +760,38 @@ function createArmadilloTutorialRoom(): PublicRoomState {
     players: tutorialPlayers,
     game,
     warnings: game.contentWarnings
+  };
+}
+
+function moveArmadilloTutorialJaguarProbe(game: GameState, target: GridPosition): GameState {
+  const jaguar = game.pieces.find((piece) => piece.pieceId === ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE);
+  if (!jaguar || (jaguar.location?.x === target.x && jaguar.location.y === target.y)) {
+    return game;
+  }
+
+  return {
+    ...game,
+    pieces: game.pieces.map((piece) =>
+      piece.pieceId === ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE
+        ? { ...piece, location: { ...target, siteId: "main" } }
+        : piece
+    ),
+    log: game.log.some((entry) => entry.id === "armadillo_tutorial_jaguar_probe")
+      ? game.log
+      : [
+          ...game.log,
+          {
+            id: "armadillo_tutorial_jaguar_probe",
+            message: "A Onça entrou no local do Tatu-bola escondido, mas não conseguiu removê-lo.",
+            createdAt: Date.now(),
+            payload: {
+              kind: "move_piece",
+              actorPlayerId: ARMADILLO_TUTORIAL_JAGUAR_ID,
+              location: target,
+              pieceIds: [ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE]
+            }
+          }
+        ]
   };
 }
 
@@ -1158,8 +1208,15 @@ export function App() {
     } else {
       setBoardSpecies(null);
     }
+    if (tutorialId === "armadillo" && def?.jaguarProbeTarget) {
+      setRoom((current) =>
+        current?.game
+          ? { ...current, game: moveArmadilloTutorialJaguarProbe(current.game, def.jaguarProbeTarget!) }
+          : current
+      );
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialStep, tutorialSteps]);
+  }, [tutorialId, tutorialStep, tutorialSteps]);
 
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
@@ -2890,7 +2947,8 @@ export function App() {
       hasPendingCoatiPairBonus ||
       !canControlActivePlayer ||
       activeActionId !== "D" ||
-      !room.game.activePlayerId
+      !room.game.activePlayerId ||
+      (tutorialActive && typeof tutorialDef?.completeWhenScoreAtLeast !== "number")
     ) {
       return;
     }
@@ -2924,7 +2982,9 @@ export function App() {
     hasPendingCoatiPairBonus,
     room?.game?.activePlayerId,
     room?.game?.round,
-    room?.game?.status
+    room?.game?.status,
+    tutorialActive,
+    tutorialDef?.completeWhenScoreAtLeast
   ]);
 
   const setupSpecies = currentGamePlayer?.speciesId ? speciesDefinitions[currentGamePlayer.speciesId] : null;
