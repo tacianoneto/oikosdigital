@@ -1091,6 +1091,12 @@ input:focus {
   border: 2px solid var(--amber);
 }
 
+/* animal portrait fills the circular HUD icon */
+.species-hud-header > img.player-portrait {
+  object-fit: cover;
+  padding: 0;
+}
+
 .species-hud-header h2 {
   font-size: 19px;
   font-weight: 900;

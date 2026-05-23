@@ -2648,7 +2648,7 @@ export function App() {
       {hasStartedGame && hudGamePlayer && hudSpecies && (
         <section className="hud-species panel-block species-hud" style={speciesVar(hudGamePlayer.speciesId)}>
             <div className="species-hud-header">
-              <img src={encodeURI(hudSpecies.meepleAsset)} alt="" />
+              <img className="player-portrait" src={encodeURI(hudSpecies.portraitAsset)} alt="" />
               <div>
                 <span>{currentGamePlayer ? "Controlando" : "Vez atual"}</span>
                 <h2>{hudSpecies.displayName}</h2>
