@@ -140,45 +140,62 @@ interface TutorialStepDef {
   body: string;
   gate: TutorialGate;
   autoAdvance: boolean;
+  requiredCardId?: string; // the only hand card the player may place this step
+  requiresRiver?: boolean; // marked slot must need a rotation to connect the river
+  openBoard?: SpeciesId; // open this species board when the step starts
 }
 
+// Fixed cards dealt to the tutorial hand so the scenario is deterministic.
+const TUTORIAL_NONRIVER_CARD = "bosque_1"; // bosque (forest), no river
+const TUTORIAL_RIVER_CARD = "rio_3"; // rio bend, needs rotating to connect
+
 // The initial tutorial runs a real local game with a single species (Tatu-bola)
-// so the base mechanics — placing cards and moving meeples — are taught with the
-// genuine rules engine.
+// so the base mechanics are taught with the genuine rules engine. We click a
+// card and then choose where it goes (there is no drag mechanic here).
 const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Bem-vindo a Oikos",
-    body: "Esta é a floresta central, montada em uma grade 3x3. Ao longo do jogo ela cresce conforme as cartas são jogadas. Vamos aprender o básico.",
+    body: "Esta é a floresta central. Ao longo do jogo ela cresce conforme as cartas são jogadas. Vamos aprender as mecânicas básicas.",
     gate: "none",
     autoAdvance: false
   },
   {
     title: "Habitats e recursos",
-    body: "Cada carta é um habitat: bosque, campo ou rio. Algumas têm um recurso (carne, ovo, fruta ou pinha). Os recursos ficam sempre na carta e valem pontos no fim.",
+    body: "Toda carta tem um habitat (bosque, campo ou rio) e exatamente um recurso: carne, ovo, fruta ou pinha. Os recursos ficam sempre na carta. No fim, marca pontos quem tiver a maioria de cada recurso — e cada 2 pinhas valem 1 ponto.",
     gate: "none",
     autoAdvance: false
   },
   {
     title: "Posicione seus meeples",
-    body: "Tudo começa no setup: clique em uma carta da floresta para posicionar cada um dos seus meeples. Ao posicionar, você ganha o recurso daquela carta.",
+    body: "Cada espécie tem um total de meeples e uma quantidade inicial para o setup. Clique numa carta para posicionar cada meeple inicial — e você ganha o recurso daquele local. Atenção: ganhar recurso ao adicionar só acontece no setup.",
     gate: "setup",
     autoAdvance: true
   },
   {
-    title: "Ação A — jogue uma carta",
-    body: "Começou seu turno. Na Ação A você expande a floresta: arraste uma carta da mão até um espaço destacado, gire se precisar encaixar o rio, e confirme. Depois adicione um meeple, se houver espaço válido.",
+    title: "Adicione uma carta",
+    body: "Para expandir a floresta, clique na carta destacada na sua mão e depois clique no espaço destacado no tabuleiro. Vamos começar com uma carta sem rio: ela encaixa em qualquer espaço livre.",
     gate: "placeCard",
-    autoAdvance: true
+    autoAdvance: true,
+    requiredCardId: TUTORIAL_NONRIVER_CARD
   },
   {
-    title: "Ação B — mova um meeple",
-    body: "Na Ação B você move um meeple. Clique em um meeple seu e escolha um destino destacado. O padrão de movimento depende do habitat da carta que você jogou.",
+    title: "Cartas de rio",
+    body: "Cartas de rio têm margens de água que precisam se conectar com outra água (ou sair pela borda) — nunca encostar na mata. Gire a carta com Q/E até o rio encaixar e coloque-a no espaço destacado.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: TUTORIAL_RIVER_CARD,
+    requiresRiver: true
+  },
+  {
+    title: "Mova um meeple",
+    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada — veja o tabuleiro dele à esquerda.",
     gate: "move",
-    autoAdvance: true
+    autoAdvance: true,
+    openBoard: "armadillo"
   },
   {
     title: "Você aprendeu o básico!",
-    body: "As ações acontecem sempre em ordem (A, B, C, D). O jogo dura 5 rodadas e vence quem fizer mais pontos. Os tutoriais de cada espécie chegam em breve. Bom jogo!",
+    body: "As ações de cada espécie acontecem em ordem. O jogo dura 5 rodadas e vence quem fizer mais pontos. Os tutoriais de cada espécie chegam em breve. Bom jogo!",
     gate: "none",
     autoAdvance: false
   }
@@ -242,6 +259,8 @@ export function App() {
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<"idle" | "join" | "local" | "tutorials">("idle");
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
+  // Log length captured when the move step begins, to detect the taught move.
+  const tutorialMoveLogLenRef = useRef<number | null>(null);
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
     lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
     points: number;
@@ -439,6 +458,8 @@ export function App() {
   const tutorialActive = tutorialStep !== null;
   const tutorialDef = tutorialActive ? INITIAL_TUTORIAL_STEPS[tutorialStep] ?? null : null;
   const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
+  const tutorialRequiredCardId =
+    tutorialActive && tutorialDef?.gate === "placeCard" ? tutorialDef.requiredCardId ?? null : null;
   // True when the tutorial forbids a given board interaction for the current step.
   const tutorialBlocks = useCallback(
     (action: "setupPlace" | "placeCard" | "move") => {
@@ -496,22 +517,76 @@ export function App() {
     setAudioSettingsState(setAudioSettings(partial));
   }, []);
 
-  // Advance the scripted tutorial automatically as the player progresses through
-  // the real game phases: setup done -> action A done -> action B done.
+  // Orchestrate the scripted tutorial: detect when the taught action is done and
+  // craft the next state. Card placements are detected by the card appearing in
+  // the forest (so we are not bound to the species action pipeline).
   const tutorialGameStatus = room?.game?.status;
-  const tutorialActionIndex = room?.game?.activeActionIndex ?? 0;
   useEffect(() => {
-    if (tutorialStep === null) return;
+    if (tutorialStep === null || !room?.game) return;
     const def = INITIAL_TUTORIAL_STEPS[tutorialStep];
     if (!def?.autoAdvance) return;
-    if (def.gate === "setup" && tutorialGameStatus === "active") {
-      setTutorialStep((step) => (step === null ? step : step + 1));
-    } else if (def.gate === "placeCard" && tutorialGameStatus === "active" && tutorialActionIndex >= 1) {
-      setTutorialStep((step) => (step === null ? step : step + 1));
-    } else if (def.gate === "move" && tutorialGameStatus === "active" && tutorialActionIndex >= 2) {
-      setTutorialStep((step) => (step === null ? step : step + 1));
+    const game = room.game;
+    const forestHas = (cardId: string) => game.forest.cards.some((card) => card.definitionId === cardId);
+
+    if (def.gate === "setup") {
+      if (game.status === "active") setTutorialStep((step) => (step === null ? step : step + 1));
+      return;
     }
-  }, [tutorialStep, tutorialGameStatus, tutorialActionIndex]);
+
+    if (def.gate === "placeCard" && def.requiredCardId && forestHas(def.requiredCardId)) {
+      const isRiverStep = Boolean(def.requiresRiver);
+      setRoom((current) => {
+        if (!current?.game) return current;
+        const nextGame = { ...current.game };
+        if (isRiverStep) {
+          // Set up action B (move) with a forest card as the played card so the
+          // Tatu has the simplest movement (adjacent).
+          nextGame.activeActionIndex = 1;
+          nextGame.activePlayedForestCardId = TUTORIAL_NONRIVER_CARD;
+        } else {
+          // Allow placing the next card in the same action A.
+          nextGame.activePlayedForestCardId = null;
+        }
+        return { ...current, game: nextGame };
+      });
+      setSelectedHandCardId(null);
+      setSelectedCardRotation(0);
+      tutorialMoveLogLenRef.current = null;
+      setTutorialStep((step) => (step === null ? step : step + 1));
+      return;
+    }
+
+    if (def.gate === "move") {
+      if (tutorialMoveLogLenRef.current === null) {
+        tutorialMoveLogLenRef.current = game.log.length;
+        return;
+      }
+      const moved = game.log
+        .slice(tutorialMoveLogLenRef.current)
+        .some((entry) => entry.payload?.kind === "move_piece");
+      if (moved) setTutorialStep((step) => (step === null ? step : step + 1));
+    }
+  }, [tutorialStep, tutorialGameStatus, room?.game]);
+
+  // When a tutorial step starts: pre-select the required card and open the board
+  // it asks to show, so the player only has to act, not hunt for the right card.
+  useEffect(() => {
+    if (tutorialStep === null) {
+      return;
+    }
+    const def = INITIAL_TUTORIAL_STEPS[tutorialStep];
+    if (def?.gate === "placeCard" && def.requiredCardId) {
+      setSelectedHandCardId(def.requiredCardId);
+      setSelectedCardRotation(0);
+      setPendingPlacement(null);
+    }
+    if (def?.openBoard) {
+      setBoardSpecies(def.openBoard);
+    } else {
+      setBoardSpecies(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tutorialStep]);
 
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
@@ -625,14 +700,37 @@ export function App() {
     return result;
   }, [canPlaceSelectedForestCard, room?.game, selectedHandCardId, selectedCardRotation, expansionTargets, pendingPlacement]);
 
+  // During a tutorial placeCard step, restrict placement to a single marked slot.
+  const tutorialPlaceStep = tutorialActive && tutorialGate === "placeCard" && Boolean(tutorialDef?.requiredCardId);
+  const tutorialMarkedSlot = useMemo(() => {
+    if (!tutorialPlaceStep) return null;
+    if (tutorialDef?.requiresRiver && rotateFitTargets.length > 0) {
+      return rotateFitTargets[0].position;
+    }
+    if (rotateFitTargets.length > 0) return rotateFitTargets[0].position;
+    return expansionTargets[0] ?? null;
+  }, [tutorialPlaceStep, tutorialDef?.requiresRiver, expansionTargets, rotateFitTargets]);
+
+  const displayExpansionTargets = useMemo(() => {
+    if (!tutorialPlaceStep || !tutorialMarkedSlot) return expansionTargets;
+    return expansionTargets.filter((p) => p.x === tutorialMarkedSlot.x && p.y === tutorialMarkedSlot.y);
+  }, [tutorialPlaceStep, tutorialMarkedSlot, expansionTargets]);
+
+  const displayRotateFitTargets = useMemo(() => {
+    if (!tutorialPlaceStep || !tutorialMarkedSlot) return rotateFitTargets;
+    return rotateFitTargets.filter(
+      (t) => t.position.x === tutorialMarkedSlot.x && t.position.y === tutorialMarkedSlot.y
+    );
+  }, [tutorialPlaceStep, tutorialMarkedSlot, rotateFitTargets]);
+
   // Keep a ref of the current drop targets so async drag handlers always see the
   // set for the latest rotation (the pointermove closure is captured once).
   // Each target carries the rotation to apply when dropped there.
   type DropTarget = { x: number; y: number; rotation: 0 | 90 | 180 | 270 };
   const dropTargetsRef = useRef<DropTarget[]>([]);
   dropTargetsRef.current = [
-    ...expansionTargets.map((p) => ({ x: p.x, y: p.y, rotation: selectedCardRotation })),
-    ...rotateFitTargets.map((t) => ({ x: t.position.x, y: t.position.y, rotation: t.rotation }))
+    ...displayExpansionTargets.map((p) => ({ x: p.x, y: p.y, rotation: selectedCardRotation })),
+    ...displayRotateFitTargets.map((t) => ({ x: t.position.x, y: t.position.y, rotation: t.rotation }))
   ];
 
   // Nearest valid slot to a screen point, or null if none within snap range.
@@ -1333,6 +1431,12 @@ export function App() {
         return;
       }
       if (tutorialBlocks("placeCard")) return;
+      // Tutorial: enforce the marked card and the marked slot.
+      if (tutorialActive) {
+        const def = tutorialStep !== null ? INITIAL_TUTORIAL_STEPS[tutorialStep] : null;
+        if (def?.requiredCardId && selectedHandCardId !== def.requiredCardId) return;
+        if (tutorialMarkedSlot && (position.x !== tutorialMarkedSlot.x || position.y !== tutorialMarkedSlot.y)) return;
+      }
 
       if (isLocalRoom) {
         const game = room.game;
@@ -1367,7 +1471,17 @@ export function App() {
         setPendingPlacement(null);
       });
     },
-    [canPlaceSelectedForestCard, isLocalRoom, room, selectedHandCardId, socket, tutorialBlocks]
+    [
+      canPlaceSelectedForestCard,
+      isLocalRoom,
+      room,
+      selectedHandCardId,
+      socket,
+      tutorialBlocks,
+      tutorialActive,
+      tutorialStep,
+      tutorialMarkedSlot
+    ]
   );
 
   // Selecting a slot does not place immediately: it stages a preview the player
@@ -2016,7 +2130,12 @@ export function App() {
       }
     ];
     const game = createInitialGameState(localRoomId, tutorialPlayers);
+    // Deterministic hand: one non-river card then one river card to teach both.
+    if (game.players[0]) {
+      game.players[0].hand = [TUTORIAL_NONRIVER_CARD, TUTORIAL_RIVER_CARD];
+    }
     lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
     setRoom({
       roomId: localRoomId,
       status: "setup",
@@ -2031,6 +2150,10 @@ export function App() {
   function exitTutorial(completed: boolean) {
     if (completed) markTutorialInitialDone();
     setTutorialStep(null);
+    setBoardSpecies(null);
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setPendingPlacement(null);
     clearRoomState();
     setLandingMode("tutorials");
     setNotice(completed ? "Tutorial concluído!" : "Tutorial encerrado.");
@@ -2834,8 +2957,8 @@ export function App() {
             <button type="button" className="tutorial-coach-exit" onClick={() => exitTutorial(false)}>
               Sair
             </button>
-            {!tutorialDef.autoAdvance ? (
-              tutorialStep === INITIAL_TUTORIAL_STEPS.length - 1 ? (
+            {!tutorialDef.autoAdvance &&
+              (tutorialStep === INITIAL_TUTORIAL_STEPS.length - 1 ? (
                 <button type="button" className="primary-button" onClick={() => exitTutorial(true)}>
                   Concluir
                 </button>
@@ -2847,16 +2970,7 @@ export function App() {
                 >
                   Próximo
                 </button>
-              )
-            ) : (
-              <button
-                type="button"
-                className="tutorial-coach-skip"
-                onClick={() => setTutorialStep((step) => (step === null ? step : step + 1))}
-              >
-                Pular passo
-              </button>
-            )}
+              ))}
           </div>
         </div>
       )}
@@ -3323,8 +3437,8 @@ export function App() {
             cards={forestCards}
             pieces={pieces}
             canPlaceSetupPiece={canPlaceSetupPiece}
-            expansionTargets={expansionTargets}
-            rotateFitTargets={rotateFitTargets}
+            expansionTargets={displayExpansionTargets}
+            rotateFitTargets={displayRotateFitTargets}
             rotateFitCardId={canPlaceSelectedForestCard ? selectedHandCardId : null}
             placementPreview={
               pendingPlacement && selectedHandCardId
@@ -3418,7 +3532,9 @@ export function App() {
                         data-card-id={card.id}
                         className={`hand-card ${isSelected ? "selected" : ""} ${
                           handPlayableThisAction ? "playable" : "not-playable"
-                        } ${cardDrag?.cardId === card.id ? "dragging" : ""}`}
+                        } ${cardDrag?.cardId === card.id ? "dragging" : ""} ${
+                          tutorialRequiredCardId === card.id ? "tutorial-marked" : ""
+                        }`}
                         style={{ ["--hand-index" as string]: handIndex }}
                         onPointerDown={(event) => {
                           if (!canSelectHandCards || event.button !== 0) {
