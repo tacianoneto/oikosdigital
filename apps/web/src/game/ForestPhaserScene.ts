@@ -62,6 +62,16 @@ function key(p: GridPosition): string {
   return `${p.x}:${p.y}`;
 }
 
+// Deterministic -1deg..1deg jitter per card instance, purely cosmetic so cards
+// look hand-placed rather than perfectly aligned. Stable across re-renders.
+function angleJitter(instanceId: string): number {
+  let h = 0;
+  for (let i = 0; i < instanceId.length; i++) {
+    h = (h * 31 + instanceId.charCodeAt(i)) | 0;
+  }
+  return (((h % 200) + 200) % 200) / 100 - 1;
+}
+
 function colorForPiece(piece: PieceState): number {
   return SPECIES_COLOR[piece.speciesId] ?? 0xb6815f;
 }
@@ -204,18 +214,26 @@ export class ForestPhaserScene extends Phaser.Scene {
   private drawSurface(vm: ForestViewModel): void {
     const b = this.contentBounds(vm);
     const pad = 46;
+    // Soft global shadow under the whole forest cluster — physical weight on the
+    // table. Layered translucent black offset downward fakes a diffuse drop shadow,
+    // no solid panel behind the cards.
     const g = this.add.graphics();
-    g.fillStyle(0x0c1712, 0.55);
-    g.fillRoundedRect(b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2, 28);
-    g.lineStyle(2, 0xffffff, 0.05);
-    g.strokeRoundedRect(b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2, 28);
+    g.fillStyle(0x000000, 0.14);
+    g.fillRoundedRect(b.x - pad + 6, b.y - pad + 16, b.width + pad * 2, b.height + pad * 2, 38);
+    g.fillStyle(0x000000, 0.1);
+    g.fillRoundedRect(b.x - pad + 2, b.y - pad + 8, b.width + pad * 2, b.height + pad * 2, 32);
     this.surfaceLayer.add(g);
 
+    // Empty slots = marks engraved into the table, not digital squares.
     for (const s of [...vm.cards, ...vm.expansionTargets]) {
       const w = this.worldOf(s);
       const slot = this.add.graphics();
-      slot.fillStyle(0x000000, 0.22);
-      slot.fillRoundedRect(w.x - CARD / 2, w.y - CARD / 2, CARD, CARD, RADIUS);
+      // dark groove
+      slot.lineStyle(1.5, 0x1c0f08, 0.28);
+      slot.strokeRoundedRect(w.x - CARD / 2, w.y - CARD / 2, CARD, CARD, RADIUS);
+      // faint lit edge just inside, for a carved look
+      slot.lineStyle(1, 0xb98a4b, 0.06);
+      slot.strokeRoundedRect(w.x - CARD / 2 + 1.5, w.y - CARD / 2 + 1.5, CARD - 3, CARD - 3, RADIUS - 1);
       this.gridLayer.add(slot);
     }
   }
@@ -232,11 +250,13 @@ export class ForestPhaserScene extends Phaser.Scene {
       const isBonus = vm.bonusTargets.some((t) => key(t) === key(card));
       const interactive = vm.canPlaceSetupPiece || isMove || isAdd || isBonus;
 
+      const restAngle = card.rotation + angleJitter(card.instanceId);
+
       let obj = this.cardObjs.get(card.instanceId);
       if (!obj) {
         const root = this.buildCard(def);
         root.setPosition(w.x, w.y);
-        root.setAngle(card.rotation - 6);
+        root.setAngle(restAngle - 6);
         this.cardLayer.add(root);
         obj = { root };
         this.cardObjs.set(card.instanceId, obj);
@@ -252,12 +272,13 @@ export class ForestPhaserScene extends Phaser.Scene {
             y: w.y,
             scale: 1,
             alpha: 1,
-            angle: card.rotation,
+            angle: restAngle,
             duration: 460,
             delay,
             ease: "Back.easeOut"
           });
         } else {
+          // Slide in and settle onto the table.
           root.setScale(0.55);
           root.setAlpha(0);
           root.setY(w.y - 36);
@@ -266,7 +287,7 @@ export class ForestPhaserScene extends Phaser.Scene {
             y: w.y,
             scale: 1,
             alpha: 1,
-            angle: card.rotation,
+            angle: restAngle,
             duration: 460,
             ease: "Back.easeOut"
           });
@@ -275,7 +296,7 @@ export class ForestPhaserScene extends Phaser.Scene {
         }
       } else {
         obj.root.setPosition(w.x, w.y);
-        obj.root.setAngle(card.rotation);
+        obj.root.setAngle(restAngle);
       }
 
       const frame = obj.root.getData("frame") as Phaser.GameObjects.Graphics;
@@ -326,17 +347,29 @@ export class ForestPhaserScene extends Phaser.Scene {
   private buildCard(def: ReturnType<typeof getForestCardDefinition>): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
 
+    // Contact shadow: a short, darker shadow sits close below the card, with a
+    // wider soft falloff beneath it. Reads as a card resting on the table.
     const shadow = this.add.graphics();
-    shadow.fillStyle(0x000000, 0.22);
-    shadow.fillRoundedRect(-CARD / 2 + 2, -CARD / 2 + 5, CARD, CARD, RADIUS);
+    shadow.fillStyle(0x000000, 0.12);
+    shadow.fillRoundedRect(-CARD / 2, -CARD / 2 + 9, CARD + 2, CARD, RADIUS + 2);
+    shadow.fillStyle(0x000000, 0.3);
+    shadow.fillRoundedRect(-CARD / 2 + 3, -CARD / 2 + 4, CARD - 4, CARD, RADIUS);
 
     const img = this.add.image(0, 0, `card:${def.id}`).setDisplaySize(CARD, CARD);
+
+    // Subtle lit edge along the top of the card.
+    const highlight = this.add.graphics();
+    highlight.lineStyle(1.5, 0xffffff, 0.16);
+    highlight.beginPath();
+    highlight.moveTo(-CARD / 2 + RADIUS, -CARD / 2 + 1);
+    highlight.lineTo(CARD / 2 - RADIUS, -CARD / 2 + 1);
+    highlight.strokePath();
 
     const frame = this.add.graphics();
 
     const hit = this.add.rectangle(0, 0, CARD, CARD, 0xffffff, 0);
 
-    c.add([shadow, img, frame, hit]);
+    c.add([shadow, img, highlight, frame, hit]);
     c.setData("frame", frame);
     c.setData("hit", hit);
     return c;
