@@ -7,9 +7,9 @@ const coatiActionDescriptions: Partial<Record<ActionId, string>> = {
 };
 
 const jaguarActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Mova a Onca para um local adjacente. Colete o recurso da carta destino. Se houver peca no local, remova 1 e colete 1 carne.",
-  B: "Mova a Onca conforme o local onde ela esta. Colete o recurso da carta destino. Se houver peca no local, remova 1 e colete 1 carne.",
-  C: "Gaste 1 carne para marcar 1 ponto, ate 3 vezes."
+  A: "Mova a Onça para um local adjacente. Colete o recurso da carta destino. Se houver peça no local, remova 1 e colete 1 carne.",
+  B: "Mova a Onça conforme o local onde ela está. Colete o recurso da carta destino. Se houver peça no local, remova 1 e colete 1 carne.",
+  C: "Gaste 1 carne para marcar 1 ponto, até 3 vezes."
 };
 
 const capuchinActionDescriptions: Partial<Record<ActionId, string>> = {
@@ -29,45 +29,45 @@ const macawActionDescriptions: Partial<Record<ActionId, string>> = {
 const armadilloActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta e adicione 1 tatu em local de pinha.",
   B: "Mova 1 tatu conforme a carta jogada. Colete o recurso da carta destino.",
-  C: "Esconda qualquer tatu proprio.",
-  D: "Marque 3 pontos menos 1 por especie adversaria que nao compartilhe local com tatu, minimo 1."
+  C: "Esconda qualquer tatu próprio.",
+  D: "Marque 3 pontos menos 1 por espécie adversária que não compartilhe local com tatu, mínimo 1."
 };
 
 const wolfActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Mova cada lobo conforme o habitat da carta jogada. Cada lobo movido coleta recurso da carta destino.",
-  B: "Pode remover 1 peca de especie de base em um local com lobo. Ambos coletam o recurso do local.",
+  B: "Pode remover 1 peça de espécie de base em um local com lobo. Ambos coletam o recurso do local.",
   C: "Para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto.",
   D: "Adicione 1 lobo em um local de carne."
 };
 
 export function getActionDescription(speciesId: SpeciesId | null | undefined, actionId: ActionId | null): string {
   if (!speciesId || !actionId) {
-    return "Use a mao de cartas e os destaques da mesa para executar a acao atual.";
+    return "Use a mão de cartas e os destaques da mesa para executar a ação atual.";
   }
 
   if (speciesId === "coati") {
-    return coatiActionDescriptions[actionId] ?? "Acao do Quati pendente de implementacao.";
+    return coatiActionDescriptions[actionId] ?? "Ação do Quati pendente de implementação.";
   }
 
   if (speciesId === "jaguar") {
-    return jaguarActionDescriptions[actionId] ?? "Acao da Onca pendente de implementacao.";
+    return jaguarActionDescriptions[actionId] ?? "Ação da Onça pendente de implementação.";
   }
 
   if (speciesId === "capuchin") {
-    return capuchinActionDescriptions[actionId] ?? "Acao do Macaco-prego pendente de implementacao.";
+    return capuchinActionDescriptions[actionId] ?? "Ação do Macaco-prego pendente de implementação.";
   }
 
   if (speciesId === "macaw") {
-    return macawActionDescriptions[actionId] ?? "Acao da Arara-azul pendente de implementacao.";
+    return macawActionDescriptions[actionId] ?? "Ação da Arara-azul pendente de implementação.";
   }
 
   if (speciesId === "armadillo") {
-    return armadilloActionDescriptions[actionId] ?? "Acao do Tatu-bola pendente de implementacao.";
+    return armadilloActionDescriptions[actionId] ?? "Ação do Tatu-bola pendente de implementação.";
   }
 
   if (speciesId === "maned_wolf") {
-    return wolfActionDescriptions[actionId] ?? "Acao do Lobo-guara pendente de implementacao.";
+    return wolfActionDescriptions[actionId] ?? "Ação do Lobo-guará pendente de implementação.";
   }
 
-  return "Acoes desta especie ainda pendentes de implementacao.";
+  return "Ações desta espécie ainda pendentes de implementação.";
 }

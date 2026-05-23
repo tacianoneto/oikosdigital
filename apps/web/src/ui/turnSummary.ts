@@ -42,7 +42,7 @@ function pieceShortName(speciesId: SpeciesId | null | undefined): string {
 }
 
 function pieceDisplayName(speciesId: SpeciesId | null | undefined): string {
-  return speciesId ? speciesDefinitions[speciesId]?.displayName ?? pieceShortName(speciesId) : "peca";
+  return speciesId ? speciesDefinitions[speciesId]?.displayName ?? pieceShortName(speciesId) : "peça";
 }
 
 function summarizePiecesBySpecies(pieces: PieceState[], fallbackSpeciesId: SpeciesId | null, fallbackCount = 1): string {

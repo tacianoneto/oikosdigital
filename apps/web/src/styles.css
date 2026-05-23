@@ -2082,6 +2082,16 @@ input:focus {
   overflow: visible;
 }
 
+.movement-guide.is-tutorial-highlight {
+  color: #221607;
+  background: #f2c14e;
+  border-color: #ffe07a;
+  box-shadow:
+    0 0 0 3px rgba(242, 193, 78, 0.35),
+    0 0 18px rgba(242, 193, 78, 0.85);
+  animation: tutorial-movement-pulse 980ms ease-in-out infinite;
+}
+
 .movement-guide-floating {
   position: fixed;
   z-index: 80;
@@ -2109,6 +2119,17 @@ input:focus {
   width: 100%;
   height: auto;
   border-radius: 8px;
+}
+
+@keyframes tutorial-movement-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.18);
+  }
 }
 
 @keyframes movement-guide-float {

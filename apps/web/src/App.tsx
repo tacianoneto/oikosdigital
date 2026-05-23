@@ -152,6 +152,7 @@ interface TutorialStepDef {
   markedMoveTarget?: GridPosition; // the only board destination taught this step
   markedAddPieceTarget?: GridPosition;
   markedPieceId?: string;
+  highlightMovementGuideSpecies?: SpeciesId;
   requiresRiver?: boolean; // the marked slot continues an existing river
   openBoard?: SpeciesId; // open this species board when the step starts
   completeWhenActionIndex?: number;
@@ -292,7 +293,8 @@ const JAGUAR_TUTORIAL_STEPS: TutorialStepDef[] = [
     gate: "move",
     autoAdvance: true,
     markedMoveTarget: { x: 1, y: 1 },
-    completeWhenActionIndex: 2
+    completeWhenActionIndex: 2,
+    highlightMovementGuideSpecies: "jaguar"
   },
   {
     title: "Três carnes disponíveis",
@@ -332,36 +334,37 @@ const WOLF_TUTORIAL_FOREST: ForestCardState[] = [
 
 const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Lobo-guara: subpredador",
-    body: "O Lobo-guara e subpredador. Diferente da Onca, ele usa cartas na acao A e pode ter varios lobos em campo trabalhando juntos.",
+    title: "Lobo-guará: subpredador",
+    body: "O Lobo-guará é subpredador. Diferente da Onça, ele usa cartas na ação A e pode ter vários lobos em campo trabalhando juntos.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Cenario preparado",
-    body: "Vamos treinar como se a partida ja estivesse no segundo turno: a floresta esta pronta, dois lobos ja estao em campo, um lobo esta na reserva e ha especies de base para interagir.",
+    title: "Cenário preparado",
+    body: "Vamos treinar como se a partida já estivesse no segundo turno: a floresta está pronta, dois lobos já estão em campo, um lobo está na reserva e há espécies de base para interagir.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Acao A: jogar carta",
-    body: "Na acao A, o Lobo expande a floresta com uma carta. Jogue a carta de campo destacada no espaco destacado. O habitat da carta jogada define como todos os lobos pendentes vao se mover.",
+    title: "Ação A: jogar carta",
+    body: "Na ação A, o Lobo expande a floresta com uma carta. Jogue a carta de campo destacada no espaço destacado à direita. O habitat da carta jogada define como todos os lobos pendentes vão se mover.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: WOLF_TUTORIAL_CARD,
-    markedSlot: { x: -2, y: -2 }
+    markedSlot: { x: 2, y: -1 }
   },
   {
-    title: "Acao A: mover primeiro lobo",
-    body: "Campo da ao Lobo movimento adjacente. Passe o mouse sobre o icone de movimento do Lobo na lista de jogadores para abrir a imagem de referencia. Agora clique no lobo destacado e mova para o Quati destacado; ele coleta o ovo do local.",
+    title: "Ação A: mover primeiro lobo",
+    body: "Campo dá ao Lobo movimento adjacente. Passe o mouse sobre o ícone de movimento do Lobo na lista de jogadores para abrir a imagem de referência. Agora clique no lobo destacado e mova para o Quati destacado; ele coleta o ovo do local.",
     gate: "move",
     autoAdvance: true,
     markedMoveTarget: { x: 1, y: 0 },
-    markedPieceId: WOLF_TUTORIAL_FIRST_WOLF_ID
+    markedPieceId: WOLF_TUTORIAL_FIRST_WOLF_ID,
+    highlightMovementGuideSpecies: "maned_wolf"
   },
   {
-    title: "Acao A: mover todos os lobos",
-    body: "Quando a carta e jogada, cada lobo com movimento legal precisa mover. Clique no segundo lobo destacado e mova para o bosque destacado; ele coleta uma pinha.",
+    title: "Ação A: mover todos os lobos",
+    body: "Quando a carta é jogada, cada lobo com movimento legal precisa mover. Clique no segundo lobo destacado e mova para o bosque destacado; ele coleta uma pinha.",
     gate: "move",
     autoAdvance: true,
     markedMoveTarget: { x: 0, y: 1 },
@@ -369,24 +372,24 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
     completeWhenActionIndex: 1
   },
   {
-    title: "Acao B: remover especie de base",
-    body: "Na acao B, o Lobo pode remover 1 peca de especie de base que esteja no mesmo local de um lobo. Selecione o Quati destacado e clique em Remover peca. O Lobo e o Quati coletam o recurso desse local.",
+    title: "Ação B: remover espécie de base",
+    body: "Na ação B, o Lobo pode remover 1 peça de espécie de base que esteja no mesmo local de um lobo. Selecione o Quati destacado e clique em Remover peça. O Lobo e o Quati coletam o recurso desse local.",
     gate: "removeBase",
     autoAdvance: true,
     markedPieceId: WOLF_TUTORIAL_BASE_TARGET_ID,
     completeWhenActionIndex: 2
   },
   {
-    title: "Acao C: gastar recursos diferentes",
-    body: "Na acao C, para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto. Como ha 2 lobos em campo, escolha ovo e pinha para marcar 2 pontos.",
+    title: "Ação C: gastar recursos diferentes",
+    body: "Na ação C, para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto. Como há 2 lobos em campo, escolha ovo e pinha para marcar 2 pontos.",
     gate: "score",
     autoAdvance: true,
     completeWhenScoreAtLeast: 2,
     requiredSpendCount: 2
   },
   {
-    title: "Acao D: adicionar lobo",
-    body: "Na acao D, adicione 1 lobo da reserva em um local com carne. Clique na carta de carne destacada para colocar o terceiro lobo e encerrar o turno.",
+    title: "Ação D: adicionar lobo",
+    body: "Na ação D, adicione 1 lobo da reserva em um local com carne. Clique na carta de carne destacada para colocar o terceiro lobo e encerrar o turno.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: -2, y: 0 },
@@ -394,7 +397,7 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Turno do Lobo completo",
-    body: "Resumo: A joga carta e move todos os lobos; B remove uma especie de base junto de um lobo; C gasta recursos diferentes para pontuar; D adiciona lobo em carne. Esse e o ciclo principal do Lobo-guara.",
+    body: "Resumo: A joga carta e move todos os lobos; B remove uma espécie de base junto de um lobo; C gasta recursos diferentes para pontuar; D adiciona lobo em carne. Esse é o ciclo principal do Lobo-guará.",
     gate: "none",
     autoAdvance: false
   }
@@ -570,7 +573,7 @@ function createWolfTutorialRoom(): PublicRoomState {
   game.log = [
     {
       id: "wolf_tutorial_ready",
-      message: "Tutorial do Lobo-guara preparado no segundo turno.",
+      message: "Tutorial do Lobo-guará preparado no segundo turno.",
       createdAt: Date.now()
     }
   ];
@@ -761,7 +764,7 @@ export function App() {
             setNotice(
               isMissingRoomError(err)
                 ? "A sala anterior expirou no servidor gratuito. Crie uma nova sala para continuar."
-                : "Nao foi possivel reconectar a sala anterior."
+                : "Não foi possível reconectar a sala anterior."
             );
           });
       }
@@ -832,6 +835,8 @@ export function App() {
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
   const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
+  const highlightedMovementGuideSpecies =
+    tutorialActive ? tutorialDef?.highlightMovementGuideSpecies ?? null : null;
   const tutorialRequiredCardId =
     tutorialActive && tutorialDef?.gate === "placeCard" ? tutorialDef.requiredCardId ?? null : null;
   // True when the tutorial forbids a given board interaction for the current step.
@@ -1785,7 +1790,7 @@ export function App() {
         clearOnlineSession();
         clearRoomState();
         setJoinCode("");
-        setNotice("Essa sala nao existe mais no servidor gratuito. Crie uma nova sala para continuar.");
+        setNotice("Essa sala não existe mais no servidor gratuito. Crie uma nova sala para continuar.");
         return;
       }
 
@@ -1981,7 +1986,7 @@ export function App() {
         setSelectedRemovalPieceIds([]);
         setNotice(
           activeSpecies?.speciesId === "jaguar"
-            ? "Onca movida."
+            ? "Onça movida."
             : activeSpecies?.speciesId === "capuchin"
               ? "Macaco-prego movido."
               : activeSpecies?.speciesId === "macaw"
@@ -1991,7 +1996,7 @@ export function App() {
               : activeSpecies?.speciesId === "armadillo"
                 ? "Tatu-bola movido."
                 : activeSpecies?.speciesId === "maned_wolf"
-                  ? "Lobo-guara movido."
+                  ? "Lobo-guará movido."
                 : "Quati movido."
         );
         return;
@@ -2090,7 +2095,7 @@ export function App() {
         if (removablePieces.length > 1) {
           setSelectedJaguarDestination(position);
           setSelectedJaguarTargetPieceId(null);
-          setNotice("Escolha qual meeple a Onca deve remover neste local.");
+          setNotice("Escolha qual meeple a Onça deve remover neste local.");
           return;
         }
 
@@ -2147,7 +2152,7 @@ export function App() {
               : activeSpecies?.speciesId === "armadillo"
                 ? "Tatu-bola adicionado."
                 : activeSpecies?.speciesId === "maned_wolf"
-                  ? "Lobo-guara adicionado."
+                  ? "Lobo-guará adicionado."
               : "Quati adicionado em local de fruta."
         );
         return;
@@ -2462,7 +2467,7 @@ export function App() {
       setSelectedWolfTargetPieceId(null);
       setSelectedWolfResources([]);
       setSelectedRemovalPieceIds([]);
-      setNotice("Lobo-guara removeu peca de base.");
+      setNotice("Lobo-guará removeu peça de base.");
       return;
     }
 
@@ -2492,7 +2497,7 @@ export function App() {
       tutorialDef?.requiredSpendCount &&
       selectedWolfResources.length !== tutorialDef.requiredSpendCount
     ) {
-      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuacao completa.`);
+      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuação completa.`);
       return;
     }
 
@@ -2509,7 +2514,7 @@ export function App() {
       setSelectedWolfTargetPieceId(null);
       setSelectedWolfResources([]);
       setSelectedRemovalPieceIds([]);
-      setNotice("Lobo-guara gastou recursos e marcou pontos.");
+      setNotice("Lobo-guará gastou recursos e marcou pontos.");
       return;
     }
 
@@ -2549,7 +2554,7 @@ export function App() {
       setSelectedHandCardId(null);
       setSelectedPieceId(null);
       setSelectedRemovalPieceIds([]);
-      setNotice("Acao concluida.");
+      setNotice("Ação concluída.");
       return;
     }
 
@@ -3208,11 +3213,11 @@ export function App() {
                 </span>
                 {isTutorialWolfDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluido
+                    <Check aria-hidden="true" /> Concluído
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Comecar
+                    <Play aria-hidden="true" /> Começar
                   </span>
                 )}
               </button>
@@ -3750,7 +3755,7 @@ export function App() {
             )}
             {activeSpecies && activeActionId && (
               <div className="current-action-card">
-                <span>Acao atual</span>
+                <span>Ação atual</span>
                 <strong>{activeActionId}</strong>
                 <p>{getActionDescription(activeSpecies.speciesId, activeActionId)}</p>
                 {activeSpecies.speciesId === "coati" && hasPendingCoatiPairBonus && canControlActivePlayer && (
@@ -3761,7 +3766,7 @@ export function App() {
                     <small>
                       {room.game.activePlayedForestCardId
                         ? "Escolha uma carta com fruta para adicionar 1 quati, ou conclua sem adicionar."
-                        : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
+                        : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
                     </small>
                     {room.game.activePlayedForestCardId && (
                       <button className="secondary-button" onClick={handleCompleteAction}>
@@ -3779,7 +3784,7 @@ export function App() {
                   canControlActivePlayer &&
                   requiredCoatiRemovalCount === 0 && (
                   <button className="secondary-button" onClick={handleCompleteAction}>
-                    Concluir acao {activeActionId}
+                    Concluir ação {activeActionId}
                   </button>
                 )}
                 {activeSpecies.speciesId === "coati" &&
@@ -3807,10 +3812,10 @@ export function App() {
                     <>
                       <small>
                         {canSkipJaguarMove
-                          ? "Nao ha destino valido para mover nesta acao."
+                          ? "Não há destino válido para mover nesta ação."
                           : selectedJaguarDestination
-                            ? "Escolha qual meeple a Onca deve remover no destino selecionado."
-                            : "Selecione a Onca e clique em um destino destacado. Com 1 meeple no destino, a remocao e automatica; com mais de 1, escolha qual remover depois."}
+                            ? "Escolha qual meeple a Onça deve remover no destino selecionado."
+                            : "Selecione a Onça e clique em um destino destacado. Com 1 meeple no destino, a remoção é automática; com mais de 1, escolha qual remover depois."}
                       </small>
                       {canSkipJaguarMove && (
                         <button className="secondary-button" onClick={handleCompleteAction}>
@@ -3830,9 +3835,9 @@ export function App() {
                     <>
                       <small>
                         {!room.game.activePlayedForestCardId
-                          ? "Selecione uma carta na mao e coloque em um espaco vazio destacado."
+                          ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
                           : capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                            ? "Sem macacos na reserva. Conclua a acao para seguir."
+                            ? "Sem macacos na reserva. Conclua a ação para seguir."
                             : `Clique na carta jogada destacada para adicionar 1 macaco, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
                       </small>
                       {canSkipAdd && (
@@ -3851,8 +3856,8 @@ export function App() {
                     <>
                       <small>
                         {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Sem macaco na reserva ou sem local valido. Conclua a acao para pontuar."
-                          : `Clique em um local destacado que ja tenha outro Macaco-prego, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
+                          ? "Sem macaco na reserva ou sem local válido. Conclua a ação para pontuar."
+                          : `Clique em um local destacado que já tenha outro Macaco-prego, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
                       </small>
                       <button className="secondary-button" onClick={handleCompleteAction}>
                         Concluir sem adicionar
@@ -3871,7 +3876,7 @@ export function App() {
                     <>
                       <small>
                         {!room.game.activePlayedForestCardId
-                          ? "Selecione uma carta na mao e coloque em um espaco vazio destacado."
+                          ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
                           : noReserve
                             ? "Sem araras na reserva. Conclua a ação para seguir."
                             : noEggTargets
@@ -3907,7 +3912,7 @@ export function App() {
                     <small>
                       {room.game.activePlayedForestCardId
                         ? "Clique em uma carta com pinha destacada para adicionar 1 tatu, ou conclua sem adicionar."
-                        : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
+                        : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
                     </small>
                     {room.game.activePlayedForestCardId && (
                       <button className="secondary-button" onClick={handleCompleteAction}>
@@ -3921,14 +3926,14 @@ export function App() {
                 )}
                 {activeSpecies.speciesId === "armadillo" && activeActionId === "C" && canControlActivePlayer && (
                   <>
-                    <small>Selecione um Tatu-bola visivel proprio para esconder.</small>
+                    <small>Selecione um Tatu-bola visível próprio para esconder.</small>
                     {selectedPieceId ? (
                       <button className="secondary-button" onClick={handleHideArmadillo}>
                         Esconder Tatu-bola
                       </button>
                     ) : getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length === 0 ? (
                       <button className="secondary-button" onClick={handleCompleteAction}>
-                        Concluir acao {activeActionId}
+                        Concluir ação {activeActionId}
                       </button>
                     ) : null}
                   </>
@@ -3940,21 +3945,21 @@ export function App() {
                   <small>
                     {room.game.activePlayedForestCardId
                       ? `Mova os lobos destacados. Pendentes: ${room.game.pendingWolfMoves?.pieceIds.length ?? 0}.`
-                      : "Selecione uma carta na mao e coloque em um espaco vazio destacado."}
+                      : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
                   </small>
                 )}
                 {activeSpecies.speciesId === "maned_wolf" && activeActionId === "B" && canControlActivePlayer && (
                   <div className="wolf-base-panel">
                     <div className="wolf-base-summary">
-                      <span>Alvos validos</span>
+                      <span>Alvos válidos</span>
                       <strong>{wolfRemovableBasePieceIds.length}</strong>
                     </div>
                     <small>
                       {wolfRemovableBasePieceIds.length > 0
                         ? selectedWolfTargetPieceId
-                          ? "Peca de base selecionada. Remova ou cancele a acao."
-                          : "Clique em uma peca de base que esteja no mesmo local de um lobo."
-                        : "Nenhuma peca de base divide local com lobo."}
+                          ? "Peça de base selecionada. Remova ou cancele a ação."
+                          : "Clique em uma peça de base que esteja no mesmo local de um lobo."
+                        : "Nenhuma peça de base divide local com lobo."}
                     </small>
                     <div className="wolf-base-actions">
                       <button
@@ -3963,7 +3968,7 @@ export function App() {
                         onClick={handleRemoveWolfBasePiece}
                       >
                         <X aria-hidden="true" />
-                        Remover peca
+                        Remover peça
                       </button>
                       <button className="wolf-skip-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                         <Check aria-hidden="true" />
@@ -3978,7 +3983,7 @@ export function App() {
                 {activeSpecies.speciesId === "maned_wolf" && activeActionId === "D" && canControlActivePlayer && (
                   <>
                     <small>
-                      Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais validos: {wolfMeatTargets.length}.
+                      Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais válidos: {wolfMeatTargets.length}.
                     </small>
                     <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                       Concluir sem adicionar
@@ -4300,7 +4305,9 @@ export function App() {
                 >
                   {room?.game && species ? (
                     <span
-                      className="turn-order-badge movement-guide"
+                      className={`turn-order-badge movement-guide ${
+                        highlightedMovementGuideSpecies === player.speciesId ? "is-tutorial-highlight" : ""
+                      }`}
                       aria-label={`Movimentos de ${species.displayName}`}
                       title={`Movimentos de ${species.displayName}`}
                       onMouseEnter={(event) => showMovementPreview(species.speciesId, event.currentTarget.getBoundingClientRect())}
@@ -4313,7 +4320,7 @@ export function App() {
                   ) : null}
                   {species && <img className="player-portrait" src={encodeURI(species.portraitAsset)} alt="" />}
                   <div>
-                    <strong>{species?.displayName ?? "Sem especie"}</strong>
+                    <strong>{species?.displayName ?? "Sem espécie"}</strong>
                     {!player.isBot && player.name && player.name !== species?.displayName && (
                       <span>{player.name}</span>
                     )}
