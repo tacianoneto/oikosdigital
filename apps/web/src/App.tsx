@@ -252,7 +252,8 @@ const ARMADILLO_TUTORIAL_COATI_ID = "local_armadillo_coati";
 const ARMADILLO_TUTORIAL_CAPUCHIN_ID = "local_armadillo_capuchin";
 const ARMADILLO_TUTORIAL_JAGUAR_ID = "local_armadillo_jaguar";
 const ARMADILLO_TUTORIAL_CARD = "bosque_4_copy";
-const ARMADILLO_TUTORIAL_MOVE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
+const ARMADILLO_TUTORIAL_MOVE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_1`;
+const ARMADILLO_TUTORIAL_HIDE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
 const ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE = `${ARMADILLO_TUTORIAL_JAGUAR_ID}_piece_1`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
@@ -461,35 +462,35 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
     gate: "move",
     autoAdvance: true,
     markedPieceId: ARMADILLO_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: -1, y: -1 },
+    markedMoveTarget: { x: 0, y: -1 },
     highlightMovementGuideSpecies: "armadillo",
     completeWhenActionIndex: 2
   },
   {
     title: "Ação C: esconder",
-    body: "Na ação C, o Tatu-bola pode se esconder. Um tatu escondido fica protegido da Onça e continua ocupando o local. Selecione o tatu destacado e clique em Esconder Tatu-bola.",
+    body: "Na ação C, o Tatu-bola pode se esconder. Escolha o tatu sozinho destacado, perto da Onça, e clique em Esconder Tatu-bola. Ele continua ocupando o local, mas fica protegido.",
     gate: "score",
     autoAdvance: true,
-    markedPieceId: ARMADILLO_TUTORIAL_MOVE_ID,
+    markedPieceId: ARMADILLO_TUTORIAL_HIDE_ID,
     completeWhenActionIndex: 3
   },
   {
-    title: "Onça encontra o tatu escondido",
-    body: "A Onça entrou no mesmo local do Tatu-bola escondido, mas não consegue removê-lo. Enquanto estiver escondido, ele continua protegido. Se esse tatu se mover em uma ação futura, ele deixa de ficar escondido.",
-    gate: "none",
-    autoAdvance: false,
-    jaguarProbeTarget: { x: -1, y: -1 }
-  },
-  {
     title: "Ação D: pontuar compartilhamento",
-    body: "Na ação D, o Tatu-bola pontua por ter tatus em locais compartilhados com outras espécies. Aqui ele divide local com Quati, Macaco-prego e Onça, então marca 3 pontos automaticamente.",
+    body: "Na ação D, o Tatu-bola pontua por ter tatus em locais compartilhados com outras espécies. Aqui ele divide local com Quati e Macaco-prego, então marca 2 pontos automaticamente.",
     gate: "score",
     autoAdvance: true,
-    completeWhenScoreAtLeast: 3
+    completeWhenScoreAtLeast: 2
+  },
+  {
+    title: "Turno da Onça: ataque bloqueado",
+    body: "Agora é como se fosse o turno da Onça. Ela entrou no local do Tatu-bola escondido, mas não consegue removê-lo. Enquanto estiver escondido, ele continua protegido. Se esse tatu se mover em uma ação futura, ele deixa de ficar escondido.",
+    gate: "none",
+    autoAdvance: false,
+    jaguarProbeTarget: { x: -1, y: 0 }
   },
   {
     title: "Turno do Tatu-bola completo",
-    body: "Resumo: A joga carta e adiciona tatu em pinha; B move conforme o habitat da carta; C esconde um tatu; D pontua por compartilhar locais com outras espécies. Esse é o ciclo principal do Tatu-bola.",
+    body: "Resumo: A joga carta e adiciona tatu em pinha; B move conforme o habitat da carta; C esconde um tatu; D pontua por compartilhar locais com outras espécies. Depois, a Onça mostrou por que esconder protege.",
     gate: "none",
     autoAdvance: false
   }
@@ -729,11 +730,11 @@ function createArmadilloTutorialRoom(): PublicRoomState {
 
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 1, { x: 0, y: 0 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 0 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 1, { x: 0, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 1, { x: 0, y: 1 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 2, { x: 1, y: 0 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 1, { x: -1, y: -1 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 1, { x: 0, y: -1 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 2, { x: 1, y: -1 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_JAGUAR_ID, 1, { x: -2, y: -1 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_JAGUAR_ID, 1, { x: -2, y: 0 });
 
   game.status = "active";
   game.round = 2;
@@ -744,7 +745,7 @@ function createArmadilloTutorialRoom(): PublicRoomState {
   game.pendingMacawMovedPiece = null;
   game.pendingWolfMoves = null;
   game.setupActivePlayerId = null;
-  game.turnOrder = [ARMADILLO_TUTORIAL_PLAYER_ID];
+  game.turnOrder = [ARMADILLO_TUTORIAL_PLAYER_ID, ARMADILLO_TUTORIAL_JAGUAR_ID];
   game.log = [
     {
       id: "armadillo_tutorial_ready",
