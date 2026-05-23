@@ -3269,6 +3269,7 @@ export function App() {
                               onClick={() => rotateSelectedCard(-1)}
                             >
                               <RotateCcw aria-hidden="true" />
+                              <kbd>Q</kbd>
                             </button>
                             <span>{selectedCardRotation}°</span>
                             <button
@@ -3278,6 +3279,7 @@ export function App() {
                               onClick={() => rotateSelectedCard(1)}
                             >
                               <RotateCw aria-hidden="true" />
+                              <kbd>E</kbd>
                             </button>
                           </div>
                         )}

@@ -1759,6 +1759,7 @@ input:focus {
 }
 
 .card-rotate button {
+  position: relative;
   width: 34px;
   height: 34px;
   display: grid;
@@ -1770,6 +1771,28 @@ input:focus {
   color: var(--ink);
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
   transition: transform 90ms ease, background 120ms ease;
+}
+
+/* keyboard-shortcut badge on each rotate button */
+.card-rotate button kbd {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  display: grid;
+  place-items: center;
+  font-family: Outfit, sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--paper);
+  background: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--amber) 60%, transparent);
+  border-radius: 5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }
 
 .card-rotate button:hover {
