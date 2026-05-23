@@ -211,23 +211,12 @@ export class ForestPhaserScene extends Phaser.Scene {
     }
   }
 
-  private drawSurface(vm: ForestViewModel): void {
-    // No panel or framing rectangle behind the cards. Each card carries its own
-    // contact shadow (buildCard), so the forest reads as cards resting directly
-    // on the table rather than a floating board with an outline.
-
-    // Empty slots = marks engraved into the table, not digital squares.
-    for (const s of [...vm.cards, ...vm.expansionTargets]) {
-      const w = this.worldOf(s);
-      const slot = this.add.graphics();
-      // dark groove
-      slot.lineStyle(1.5, 0x1c0f08, 0.28);
-      slot.strokeRoundedRect(w.x - CARD / 2, w.y - CARD / 2, CARD, CARD, RADIUS);
-      // faint lit edge just inside, for a carved look
-      slot.lineStyle(1, 0xb98a4b, 0.06);
-      slot.strokeRoundedRect(w.x - CARD / 2 + 1.5, w.y - CARD / 2 + 1.5, CARD - 3, CARD - 3, RADIUS - 1);
-      this.gridLayer.add(slot);
-    }
+  private drawSurface(_vm: ForestViewModel): void {
+    // Nothing is drawn behind the cards: no panel, no framing rectangle, no
+    // engraved slot grooves. Each card carries only its own soft contact shadow
+    // (buildCard), so the forest reads as cards resting directly on the wood
+    // table. Empty expansion spots are shown by the gold dashed highlight in
+    // drawHighlights, not by a dark outline here.
   }
 
   private syncCards(vm: ForestViewModel): void {
