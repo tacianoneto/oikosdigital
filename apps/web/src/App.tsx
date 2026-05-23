@@ -126,12 +126,13 @@ import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
 
 // --- Tutorials --------------------------------------------------------------
-type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo";
+type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw";
 
 const TUTORIAL_INITIAL_DONE_KEY = "oikos-tutorial-initial";
 const TUTORIAL_JAGUAR_DONE_KEY = "oikos-tutorial-jaguar";
 const TUTORIAL_WOLF_DONE_KEY = "oikos-tutorial-wolf";
 const TUTORIAL_ARMADILLO_DONE_KEY = "oikos-tutorial-armadillo";
+const TUTORIAL_MACAW_DONE_KEY = "oikos-tutorial-macaw";
 
 // Each scripted step locks the board to a single taught interaction:
 //   none      -> read-only, advance with the coach button
@@ -255,6 +256,9 @@ const ARMADILLO_TUTORIAL_CARD = "bosque_4_copy";
 const ARMADILLO_TUTORIAL_MOVE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_1`;
 const ARMADILLO_TUTORIAL_HIDE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
 const ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE = `${ARMADILLO_TUTORIAL_JAGUAR_ID}_piece_1`;
+const MACAW_TUTORIAL_PLAYER_ID = "local_macaw_species";
+const MACAW_TUTORIAL_CARD = "campo_2_copy";
+const MACAW_TUTORIAL_MOVE_ID = `${MACAW_TUTORIAL_PLAYER_ID}_piece_1`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
@@ -496,10 +500,87 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+const MACAW_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "mac_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "mac_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+];
+
+const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Arara-azul: formar linhas",
+    body: "A Arara-azul busca alinhar suas peças. Ela joga cartas, adiciona em ovos, move pela carta jogada e pontua cada linha reta de 3 araras. Movimento: bosque = salto em curva, campo = adjacente, rio = salto reto.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Cenário preparado",
+    body: "Vamos treinar como se a partida já estivesse no segundo turno: três araras estão na floresta e outras estão na reserva. O objetivo é completar uma linha horizontal de 3.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação A: jogar carta",
+    body: "Na ação A, a Arara expande a floresta com uma carta. Jogue a carta de campo destacada no espaço à direita. O habitat da carta jogada define o movimento da ação B.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: MACAW_TUTORIAL_CARD,
+    markedSlot: { x: 2, y: 0 }
+  },
+  {
+    title: "Ação A: adicionar em ovo",
+    body: "Depois de jogar a carta, a Arara pode adicionar 1 peça da reserva em qualquer local com ovo. Clique na carta de ovo destacada. Essa adição não depende da carta jogada.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: 1, y: 0 },
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Ação B: mover pela carta jogada",
+    body: "A carta jogada foi de campo. Para a Arara, campo permite movimento adjacente. Mova a arara destacada para o espaço destacado; ao mover, ela coleta o recurso do destino.",
+    gate: "move",
+    autoAdvance: true,
+    markedPieceId: MACAW_TUTORIAL_MOVE_ID,
+    markedMoveTarget: { x: 0, y: -1 },
+    highlightMovementGuideSpecies: "macaw",
+    completeWhenActionIndex: 2
+  },
+  {
+    title: "Ação C: reforçar ao redor",
+    body: "Na ação C, você pode adicionar 1 arara da reserva ao redor da arara que acabou de mover, ou realocar outra arara para um desses espaços. A ação C não coleta recurso. Aqui vamos adicionar para completar a linha.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: 1, y: -1 },
+    completeWhenActionIndex: 3
+  },
+  {
+    title: "Ação D: pontuar linhas",
+    body: "Na ação D, a Arara marca 1 ponto por cada linha reta de 3 araras: horizontal, vertical ou diagonal. A linha destacada vale 1 ponto e será pontuada automaticamente.",
+    gate: "score",
+    autoAdvance: true,
+    completeWhenScoreAtLeast: 1
+  },
+  {
+    title: "Turno da Arara completo",
+    body: "Resumo: A joga carta e pode adicionar em ovo; B move conforme o habitat da carta e coleta recurso; C adiciona ou realoca ao redor da arara movida sem coletar; D pontua linhas retas de 3.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
 function getTutorialDoneKey(tutorialId: TutorialId): string {
   if (tutorialId === "jaguar") return TUTORIAL_JAGUAR_DONE_KEY;
   if (tutorialId === "wolf") return TUTORIAL_WOLF_DONE_KEY;
   if (tutorialId === "armadillo") return TUTORIAL_ARMADILLO_DONE_KEY;
+  if (tutorialId === "macaw") return TUTORIAL_MACAW_DONE_KEY;
   return TUTORIAL_INITIAL_DONE_KEY;
 }
 
@@ -534,6 +615,10 @@ function isTutorialWolfDone(): boolean {
 
 function isTutorialArmadilloDone(): boolean {
   return isTutorialDone("armadillo");
+}
+
+function isTutorialMacawDone(): boolean {
+  return isTutorialDone("macaw");
 }
 
 function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
@@ -796,6 +881,58 @@ function moveArmadilloTutorialJaguarProbe(game: GameState, target: GridPosition)
   };
 }
 
+function createMacawTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: MACAW_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Arara",
+      speciesId: "macaw",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, MACAW_TUTORIAL_FOREST);
+
+  const player = game.players.find((candidate) => candidate.playerId === MACAW_TUTORIAL_PLAYER_ID);
+  if (player) {
+    player.score = 0;
+    player.turnsTaken = 1;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+    player.hand = [MACAW_TUTORIAL_CARD];
+  }
+
+  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 1, { x: 0, y: 0 });
+  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 2, { x: -1, y: -1 });
+  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 3, { x: -2, y: 0 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = MACAW_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.turnOrder = [MACAW_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "macaw_tutorial_ready",
+      message: "Tutorial da Arara-azul preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    game,
+    warnings: game.contentWarnings
+  };
+}
+
 export function App() {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -1039,8 +1176,10 @@ export function App() {
       ? JAGUAR_TUTORIAL_STEPS
       : tutorialId === "wolf"
         ? WOLF_TUTORIAL_STEPS
-        : tutorialId === "armadillo"
-          ? ARMADILLO_TUTORIAL_STEPS
+      : tutorialId === "armadillo"
+        ? ARMADILLO_TUTORIAL_STEPS
+        : tutorialId === "macaw"
+          ? MACAW_TUTORIAL_STEPS
           : INITIAL_TUTORIAL_STEPS;
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
@@ -1123,7 +1262,9 @@ export function App() {
           ? WOLF_TUTORIAL_PLAYER_ID
           : tutorialId === "armadillo"
             ? ARMADILLO_TUTORIAL_PLAYER_ID
-            : game.activePlayerId;
+            : tutorialId === "macaw"
+              ? MACAW_TUTORIAL_PLAYER_ID
+              : game.activePlayerId;
 
     if (def.gate === "setup") {
       if (game.status === "active") setTutorialStep((step) => (step === null ? step : step + 1));
@@ -1520,13 +1661,16 @@ export function App() {
       .map((piece) => piece.pieceId);
   }, [activeSpecies?.speciesId, movementTargets.length, room?.game, selectedJaguarDestination, selectedPieceId]);
   const boardSelectablePieceIds = useMemo(() => {
+    if (tutorialActive && tutorialGate === "addPiece" && !tutorialDef?.markedPieceId) {
+      return [];
+    }
     const ids = [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
     if (!tutorialActive || !tutorialDef?.markedPieceId) {
       return ids;
     }
 
     return ids.filter((pieceId) => pieceId === tutorialDef.markedPieceId);
-  }, [jaguarTargetPieceIds, selectablePieceIds, tutorialActive, tutorialDef?.markedPieceId]);
+  }, [jaguarTargetPieceIds, selectablePieceIds, tutorialActive, tutorialDef?.markedPieceId, tutorialGate]);
   const highlightedPieceIds = useMemo(
     () => [
       ...(tutorialActive && tutorialDef?.markedPieceId ? [tutorialDef.markedPieceId] : []),
@@ -2923,6 +3067,26 @@ export function App() {
     setTutorialId("armadillo");
   }
 
+  function startMacawTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createMacawTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("macaw");
+  }
+
   function exitTutorial(completed: boolean) {
     if (completed && tutorialId) markTutorialDone(tutorialId);
     autoScoredRef.current = null;
@@ -3497,7 +3661,31 @@ export function App() {
                 )}
               </button>
 
-              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf" && species.speciesId !== "armadillo").map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialMacawDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.macaw } as CSSProperties}
+                onClick={startMacawTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.macaw.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.macaw.displayName}</strong>
+                  <small>Aprenda a jogar com esta espécie.</small>
+                </span>
+                {isTutorialMacawDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+
+              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf" && species.speciesId !== "armadillo" && species.speciesId !== "macaw").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
