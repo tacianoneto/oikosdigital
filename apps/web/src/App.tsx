@@ -1529,11 +1529,12 @@ export function App() {
   }, [jaguarTargetPieceIds, selectablePieceIds, tutorialActive, tutorialDef?.markedPieceId]);
   const highlightedPieceIds = useMemo(
     () => [
+      ...(tutorialActive && tutorialDef?.markedPieceId ? [tutorialDef.markedPieceId] : []),
       ...selectedRemovalPieceIds,
       ...(selectedJaguarTargetPieceId ? [selectedJaguarTargetPieceId] : []),
       ...(selectedWolfTargetPieceId ? [selectedWolfTargetPieceId] : [])
     ],
-    [selectedJaguarTargetPieceId, selectedRemovalPieceIds, selectedWolfTargetPieceId]
+    [selectedJaguarTargetPieceId, selectedRemovalPieceIds, selectedWolfTargetPieceId, tutorialActive, tutorialDef?.markedPieceId]
   );
   const coatiFruitTargets = useMemo(() => {
     if (!room?.game || hasPendingCoatiPairBonus || !room.game.activePlayerId || !canControlActivePlayer) {
@@ -2853,6 +2854,7 @@ export function App() {
     }
     lastOnlineRoomSnapshotRef.current = "";
     tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
     setRoom({
       roomId: localRoomId,
       status: "setup",
@@ -2870,6 +2872,7 @@ export function App() {
     setNotice(null);
     lastOnlineRoomSnapshotRef.current = "";
     tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
     setSelectedHandCardId(null);
     setSelectedCardRotation(0);
     setSelectedPieceId(null);
@@ -2886,6 +2889,7 @@ export function App() {
     setNotice(null);
     lastOnlineRoomSnapshotRef.current = "";
     tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
     setSelectedHandCardId(null);
     setSelectedCardRotation(0);
     setSelectedPieceId(null);
@@ -2904,6 +2908,7 @@ export function App() {
     setNotice(null);
     lastOnlineRoomSnapshotRef.current = "";
     tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
     setSelectedHandCardId(null);
     setSelectedCardRotation(0);
     setSelectedPieceId(null);
@@ -2920,6 +2925,7 @@ export function App() {
 
   function exitTutorial(completed: boolean) {
     if (completed && tutorialId) markTutorialDone(tutorialId);
+    autoScoredRef.current = null;
     setTutorialId(null);
     setTutorialStep(null);
     setBoardSpecies(null);
@@ -2937,6 +2943,7 @@ export function App() {
     }
     setTutorialId(null);
     setTutorialStep(null);
+    autoScoredRef.current = null;
     clearRoomState();
     setError(null);
     setNotice(isLocalRoom ? "Teste local encerrado." : "Voce saiu da mesa.");
