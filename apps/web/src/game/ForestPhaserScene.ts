@@ -212,17 +212,9 @@ export class ForestPhaserScene extends Phaser.Scene {
   }
 
   private drawSurface(vm: ForestViewModel): void {
-    const b = this.contentBounds(vm);
-    const pad = 46;
-    // Soft global shadow under the whole forest cluster — physical weight on the
-    // table. Layered translucent black offset downward fakes a diffuse drop shadow,
-    // no solid panel behind the cards.
-    const g = this.add.graphics();
-    g.fillStyle(0x000000, 0.14);
-    g.fillRoundedRect(b.x - pad + 6, b.y - pad + 16, b.width + pad * 2, b.height + pad * 2, 38);
-    g.fillStyle(0x000000, 0.1);
-    g.fillRoundedRect(b.x - pad + 2, b.y - pad + 8, b.width + pad * 2, b.height + pad * 2, 32);
-    this.surfaceLayer.add(g);
+    // No panel or framing rectangle behind the cards. Each card carries its own
+    // contact shadow (buildCard), so the forest reads as cards resting directly
+    // on the table rather than a floating board with an outline.
 
     // Empty slots = marks engraved into the table, not digital squares.
     for (const s of [...vm.cards, ...vm.expansionTargets]) {
