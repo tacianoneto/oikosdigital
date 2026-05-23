@@ -3156,7 +3156,10 @@ export function App() {
                           if (!canSelectHandCards || event.button !== 0) {
                             return;
                           }
-                          if (!handPlayableThisAction || !canPlaceSelectedForestCard) {
+                          // Allow grabbing any playable card directly: no need to
+                          // pre-select with a click. Selection happens on drag
+                          // activation below, which unlocks the valid slots.
+                          if (!handPlayableThisAction) {
                             return;
                           }
                           const target = event.currentTarget as HTMLDivElement;
