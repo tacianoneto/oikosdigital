@@ -1233,6 +1233,12 @@ function createCoatiTutorialRoom(): PublicRoomState {
   };
 }
 
+// Phones/small tablets: start with the side docks and hand collapsed so the
+// board owns the screen; the edge tabs reopen each panel on demand.
+function isSmallScreen(): boolean {
+  return typeof window !== "undefined" && window.innerWidth <= 820;
+}
+
 export function App() {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -1251,7 +1257,7 @@ export function App() {
   const [selectedRemovalPieceIds, setSelectedRemovalPieceIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [handCollapsed, setHandCollapsed] = useState(false);
+  const [handCollapsed, setHandCollapsed] = useState(isSmallScreen);
   const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
@@ -1269,8 +1275,8 @@ export function App() {
       height: `${9 + Math.random() * 8}px`
     }) as CSSProperties);
   }, []);
-  const [hudLeftCollapsed, setHudLeftCollapsed] = useState(false);
-  const [hudRightCollapsed, setHudRightCollapsed] = useState(false);
+  const [hudLeftCollapsed, setHudLeftCollapsed] = useState(isSmallScreen);
+  const [hudRightCollapsed, setHudRightCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<"idle" | "join" | "local" | "tutorials">("idle");
   const [tutorialId, setTutorialId] = useState<TutorialId | null>(null);

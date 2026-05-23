@@ -1069,6 +1069,8 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   private setupCameraControls(): void {
     const cam = this.cameras.main;
+    // Enable multi-touch (mouse + two fingers) for pinch-zoom on phones/tablets.
+    this.input.addPointer(2);
 
     this.input.on("wheel", (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
       this.userAdjusted = true;
@@ -1079,16 +1081,44 @@ export class ForestPhaserScene extends Phaser.Scene {
     let lx = 0;
     let ly = 0;
     let moved = false;
+    let pinchDist = 0;
+
+    const touchPointers = (): Phaser.Input.Pointer[] =>
+      [this.input.pointer1, this.input.pointer2].filter((p) => p && p.isDown);
+
     this.input.on("pointerdown", (p: Phaser.Input.Pointer) => {
+      const down = touchPointers();
+      if (down.length >= 2) {
+        // Second finger down: start a pinch, cancel any single-finger pan.
+        pinchDist = Phaser.Math.Distance.Between(down[0].x, down[0].y, down[1].x, down[1].y);
+        dragging = false;
+        return;
+      }
       dragging = true;
       moved = false;
       lx = p.x;
       ly = p.y;
     });
+
     this.input.on("pointerup", () => {
-      dragging = false;
+      const down = touchPointers();
+      if (down.length < 2) pinchDist = 0;
+      if (down.length === 0) dragging = false;
     });
+
     this.input.on("pointermove", (p: Phaser.Input.Pointer) => {
+      const down = touchPointers();
+      if (down.length >= 2) {
+        // Pinch: zoom by the ratio of finger distance between frames.
+        const dist = Phaser.Math.Distance.Between(down[0].x, down[0].y, down[1].x, down[1].y);
+        if (pinchDist > 0 && dist > 0) {
+          this.userAdjusted = true;
+          cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dist / pinchDist), 0.28, 2));
+        }
+        pinchDist = dist;
+        dragging = false;
+        return;
+      }
       if (!dragging || !p.isDown) return;
       const ddx = p.x - lx;
       const ddy = p.y - ly;

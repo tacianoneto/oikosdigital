@@ -49,6 +49,11 @@ body,
   margin: 0;
 }
 
+html,
+body {
+  overscroll-behavior: none; /* no pull-to-refresh / bounce fighting canvas gestures */
+}
+
 button,
 input {
   font: inherit;
@@ -1532,6 +1537,7 @@ input:focus {
 
 .forest-phaser-host canvas {
   display: block;
+  touch-action: none; /* let Phaser own pan/pinch; block browser gesture hijack */
 }
 
 .forest-status-chip {
@@ -2761,6 +2767,60 @@ input:focus {
 
   .species-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---- phones: board owns the screen, docks become edge drawers ---- */
+@media (max-width: 560px) {
+  .hud-species {
+    top: 10px;
+    left: 10px;
+    width: min(64vw, 260px);
+  }
+
+  .hud-action.hud-left {
+    top: auto;
+    bottom: 10px;
+    left: 10px;
+    width: min(88vw, 360px);
+    max-height: 56dvh;
+  }
+
+  .hud-action.hud-left.has-turn-recap {
+    bottom: 10px;
+    max-height: 56dvh;
+  }
+
+  .hud-dock.hud-right {
+    top: 10px;
+    right: 10px;
+    width: min(88vw, 360px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .hud-dock.hud-right .panel-block {
+    max-height: calc(100dvh - 20px);
+  }
+
+  /* fatter edge tabs = easier thumb targets */
+  .hud-collapse-tab {
+    width: 36px;
+    height: 76px;
+  }
+
+  .hud-collapse-tab svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .table-hand {
+    width: calc(100vw - 20px);
+    max-height: 46dvh;
+  }
+
+  .forest-recenter {
+    bottom: 10px;
+    right: 10px;
   }
 }
 
