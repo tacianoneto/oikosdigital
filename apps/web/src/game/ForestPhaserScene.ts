@@ -2,11 +2,18 @@ import Phaser from "phaser";
 import { forestCardsById, getForestCardDefinition, resourceAssets, speciesDefinitions } from "@oikos/content";
 import type { ForestCardState, GridPosition, PieceState, Resource } from "@oikos/shared";
 
+export interface RotateFitTarget {
+  position: GridPosition;
+  rotation: number;
+}
+
 export interface ForestViewModel {
   cards: ForestCardState[];
   pieces: PieceState[];
   canPlaceSetupPiece: boolean;
   expansionTargets: GridPosition[];
+  rotateFitTargets: RotateFitTarget[];
+  rotateFitCardId: string | null;
   movementTargets: GridPosition[];
   addPieceTargets: GridPosition[];
   bonusTargets: GridPosition[];
@@ -33,6 +40,7 @@ export interface ScoringLineHighlight {
 export interface ForestSceneCallbacks {
   onCardClick?: (position: GridPosition) => void;
   onExpansionTargetClick?: (position: GridPosition) => void;
+  onRotateFitTargetClick?: (position: GridPosition, rotation: number) => void;
   onAddPieceTargetClick?: (position: GridPosition) => void;
   onBonusTargetClick?: (position: GridPosition) => void;
   onPieceClick?: (pieceId: string) => void;
@@ -202,6 +210,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     this.drawSurface(vm);
     this.syncCards(vm);
     this.drawHighlights(vm);
+    this.drawRotateFitGhosts(vm);
     this.syncPieces(vm);
 
     const slots = vm.cards.length + vm.expansionTargets.length;
@@ -521,6 +530,73 @@ export class ForestPhaserScene extends Phaser.Scene {
           })
         );
       }
+    }
+  }
+
+  // Ghost previews of a river card at positions where it would only fit after
+  // rotating. Each ghost is drawn at the rotation that connects, tinted blue,
+  // with a rotate badge, so the player sees they can snap it there by rotating.
+  private drawRotateFitGhosts(vm: ForestViewModel): void {
+    const cardId = vm.rotateFitCardId;
+    if (!cardId || vm.rotateFitTargets.length === 0) return;
+    const textureKey = `card:${cardId}`;
+    if (!this.textures.exists(textureKey)) return;
+
+    const RIVER = 0x3a7fc4;
+
+    for (const target of vm.rotateFitTargets) {
+      const w = this.worldOf(target.position);
+      const slot = this.add.container(w.x, w.y);
+
+      const img = this.add
+        .image(0, 0, textureKey)
+        .setDisplaySize(CARD, CARD)
+        .setAngle(target.rotation)
+        .setAlpha(0.38);
+
+      const frame = this.add.graphics();
+      frame.fillStyle(RIVER, 0.1);
+      frame.fillRoundedRect(-CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
+      frame.lineStyle(3, RIVER, 0.9);
+      this.dashedRoundRect(frame, -CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
+
+      // Rotate badge: circular chip with the rotation degrees needed.
+      const badge = this.add.graphics();
+      badge.fillStyle(RIVER, 0.95);
+      badge.fillCircle(0, 0, 20);
+      badge.lineStyle(2, 0xffffff, 0.85);
+      badge.strokeCircle(0, 0, 20);
+      const badgeIcon = this.add
+        .text(0, -2, "↻", {
+          fontFamily: "Outfit, sans-serif",
+          fontSize: "22px",
+          fontStyle: "700",
+          color: "#ffffff"
+        })
+        .setOrigin(0.5);
+      const badgeText = this.add
+        .text(0, 30, `${target.rotation}°`, {
+          fontFamily: "Outfit, sans-serif",
+          fontSize: "13px",
+          fontStyle: "800",
+          color: "#dbeeff"
+        })
+        .setOrigin(0.5);
+      const badgeGroup = this.add.container(0, -4, [badge, badgeIcon, badgeText]);
+
+      const hit = this.add.rectangle(0, 0, CARD, CARD, 0xffffff, 0).setInteractive({ useHandCursor: true });
+      hit.on("pointerdown", (_p: unknown, _x: unknown, _y: unknown, e: Phaser.Types.Input.EventData) => {
+        e?.stopPropagation?.();
+        this.cb.onRotateFitTargetClick?.({ x: target.position.x, y: target.position.y }, target.rotation);
+      });
+      hit.on("pointerover", () => this.tweens.add({ targets: slot, scale: 1.03, duration: 120 }));
+      hit.on("pointerout", () => this.tweens.add({ targets: slot, scale: 1, duration: 120 }));
+
+      slot.add([img, frame, badgeGroup, hit]);
+      this.highlightLayer.add(slot);
+      this.pulses.push(
+        this.tweens.add({ targets: img, alpha: { from: 0.24, to: 0.46 }, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
+      );
     }
   }
 
@@ -961,6 +1037,7 @@ function viewSignature(vm: ForestViewModel): string {
     pieces,
     vm.canPlaceSetupPiece ? 1 : 0,
     positions(vm.expansionTargets),
+    `${vm.rotateFitCardId ?? ""}#${vm.rotateFitTargets.map((t) => `${t.position.x},${t.position.y}:${t.rotation}`).join("|")}`,
     positions(vm.movementTargets),
     positions(vm.addPieceTargets),
     positions(vm.bonusTargets),

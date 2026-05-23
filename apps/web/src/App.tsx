@@ -158,7 +158,7 @@ export function App() {
     size: number;
     x: number;
     y: number;
-    target: { x: number; y: number } | null;
+    target: { x: number; y: number; rotation: 0 | 90 | 180 | 270 } | null;
   } | null>(null);
   const dragJustHandledRef = useRef(false);
   const pendingDragRef = useRef<
@@ -171,9 +171,8 @@ export function App() {
       }
     | null
   >(null);
-  // Latest valid expansion slots + last pointer position, read by the live drag
-  // handlers so rotating mid-drag recomputes targets without a stale closure.
-  const expansionTargetsRef = useRef<{ x: number; y: number }[]>([]);
+  // Last pointer position during a drag, read by the live drag handlers so
+  // rotating mid-drag recomputes targets without a stale closure.
   const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   const [turnRecap, setTurnRecap] = useState<TurnRecapState>({ history: [], index: -1, visible: false });
   const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
@@ -430,16 +429,42 @@ export function App() {
         : [],
     [canPlaceSelectedForestCard, room?.game, selectedCardRotation, selectedHandCardId]
   );
-  // Keep a ref of the current valid slots so async drag handlers always see the
+  // River cards that only fit after rotating: positions invalid at the current
+  // rotation but valid at another, plus the rotation that connects there.
+  const rotateFitTargets = useMemo(() => {
+    if (!canPlaceSelectedForestCard || !room?.game || !selectedHandCardId) return [];
+    const game = room.game;
+    const currentKeys = new Set(expansionTargets.map((p) => `${p.x}:${p.y}`));
+    const seen = new Set<string>();
+    const result: { position: { x: number; y: number }; rotation: 0 | 90 | 180 | 270 }[] = [];
+    for (const rotation of [0, 90, 180, 270] as const) {
+      if (rotation === selectedCardRotation) continue;
+      for (const p of getAvailableForestExpansionPositionsForCard(game, selectedHandCardId, rotation)) {
+        const k = `${p.x}:${p.y}`;
+        if (currentKeys.has(k) || seen.has(k)) continue;
+        seen.add(k);
+        result.push({ position: { x: p.x, y: p.y }, rotation });
+      }
+    }
+    return result;
+  }, [canPlaceSelectedForestCard, room?.game, selectedHandCardId, selectedCardRotation, expansionTargets]);
+
+  // Keep a ref of the current drop targets so async drag handlers always see the
   // set for the latest rotation (the pointermove closure is captured once).
-  expansionTargetsRef.current = expansionTargets;
+  // Each target carries the rotation to apply when dropped there.
+  type DropTarget = { x: number; y: number; rotation: 0 | 90 | 180 | 270 };
+  const dropTargetsRef = useRef<DropTarget[]>([]);
+  dropTargetsRef.current = [
+    ...expansionTargets.map((p) => ({ x: p.x, y: p.y, rotation: selectedCardRotation })),
+    ...rotateFitTargets.map((t) => ({ x: t.position.x, y: t.position.y, rotation: t.rotation }))
+  ];
 
   // Nearest valid slot to a screen point, or null if none within snap range.
-  const computeNearestTarget = useCallback((x: number, y: number) => {
-    const targets = expansionTargetsRef.current;
+  const computeNearestTarget = useCallback((x: number, y: number): DropTarget | null => {
+    const targets = dropTargetsRef.current;
     const canvas = forestCanvasRef.current;
     if (!canvas || targets.length === 0) return null;
-    let nearest: { x: number; y: number } | null = null;
+    let nearest: DropTarget | null = null;
     let nearestDist = 110 * 110;
     for (const t of targets) {
       const center = canvas.getCardCenter(t);
@@ -453,6 +478,7 @@ export function App() {
       }
     }
     return nearest;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Rotating mid-drag (without moving the pointer) must re-magnetize: the valid
@@ -1124,13 +1150,11 @@ export function App() {
     [canPlaceSetupPiece, isLocalRoom, room, socket]
   );
 
-  const handleExpansionTargetClick = useCallback(
-    (position: { x: number; y: number }) => {
+  const placeCard = useCallback(
+    (position: { x: number; y: number }, rotation: 0 | 90 | 180 | 270) => {
       if (!room?.game || !selectedHandCardId || !canPlaceSelectedForestCard || !room.game.activePlayerId) {
         return;
       }
-
-      const placementDelay = 0;
 
       if (isLocalRoom) {
         const game = room.game;
@@ -1139,31 +1163,23 @@ export function App() {
           return;
         }
         const cardId = selectedHandCardId;
-        const rotation = selectedCardRotation;
-        const apply = () => {
-          const nextGame = placeForestCard(game, activePlayerId, cardId, position, rotation);
-          setRoom((current) => current ? {
-            ...current,
-            status: "active",
-            game: nextGame,
-            warnings: nextGame.contentWarnings
-          } : current);
-          setSelectedHandCardId(null);
-          setSelectedCardRotation(0);
-          setSelectedPieceId(null);
-          setSelectedRemovalPieceIds([]);
-          setNotice("Carta colocada na floresta.");
-        };
-        if (placementDelay > 0) {
-          window.setTimeout(apply, placementDelay);
-        } else {
-          apply();
-        }
+        const nextGame = placeForestCard(game, activePlayerId, cardId, position, rotation);
+        setRoom((current) => current ? {
+          ...current,
+          status: "active",
+          game: nextGame,
+          warnings: nextGame.contentWarnings
+        } : current);
+        setSelectedHandCardId(null);
+        setSelectedCardRotation(0);
+        setSelectedPieceId(null);
+        setSelectedRemovalPieceIds([]);
+        setNotice("Carta colocada na floresta.");
         return;
       }
 
       void run(() =>
-        roomApi.placeForestCard(requireSocket(), room.roomId, selectedHandCardId, position.x, position.y, selectedCardRotation)
+        roomApi.placeForestCard(requireSocket(), room.roomId, selectedHandCardId, position.x, position.y, rotation)
       ).then(() => {
         setSelectedHandCardId(null);
         setSelectedCardRotation(0);
@@ -1171,7 +1187,20 @@ export function App() {
         setSelectedRemovalPieceIds([]);
       });
     },
-    [canPlaceSelectedForestCard, isLocalRoom, room, selectedCardRotation, selectedHandCardId, socket]
+    [canPlaceSelectedForestCard, isLocalRoom, room, selectedHandCardId, socket]
+  );
+
+  const handleExpansionTargetClick = useCallback(
+    (position: { x: number; y: number }) => placeCard(position, selectedCardRotation),
+    [placeCard, selectedCardRotation]
+  );
+
+  // Clicking/dropping on a rotate-to-fit ghost auto-rotates the card to the
+  // orientation that connects, then places it.
+  const handleRotateFitTargetClick = useCallback(
+    (position: { x: number; y: number }, rotation: number) =>
+      placeCard(position, (rotation % 360) as 0 | 90 | 180 | 270),
+    [placeCard]
   );
 
   const executeSelectedPieceMove = useCallback(
@@ -3066,6 +3095,8 @@ export function App() {
             pieces={pieces}
             canPlaceSetupPiece={canPlaceSetupPiece}
             expansionTargets={expansionTargets}
+            rotateFitTargets={rotateFitTargets}
+            rotateFitCardId={canPlaceSelectedForestCard ? selectedHandCardId : null}
             movementTargets={movementTargets}
             addPieceTargets={addPieceTargets}
             addPieceLabel={
@@ -3100,6 +3131,7 @@ export function App() {
             selectablePieceIds={boardSelectablePieceIds}
             onCardClick={handleCardClick}
             onExpansionTargetClick={handleExpansionTargetClick}
+            onRotateFitTargetClick={handleRotateFitTargetClick}
             onAddPieceTargetClick={handleAddPieceTargetClick}
             onBonusTargetClick={handleCoatiPairBonusTargetClick}
             onPieceClick={handlePieceClick}
@@ -3210,7 +3242,10 @@ export function App() {
                             dragJustHandledRef.current = true;
                             setCardDrag((current) => {
                               if (current?.target) {
-                                handleExpansionTargetClick(current.target);
+                                placeCard(
+                                  { x: current.target.x, y: current.target.y },
+                                  current.target.rotation
+                                );
                               }
                               return null;
                             });
