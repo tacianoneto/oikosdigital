@@ -360,7 +360,7 @@ const WOLF_TUTORIAL_FOREST: ForestCardState[] = [
 const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Lobo-guará",
-    body: "Vamos aprender a jogar de Lobo-guará! Subpredador que age em matilha: expande a floresta, remove peças de base e gasta recursos para pontuar. Dica: junte lobos no mesmo local para liberar mais ações.",
+    body: "Vamos aprender a jogar de Lobo-guará! Subpredador que age em matilha: expande a floresta, remove peças de base sob seus lobos e gasta recursos diferentes para pontuar. Dica: cace espécies de base e acumule recursos variados — quanto mais lobos na floresta, mais recursos você pode gastar por pontos.",
     gate: "none",
     autoAdvance: false
   },
@@ -676,7 +676,7 @@ const COATI_TUTORIAL_FOREST: ForestCardState[] = [
 const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Quati",
-    body: "Vamos aprender a jogar de Quati! Sempre que ele forma um par exato de 2 quatis, ganha 1 quati adjacente e 1 ponto de graça. Dica: encadeie pares para fazer combos de pontos.",
+    body: "Vamos aprender a jogar de Quati! Ao formar um par exato de 2 quatis, ele adiciona 1 quati da reserva num local adjacente e marca 1 ponto. Importante: o ponto só conta se ele conseguir adicionar esse quati — sem reserva ou sem espaço adjacente, o par não pontua. Dica: mantenha quatis na reserva e espaço livre ao lado dos pares.",
     gate: "none",
     autoAdvance: false
   },
@@ -1629,6 +1629,13 @@ export function App() {
     if (tutorialStep === null) {
       return;
     }
+    // Reset any board selection so a read-only step never inherits a clickable
+    // piece/target from the previous step.
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedRemovalPieceIds([]);
     const def = tutorialSteps[tutorialStep];
     if (def?.gate === "placeCard" && def.requiredCardId) {
       setSelectedHandCardId(def.requiredCardId);
@@ -1951,15 +1958,21 @@ export function App() {
       .map((piece) => piece.pieceId);
   }, [activeSpecies?.speciesId, movementTargets.length, room?.game, selectedJaguarDestination, selectedPieceId]);
   const boardSelectablePieceIds = useMemo(() => {
-    if (tutorialActive && tutorialGate === "addPiece" && !tutorialDef?.markedPieceId) {
-      return [];
-    }
     const ids = [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
-    if (!tutorialActive || !tutorialDef?.markedPieceId) {
+    if (!tutorialActive) {
       return ids;
     }
-
-    return ids.filter((pieceId) => pieceId === tutorialDef.markedPieceId);
+    // Lock the board during a tutorial: only the exact piece the step asks for is
+    // clickable. A marked piece restricts to it; an unmarked move step (e.g. the
+    // Onça's single meeple) keeps the engine's selectable set; every other gate
+    // (none/placeCard/score/addPiece/resolvePair) locks selection entirely.
+    if (tutorialDef?.markedPieceId) {
+      return ids.filter((pieceId) => pieceId === tutorialDef.markedPieceId);
+    }
+    if (tutorialGate === "move") {
+      return ids;
+    }
+    return [];
   }, [jaguarTargetPieceIds, selectablePieceIds, tutorialActive, tutorialDef?.markedPieceId, tutorialGate]);
   const highlightedPieceIds = useMemo(
     () => [
