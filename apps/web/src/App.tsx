@@ -266,7 +266,7 @@ const MACAW_TUTORIAL_CARD = "campo_2_copy";
 const MACAW_TUTORIAL_MOVE_ID = `${MACAW_TUTORIAL_PLAYER_ID}_piece_1`;
 const CAPUCHIN_TUTORIAL_PLAYER_ID = "local_capuchin_species";
 const CAPUCHIN_TUTORIAL_CARD = "bosque_4_copy";
-const CAPUCHIN_TUTORIAL_MOVE_ID = `${CAPUCHIN_TUTORIAL_PLAYER_ID}_piece_2`;
+const CAPUCHIN_TUTORIAL_MOVE_ID = `${CAPUCHIN_TUTORIAL_PLAYER_ID}_piece_3`;
 const COATI_TUTORIAL_PLAYER_ID = "local_coati_species";
 const COATI_TUTORIAL_CARD = "campo_2_copy_2";
 const COATI_TUTORIAL_MOVE_ID = `${COATI_TUTORIAL_PLAYER_ID}_piece_2`;
@@ -587,18 +587,20 @@ const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+// 3x3 com 2 rios (margens viradas para a borda do grid), bosques e campos.
+// Macacos pre-posicionados em 2 rios + 2 bosques + 1 campo; a carta jogada
+// entra em (2,0). A acao B salta um macaco de bosque para o campo em (1,0),
+// fechando duplas em rio, bosque e campo = 3 pontos.
 const CAPUCHIN_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "cap_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+  { instanceId: "cap_tut_0", definitionId: "rio_4", x: -1, y: -1, rotation: 0, isInitial: true }, // boca norte -> borda
+  { instanceId: "cap_tut_1", definitionId: "bosque_2", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_2", definitionId: "campo_1", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_3", definitionId: "bosque_3", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_4", definitionId: "bosque_1", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_5", definitionId: "campo_2", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_6", definitionId: "rio_7", x: -1, y: 1, rotation: 180, isInitial: true }, // boca sul -> borda
+  { instanceId: "cap_tut_7", definitionId: "campo_3", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "cap_tut_8", definitionId: "bosque_4", x: 1, y: 1, rotation: 0, isInitial: true }
 ];
 
 const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
@@ -609,8 +611,14 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
     autoAdvance: false
   },
   {
+    title: "Como pontua o Macaco-prego",
+    body: "Cada TIPO de habitat com macacos em 2 ou mais cartas diferentes vale 1 ponto. 2 macacos em 2 rios = 1 ponto; 2 em 2 bosques = mais 1 ponto; 2 em 2 campos = mais 1 ponto. Não importa ter 3 no mesmo habitat: o que conta é cobrir habitats diferentes com pares.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
     title: "Cenário preparado",
-    body: "Vamos treinar como se a partida já estivesse no segundo turno: um macaco está num bosque à direita e outro num campo no centro. O objetivo é juntar macacos em bosques diferentes para pontuar.",
+    body: "Partida num turno avançado: você já tem 2 macacos em 2 rios diferentes, 2 em 2 bosques diferentes e 1 em campo. Faltam só 2 movimentos para fechar pares em rio, bosque E campo e marcar 3 pontos.",
     gate: "none",
     autoAdvance: false
   },
@@ -624,40 +632,40 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação A: adicionar na carta jogada",
-    body: "Depois de jogar a carta, o Macaco-prego adiciona 1 peça da reserva na própria carta jogada. Clique na carta destacada para adicionar o macaco. Diferente da Arara, a adição é sempre na carta que você acabou de jogar.",
+    body: "Depois de jogar a carta, o Macaco-prego adiciona 1 peça da reserva na própria carta jogada. Clique na carta de bosque destacada. Diferente da Arara, a adição é sempre na carta que você acabou de jogar.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: 2, y: 0 },
     completeWhenActionIndex: 1
   },
   {
-    title: "Ação B: mover pela carta jogada",
-    body: "A carta jogada foi de bosque. Para o Macaco-prego, bosque permite salto reto: 2 espaços em linha reta. Mova o macaco destacado para o espaço destacado; ao mover, ele coleta o recurso do destino.",
+    title: "Ação B: mover de bosque para campo",
+    body: "A carta jogada foi de bosque: o Macaco-prego salta reto (2 espaços em linha). Mova o macaco de bosque destacado para a carta de campo destacada. Assim você passa a ter 2 macacos em 2 campos diferentes, sem perder os 2 bosques.",
     gate: "move",
     autoAdvance: true,
     markedPieceId: CAPUCHIN_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: -2, y: 0 },
+    markedMoveTarget: { x: 1, y: 0 },
     highlightMovementGuideSpecies: "capuchin",
     completeWhenActionIndex: 2
   },
   {
     title: "Ação C: reforçar um local",
-    body: "Na ação C, você pode adicionar 1 macaco da reserva em qualquer local que já tenha outro macaco seu. A ação C não coleta recurso. Clique no local destacado para empilhar mais um macaco.",
+    body: "Na ação C, você pode adicionar 1 macaco da reserva em qualquer local que já tenha outro macaco seu. A ação C não coleta recurso e não cria carta nova, então não muda a pontuação. Clique no local destacado para empilhar mais um macaco.",
     gate: "addPiece",
     autoAdvance: true,
-    markedAddPieceTarget: { x: 1, y: 0 },
+    markedAddPieceTarget: { x: 2, y: 0 },
     completeWhenActionIndex: 3
   },
   {
     title: "Ação D: pontuar habitats",
-    body: "Na ação D, o Macaco-prego marca 1 ponto por tipo de habitat onde tem macacos em 2 ou mais cartas diferentes. Seus macacos estão em vários bosques: isso vale 1 ponto, marcado automaticamente.",
+    body: "Na ação D conferimos os pares: 2 macacos em rios, 2 em bosques e 2 em campos. São 3 tipos de habitat com pares = 3 pontos, marcados automaticamente.",
     gate: "score",
     autoAdvance: true,
-    completeWhenScoreAtLeast: 1
+    completeWhenScoreAtLeast: 3
   },
   {
     title: "Turno do Macaco-prego completo",
-    body: "Resumo: A joga carta e adiciona 1 macaco na carta jogada; B move conforme o habitat da carta e coleta recurso; C adiciona 1 macaco onde já há outro, sem coletar; D pontua cada tipo de habitat com macacos em 2+ cartas diferentes.",
+    body: "Resumo: A joga carta e adiciona 1 macaco na carta jogada; B move conforme o habitat da carta e coleta recurso; C adiciona 1 macaco onde já há outro, sem coletar; D marca 1 ponto por TIPO de habitat com macacos em 2+ cartas diferentes (aqui rio + bosque + campo = 3).",
     gate: "none",
     autoAdvance: false
   }
@@ -1124,8 +1132,13 @@ function createCapuchinTutorialRoom(): PublicRoomState {
     player.hand = [CAPUCHIN_TUTORIAL_CARD];
   }
 
-  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 1, { x: 1, y: 0 });
-  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 2, { x: 0, y: 0 });
+  // 2 macacos em rios (-1,-1) e (-1,1); 2 em bosques (0,-1) e (-1,0); 1 em campo (0,1).
+  // O macaco em (-1,0) (piece_3) e o que salta para o campo na acao B.
+  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 1, { x: -1, y: -1 });
+  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 1 });
+  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 3, { x: -1, y: 0 });
+  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 4, { x: 0, y: -1 });
+  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 5, { x: 0, y: 1 });
 
   game.status = "active";
   game.round = 2;
