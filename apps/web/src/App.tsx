@@ -275,7 +275,7 @@ const JAGUAR_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação B: mover pelo habitat",
-    body: "Na ação B, a Onça usa o movimento indicado pelo habitat onde está. Ela está em campo, então vai mover na diagonal para o local destacado com carne e outra peça.",
+    body: "Na ação B, a Onça usa o movimento indicado pelo habitat onde está. Antes de mover, passe o mouse sobre o ícone de movimento da Onça na lista de jogadores para abrir a imagem de referência. Ela está em campo, então vai mover na diagonal para o local destacado com carne e outra peça.",
     gate: "move",
     autoAdvance: true,
     markedMoveTarget: { x: 1, y: 1 },
