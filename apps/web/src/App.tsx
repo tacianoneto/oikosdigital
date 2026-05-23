@@ -194,7 +194,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_NONRIVER_CARD,
-    markedSlot: { x: 0, y: -2 }
+    markedSlot: { x: -2, y: 0 }
   },
   {
     title: "Continue o rio",
@@ -207,7 +207,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Mova um meeple",
-    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada, veja o tabuleiro dele à direita.",
+    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada, veja o tabuleiro dele à direita. Sempre que você move um meeple, ganha o recurso do local de destino.",
     gate: "move",
     autoAdvance: true,
     openBoard: "armadillo"
