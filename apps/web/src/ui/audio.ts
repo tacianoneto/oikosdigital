@@ -7,15 +7,13 @@ import type { GameLogPayloadKind } from "@oikos/shared";
 export interface AudioSettings {
   muted: boolean;
   sfxVolume: number; // 0..1
-  musicVolume: number; // 0..1
 }
 
 const STORAGE_KEY = "oikos-audio";
 
 const DEFAULT_SETTINGS: AudioSettings = {
   muted: false,
-  sfxVolume: 0.7,
-  musicVolume: 0.4
+  sfxVolume: 0.7
 };
 
 function loadSettings(): AudioSettings {
@@ -26,8 +24,7 @@ function loadSettings(): AudioSettings {
     const parsed = JSON.parse(raw) as Partial<AudioSettings>;
     return {
       muted: Boolean(parsed.muted),
-      sfxVolume: clamp01(parsed.sfxVolume ?? DEFAULT_SETTINGS.sfxVolume),
-      musicVolume: clamp01(parsed.musicVolume ?? DEFAULT_SETTINGS.musicVolume)
+      sfxVolume: clamp01(parsed.sfxVolume ?? DEFAULT_SETTINGS.sfxVolume)
     };
   } catch {
     return { ...DEFAULT_SETTINGS };
@@ -44,14 +41,6 @@ let settings = loadSettings();
 let ctx: AudioContext | null = null;
 let masterGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
-let musicGain: GainNode | null = null;
-
-interface Ambient {
-  nodes: AudioNode[];
-  stop: () => void;
-}
-let ambient: Ambient | null = null;
-let ambientWanted = false;
 
 type WindowWithWebkit = Window & { webkitAudioContext?: typeof AudioContext };
 
@@ -68,19 +57,15 @@ function ensureContext(): AudioContext | null {
   sfxGain = ctx.createGain();
   sfxGain.connect(masterGain);
 
-  musicGain = ctx.createGain();
-  musicGain.connect(masterGain);
-
   applyGains();
   return ctx;
 }
 
 function applyGains(): void {
-  if (!ctx || !masterGain || !sfxGain || !musicGain) return;
+  if (!ctx || !masterGain || !sfxGain) return;
   const now = ctx.currentTime;
   masterGain.gain.setTargetAtTime(settings.muted ? 0 : 1, now, 0.02);
   sfxGain.gain.setTargetAtTime(settings.sfxVolume, now, 0.02);
-  musicGain.gain.setTargetAtTime(settings.musicVolume, now, 0.05);
 }
 
 // Call from a user gesture (pointerdown/keydown) so the browser allows audio.
@@ -88,7 +73,6 @@ export function initAudioOnGesture(): void {
   const context = ensureContext();
   if (!context) return;
   if (context.state === "suspended") void context.resume();
-  if (ambientWanted && !ambient) startAmbient();
 }
 
 export function getAudioSettings(): AudioSettings {
@@ -98,8 +82,7 @@ export function getAudioSettings(): AudioSettings {
 export function setAudioSettings(partial: Partial<AudioSettings>): AudioSettings {
   settings = {
     muted: partial.muted ?? settings.muted,
-    sfxVolume: partial.sfxVolume !== undefined ? clamp01(partial.sfxVolume) : settings.sfxVolume,
-    musicVolume: partial.musicVolume !== undefined ? clamp01(partial.musicVolume) : settings.musicVolume
+    sfxVolume: partial.sfxVolume !== undefined ? clamp01(partial.sfxVolume) : settings.sfxVolume
   };
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -244,68 +227,5 @@ export function playLogEvent(kind: GameLogPayloadKind | undefined): void {
       break;
     default:
       break;
-  }
-}
-
-// --- Ambient pad ------------------------------------------------------------
-
-// A soft evolving chord drone with a slow filter sweep. Calm, low in the mix.
-export function startAmbient(): void {
-  ambientWanted = true;
-  const context = ensureContext();
-  if (!context || !musicGain || ambient) return;
-  if (context.state === "suspended") void context.resume();
-
-  const chord = [110, 164.81, 220, 329.63]; // A2, E3, A3, E4
-  const filter = context.createBiquadFilter();
-  filter.type = "lowpass";
-  filter.frequency.value = 600;
-  filter.Q.value = 0.7;
-  filter.connect(musicGain);
-
-  // Slow LFO sweeping the filter for movement.
-  const lfo = context.createOscillator();
-  const lfoGain = context.createGain();
-  lfo.frequency.value = 0.05;
-  lfoGain.gain.value = 300;
-  lfo.connect(lfoGain).connect(filter.frequency);
-  lfo.start();
-
-  const nodes: AudioNode[] = [filter, lfo, lfoGain];
-  const oscs: OscillatorNode[] = [lfo];
-
-  for (const freq of chord) {
-    const osc = context.createOscillator();
-    osc.type = "triangle";
-    osc.frequency.value = freq;
-    osc.detune.value = (Math.random() - 0.5) * 8;
-    const g = context.createGain();
-    g.gain.value = 0.12;
-    osc.connect(g).connect(filter);
-    osc.start();
-    nodes.push(osc, g);
-    oscs.push(osc);
-  }
-
-  ambient = {
-    nodes,
-    stop: () => {
-      const now = context.currentTime;
-      for (const osc of oscs) {
-        try {
-          osc.stop(now + 0.4);
-        } catch {
-          // already stopped
-        }
-      }
-    }
-  };
-}
-
-export function stopAmbient(): void {
-  ambientWanted = false;
-  if (ambient) {
-    ambient.stop();
-    ambient = null;
   }
 }

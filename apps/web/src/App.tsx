@@ -93,8 +93,6 @@ import {
   playClick,
   playLogEvent,
   setAudioSettings,
-  startAmbient,
-  stopAmbient,
   type AudioSettings
 } from "./ui/audio";
 import { getActionDescription } from "./ui/actionDescriptions";
@@ -410,15 +408,6 @@ export function App() {
       playLogEvent(entry.payload?.kind);
     }
   }, [gameLog]);
-
-  // Ambient pad runs during a game when music is enabled.
-  useEffect(() => {
-    if (hasStartedGame && !audioSettings.muted && audioSettings.musicVolume > 0) {
-      startAmbient();
-    } else {
-      stopAmbient();
-    }
-  }, [hasStartedGame, audioSettings.muted, audioSettings.musicVolume]);
 
   const updateAudio = useCallback((partial: Partial<AudioSettings>) => {
     setAudioSettingsState(setAudioSettings(partial));
@@ -2868,18 +2857,6 @@ export function App() {
                 onChange={(event) => updateAudio({ sfxVolume: Number(event.target.value) / 100 })}
               />
               <small>{Math.round(audioSettings.sfxVolume * 100)}%</small>
-            </label>
-            <label className="audio-slider">
-              <span>Música</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={Math.round(audioSettings.musicVolume * 100)}
-                disabled={audioSettings.muted}
-                onChange={(event) => updateAudio({ musicVolume: Number(event.target.value) / 100 })}
-              />
-              <small>{Math.round(audioSettings.musicVolume * 100)}%</small>
             </label>
           </section>
           </div>
