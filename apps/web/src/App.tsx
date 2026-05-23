@@ -11,7 +11,9 @@ import {
   ChevronUp,
   Copy,
   Crown,
+  GraduationCap,
   Leaf,
+  Lock,
   LogIn,
   LogOut,
   MapPin,
@@ -123,6 +125,82 @@ import {
 import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
 
+// --- Tutorials --------------------------------------------------------------
+const TUTORIAL_DONE_KEY = "oikos-tutorial-initial";
+
+// Each scripted step locks the board to a single taught interaction:
+//   none      -> read-only, advance with the coach button
+//   setup     -> place the starting meeples
+//   placeCard -> play a card (and add the piece that action A grants)
+//   move      -> move a meeple
+type TutorialGate = "none" | "setup" | "placeCard" | "move";
+
+interface TutorialStepDef {
+  title: string;
+  body: string;
+  gate: TutorialGate;
+  autoAdvance: boolean;
+}
+
+// The initial tutorial runs a real local game with a single species (Tatu-bola)
+// so the base mechanics — placing cards and moving meeples — are taught with the
+// genuine rules engine.
+const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Bem-vindo a Oikos",
+    body: "Esta é a floresta central, montada em uma grade 3x3. Ao longo do jogo ela cresce conforme as cartas são jogadas. Vamos aprender o básico.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Habitats e recursos",
+    body: "Cada carta é um habitat: bosque, campo ou rio. Algumas têm um recurso (carne, ovo, fruta ou pinha). Os recursos ficam sempre na carta e valem pontos no fim.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Posicione seus meeples",
+    body: "Tudo começa no setup: clique em uma carta da floresta para posicionar cada um dos seus meeples. Ao posicionar, você ganha o recurso daquela carta.",
+    gate: "setup",
+    autoAdvance: true
+  },
+  {
+    title: "Ação A — jogue uma carta",
+    body: "Começou seu turno. Na Ação A você expande a floresta: arraste uma carta da mão até um espaço destacado, gire se precisar encaixar o rio, e confirme. Depois adicione um meeple, se houver espaço válido.",
+    gate: "placeCard",
+    autoAdvance: true
+  },
+  {
+    title: "Ação B — mova um meeple",
+    body: "Na Ação B você move um meeple. Clique em um meeple seu e escolha um destino destacado. O padrão de movimento depende do habitat da carta que você jogou.",
+    gate: "move",
+    autoAdvance: true
+  },
+  {
+    title: "Você aprendeu o básico!",
+    body: "As ações acontecem sempre em ordem (A, B, C, D). O jogo dura 5 rodadas e vence quem fizer mais pontos. Os tutoriais de cada espécie chegam em breve. Bom jogo!",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
+function isTutorialInitialDone(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(TUTORIAL_DONE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markTutorialInitialDone(): void {
+  try {
+    window.localStorage.setItem(TUTORIAL_DONE_KEY, "1");
+  } catch {
+    // ignore
+  }
+}
+
 export function App() {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -162,7 +240,8 @@ export function App() {
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(false);
   const [hudRightCollapsed, setHudRightCollapsed] = useState(false);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
-  const [landingMode, setLandingMode] = useState<"idle" | "join" | "local">("idle");
+  const [landingMode, setLandingMode] = useState<"idle" | "join" | "local" | "tutorials">("idle");
+  const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
     lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
     points: number;
@@ -356,6 +435,22 @@ export function App() {
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
 
+  // Tutorial state derived from the current step.
+  const tutorialActive = tutorialStep !== null;
+  const tutorialDef = tutorialActive ? INITIAL_TUTORIAL_STEPS[tutorialStep] ?? null : null;
+  const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
+  // True when the tutorial forbids a given board interaction for the current step.
+  const tutorialBlocks = useCallback(
+    (action: "setupPlace" | "placeCard" | "move") => {
+      if (!tutorialActive) return false;
+      if (tutorialGate === "setup") return action !== "setupPlace";
+      if (tutorialGate === "placeCard") return action !== "placeCard";
+      if (tutorialGate === "move") return action !== "move";
+      return true; // "none" steps block all board actions
+    },
+    [tutorialActive, tutorialGate]
+  );
+
   // Unlock the audio context on the first user gesture (browser autoplay policy)
   // and play a soft click on every button press.
   useEffect(() => {
@@ -400,6 +495,23 @@ export function App() {
   const updateAudio = useCallback((partial: Partial<AudioSettings>) => {
     setAudioSettingsState(setAudioSettings(partial));
   }, []);
+
+  // Advance the scripted tutorial automatically as the player progresses through
+  // the real game phases: setup done -> action A done -> action B done.
+  const tutorialGameStatus = room?.game?.status;
+  const tutorialActionIndex = room?.game?.activeActionIndex ?? 0;
+  useEffect(() => {
+    if (tutorialStep === null) return;
+    const def = INITIAL_TUTORIAL_STEPS[tutorialStep];
+    if (!def?.autoAdvance) return;
+    if (def.gate === "setup" && tutorialGameStatus === "active") {
+      setTutorialStep((step) => (step === null ? step : step + 1));
+    } else if (def.gate === "placeCard" && tutorialGameStatus === "active" && tutorialActionIndex >= 1) {
+      setTutorialStep((step) => (step === null ? step : step + 1));
+    } else if (def.gate === "move" && tutorialGameStatus === "active" && tutorialActionIndex >= 2) {
+      setTutorialStep((step) => (step === null ? step : step + 1));
+    }
+  }, [tutorialStep, tutorialGameStatus, tutorialActionIndex]);
 
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
@@ -1197,6 +1309,7 @@ export function App() {
       if (!room || !canPlaceSetupPiece) {
         return;
       }
+      if (tutorialBlocks("setupPlace")) return;
 
       if (isLocalRoom && room.game?.setupActivePlayerId) {
         const nextGame = placeInitialPiece(room.game, room.game.setupActivePlayerId, position);
@@ -1211,7 +1324,7 @@ export function App() {
 
       void run(() => roomApi.placeSetupPiece(requireSocket(), room.roomId, position.x, position.y));
     },
-    [canPlaceSetupPiece, isLocalRoom, room, socket]
+    [canPlaceSetupPiece, isLocalRoom, room, socket, tutorialBlocks]
   );
 
   const placeCard = useCallback(
@@ -1219,6 +1332,7 @@ export function App() {
       if (!room?.game || !selectedHandCardId || !canPlaceSelectedForestCard || !room.game.activePlayerId) {
         return;
       }
+      if (tutorialBlocks("placeCard")) return;
 
       if (isLocalRoom) {
         const game = room.game;
@@ -1253,7 +1367,7 @@ export function App() {
         setPendingPlacement(null);
       });
     },
-    [canPlaceSelectedForestCard, isLocalRoom, room, selectedHandCardId, socket]
+    [canPlaceSelectedForestCard, isLocalRoom, room, selectedHandCardId, socket, tutorialBlocks]
   );
 
   // Selecting a slot does not place immediately: it stages a preview the player
@@ -1305,6 +1419,7 @@ export function App() {
       if (!room?.game || !room.game.activePlayerId || !selectedPieceId) {
         return;
       }
+      if (tutorialBlocks("move")) return;
 
       const currentGame = room.game;
       const movingPieceId = selectedPieceId!;
@@ -1346,7 +1461,7 @@ export function App() {
         setSelectedJaguarTargetPieceId(null);
       });
     },
-    [activeActionId, activeSpecies?.speciesId, isLocalRoom, room, selectedPieceId, socket]
+    [activeActionId, activeSpecies?.speciesId, isLocalRoom, room, selectedPieceId, socket, tutorialBlocks]
   );
 
   const handlePieceClick = useCallback(
@@ -1440,6 +1555,8 @@ export function App() {
       if (!room?.game || !room.game.activePlayerId || addPieceTargets.length === 0) {
         return;
       }
+      // Adding the piece is part of action A, taught in the placeCard step.
+      if (tutorialActive && tutorialGate !== "placeCard") return;
 
       if (isLocalRoom) {
         const nextGame =
@@ -1491,7 +1608,7 @@ export function App() {
         setSelectedRemovalPieceIds([]);
       });
     },
-    [activeSpecies?.speciesId, addPieceTargets.length, isLocalRoom, room, socket]
+    [activeSpecies?.speciesId, addPieceTargets.length, isLocalRoom, room, socket, tutorialActive, tutorialGate]
   );
 
   const handleCoatiPairBonusTargetClick = useCallback(
@@ -1885,6 +2002,40 @@ export function App() {
     startLocalTest();
   }
 
+  // Launch the scripted initial tutorial on a real local game with one species.
+  function startInitialTutorial() {
+    setError(null);
+    setNotice(null);
+    const tutorialPlayers: RoomPlayer[] = [
+      {
+        playerId: "local_armadillo",
+        name: "Tutorial",
+        speciesId: "armadillo",
+        ready: true,
+        connected: true
+      }
+    ];
+    const game = createInitialGameState(localRoomId, tutorialPlayers);
+    lastOnlineRoomSnapshotRef.current = "";
+    setRoom({
+      roomId: localRoomId,
+      status: "setup",
+      hostPlayerId: "local_host",
+      players: tutorialPlayers,
+      game,
+      warnings: game.contentWarnings
+    });
+    setTutorialStep(0);
+  }
+
+  function exitTutorial(completed: boolean) {
+    if (completed) markTutorialInitialDone();
+    setTutorialStep(null);
+    clearRoomState();
+    setLandingMode("tutorials");
+    setNotice(completed ? "Tutorial concluído!" : "Tutorial encerrado.");
+  }
+
   function leaveTable() {
     if (room?.roomId !== localRoomId) {
       clearOnlineSession();
@@ -2121,6 +2272,20 @@ export function App() {
                   <small>Controle 2-6 espécies nesta tela</small>
                 </span>
               </button>
+
+              <button
+                type="button"
+                className="landing-action landing-action-secondary"
+                onClick={() => setLandingMode("tutorials")}
+              >
+                <span className="landing-action-icon">
+                  <GraduationCap aria-hidden="true" />
+                </span>
+                <span className="landing-action-text">
+                  <strong>Tutoriais</strong>
+                  <small>Aprenda a jogar passo a passo</small>
+                </span>
+              </button>
             </div>
           </div>
 
@@ -2296,6 +2461,82 @@ export function App() {
               {localSpeciesIds.length < 2 && (
                 <small className="flow-hint">Mínimo 2 espécies para iniciar.</small>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!hasStartedGame && !room && landingMode === "tutorials" && (
+        <div className="flow-screen" role="main">
+          <div className="landing-bg-orbs" aria-hidden="true">
+            <span className="orb orb-1" />
+            <span className="orb orb-2" />
+            <span className="orb orb-3" />
+          </div>
+
+          <header className="flow-header">
+            <button
+              type="button"
+              className="flow-back"
+              onClick={() => setLandingMode("idle")}
+              aria-label="Voltar"
+            >
+              <ChevronLeft aria-hidden="true" />
+              <span>Voltar</span>
+            </button>
+            <div className="landing-logo flow-logo">
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+            </div>
+            <span className="flow-spacer" aria-hidden="true" />
+          </header>
+
+          <div className="flow-body">
+            <h2 className="flow-title">Tutoriais</h2>
+            <p className="flow-subtitle">Escolha um capítulo. Comece pelo tutorial inicial.</p>
+
+            <div className="tutorial-chapters">
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialInitialDone() ? "is-done" : "is-available"}`}
+                onClick={startInitialTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <GraduationCap aria-hidden="true" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>Tutorial inicial</strong>
+                  <small>Mecânicas básicas: cartas, movimento, recursos e turno.</small>
+                </span>
+                {isTutorialInitialDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+
+              {speciesList.map((species) => (
+                <div
+                  key={species.speciesId}
+                  className="tutorial-chapter is-locked"
+                  style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
+                  aria-disabled="true"
+                >
+                  <span className="tutorial-chapter-icon">
+                    <img className="is-portrait" src={encodeURI(species.portraitAsset)} alt="" />
+                  </span>
+                  <span className="tutorial-chapter-text">
+                    <strong>{species.displayName}</strong>
+                    <small>Aprenda a jogar com esta espécie.</small>
+                  </span>
+                  <span className="tutorial-chapter-badge locked">
+                    <Lock aria-hidden="true" /> Em breve
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -2568,6 +2809,56 @@ export function App() {
         >
           <Settings aria-hidden="true" />
         </button>
+      )}
+
+      {tutorialActive && hasStartedGame && tutorialDef && (
+        <div className="tutorial-coach" role="dialog" aria-live="polite">
+          <div className="tutorial-coach-progress" aria-hidden="true">
+            {INITIAL_TUTORIAL_STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`tutorial-dot ${
+                  i === tutorialStep ? "active" : i < (tutorialStep ?? 0) ? "done" : ""
+                }`}
+              />
+            ))}
+          </div>
+          <div className="tutorial-coach-body">
+            <span className="tutorial-coach-step">
+              Passo {(tutorialStep ?? 0) + 1}/{INITIAL_TUTORIAL_STEPS.length}
+            </span>
+            <h3>{tutorialDef.title}</h3>
+            <p>{tutorialDef.body}</p>
+          </div>
+          <div className="tutorial-coach-actions">
+            <button type="button" className="tutorial-coach-exit" onClick={() => exitTutorial(false)}>
+              Sair
+            </button>
+            {!tutorialDef.autoAdvance ? (
+              tutorialStep === INITIAL_TUTORIAL_STEPS.length - 1 ? (
+                <button type="button" className="primary-button" onClick={() => exitTutorial(true)}>
+                  Concluir
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => setTutorialStep((step) => (step === null ? step : step + 1))}
+                >
+                  Próximo
+                </button>
+              )
+            ) : (
+              <button
+                type="button"
+                className="tutorial-coach-skip"
+                onClick={() => setTutorialStep((step) => (step === null ? step : step + 1))}
+              >
+                Pular passo
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {hasStartedGame && configOpen && (
