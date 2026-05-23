@@ -287,8 +287,8 @@ const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
 
 const JAGUAR_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Onça-pintada: predador",
-    body: "A Onça é a espécie predadora de Oikos. Ela tem só 1 meeple, não usa cartas na mão e joga direto pelo tabuleiro.",
+    title: "Onça-pintada",
+    body: "Vamos aprender a jogar de Onça-pintada! Ela é o predador: 1 meeple, sem cartas na mão, caça e remove peças adversárias para ganhar carne e pontuar. Dica: só captura peças à vista — as escondidas escapam.",
     gate: "none",
     autoAdvance: false
   },
@@ -359,8 +359,8 @@ const WOLF_TUTORIAL_FOREST: ForestCardState[] = [
 
 const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Lobo-guará: subpredador",
-    body: "O Lobo-guará é subpredador. Diferente da Onça, ele usa cartas na ação A e pode ter vários lobos em campo trabalhando juntos.",
+    title: "Lobo-guará",
+    body: "Vamos aprender a jogar de Lobo-guará! Subpredador que age em matilha: expande a floresta, remove peças de base e gasta recursos para pontuar. Dica: junte lobos no mesmo local para liberar mais ações.",
     gate: "none",
     autoAdvance: false
   },
@@ -444,8 +444,8 @@ const ARMADILLO_TUTORIAL_FOREST: ForestCardState[] = [
 
 const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Tatu-bola: convivência e defesa",
-    body: "O Tatu-bola joga com presença compartilhada. Ele cresce perto de pinhas, se move conforme a carta jogada, pode se esconder e pontua por dividir locais com outras espécies.",
+    title: "Tatu-bola",
+    body: "Vamos aprender a jogar de Tatu-bola! Ele cresce perto de pinhas, pode se esconder e pontua dividindo locais com outras espécies. Dica: esconda os tatus para escapar do predador.",
     gate: "none",
     autoAdvance: false
   },
@@ -527,8 +527,8 @@ const MACAW_TUTORIAL_FOREST: ForestCardState[] = [
 
 const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Arara-azul: formar linhas",
-    body: "A Arara-azul busca alinhar suas peças. Ela joga cartas, adiciona em ovos, move pela carta jogada e pontua cada linha reta de 3 araras. Movimento: bosque = salto em curva, campo = adjacente, rio = salto reto.",
+    title: "Arara-azul",
+    body: "Vamos aprender a jogar de Arara-azul! Ela pontua formando linhas retas de 3 araras: horizontal, vertical ou diagonal. Dica: posicione sempre pensando na próxima linha.",
     gate: "none",
     autoAdvance: false
   },
@@ -606,7 +606,7 @@ const CAPUCHIN_TUTORIAL_FOREST: ForestCardState[] = [
 const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Macaco-prego",
-    body: "Você já tem macacos em 2 rios, 2 bosques e 1 campo. Vamos fechar pares jogando o turno.",
+    body: "Vamos aprender a jogar de Macaco-prego! Ele pontua cada habitat (rio, bosque, campo) onde tiver 2 ou mais macacos em cartas diferentes. Dica: espalhe pares por habitats variados em vez de amontoar num só.",
     gate: "none",
     autoAdvance: false
   },
@@ -675,8 +675,8 @@ const COATI_TUTORIAL_FOREST: ForestCardState[] = [
 
 const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Quati: duplas e combos",
-    body: "O Quati cresce em duplas. Tem uma passiva poderosa: sempre que formar um par exato de 2 quatis num local, adicione 1 quati da reserva num local adjacente e marque 1 ponto. Tem 3 ações (A, B, C) e não pontua na ação D. Movimento: bosque = salto reto, campo = diagonal, rio = adjacente.",
+    title: "Quati",
+    body: "Vamos aprender a jogar de Quati! Sempre que ele forma um par exato de 2 quatis, ganha 1 quati adjacente e 1 ponto de graça. Dica: encadeie pares para fazer combos de pontos.",
     gate: "none",
     autoAdvance: false
   },
