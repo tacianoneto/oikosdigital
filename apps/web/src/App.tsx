@@ -126,14 +126,18 @@ import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
 
 // --- Tutorials --------------------------------------------------------------
-const TUTORIAL_DONE_KEY = "oikos-tutorial-initial";
+type TutorialId = "initial" | "jaguar";
+
+const TUTORIAL_INITIAL_DONE_KEY = "oikos-tutorial-initial";
+const TUTORIAL_JAGUAR_DONE_KEY = "oikos-tutorial-jaguar";
 
 // Each scripted step locks the board to a single taught interaction:
 //   none      -> read-only, advance with the coach button
 //   setup     -> place the starting meeples
 //   placeCard -> play a card (and add the piece that action A grants)
 //   move      -> move a meeple
-type TutorialGate = "none" | "setup" | "placeCard" | "move";
+//   score     -> use a modal/side action while the board stays read-only
+type TutorialGate = "none" | "setup" | "placeCard" | "move" | "score";
 
 interface TutorialStepDef {
   title: string;
@@ -142,8 +146,12 @@ interface TutorialStepDef {
   autoAdvance: boolean;
   requiredCardId?: string; // the only hand card the player may place this step
   markedSlot?: GridPosition; // the only slot where the card may be placed
+  markedMoveTarget?: GridPosition; // the only board destination taught this step
   requiresRiver?: boolean; // the marked slot continues an existing river
   openBoard?: SpeciesId; // open this species board when the step starts
+  completeWhenActionIndex?: number;
+  completeWhenScoreAtLeast?: number;
+  requiredSpendCount?: number;
 }
 
 // Fixed cards dealt to the tutorial hand so the scenario is deterministic.
@@ -220,21 +228,189 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
-function isTutorialInitialDone(): boolean {
+const JAGUAR_TUTORIAL_PLAYER_ID = "local_jaguar";
+const JAGUAR_TUTORIAL_COATI_ID = "local_coati";
+const JAGUAR_TUTORIAL_CAPUCHIN_ID = "local_capuchin";
+
+const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "jag_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+];
+
+const JAGUAR_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Onça-pintada: predador",
+    body: "A Onça é a espécie predadora de Oikos. Ela tem só 1 meeple, não usa cartas na mão e joga direto pelo tabuleiro.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Cenário preparado",
+    body: "Vamos treinar como se a partida já estivesse no segundo turno: a floresta está montada, há outras espécies em campo e a Onça já está pronta para caçar.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação A: mover adjacente",
+    body: "Na ação A, a Onça sempre move 1 casa adjacente. Clique na Onça e depois no local destacado com uma peça de outra espécie. Ao entrar ali, ela remove 1 peça e ganha 1 carne.",
+    gate: "move",
+    autoAdvance: true,
+    markedMoveTarget: { x: 0, y: 0 },
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Primeira caça",
+    body: "A peça removida voltou para a reserva do dono e a Onça ganhou 1 carne. Ela também coleta o recurso do local onde terminou o movimento.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação B: mover pelo habitat",
+    body: "Na ação B, a Onça usa o movimento indicado pelo habitat onde está. Ela está em campo, então vai mover na diagonal para o local destacado com carne e outra peça.",
+    gate: "move",
+    autoAdvance: true,
+    markedMoveTarget: { x: 1, y: 1 },
+    completeWhenActionIndex: 2
+  },
+  {
+    title: "Três carnes disponíveis",
+    body: "Neste segundo movimento, a Onça removeu outra peça (+1 carne) e caiu em uma carta de carne (+1 carne). Somando com a primeira caça, agora ela tem 3 carnes.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação C: gastar carne",
+    body: "Na ação C, a Onça pode gastar de 1 a 3 carnes para marcar a mesma quantidade de pontos. Escolha gastar 3 carnes para marcar 3 pontos.",
+    gate: "score",
+    autoAdvance: true,
+    completeWhenScoreAtLeast: 3,
+    requiredSpendCount: 3
+  },
+  {
+    title: "Turno da Onça completo",
+    body: "Resumo: A moveu adjacente e caçou; B moveu pelo habitat, caçou e coletou carne; C gastou 3 carnes para fazer 3 pontos. Esse é o ciclo principal da Onça.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
+function getTutorialDoneKey(tutorialId: TutorialId): string {
+  return tutorialId === "jaguar" ? TUTORIAL_JAGUAR_DONE_KEY : TUTORIAL_INITIAL_DONE_KEY;
+}
+
+function isTutorialDone(tutorialId: TutorialId): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return window.localStorage.getItem(TUTORIAL_DONE_KEY) === "1";
+    return window.localStorage.getItem(getTutorialDoneKey(tutorialId)) === "1";
   } catch {
     return false;
   }
 }
 
-function markTutorialInitialDone(): void {
+function markTutorialDone(tutorialId: TutorialId): void {
   try {
-    window.localStorage.setItem(TUTORIAL_DONE_KEY, "1");
+    window.localStorage.setItem(getTutorialDoneKey(tutorialId), "1");
   } catch {
     // ignore
   }
+}
+
+function isTutorialInitialDone(): boolean {
+  return isTutorialDone("initial");
+}
+
+function isTutorialJaguarDone(): boolean {
+  return isTutorialDone("jaguar");
+}
+
+function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  const pieceId = `${playerId}_piece_${pieceNumber}`;
+  const piece = game.pieces.find((candidate) => candidate.pieceId === pieceId);
+  if (!player || !piece) {
+    return;
+  }
+
+  piece.location = { ...location, siteId: "main" };
+  player.reservePieces = player.reservePieces.filter((candidate) => candidate !== pieceId);
+  if (!player.piecesInForest.includes(pieceId)) {
+    player.piecesInForest = [...player.piecesInForest, pieceId];
+  }
+}
+
+function createJaguarTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: JAGUAR_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Onça",
+      speciesId: "jaguar",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: JAGUAR_TUTORIAL_COATI_ID,
+      name: "Quati de treino",
+      speciesId: "coati",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: JAGUAR_TUTORIAL_CAPUCHIN_ID,
+      name: "Macaco de treino",
+      speciesId: "capuchin",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, JAGUAR_TUTORIAL_FOREST);
+
+  for (const player of game.players) {
+    player.score = 0;
+    player.turnsTaken = player.playerId === JAGUAR_TUTORIAL_PLAYER_ID ? 1 : 0;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+  }
+
+  placeTutorialPiece(game, JAGUAR_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
+  placeTutorialPiece(game, JAGUAR_TUTORIAL_COATI_ID, 1, { x: 0, y: 0 });
+  placeTutorialPiece(game, JAGUAR_TUTORIAL_COATI_ID, 2, { x: 1, y: 0 });
+  placeTutorialPiece(game, JAGUAR_TUTORIAL_CAPUCHIN_ID, 1, { x: 1, y: 1 });
+  placeTutorialPiece(game, JAGUAR_TUTORIAL_CAPUCHIN_ID, 2, { x: -2, y: -1 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = JAGUAR_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.turnOrder = [JAGUAR_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "jaguar_tutorial_ready",
+      message: "Tutorial da Onça preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    game,
+    warnings: game.contentWarnings
+  };
 }
 
 export function App() {
@@ -277,6 +453,7 @@ export function App() {
   const [hudRightCollapsed, setHudRightCollapsed] = useState(false);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<"idle" | "join" | "local" | "tutorials">("idle");
+  const [tutorialId, setTutorialId] = useState<TutorialId | null>(null);
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   // Log length captured when the move step begins, to detect the taught move.
   const tutorialMoveLogLenRef = useRef<number | null>(null);
@@ -474,8 +651,9 @@ export function App() {
   const gameLog = room?.game?.log;
 
   // Tutorial state derived from the current step.
-  const tutorialActive = tutorialStep !== null;
-  const tutorialDef = tutorialActive ? INITIAL_TUTORIAL_STEPS[tutorialStep] ?? null : null;
+  const tutorialSteps = tutorialId === "jaguar" ? JAGUAR_TUTORIAL_STEPS : INITIAL_TUTORIAL_STEPS;
+  const tutorialActive = tutorialId !== null && tutorialStep !== null;
+  const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
   const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
   const tutorialRequiredCardId =
     tutorialActive && tutorialDef?.gate === "placeCard" ? tutorialDef.requiredCardId ?? null : null;
@@ -542,10 +720,11 @@ export function App() {
   const tutorialGameStatus = room?.game?.status;
   useEffect(() => {
     if (tutorialStep === null || !room?.game) return;
-    const def = INITIAL_TUTORIAL_STEPS[tutorialStep];
+    const def = tutorialSteps[tutorialStep];
     if (!def?.autoAdvance) return;
     const game = room.game;
     const forestHas = (cardId: string) => game.forest.cards.some((card) => card.definitionId === cardId);
+    const tutorialPlayerId = tutorialId === "jaguar" ? JAGUAR_TUTORIAL_PLAYER_ID : game.activePlayerId;
 
     if (def.gate === "setup") {
       if (game.status === "active") setTutorialStep((step) => (step === null ? step : step + 1));
@@ -575,6 +754,23 @@ export function App() {
       return;
     }
 
+    if (typeof def.completeWhenActionIndex === "number") {
+      if (game.activePlayerId === tutorialPlayerId && game.activeActionIndex >= def.completeWhenActionIndex) {
+        tutorialMoveLogLenRef.current = null;
+        setTutorialStep((step) => (step === null ? step : step + 1));
+      }
+      return;
+    }
+
+    if (typeof def.completeWhenScoreAtLeast === "number") {
+      const player = game.players.find((candidate) => candidate.playerId === tutorialPlayerId);
+      if (player && player.score >= def.completeWhenScoreAtLeast) {
+        tutorialMoveLogLenRef.current = null;
+        setTutorialStep((step) => (step === null ? step : step + 1));
+      }
+      return;
+    }
+
     if (def.gate === "move") {
       if (tutorialMoveLogLenRef.current === null) {
         tutorialMoveLogLenRef.current = game.log.length;
@@ -585,7 +781,7 @@ export function App() {
         .some((entry) => entry.payload?.kind === "move_piece");
       if (moved) setTutorialStep((step) => (step === null ? step : step + 1));
     }
-  }, [tutorialStep, tutorialGameStatus, room?.game]);
+  }, [tutorialId, tutorialStep, tutorialSteps, tutorialGameStatus, room?.game]);
 
   // When a tutorial step starts: pre-select the required card and open the board
   // it asks to show, so the player only has to act, not hunt for the right card.
@@ -593,7 +789,7 @@ export function App() {
     if (tutorialStep === null) {
       return;
     }
-    const def = INITIAL_TUTORIAL_STEPS[tutorialStep];
+    const def = tutorialSteps[tutorialStep];
     if (def?.gate === "placeCard" && def.requiredCardId) {
       setSelectedHandCardId(def.requiredCardId);
       setSelectedCardRotation(0);
@@ -605,7 +801,7 @@ export function App() {
       setBoardSpecies(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialStep]);
+  }, [tutorialStep, tutorialSteps]);
 
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
@@ -846,7 +1042,8 @@ export function App() {
       activeGamePlayer &&
       activeSpecies?.speciesId === "jaguar" &&
       activeActionId === "C" &&
-      canControlActivePlayer
+      canControlActivePlayer &&
+      (!tutorialActive || tutorialId !== "jaguar" || tutorialGate === "score")
   );
   const movementTargets = useMemo(() => {
     if (!room?.game || hasPendingCoatiPairBonus || !room.game.activePlayerId || !selectedPieceId) {
@@ -855,6 +1052,13 @@ export function App() {
 
     return getValidPieceMovementDestinations(room.game, room.game.activePlayerId, selectedPieceId);
   }, [hasPendingCoatiPairBonus, room?.game, selectedPieceId]);
+  const displayMovementTargets = useMemo(() => {
+    if (!tutorialActive || tutorialGate !== "move" || !tutorialDef?.markedMoveTarget) {
+      return movementTargets;
+    }
+
+    return movementTargets.filter((position) => sameGridPosition(position, tutorialDef.markedMoveTarget));
+  }, [movementTargets, tutorialActive, tutorialDef?.markedMoveTarget, tutorialGate]);
   const canSkipJaguarMove =
     useMemo(() => {
       if (
@@ -1448,7 +1652,7 @@ export function App() {
       if (tutorialBlocks("placeCard")) return;
       // Tutorial: enforce the marked card and the marked slot.
       if (tutorialActive) {
-        const def = tutorialStep !== null ? INITIAL_TUTORIAL_STEPS[tutorialStep] : null;
+        const def = tutorialStep !== null ? tutorialSteps[tutorialStep] : null;
         if (def?.requiredCardId && selectedHandCardId !== def.requiredCardId) return;
         if (tutorialMarkedSlot && (position.x !== tutorialMarkedSlot.x || position.y !== tutorialMarkedSlot.y)) return;
       }
@@ -1495,6 +1699,7 @@ export function App() {
       tutorialBlocks,
       tutorialActive,
       tutorialStep,
+      tutorialSteps,
       tutorialMarkedSlot
     ]
   );
@@ -1549,6 +1754,11 @@ export function App() {
         return;
       }
       if (tutorialBlocks("move")) return;
+      if (tutorialActive && tutorialGate === "move" && tutorialDef?.markedMoveTarget) {
+        if (!sameGridPosition(position, tutorialDef.markedMoveTarget)) {
+          return;
+        }
+      }
 
       const currentGame = room.game;
       const movingPieceId = selectedPieceId!;
@@ -1590,7 +1800,18 @@ export function App() {
         setSelectedJaguarTargetPieceId(null);
       });
     },
-    [activeActionId, activeSpecies?.speciesId, isLocalRoom, room, selectedPieceId, socket, tutorialBlocks]
+    [
+      activeActionId,
+      activeSpecies?.speciesId,
+      isLocalRoom,
+      room,
+      selectedPieceId,
+      socket,
+      tutorialActive,
+      tutorialBlocks,
+      tutorialDef?.markedMoveTarget,
+      tutorialGate
+    ]
   );
 
   const handlePieceClick = useCallback(
@@ -1811,6 +2032,10 @@ export function App() {
       if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
         return;
       }
+      if (tutorialActive && tutorialDef?.requiredSpendCount && count !== tutorialDef.requiredSpendCount) {
+        setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} carnes para ver a pontuação completa.`);
+        return;
+      }
 
       if (isLocalRoom) {
         const nextGame = spendJaguarMeatForPoints(room.game, room.game.activePlayerId, count);
@@ -1833,7 +2058,7 @@ export function App() {
         setSelectedRemovalPieceIds([]);
       });
     },
-    [canControlActivePlayer, isLocalRoom, room, socket]
+    [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive, tutorialDef?.requiredSpendCount]
   );
 
   const handleScoreCapuchin = useCallback(() => {
@@ -2160,10 +2385,28 @@ export function App() {
       warnings: game.contentWarnings
     });
     setTutorialStep(0);
+    setTutorialId("initial");
+  }
+
+  function startJaguarTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setPendingPlacement(null);
+    setRoom(createJaguarTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("jaguar");
   }
 
   function exitTutorial(completed: boolean) {
-    if (completed) markTutorialInitialDone();
+    if (completed && tutorialId) markTutorialDone(tutorialId);
+    setTutorialId(null);
     setTutorialStep(null);
     setBoardSpecies(null);
     setSelectedHandCardId(null);
@@ -2178,6 +2421,8 @@ export function App() {
     if (room?.roomId !== localRoomId) {
       clearOnlineSession();
     }
+    setTutorialId(null);
+    setTutorialStep(null);
     clearRoomState();
     setError(null);
     setNotice(isLocalRoom ? "Teste local encerrado." : "Voce saiu da mesa.");
@@ -2656,7 +2901,31 @@ export function App() {
                 )}
               </button>
 
-              {speciesList.map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialJaguarDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.jaguar } as CSSProperties}
+                onClick={startJaguarTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.jaguar.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.jaguar.displayName}</strong>
+                  <small>Predador sem cartas: mover, caçar, coletar carne e pontuar.</small>
+                </span>
+                {isTutorialJaguarDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+
+              {speciesList.filter((species) => species.speciesId !== "jaguar").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
@@ -2952,7 +3221,7 @@ export function App() {
       {tutorialActive && hasStartedGame && tutorialDef && (
         <div className="tutorial-coach" role="dialog" aria-live="polite">
           <div className="tutorial-coach-progress" aria-hidden="true">
-            {INITIAL_TUTORIAL_STEPS.map((_, i) => (
+            {tutorialSteps.map((_, i) => (
               <span
                 key={i}
                 className={`tutorial-dot ${
@@ -2963,7 +3232,7 @@ export function App() {
           </div>
           <div className="tutorial-coach-body">
             <span className="tutorial-coach-step">
-              Passo {(tutorialStep ?? 0) + 1}/{INITIAL_TUTORIAL_STEPS.length}
+              Passo {(tutorialStep ?? 0) + 1}/{tutorialSteps.length}
             </span>
             <h3>{tutorialDef.title}</h3>
             <p>{tutorialDef.body}</p>
@@ -2973,7 +3242,7 @@ export function App() {
               Sair
             </button>
             {!tutorialDef.autoAdvance &&
-              (tutorialStep === INITIAL_TUTORIAL_STEPS.length - 1 ? (
+              (tutorialStep === tutorialSteps.length - 1 ? (
                 <button type="button" className="primary-button" onClick={() => exitTutorial(true)}>
                   Concluir
                 </button>
@@ -3464,7 +3733,7 @@ export function App() {
                   }
                 : null
             }
-            movementTargets={movementTargets}
+            movementTargets={displayMovementTargets}
             addPieceTargets={addPieceTargets}
             addPieceLabel={
               activeSpecies?.speciesId === "capuchin"
