@@ -15,6 +15,7 @@ const groups = [
     to: join(publicAssets, "forest-cards", "initial")
   },
   { from: join(root, "meeples"), to: join(publicAssets, "meeples") },
+  { from: join(root, "portraits"), to: join(publicAssets, "portraits") },
   { from: join(root, "movimentos"), to: join(publicAssets, "movimentos") },
   { from: join(root, "recursos"), to: join(publicAssets, "resources") }
 ];

@@ -3299,7 +3299,7 @@ export function App() {
                   ) : room?.game ? (
                     <span className="turn-order-badge" aria-hidden="true">{displayIndex + 1}</span>
                   ) : null}
-                  {species && <img src={encodeURI(species.meepleAsset)} alt="" />}
+                  {species && <img className="player-portrait" src={encodeURI(species.portraitAsset)} alt="" />}
                   <div>
                     <strong>{species?.displayName ?? "Sem especie"}</strong>
                     {!player.isBot && player.name && player.name !== species?.displayName && (

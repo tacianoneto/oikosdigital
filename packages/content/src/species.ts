@@ -30,6 +30,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     },
     boardAsset: "/assets/boards/1. Onça-pintada.png",
     meepleAsset: "/assets/meeples/Onça.png",
+    portraitAsset: "/assets/portraits/onca.png",
     movementAsset: "/assets/movimentos/movimento_onca.png"
   },
   maned_wolf: {
@@ -48,6 +49,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     },
     boardAsset: "/assets/boards/3. Lobo-guará.png",
     meepleAsset: "/assets/meeples/Lobo.png",
+    portraitAsset: "/assets/portraits/lobo_guara.png",
     movementAsset: "/assets/movimentos/movimento_lobo.png"
   },
   armadillo: {
@@ -66,6 +68,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     },
     boardAsset: "/assets/boards/4. Tatu-bola.png",
     meepleAsset: "/assets/meeples/Tatu.png",
+    portraitAsset: "/assets/portraits/tatu_bola.png",
     movementAsset: "/assets/movimentos/movimento_tatu.png"
   },
   macaw: {
@@ -84,6 +87,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     },
     boardAsset: "/assets/boards/6. Arara-azul.png",
     meepleAsset: "/assets/meeples/Arara.png",
+    portraitAsset: "/assets/portraits/arara.png",
     movementAsset: "/assets/movimentos/movimento_arara.png"
   },
   capuchin: {
@@ -102,6 +106,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     },
     boardAsset: "/assets/boards/7. Macaco-prego.png",
     meepleAsset: "/assets/meeples/Macaco.png",
+    portraitAsset: "/assets/portraits/macaco.png",
     movementAsset: "/assets/movimentos/movimento_macaco.png"
   },
   coati: {
@@ -120,6 +125,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     },
     boardAsset: "/assets/boards/8. Quati.png",
     meepleAsset: "/assets/meeples/Quati.png",
+    portraitAsset: "/assets/portraits/quati.png",
     movementAsset: "/assets/movimentos/movimento_quati.png"
   }
 };

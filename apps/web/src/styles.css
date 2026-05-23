@@ -1950,6 +1950,12 @@ input:focus {
   padding: 3px;
 }
 
+/* animal portrait fills the circular icon instead of the meeple silhouette */
+.player-summary-head img.player-portrait {
+  object-fit: cover;
+  padding: 0;
+}
+
 .player-summary-head div {
   display: grid;
   gap: 2px;
