@@ -126,18 +126,21 @@ import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
 
 // --- Tutorials --------------------------------------------------------------
-type TutorialId = "initial" | "jaguar";
+type TutorialId = "initial" | "jaguar" | "wolf";
 
 const TUTORIAL_INITIAL_DONE_KEY = "oikos-tutorial-initial";
 const TUTORIAL_JAGUAR_DONE_KEY = "oikos-tutorial-jaguar";
+const TUTORIAL_WOLF_DONE_KEY = "oikos-tutorial-wolf";
 
 // Each scripted step locks the board to a single taught interaction:
 //   none      -> read-only, advance with the coach button
 //   setup     -> place the starting meeples
 //   placeCard -> play a card (and add the piece that action A grants)
 //   move      -> move a meeple
-//   score     -> use a modal/side action while the board stays read-only
-type TutorialGate = "none" | "setup" | "placeCard" | "move" | "score";
+//   removeBase -> select a base species piece and confirm removal
+//   score      -> use a modal/side action while the board stays read-only
+//   addPiece   -> add a species piece to a highlighted card
+type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece";
 
 interface TutorialStepDef {
   title: string;
@@ -147,10 +150,13 @@ interface TutorialStepDef {
   requiredCardId?: string; // the only hand card the player may place this step
   markedSlot?: GridPosition; // the only slot where the card may be placed
   markedMoveTarget?: GridPosition; // the only board destination taught this step
+  markedAddPieceTarget?: GridPosition;
+  markedPieceId?: string;
   requiresRiver?: boolean; // the marked slot continues an existing river
   openBoard?: SpeciesId; // open this species board when the step starts
   completeWhenActionIndex?: number;
   completeWhenScoreAtLeast?: number;
+  completeWhenRoundAtLeast?: number;
   requiredSpendCount?: number;
 }
 
@@ -231,6 +237,13 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
 const JAGUAR_TUTORIAL_PLAYER_ID = "local_jaguar";
 const JAGUAR_TUTORIAL_COATI_ID = "local_coati";
 const JAGUAR_TUTORIAL_CAPUCHIN_ID = "local_capuchin";
+const WOLF_TUTORIAL_PLAYER_ID = "local_maned_wolf";
+const WOLF_TUTORIAL_COATI_ID = "local_wolf_coati";
+const WOLF_TUTORIAL_CAPUCHIN_ID = "local_wolf_capuchin";
+const WOLF_TUTORIAL_CARD = "campo_3_copy";
+const WOLF_TUTORIAL_FIRST_WOLF_ID = `${WOLF_TUTORIAL_PLAYER_ID}_piece_1`;
+const WOLF_TUTORIAL_SECOND_WOLF_ID = `${WOLF_TUTORIAL_PLAYER_ID}_piece_2`;
+const WOLF_TUTORIAL_BASE_TARGET_ID = `${WOLF_TUTORIAL_COATI_ID}_piece_1`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
@@ -303,8 +316,94 @@ const JAGUAR_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+const WOLF_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "wolf_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "wolf_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+];
+
+const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Lobo-guara: subpredador",
+    body: "O Lobo-guara e subpredador. Diferente da Onca, ele usa cartas na acao A e pode ter varios lobos em campo trabalhando juntos.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Cenario preparado",
+    body: "Vamos treinar como se a partida ja estivesse no segundo turno: a floresta esta pronta, dois lobos ja estao em campo, um lobo esta na reserva e ha especies de base para interagir.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Acao A: jogar carta",
+    body: "Na acao A, o Lobo expande a floresta com uma carta. Jogue a carta de campo destacada no espaco destacado. O habitat da carta jogada define como todos os lobos pendentes vao se mover.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: WOLF_TUTORIAL_CARD,
+    markedSlot: { x: -2, y: -2 }
+  },
+  {
+    title: "Acao A: mover primeiro lobo",
+    body: "Campo da ao Lobo movimento adjacente. Passe o mouse sobre o icone de movimento do Lobo na lista de jogadores para abrir a imagem de referencia. Agora clique no lobo destacado e mova para o Quati destacado; ele coleta o ovo do local.",
+    gate: "move",
+    autoAdvance: true,
+    markedMoveTarget: { x: 1, y: 0 },
+    markedPieceId: WOLF_TUTORIAL_FIRST_WOLF_ID
+  },
+  {
+    title: "Acao A: mover todos os lobos",
+    body: "Quando a carta e jogada, cada lobo com movimento legal precisa mover. Clique no segundo lobo destacado e mova para o bosque destacado; ele coleta uma pinha.",
+    gate: "move",
+    autoAdvance: true,
+    markedMoveTarget: { x: 0, y: 1 },
+    markedPieceId: WOLF_TUTORIAL_SECOND_WOLF_ID,
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Acao B: remover especie de base",
+    body: "Na acao B, o Lobo pode remover 1 peca de especie de base que esteja no mesmo local de um lobo. Selecione o Quati destacado e clique em Remover peca. O Lobo e o Quati coletam o recurso desse local.",
+    gate: "removeBase",
+    autoAdvance: true,
+    markedPieceId: WOLF_TUTORIAL_BASE_TARGET_ID,
+    completeWhenActionIndex: 2
+  },
+  {
+    title: "Acao C: gastar recursos diferentes",
+    body: "Na acao C, para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto. Como ha 2 lobos em campo, escolha ovo e pinha para marcar 2 pontos.",
+    gate: "score",
+    autoAdvance: true,
+    completeWhenScoreAtLeast: 2,
+    requiredSpendCount: 2
+  },
+  {
+    title: "Acao D: adicionar lobo",
+    body: "Na acao D, adicione 1 lobo da reserva em um local com carne. Clique na carta de carne destacada para colocar o terceiro lobo e encerrar o turno.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: -2, y: 0 },
+    completeWhenRoundAtLeast: 3
+  },
+  {
+    title: "Turno do Lobo completo",
+    body: "Resumo: A joga carta e move todos os lobos; B remove uma especie de base junto de um lobo; C gasta recursos diferentes para pontuar; D adiciona lobo em carne. Esse e o ciclo principal do Lobo-guara.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
 function getTutorialDoneKey(tutorialId: TutorialId): string {
-  return tutorialId === "jaguar" ? TUTORIAL_JAGUAR_DONE_KEY : TUTORIAL_INITIAL_DONE_KEY;
+  if (tutorialId === "jaguar") return TUTORIAL_JAGUAR_DONE_KEY;
+  if (tutorialId === "wolf") return TUTORIAL_WOLF_DONE_KEY;
+  return TUTORIAL_INITIAL_DONE_KEY;
 }
 
 function isTutorialDone(tutorialId: TutorialId): boolean {
@@ -330,6 +429,10 @@ function isTutorialInitialDone(): boolean {
 
 function isTutorialJaguarDone(): boolean {
   return isTutorialDone("jaguar");
+}
+
+function isTutorialWolfDone(): boolean {
+  return isTutorialDone("wolf");
 }
 
 function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
@@ -399,6 +502,75 @@ function createJaguarTutorialRoom(): PublicRoomState {
     {
       id: "jaguar_tutorial_ready",
       message: "Tutorial da Onça preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    game,
+    warnings: game.contentWarnings
+  };
+}
+
+function createWolfTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: WOLF_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Lobo",
+      speciesId: "maned_wolf",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: WOLF_TUTORIAL_COATI_ID,
+      name: "Quati de treino",
+      speciesId: "coati",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: WOLF_TUTORIAL_CAPUCHIN_ID,
+      name: "Macaco de treino",
+      speciesId: "capuchin",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, WOLF_TUTORIAL_FOREST);
+
+  for (const player of game.players) {
+    player.score = 0;
+    player.turnsTaken = player.playerId === WOLF_TUTORIAL_PLAYER_ID ? 1 : 0;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+    if (player.playerId === WOLF_TUTORIAL_PLAYER_ID) {
+      player.hand = [WOLF_TUTORIAL_CARD];
+    }
+  }
+
+  placeTutorialPiece(game, WOLF_TUTORIAL_PLAYER_ID, 1, { x: 0, y: 0 });
+  placeTutorialPiece(game, WOLF_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 1 });
+  placeTutorialPiece(game, WOLF_TUTORIAL_COATI_ID, 1, { x: 1, y: 0 });
+  placeTutorialPiece(game, WOLF_TUTORIAL_COATI_ID, 2, { x: 1, y: 1 });
+  placeTutorialPiece(game, WOLF_TUTORIAL_CAPUCHIN_ID, 1, { x: -2, y: -1 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = WOLF_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.turnOrder = [WOLF_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "wolf_tutorial_ready",
+      message: "Tutorial do Lobo-guara preparado no segundo turno.",
       createdAt: Date.now()
     }
   ];
@@ -651,7 +823,12 @@ export function App() {
   const gameLog = room?.game?.log;
 
   // Tutorial state derived from the current step.
-  const tutorialSteps = tutorialId === "jaguar" ? JAGUAR_TUTORIAL_STEPS : INITIAL_TUTORIAL_STEPS;
+  const tutorialSteps =
+    tutorialId === "jaguar"
+      ? JAGUAR_TUTORIAL_STEPS
+      : tutorialId === "wolf"
+        ? WOLF_TUTORIAL_STEPS
+        : INITIAL_TUTORIAL_STEPS;
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
   const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
@@ -724,7 +901,12 @@ export function App() {
     if (!def?.autoAdvance) return;
     const game = room.game;
     const forestHas = (cardId: string) => game.forest.cards.some((card) => card.definitionId === cardId);
-    const tutorialPlayerId = tutorialId === "jaguar" ? JAGUAR_TUTORIAL_PLAYER_ID : game.activePlayerId;
+    const tutorialPlayerId =
+      tutorialId === "jaguar"
+        ? JAGUAR_TUTORIAL_PLAYER_ID
+        : tutorialId === "wolf"
+          ? WOLF_TUTORIAL_PLAYER_ID
+          : game.activePlayerId;
 
     if (def.gate === "setup") {
       if (game.status === "active") setTutorialStep((step) => (step === null ? step : step + 1));
@@ -732,21 +914,23 @@ export function App() {
     }
 
     if (def.gate === "placeCard" && def.requiredCardId && forestHas(def.requiredCardId)) {
-      const isRiverStep = Boolean(def.requiresRiver);
-      setRoom((current) => {
-        if (!current?.game) return current;
-        const nextGame = { ...current.game };
-        if (isRiverStep) {
-          // Set up action B (move) with a forest card as the played card so the
-          // Tatu has the simplest movement (adjacent).
-          nextGame.activeActionIndex = 1;
-          nextGame.activePlayedForestCardId = TUTORIAL_NONRIVER_CARD;
-        } else {
-          // Allow placing the next card in the same action A.
-          nextGame.activePlayedForestCardId = null;
-        }
-        return { ...current, game: nextGame };
-      });
+      if (tutorialId === "initial") {
+        const isRiverStep = Boolean(def.requiresRiver);
+        setRoom((current) => {
+          if (!current?.game) return current;
+          const nextGame = { ...current.game };
+          if (isRiverStep) {
+            // Set up action B (move) with a forest card as the played card so the
+            // Tatu has the simplest movement (adjacent).
+            nextGame.activeActionIndex = 1;
+            nextGame.activePlayedForestCardId = TUTORIAL_NONRIVER_CARD;
+          } else {
+            // Allow placing the next card in the same action A.
+            nextGame.activePlayedForestCardId = null;
+          }
+          return { ...current, game: nextGame };
+        });
+      }
       setSelectedHandCardId(null);
       setSelectedCardRotation(0);
       tutorialMoveLogLenRef.current = null;
@@ -765,6 +949,14 @@ export function App() {
     if (typeof def.completeWhenScoreAtLeast === "number") {
       const player = game.players.find((candidate) => candidate.playerId === tutorialPlayerId);
       if (player && player.score >= def.completeWhenScoreAtLeast) {
+        tutorialMoveLogLenRef.current = null;
+        setTutorialStep((step) => (step === null ? step : step + 1));
+      }
+      return;
+    }
+
+    if (typeof def.completeWhenRoundAtLeast === "number") {
+      if (game.round >= def.completeWhenRoundAtLeast) {
         tutorialMoveLogLenRef.current = null;
         setTutorialStep((step) => (step === null ? step : step + 1));
       }
@@ -1103,10 +1295,14 @@ export function App() {
       )
       .map((piece) => piece.pieceId);
   }, [activeSpecies?.speciesId, movementTargets.length, room?.game, selectedJaguarDestination, selectedPieceId]);
-  const boardSelectablePieceIds = useMemo(
-    () => [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])],
-    [jaguarTargetPieceIds, selectablePieceIds]
-  );
+  const boardSelectablePieceIds = useMemo(() => {
+    const ids = [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
+    if (!tutorialActive || !tutorialDef?.markedPieceId) {
+      return ids;
+    }
+
+    return ids.filter((pieceId) => pieceId === tutorialDef.markedPieceId);
+  }, [jaguarTargetPieceIds, selectablePieceIds, tutorialActive, tutorialDef?.markedPieceId]);
   const highlightedPieceIds = useMemo(
     () => [
       ...selectedRemovalPieceIds,
@@ -1182,6 +1378,13 @@ export function App() {
           : coatiFruitTargets,
     [activeSpecies?.speciesId, armadilloSeedTargets, capuchinPlacementTargets, coatiFruitTargets, macawAddTargets, wolfMeatTargets]
   );
+  const displayAddPieceTargets = useMemo(() => {
+    if (!tutorialActive || tutorialGate !== "addPiece" || !tutorialDef?.markedAddPieceTarget) {
+      return addPieceTargets;
+    }
+
+    return addPieceTargets.filter((position) => sameGridPosition(position, tutorialDef.markedAddPieceTarget));
+  }, [addPieceTargets, tutorialActive, tutorialDef?.markedAddPieceTarget, tutorialGate]);
   const capuchinHabitatScore = room?.game && room.game.activePlayerId ? getCapuchinHabitatScore(room.game, room.game.activePlayerId) : 0;
   const macawLineScore = room?.game && room.game.activePlayerId ? getMacawLineScore(room.game, room.game.activePlayerId) : 0;
   const armadilloShareScore = room?.game && room.game.activePlayerId ? getArmadilloShareScore(room.game, room.game.activePlayerId) : 0;
@@ -1905,8 +2108,16 @@ export function App() {
       if (!room?.game || !room.game.activePlayerId || addPieceTargets.length === 0) {
         return;
       }
-      // Adding the piece is part of action A, taught in the placeCard step.
-      if (tutorialActive && tutorialGate !== "placeCard") return;
+      // Some tutorials teach adding as part of action A; Lobo teaches it in D.
+      if (tutorialActive && tutorialGate !== "placeCard" && tutorialGate !== "addPiece") return;
+      if (
+        tutorialActive &&
+        tutorialGate === "addPiece" &&
+        tutorialDef?.markedAddPieceTarget &&
+        !sameGridPosition(position, tutorialDef.markedAddPieceTarget)
+      ) {
+        return;
+      }
 
       if (isLocalRoom) {
         const nextGame =
@@ -1958,7 +2169,16 @@ export function App() {
         setSelectedRemovalPieceIds([]);
       });
     },
-    [activeSpecies?.speciesId, addPieceTargets.length, isLocalRoom, room, socket, tutorialActive, tutorialGate]
+    [
+      activeSpecies?.speciesId,
+      addPieceTargets.length,
+      isLocalRoom,
+      room,
+      socket,
+      tutorialActive,
+      tutorialDef?.markedAddPieceTarget,
+      tutorialGate
+    ]
   );
 
   const handleCoatiPairBonusTargetClick = useCallback(
@@ -2225,6 +2445,9 @@ export function App() {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedWolfTargetPieceId) {
       return;
     }
+    if (tutorialActive && tutorialDef?.markedPieceId && selectedWolfTargetPieceId !== tutorialDef.markedPieceId) {
+      return;
+    }
 
     if (isLocalRoom) {
       const nextGame = removeBasePieceForWolfAction(room.game, room.game.activePlayerId, selectedWolfTargetPieceId);
@@ -2250,10 +2473,26 @@ export function App() {
       setSelectedWolfResources([]);
       setSelectedRemovalPieceIds([]);
     });
-  }, [canControlActivePlayer, isLocalRoom, room, selectedWolfTargetPieceId, socket]);
+  }, [
+    canControlActivePlayer,
+    isLocalRoom,
+    room,
+    selectedWolfTargetPieceId,
+    socket,
+    tutorialActive,
+    tutorialDef?.markedPieceId
+  ]);
 
   const handleSpendWolfResources = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || selectedWolfResources.length === 0) {
+      return;
+    }
+    if (
+      tutorialActive &&
+      tutorialDef?.requiredSpendCount &&
+      selectedWolfResources.length !== tutorialDef.requiredSpendCount
+    ) {
+      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuacao completa.`);
       return;
     }
 
@@ -2281,10 +2520,21 @@ export function App() {
       setSelectedWolfResources([]);
       setSelectedRemovalPieceIds([]);
     });
-  }, [canControlActivePlayer, isLocalRoom, room, selectedWolfResources, socket]);
+  }, [
+    canControlActivePlayer,
+    isLocalRoom,
+    room,
+    selectedWolfResources,
+    socket,
+    tutorialActive,
+    tutorialDef?.requiredSpendCount
+  ]);
 
   const handleCompleteAction = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
+      return;
+    }
+    if (tutorialActive) {
       return;
     }
 
@@ -2308,7 +2558,7 @@ export function App() {
       setSelectedPieceId(null);
       setSelectedRemovalPieceIds([]);
     });
-  }, [canControlActivePlayer, isLocalRoom, room, socket]);
+  }, [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive]);
 
   function toggleLocalSpecies(speciesId: SpeciesId) {
     setLocalSpeciesIds((current) =>
@@ -2402,6 +2652,24 @@ export function App() {
     setRoom(createJaguarTutorialRoom());
     setTutorialStep(0);
     setTutorialId("jaguar");
+  }
+
+  function startWolfTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+    setPendingPlacement(null);
+    setRoom(createWolfTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("wolf");
   }
 
   function exitTutorial(completed: boolean) {
@@ -2925,7 +3193,31 @@ export function App() {
                 )}
               </button>
 
-              {speciesList.filter((species) => species.speciesId !== "jaguar").map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialWolfDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.maned_wolf } as CSSProperties}
+                onClick={startWolfTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.maned_wolf.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.maned_wolf.displayName}</strong>
+                  <small>Subpredador com cartas: mover todos os lobos, remover base, pontuar e adicionar.</small>
+                </span>
+                {isTutorialWolfDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluido
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Comecar
+                  </span>
+                )}
+              </button>
+
+              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
@@ -3673,7 +3965,7 @@ export function App() {
                         <X aria-hidden="true" />
                         Remover peca
                       </button>
-                      <button className="wolf-skip-button" onClick={handleCompleteAction}>
+                      <button className="wolf-skip-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                         <Check aria-hidden="true" />
                         Concluir
                       </button>
@@ -3688,7 +3980,7 @@ export function App() {
                     <small>
                       Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais validos: {wolfMeatTargets.length}.
                     </small>
-                    <button className="secondary-button" onClick={handleCompleteAction}>
+                    <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                       Concluir sem adicionar
                     </button>
                   </>
@@ -3734,7 +4026,7 @@ export function App() {
                 : null
             }
             movementTargets={displayMovementTargets}
-            addPieceTargets={addPieceTargets}
+            addPieceTargets={displayAddPieceTargets}
             addPieceLabel={
               activeSpecies?.speciesId === "capuchin"
                 ? "Adicionar macaco"
@@ -3960,7 +4252,11 @@ export function App() {
                   })}
                 </div>
               ) : (
-                <p className="empty-state">Esta espécie não usa cartas de floresta na mão.</p>
+                <p className="empty-state">
+                  {currentGamePlayer.speciesId === "jaguar"
+                    ? "Esta espécie não usa cartas de floresta na mão."
+                    : "Sem cartas de floresta na mão."}
+                </p>
               ))}
           </section>
         )}
@@ -4132,7 +4428,7 @@ export function App() {
                 ))}
               </div>
               <div className="choice-modal-actions">
-                <button className="secondary-button" onClick={handleCompleteAction}>
+                <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                   Concluir sem gastar
                 </button>
               </div>
@@ -4286,7 +4582,8 @@ export function App() {
         activeGamePlayer &&
         activeSpecies?.speciesId === "maned_wolf" &&
         activeActionId === "C" &&
-        canControlActivePlayer && (
+        canControlActivePlayer &&
+        (!tutorialActive || tutorialId !== "wolf" || tutorialGate === "score") && (
           <div className="choice-modal-backdrop" role="presentation">
             <div
               className="choice-modal"
@@ -4348,7 +4645,7 @@ export function App() {
                   <Check aria-hidden="true" />
                   Gastar selecionados
                 </button>
-                <button className="secondary-button" onClick={handleCompleteAction}>
+                <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                   Concluir sem gastar
                 </button>
               </div>
