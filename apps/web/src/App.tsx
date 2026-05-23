@@ -3115,10 +3115,6 @@ export function App() {
                 <strong>{currentGamePlayer.speciesId ? speciesDefinitions[currentGamePlayer.speciesId].displayName : "Espécie"}</strong>
               </div>
               <div className="hand-header-side">
-                {selectedHandCardId && canPlaceSelectedForestCard && (
-                  <small>Arraste para um espaço destacado. Gire com Q / E / R, setas ou botão direito.</small>
-                )}
-                {selectedHandCardId && !canPlaceSelectedForestCard && <small>Carta usável só na ação A da espécie ativa.</small>}
                 <button
                   type="button"
                   className="hand-toggle"
