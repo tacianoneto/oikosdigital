@@ -126,7 +126,7 @@ import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
 
 // --- Tutorials --------------------------------------------------------------
-type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw" | "capuchin";
+type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw" | "capuchin" | "coati";
 
 const TUTORIAL_INITIAL_DONE_KEY = "oikos-tutorial-initial";
 const TUTORIAL_JAGUAR_DONE_KEY = "oikos-tutorial-jaguar";
@@ -134,6 +134,7 @@ const TUTORIAL_WOLF_DONE_KEY = "oikos-tutorial-wolf";
 const TUTORIAL_ARMADILLO_DONE_KEY = "oikos-tutorial-armadillo";
 const TUTORIAL_MACAW_DONE_KEY = "oikos-tutorial-macaw";
 const TUTORIAL_CAPUCHIN_DONE_KEY = "oikos-tutorial-capuchin";
+const TUTORIAL_COATI_DONE_KEY = "oikos-tutorial-coati";
 
 // Each scripted step locks the board to a single taught interaction:
 //   none      -> read-only, advance with the coach button
@@ -143,7 +144,8 @@ const TUTORIAL_CAPUCHIN_DONE_KEY = "oikos-tutorial-capuchin";
 //   removeBase -> select a base species piece and confirm removal
 //   score      -> use a modal/side action while the board stays read-only
 //   addPiece   -> add a species piece to a highlighted card
-type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece";
+//   resolvePair -> resolve the Coati pair passive on an adjacent highlighted card
+type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece" | "resolvePair";
 
 interface TutorialStepDef {
   title: string;
@@ -154,6 +156,7 @@ interface TutorialStepDef {
   markedSlot?: GridPosition; // the only slot where the card may be placed
   markedMoveTarget?: GridPosition; // the only board destination taught this step
   markedAddPieceTarget?: GridPosition;
+  markedPairTarget?: GridPosition; // the only adjacent cell taught for the Coati pair bonus
   markedPieceId?: string;
   highlightMovementGuideSpecies?: SpeciesId;
   jaguarProbeTarget?: GridPosition;
@@ -162,6 +165,7 @@ interface TutorialStepDef {
   completeWhenActionIndex?: number;
   completeWhenScoreAtLeast?: number;
   completeWhenRoundAtLeast?: number;
+  completeWhenCoatiPairPending?: boolean; // advance once the pair passive is queued
   requiredSpendCount?: number;
 }
 
@@ -263,6 +267,9 @@ const MACAW_TUTORIAL_MOVE_ID = `${MACAW_TUTORIAL_PLAYER_ID}_piece_1`;
 const CAPUCHIN_TUTORIAL_PLAYER_ID = "local_capuchin_species";
 const CAPUCHIN_TUTORIAL_CARD = "bosque_4_copy";
 const CAPUCHIN_TUTORIAL_MOVE_ID = `${CAPUCHIN_TUTORIAL_PLAYER_ID}_piece_2`;
+const COATI_TUTORIAL_PLAYER_ID = "local_coati_species";
+const COATI_TUTORIAL_CARD = "campo_2_copy_2";
+const COATI_TUTORIAL_MOVE_ID = `${COATI_TUTORIAL_PLAYER_ID}_piece_2`;
 
 const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
@@ -656,12 +663,87 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+const COATI_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "coa_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+];
+
+const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Quati: duplas e combos",
+    body: "O Quati cresce em duplas. Tem uma passiva poderosa: sempre que formar um par exato de 2 quatis num local, adicione 1 quati da reserva num local adjacente e marque 1 ponto. Tem 3 ações (A, B, C) e não pontua na ação D. Movimento: bosque = salto reto, campo = diagonal, rio = adjacente.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Cenário preparado",
+    body: "Vamos treinar como se a partida já estivesse no segundo turno: um quati está num bosque com fruta à esquerda e outro num campo no centro. O objetivo é formar uma dupla e disparar a passiva.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação A: jogar carta",
+    body: "Na ação A, o Quati expande a floresta com uma carta. Jogue a carta de campo destacada no espaço à direita. O habitat da carta jogada define o movimento da ação B.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: COATI_TUTORIAL_CARD,
+    markedSlot: { x: 2, y: 0 }
+  },
+  {
+    title: "Ação A: adicionar em fruta",
+    body: "Depois de jogar a carta, o Quati adiciona 1 peça da reserva em qualquer local com fruta. Clique na carta de fruta destacada, onde já há um quati seu: isso forma uma dupla e dispara a passiva.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: -1, y: 0 },
+    completeWhenCoatiPairPending: true
+  },
+  {
+    title: "Passiva: dupla de quatis",
+    body: "Dupla formada! A passiva pede para você adicionar 1 quati da reserva num local adjacente à dupla e marcar 1 ponto. Clique no local adjacente destacado para resolver o bônus.",
+    gate: "resolvePair",
+    autoAdvance: true,
+    markedPairTarget: { x: -2, y: 0 },
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Ação B: mover pela carta jogada",
+    body: "A carta jogada foi de campo. Para o Quati, campo permite movimento diagonal. Mova o quati destacado para o espaço destacado; ao mover, ele coleta o recurso do destino.",
+    gate: "move",
+    autoAdvance: true,
+    markedPieceId: COATI_TUTORIAL_MOVE_ID,
+    markedMoveTarget: { x: 1, y: -1 },
+    highlightMovementGuideSpecies: "coati"
+  },
+  {
+    title: "Ação C: controle de reserva",
+    body: "Repare que o turno avançou direto: a ação C foi pulada automaticamente. Ela só tem efeito quando há menos de 2 quatis na reserva, e nesse caso obriga você a remover 2 quatis da floresta. Como sua reserva está cheia, não havia nada a remover.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Turno do Quati completo",
+    body: "Resumo: a passiva dispara em todo par exato de 2 quatis (adiciona 1 adjacente + 1 ponto, podendo encadear); A joga carta e adiciona 1 quati em fruta; B move conforme o habitat da carta e coleta recurso; C remove 2 quatis da floresta apenas se a reserva tiver menos de 2.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
 function getTutorialDoneKey(tutorialId: TutorialId): string {
   if (tutorialId === "jaguar") return TUTORIAL_JAGUAR_DONE_KEY;
   if (tutorialId === "wolf") return TUTORIAL_WOLF_DONE_KEY;
   if (tutorialId === "armadillo") return TUTORIAL_ARMADILLO_DONE_KEY;
   if (tutorialId === "macaw") return TUTORIAL_MACAW_DONE_KEY;
   if (tutorialId === "capuchin") return TUTORIAL_CAPUCHIN_DONE_KEY;
+  if (tutorialId === "coati") return TUTORIAL_COATI_DONE_KEY;
   return TUTORIAL_INITIAL_DONE_KEY;
 }
 
@@ -704,6 +786,10 @@ function isTutorialMacawDone(): boolean {
 
 function isTutorialCapuchinDone(): boolean {
   return isTutorialDone("capuchin");
+}
+
+function isTutorialCoatiDone(): boolean {
+  return isTutorialDone("coati");
 }
 
 function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
@@ -1069,6 +1155,57 @@ function createCapuchinTutorialRoom(): PublicRoomState {
   };
 }
 
+function createCoatiTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: COATI_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Quati",
+      speciesId: "coati",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, COATI_TUTORIAL_FOREST);
+
+  const player = game.players.find((candidate) => candidate.playerId === COATI_TUTORIAL_PLAYER_ID);
+  if (player) {
+    player.score = 0;
+    player.turnsTaken = 1;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+    player.hand = [COATI_TUTORIAL_CARD];
+  }
+
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 2, { x: 0, y: 0 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = COATI_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.turnOrder = [COATI_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "coati_tutorial_ready",
+      message: "Tutorial do Quati preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    game,
+    warnings: game.contentWarnings
+  };
+}
+
 export function App() {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -1318,6 +1455,8 @@ export function App() {
           ? MACAW_TUTORIAL_STEPS
         : tutorialId === "capuchin"
           ? CAPUCHIN_TUTORIAL_STEPS
+        : tutorialId === "coati"
+          ? COATI_TUTORIAL_STEPS
           : INITIAL_TUTORIAL_STEPS;
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
@@ -1404,6 +1543,8 @@ export function App() {
               ? MACAW_TUTORIAL_PLAYER_ID
             : tutorialId === "capuchin"
               ? CAPUCHIN_TUTORIAL_PLAYER_ID
+            : tutorialId === "coati"
+              ? COATI_TUTORIAL_PLAYER_ID
               : game.activePlayerId;
 
     if (def.gate === "setup") {
@@ -1433,6 +1574,14 @@ export function App() {
       setSelectedCardRotation(0);
       tutorialMoveLogLenRef.current = null;
       setTutorialStep((step) => (step === null ? step : step + 1));
+      return;
+    }
+
+    if (def.completeWhenCoatiPairPending) {
+      if (game.activePlayerId === tutorialPlayerId && game.pendingCoatiPairBonus?.playerId === tutorialPlayerId) {
+        tutorialMoveLogLenRef.current = null;
+        setTutorialStep((step) => (step === null ? step : step + 1));
+      }
       return;
     }
 
@@ -1834,6 +1983,13 @@ export function App() {
 
     return getCoatiPairBonusTargets(room.game, room.game.activePlayerId);
   }, [canControlActivePlayer, room?.game]);
+  const displayCoatiPairBonusTargets = useMemo(() => {
+    if (!tutorialActive || tutorialGate !== "resolvePair" || !tutorialDef?.markedPairTarget) {
+      return coatiPairBonusTargets;
+    }
+
+    return coatiPairBonusTargets.filter((position) => sameGridPosition(position, tutorialDef.markedPairTarget));
+  }, [coatiPairBonusTargets, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]);
   const capuchinPlacementTargets = useMemo(() => {
     if (!room?.game || activeSpecies?.speciesId !== "capuchin" || !room.game.activePlayerId || !canControlActivePlayer) {
       return [];
@@ -2695,6 +2851,14 @@ export function App() {
       if (!room?.game || !room.game.activePlayerId || coatiPairBonusTargets.length === 0) {
         return;
       }
+      if (
+        tutorialActive &&
+        tutorialGate === "resolvePair" &&
+        tutorialDef?.markedPairTarget &&
+        !sameGridPosition(position, tutorialDef.markedPairTarget)
+      ) {
+        return;
+      }
 
       if (isLocalRoom) {
         const nextGame = resolveCoatiPairBonus(room.game, room.game.activePlayerId, position);
@@ -2717,7 +2881,7 @@ export function App() {
         setSelectedRemovalPieceIds([]);
       });
     },
-    [coatiPairBonusTargets.length, isLocalRoom, room, socket]
+    [coatiPairBonusTargets.length, isLocalRoom, room, socket, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]
   );
 
   const handleRemoveSelectedPieces = useCallback(() => {
@@ -3245,6 +3409,26 @@ export function App() {
     setRoom(createCapuchinTutorialRoom());
     setTutorialStep(0);
     setTutorialId("capuchin");
+  }
+
+  function startCoatiTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createCoatiTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("coati");
   }
 
   function exitTutorial(completed: boolean) {
@@ -3869,7 +4053,31 @@ export function App() {
                 )}
               </button>
 
-              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf" && species.speciesId !== "armadillo" && species.speciesId !== "macaw" && species.speciesId !== "capuchin").map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialCoatiDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.coati } as CSSProperties}
+                onClick={startCoatiTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.coati.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.coati.displayName}</strong>
+                  <small>Aprenda a jogar com esta espécie.</small>
+                </span>
+                {isTutorialCoatiDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+
+              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf" && species.speciesId !== "armadillo" && species.speciesId !== "macaw" && species.speciesId !== "capuchin" && species.speciesId !== "coati").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
@@ -4415,7 +4623,7 @@ export function App() {
                         ? "Escolha uma carta com fruta para adicionar 1 quati, ou conclua sem adicionar."
                         : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
                     </small>
-                    {room.game.activePlayedForestCardId && (
+                    {room.game.activePlayedForestCardId && !tutorialActive && (
                       <button className="secondary-button" onClick={handleCompleteAction}>
                         Concluir sem adicionar
                       </button>
@@ -4429,6 +4637,7 @@ export function App() {
                   !hasPendingCoatiPairBonus &&
                   activeActionId === "C" &&
                   canControlActivePlayer &&
+                  !tutorialActive &&
                   requiredCoatiRemovalCount === 0 && (
                   <button className="secondary-button" onClick={handleCompleteAction}>
                     Concluir ação {activeActionId}
@@ -4701,7 +4910,7 @@ export function App() {
                       ? "Clique em uma carta com carne para adicionar 1 lobo"
                   : "Clique em uma carta com fruta para adicionar 1 quati"
             }
-            bonusTargets={coatiPairBonusTargets}
+            bonusTargets={displayCoatiPairBonusTargets}
             spotlightInstanceIds={spotlightInstanceIds}
             scoringCardHighlights={scoringPreview.cardHighlights}
             scoringLineHighlights={scoringPreview.lineHighlights}
