@@ -605,42 +605,30 @@ const CAPUCHIN_TUTORIAL_FOREST: ForestCardState[] = [
 
 const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Macaco-prego: ocupar habitats",
-    body: "O Macaco-prego espalha peças e pontua presença em habitats. Ele joga cartas, adiciona na carta jogada, move pela carta jogada e pontua cada tipo de habitat onde tem macacos em 2 ou mais cartas diferentes. Movimento: bosque = salto reto, campo = salto em curva, rio = diagonal.",
+    title: "Macaco-prego",
+    body: "Você já tem macacos em 2 rios, 2 bosques e 1 campo. Vamos fechar pares jogando o turno.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Como pontua o Macaco-prego",
-    body: "Cada TIPO de habitat com macacos em 2 ou mais cartas diferentes vale 1 ponto. 2 macacos em 2 rios = 1 ponto; 2 em 2 bosques = mais 1 ponto; 2 em 2 campos = mais 1 ponto. Não importa ter 3 no mesmo habitat: o que conta é cobrir habitats diferentes com pares.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Cenário preparado",
-    body: "Partida num turno avançado: você já tem 2 macacos em 2 rios diferentes, 2 em 2 bosques diferentes e 1 em campo. Faltam só 2 movimentos para fechar pares em rio, bosque E campo e marcar 3 pontos.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Ação A: jogar carta",
-    body: "Na ação A, o Macaco-prego expande a floresta com uma carta. Jogue a carta de bosque destacada no espaço à direita. O habitat da carta jogada define o movimento da ação B.",
+    title: "Jogue a carta",
+    body: "Arraste a carta de bosque destacada para o espaço à direita.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: CAPUCHIN_TUTORIAL_CARD,
     markedSlot: { x: 2, y: 0 }
   },
   {
-    title: "Ação A: adicionar na carta jogada",
-    body: "Depois de jogar a carta, o Macaco-prego adiciona 1 peça da reserva na própria carta jogada. Clique na carta de bosque destacada. Diferente da Arara, a adição é sempre na carta que você acabou de jogar.",
+    title: "Adicione um macaco",
+    body: "Clique na carta que acabou de jogar para pôr 1 macaco nela.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: 2, y: 0 },
     completeWhenActionIndex: 1
   },
   {
-    title: "Ação B: mover de bosque para campo",
-    body: "A carta jogada foi de bosque: o Macaco-prego salta reto (2 espaços em linha). Mova o macaco de bosque destacado para a carta de campo destacada. Assim você passa a ter 2 macacos em 2 campos diferentes, sem perder os 2 bosques.",
+    title: "Salte para o campo",
+    body: "Bosque = salto reto. Mova o macaco destacado para o campo destacado.",
     gate: "move",
     autoAdvance: true,
     markedPieceId: CAPUCHIN_TUTORIAL_MOVE_ID,
@@ -649,23 +637,23 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
     completeWhenActionIndex: 2
   },
   {
-    title: "Ação C: reforçar um local",
-    body: "Na ação C, você pode adicionar 1 macaco da reserva em qualquer local que já tenha outro macaco seu. A ação C não coleta recurso e não cria carta nova, então não muda a pontuação. Clique no local destacado para empilhar mais um macaco.",
+    title: "Reforce",
+    body: "Clique no local destacado para empilhar mais 1 macaco.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: 2, y: 0 },
     completeWhenActionIndex: 3
   },
   {
-    title: "Ação D: pontuar habitats",
-    body: "Na ação D conferimos os pares: 2 macacos em rios, 2 em bosques e 2 em campos. São 3 tipos de habitat com pares = 3 pontos, marcados automaticamente.",
+    title: "+3 pontos!",
+    body: "2 rios, 2 bosques e 2 campos: 3 habitats com par, 3 pontos.",
     gate: "score",
     autoAdvance: true,
     completeWhenScoreAtLeast: 3
   },
   {
-    title: "Turno do Macaco-prego completo",
-    body: "Resumo: A joga carta e adiciona 1 macaco na carta jogada; B move conforme o habitat da carta e coleta recurso; C adiciona 1 macaco onde já há outro, sem coletar; D marca 1 ponto por TIPO de habitat com macacos em 2+ cartas diferentes (aqui rio + bosque + campo = 3).",
+    title: "Pegou a ideia",
+    body: "Cada habitat com 2+ macacos em cartas diferentes = 1 ponto. Espalhe em mais habitats para pontuar mais.",
     gate: "none",
     autoAdvance: false
   }
