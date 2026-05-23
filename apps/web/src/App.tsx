@@ -3185,7 +3185,7 @@ export function App() {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.jaguar.displayName}</strong>
-                  <small>Predador sem cartas: mover, caçar, coletar carne e pontuar.</small>
+                  <small>Aprenda a jogar com esta espécie.</small>
                 </span>
                 {isTutorialJaguarDone() ? (
                   <span className="tutorial-chapter-badge done">
@@ -3209,7 +3209,7 @@ export function App() {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.maned_wolf.displayName}</strong>
-                  <small>Subpredador com cartas: mover todos os lobos, remover base, pontuar e adicionar.</small>
+                  <small>Aprenda a jogar com esta espécie.</small>
                 </span>
                 {isTutorialWolfDone() ? (
                   <span className="tutorial-chapter-badge done">
