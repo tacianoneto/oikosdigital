@@ -1159,6 +1159,11 @@ input:focus {
   font-size: 12px;
 }
 
+/* Collapse toggle is mobile-only; hidden (and out of the 2-col grid) on desktop. */
+.species-hud-toggle {
+  display: none;
+}
+
 .hud-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2776,6 +2781,35 @@ input:focus {
     top: 10px;
     left: 10px;
     width: min(64vw, 260px);
+  }
+
+  .species-hud-header {
+    grid-template-columns: 44px 1fr auto;
+  }
+
+  .species-hud-toggle {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: var(--bw) solid var(--line);
+    border-radius: 10px;
+    background: var(--panel-2);
+    color: var(--paper);
+  }
+
+  .species-hud-toggle svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .species-hud.is-collapsed {
+    width: max-content;
+  }
+
+  .species-hud.is-collapsed .hud-stat-grid,
+  .species-hud.is-collapsed .resource-bank {
+    display: none;
   }
 
   .hud-action.hud-left {

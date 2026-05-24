@@ -1277,6 +1277,9 @@ export function App() {
   }, []);
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(isSmallScreen);
   const [hudRightCollapsed, setHudRightCollapsed] = useState(isSmallScreen);
+  // Mobile-only: the species panel can collapse to its header. Desktop keeps it
+  // open (toggle is hidden and the collapse CSS lives only in the phone query).
+  const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<"idle" | "join" | "local" | "tutorials">("idle");
   const [tutorialId, setTutorialId] = useState<TutorialId | null>(null);
@@ -4553,7 +4556,10 @@ export function App() {
       )}
 
       {hasStartedGame && hudGamePlayer && hudSpecies && (
-        <section className="hud-species panel-block species-hud" style={speciesVar(hudGamePlayer.speciesId)}>
+        <section
+          className={`hud-species panel-block species-hud ${hudSpeciesCollapsed ? "is-collapsed" : ""}`}
+          style={speciesVar(hudGamePlayer.speciesId)}
+        >
             <div className="species-hud-header">
               <img className="player-portrait" src={encodeURI(hudSpecies.portraitAsset)} alt="" />
               <div>
@@ -4561,6 +4567,15 @@ export function App() {
                 <h2>{hudSpecies.displayName}</h2>
                 <p>{hudGamePlayer.name}</p>
               </div>
+              <button
+                type="button"
+                className="species-hud-toggle"
+                onClick={() => setHudSpeciesCollapsed((value) => !value)}
+                aria-label={hudSpeciesCollapsed ? "Expandir painel da espécie" : "Recolher painel da espécie"}
+                title={hudSpeciesCollapsed ? "Expandir" : "Recolher"}
+              >
+                {hudSpeciesCollapsed ? <ChevronDown aria-hidden="true" /> : <ChevronUp aria-hidden="true" />}
+              </button>
             </div>
 
             <div className="hud-stat-grid">
