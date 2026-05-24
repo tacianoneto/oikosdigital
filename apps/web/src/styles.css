@@ -4618,6 +4618,26 @@ input:focus {
   height: 11px;
 }
 
+.flow-bot-speed {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: rgba(11, 22, 17, 0.55);
+}
+
+.flow-bot-speed span {
+  color: var(--paper);
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+}
+
 /* =====================================================
    LOBBY SCREEN
    ===================================================== */

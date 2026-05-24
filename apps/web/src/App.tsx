@@ -1246,9 +1246,6 @@ function isSmallScreen(): boolean {
 const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
 const DEFAULT_TURN_TIMER_MS = 60000;
 
-// Delay between automatic bot steps in local test games.
-const LOCAL_BOT_STEP_MS = 750;
-
 function formatTurnTimer(ms: number): string {
   const seconds = Math.round(ms / 1000);
   if (seconds < 60) {
@@ -1295,6 +1292,7 @@ export function App() {
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
   const [localSpeciesIds, setLocalSpeciesIds] = useState<SpeciesId[]>(["maned_wolf", "coati"]);
   const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
+  const [localBotTurnDelayMs, setLocalBotTurnDelayMs] = useState(defaultBotTurnDelayMs);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [selectedCardRotation, setSelectedCardRotation] = useState<0 | 90 | 180 | 270>(0);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
@@ -1749,7 +1747,9 @@ export function App() {
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
-  const botTurnDelayMs = room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
+  const botTurnDelayMs = isLocalRoom
+    ? room?.botTurnDelayMs ?? localBotTurnDelayMs
+    : room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
   const turnTimerMs = room?.turnTimerMs ?? null;
   const showTurnCountdown = Boolean(
     !isLocalRoom && room?.game?.status === "active" && turnTimerMs && room?.activeTurnStartedAt
@@ -2590,12 +2590,37 @@ export function App() {
     return delayMs >= 1000 ? `${(delayMs / 1000).toFixed(delayMs % 1000 === 0 ? 0 : 1)}s` : `${delayMs}ms`;
   }
 
+  function clampBotSpeed(delayMs: number): number {
+    return Math.max(minBotTurnDelayMs, Math.min(maxBotTurnDelayMs, delayMs));
+  }
+
+  function adjustLocalBotSpeed(deltaMs: number) {
+    setLocalBotTurnDelayMs((current) => clampBotSpeed(current + deltaMs));
+  }
+
   function adjustBotSpeed(deltaMs: number) {
-    if (!room || !isHost) {
+    if (!room) {
       return;
     }
 
-    const nextDelay = Math.max(minBotTurnDelayMs, Math.min(maxBotTurnDelayMs, botTurnDelayMs + deltaMs));
+    const nextDelay = clampBotSpeed(botTurnDelayMs + deltaMs);
+    if (isLocalRoom) {
+      setLocalBotTurnDelayMs(nextDelay);
+      setRoom((current) =>
+        current?.roomId === localRoomId
+          ? {
+              ...current,
+              botTurnDelayMs: nextDelay
+            }
+          : current
+      );
+      return;
+    }
+
+    if (!isHost) {
+      return;
+    }
+
     void run(() => roomApi.setBotSpeed(requireSocket(), room.roomId, nextDelay));
   }
 
@@ -3409,7 +3434,8 @@ export function App() {
       hostPlayerId: "local_host",
       players: localPlayers,
       game,
-      warnings: game.contentWarnings
+      warnings: game.contentWarnings,
+      botTurnDelayMs: localBotTurnDelayMs
     });
     setNotice("Teste local iniciado.");
   }
@@ -3479,10 +3505,10 @@ export function App() {
           warnings: nextGame.contentWarnings
         };
       });
-    }, LOCAL_BOT_STEP_MS);
+    }, room.botTurnDelayMs ?? localBotTurnDelayMs);
 
     return () => window.clearTimeout(timer);
-  }, [room]);
+  }, [localBotTurnDelayMs, room]);
 
   // Rematch for a local test: rebuild a fresh game with the same species.
   function playAgainLocal() {
@@ -4089,6 +4115,28 @@ export function App() {
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="flow-bot-speed" aria-label="Velocidade dos bots no teste local">
+                <button
+                  type="button"
+                  className="icon-button compact"
+                  title="Bots mais rápidos"
+                  aria-label="Bots mais rápidos"
+                  onClick={() => adjustLocalBotSpeed(-botTurnDelayStepMs)}
+                >
+                  <Minus aria-hidden="true" />
+                </button>
+                <span>Bots {formatBotDelay(localBotTurnDelayMs)}</span>
+                <button
+                  type="button"
+                  className="icon-button compact"
+                  title="Bots mais lentos"
+                  aria-label="Bots mais lentos"
+                  onClick={() => adjustLocalBotSpeed(botTurnDelayStepMs)}
+                >
+                  <Plus aria-hidden="true" />
+                </button>
               </div>
 
               <button
@@ -4702,7 +4750,7 @@ export function App() {
                 </button>
               )}
             </div>
-            {!isLocalRoom && isHost && (
+            {((!isLocalRoom && isHost) || (isLocalRoom && roomHasBots)) && (
               <div className="bot-speed-control" aria-label="Velocidade dos bots">
                 <button
                   type="button"
