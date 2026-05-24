@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { createInitialGameState, createPreviewInitialForest, getCapuchinHabitatScore, placeInitialPiece } from "@oikos/rules";
+import {
+  createInitialGameState,
+  createPreviewInitialForest,
+  forceEndPlayerTurn,
+  getCapuchinHabitatScore,
+  placeInitialPiece
+} from "@oikos/rules";
 import type { RoomPlayer } from "@oikos/shared";
-import { playBotStep } from "./bots";
+import { playBotStep, playRandomStep } from "./bots";
 
 function player(playerId: string, speciesId: RoomPlayer["speciesId"], isBot = true): RoomPlayer {
   return {
@@ -100,5 +106,47 @@ describe("bot decisions", () => {
     expect(wolf?.score).toBe(3);
     expect(wolf?.resources).toEqual({ meat: 0, egg: 0, fruit: 0, seed: 0 });
     expect(game.activePlayerId).toBe("coati");
+  });
+
+  it("random takeover resolves a full game for every species without getting stuck", () => {
+    // Mirrors the server's turn-timeout takeover: drive every turn with the
+    // random bot (with the same forced-end fallback) and confirm the game runs
+    // to completion for all six species.
+    const players = [
+      player("p_jaguar", "jaguar"),
+      player("p_wolf", "maned_wolf"),
+      player("p_armadillo", "armadillo"),
+      player("p_macaw", "macaw"),
+      player("p_capuchin", "capuchin"),
+      player("p_coati", "coati")
+    ];
+
+    let game = createInitialGameState("room", players);
+
+    let guard = 0;
+    while (game.status === "setup" && guard < 500) {
+      guard += 1;
+      const pid = game.setupActivePlayerId!;
+      try {
+        game = playRandomStep(game, pid);
+      } catch {
+        game = forceEndPlayerTurn(game, pid, "timeout");
+      }
+    }
+    expect(game.status).toBe("active");
+
+    guard = 0;
+    while (game.status === "active" && guard < 10000) {
+      guard += 1;
+      const pid = game.activePlayerId!;
+      try {
+        game = playRandomStep(game, pid);
+      } catch {
+        game = forceEndPlayerTurn(game, pid, "timeout");
+      }
+    }
+
+    expect(game.status).toBe("finished");
+    expect(game.winnerPlayerIds.length).toBeGreaterThan(0);
   });
 });

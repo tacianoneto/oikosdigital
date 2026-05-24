@@ -96,6 +96,325 @@ export function playBotStep(game: GameState, playerId: string): GameState {
   }
 }
 
+// Turn-timeout takeover bot: makes only legal moves, but chooses among them at
+// random (and sometimes skips optional plays) instead of scoring. Used as the
+// "punishment" when an online player runs out of time on their turn.
+export function playRandomStep(game: GameState, playerId: string): GameState {
+  if (game.status === "setup") {
+    return playRandomSetupStep(game, playerId);
+  }
+
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return game;
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player?.speciesId) {
+    return game;
+  }
+
+  const speciesId = player.speciesId;
+
+  if (game.pendingCoatiPairBonus?.playerId === playerId) {
+    const targets = getCoatiPairBonusTargets(game, playerId);
+    if (targets.length > 0) {
+      return resolveCoatiPairBonus(game, playerId, pickOne(targets));
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  const action = getCurrentAction(game, speciesId);
+  if (!action) {
+    return game;
+  }
+
+  if (speciesId !== "jaguar" && action === "A" && !game.activePlayedForestCardId) {
+    return playRandomForestCard(game, playerId);
+  }
+
+  if (speciesId === "maned_wolf" && game.pendingWolfMoves?.playerId === playerId) {
+    return moveRandomAmong(game, playerId, speciesId, game.pendingWolfMoves.pieceIds);
+  }
+
+  switch (speciesId) {
+    case "jaguar":
+      return randomJaguar(game, playerId, action);
+    case "coati":
+      return randomCoati(game, playerId, action);
+    case "capuchin":
+      return randomCapuchin(game, playerId, action);
+    case "macaw":
+      return randomMacaw(game, playerId, action);
+    case "armadillo":
+      return randomArmadillo(game, playerId, action);
+    case "maned_wolf":
+      return randomWolf(game, playerId, action);
+  }
+}
+
+function playRandomSetupStep(game: GameState, playerId: string): GameState {
+  if (game.setupActivePlayerId !== playerId) {
+    return game;
+  }
+
+  for (const position of shuffle(game.forest.cards.map((card) => ({ x: card.x, y: card.y })))) {
+    try {
+      return placeInitialPiece(game, playerId, position);
+    } catch {
+      // Try the next position.
+    }
+  }
+
+  throw new Error("Bot aleatorio nao encontrou posicao de setup.");
+}
+
+function playRandomForestCard(game: GameState, playerId: string): GameState {
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player) {
+    return game;
+  }
+
+  const options = shuffle(
+    player.hand.flatMap((cardId) =>
+      rotations.flatMap((rotation) =>
+        getAvailableForestExpansionPositionsForCard(game, cardId, rotation).map((position) => ({ cardId, rotation, position }))
+      )
+    )
+  );
+
+  for (const option of options) {
+    try {
+      return placeForestCard(game, playerId, option.cardId, option.position, option.rotation);
+    } catch {
+      // Try another card/slot.
+    }
+  }
+
+  throw new Error("Bot aleatorio nao encontrou carta para expandir.");
+}
+
+function moveRandomAmong(game: GameState, playerId: string, speciesId: SpeciesId, pieceIds: string[]): GameState {
+  const options = shuffle(
+    pieceIds.flatMap((pieceId) =>
+      getValidPieceMovementDestinations(game, playerId, pieceId).map((position) => ({ pieceId, position }))
+    )
+  );
+
+  for (const option of options) {
+    try {
+      const targetPieceId = speciesId === "jaguar" ? pickRandomCaptureTarget(game, playerId, option.position) : undefined;
+      return movePieceForCurrentAction(game, playerId, option.pieceId, option.position, targetPieceId);
+    } catch {
+      // Try another piece/destination.
+    }
+  }
+
+  return completeOrSkip(game, playerId);
+}
+
+function moveRandomOwned(game: GameState, playerId: string, speciesId: SpeciesId): GameState {
+  const pieceIds = game.pieces
+    .filter((piece) => piece.ownerId === playerId && piece.speciesId === speciesId && piece.location)
+    .map((piece) => piece.pieceId);
+  return moveRandomAmong(game, playerId, speciesId, pieceIds);
+}
+
+function pickRandomCaptureTarget(game: GameState, playerId: string, position: GridPosition): string | undefined {
+  const targets = game.pieces.filter(
+    (piece) => piece.ownerId !== playerId && !piece.state.hidden && piece.location?.x === position.x && piece.location.y === position.y
+  );
+  return targets.length > 0 ? pickOne(targets).pieceId : undefined;
+}
+
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function maybe(probability = 0.5): boolean {
+  return Math.random() < probability;
+}
+
+function randomJaguar(game: GameState, playerId: string, action: string): GameState {
+  if (action === "C") {
+    const max = getAvailableJaguarPointSpendCount(game, playerId);
+    const count = max > 0 ? randInt(0, max) : 0;
+    if (count > 0) {
+      return spendJaguarMeatForPoints(game, playerId, count);
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  return moveRandomOwned(game, playerId, "jaguar");
+}
+
+function randomCoati(game: GameState, playerId: string, action: string): GameState {
+  if (action === "A") {
+    const targets = getCoatiFruitPlacementPositions(game, playerId);
+    if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.6)) {
+      try {
+        return addCoatiForCurrentAction(game, playerId, pickOne(targets));
+      } catch {
+        // fall through to skip
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "B") {
+    return moveRandomOwned(game, playerId, "coati");
+  }
+
+  const required = getRequiredCoatiRemovalCount(game, playerId);
+  if (required > 0) {
+    const ids = shuffle(
+      game.pieces.filter((piece) => piece.ownerId === playerId && piece.speciesId === "coati" && piece.location).map((piece) => piece.pieceId)
+    ).slice(0, required);
+    try {
+      return removePiecesForCurrentAction(game, playerId, ids);
+    } catch {
+      // fall through
+    }
+  }
+
+  return completeOrSkip(game, playerId);
+}
+
+function randomCapuchin(game: GameState, playerId: string, action: string): GameState {
+  if (action === "A" || action === "C") {
+    const targets = getCapuchinPlacementPositions(game, playerId);
+    if (hasReserve(game, playerId) && targets.length > 0 && (action === "A" || maybe(0.6))) {
+      try {
+        return addCapuchinForCurrentAction(game, playerId, pickOne(targets));
+      } catch {
+        // fall through
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "B") {
+    return moveRandomOwned(game, playerId, "capuchin");
+  }
+
+  return scoreCapuchinHabitatPresence(game, playerId);
+}
+
+function randomMacaw(game: GameState, playerId: string, action: string): GameState {
+  if (action === "A") {
+    const targets = getMacawEggPlacementPositions(game, playerId);
+    if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
+      try {
+        return addMacawForCurrentAction(game, playerId, pickOne(targets));
+      } catch {
+        // fall through
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "B") {
+    return moveRandomOwned(game, playerId, "macaw");
+  }
+
+  if (action === "C") {
+    const plays: Array<() => GameState> = [];
+    if (hasReserve(game, playerId)) {
+      for (const target of getMacawActionCTargets(game, playerId)) {
+        plays.push(() => addMacawForCurrentAction(game, playerId, target));
+      }
+    }
+    for (const pieceId of getMacawRelocatablePieceIds(game, playerId)) {
+      for (const target of getValidPieceMovementDestinations(game, playerId, pieceId)) {
+        plays.push(() => movePieceForCurrentAction(game, playerId, pieceId, target));
+      }
+    }
+    for (const play of shuffle(plays)) {
+      try {
+        return play();
+      } catch {
+        // try next
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  return scoreMacawLines(game, playerId);
+}
+
+function randomArmadillo(game: GameState, playerId: string, action: string): GameState {
+  if (action === "A") {
+    const targets = getArmadilloSeedPlacementPositions(game, playerId);
+    if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
+      try {
+        return addArmadilloForCurrentAction(game, playerId, pickOne(targets));
+      } catch {
+        // fall through
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "B") {
+    return moveRandomOwned(game, playerId, "armadillo");
+  }
+
+  if (action === "C") {
+    const hideable = getArmadilloHidePieceIds(game, playerId);
+    if (hideable.length > 0 && maybe(0.5)) {
+      try {
+        return hideArmadilloForCurrentAction(game, playerId, pickOne(hideable));
+      } catch {
+        // fall through
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  return scoreArmadilloSharing(game, playerId);
+}
+
+function randomWolf(game: GameState, playerId: string, action: string): GameState {
+  if (action === "B") {
+    const removable = getWolfRemovableBasePieceIds(game, playerId);
+    if (removable.length > 0 && maybe(0.5)) {
+      try {
+        return removeBasePieceForWolfAction(game, playerId, pickOne(removable));
+      } catch {
+        // fall through
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "C") {
+    const available = getWolfSpendableResourceTypes(game, playerId);
+    const max = Math.min(getAvailableWolfPointSpendCount(game, playerId), available.length);
+    const count = max > 0 ? randInt(0, max) : 0;
+    const types = shuffle(available).slice(0, count);
+    if (types.length > 0) {
+      try {
+        return spendWolfResourcesForPoints(game, playerId, types);
+      } catch {
+        // fall through
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "D") {
+    const targets = getWolfMeatPlacementPositions(game, playerId);
+    if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
+      try {
+        return addWolfForCurrentAction(game, playerId, pickOne(targets));
+      } catch {
+        // fall through
+      }
+    }
+  }
+
+  return completeOrSkip(game, playerId);
+}
+
 function playSetupStep(game: GameState, playerId: string): GameState {
   if (game.setupActivePlayerId !== playerId) {
     return game;

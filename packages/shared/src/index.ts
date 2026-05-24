@@ -219,4 +219,11 @@ export interface PublicRoomState {
   game: GameState | null;
   warnings: string[];
   botTurnDelayMs?: number;
+  // Turn timer for online games. null/undefined = disabled. When set, an active
+  // human player who runs out of time has a bot resolve the rest of their turn.
+  turnTimerMs?: number | null;
+  // Server timestamp (ms) when the current active turn began. Used by clients to
+  // render the countdown. Transient: recomputed by the server, not authoritative
+  // after a restart.
+  activeTurnStartedAt?: number | null;
 }

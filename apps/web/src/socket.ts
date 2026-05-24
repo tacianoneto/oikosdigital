@@ -91,6 +91,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "bots:remove-species", { roomId, speciesId }),
   setBotSpeed: (socket: OikosSocket, roomId: string, delayMs: number) =>
     emitWithReply<PublicRoomState>(socket, "bots:speed", { roomId, delayMs }),
+  setTurnTimer: (socket: OikosSocket, roomId: string, turnTimerMs: number | null) =>
+    emitWithReply<PublicRoomState>(socket, "turn-timer:set", { roomId, turnTimerMs }),
   selectSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>
     emitWithReply<PublicRoomState>(socket, "species:select", { roomId, speciesId }),
   ready: (socket: OikosSocket, roomId: string, ready: boolean) =>

@@ -14,11 +14,15 @@ import {
   addWolf,
   advanceAutomaticScore,
   advanceBot,
+  advanceTurnTimeoutBot,
   completeAction,
   createRoom,
   getActiveBotPlayer,
+  getActiveHumanPlayer,
   getAutomaticScorePlayer,
   getBotTurnDelay,
+  getTurnTimerMs,
+  setTurnTimer,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -51,6 +55,10 @@ const socketsByPlayerId = new Map<string, Set<string>>();
 const turnSkipTimers = new Map<string, NodeJS.Timeout>();
 const botTurnTimers = new Map<string, NodeJS.Timeout>();
 const automaticScoreTimers = new Map<string, NodeJS.Timeout>();
+const turnPunishmentTimers = new Map<string, NodeJS.Timeout>();
+// Tracks when the current active turn began, per room, so clients can render a
+// countdown and the punishment timer fires at the right moment.
+const turnStartByRoom = new Map<string, { playerId: string; at: number }>();
 const pendingRoomSaves = new Map<string, PublicRoomState>();
 let roomSaveTimer: NodeJS.Timeout | null = null;
 const turnTimeoutMs = Number(process.env.TURN_TIMEOUT_MS ?? 90000);
@@ -176,17 +184,85 @@ function scheduleAutomaticScore(roomId: string): void {
   automaticScoreTimers.set(roomId, timer);
 }
 
+function clearTurnPunishmentTimer(roomId: string): void {
+  const timer = turnPunishmentTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    turnPunishmentTimers.delete(roomId);
+  }
+}
+
+// Records when the active turn began (resets only when the active player
+// changes) and returns that timestamp for the client countdown.
+function trackActiveTurn(room: PublicRoomState): number | null {
+  const activePlayerId = room.game?.status === "active" ? room.game.activePlayerId : null;
+  if (!activePlayerId) {
+    turnStartByRoom.delete(room.roomId);
+    return null;
+  }
+
+  const existing = turnStartByRoom.get(room.roomId);
+  if (!existing || existing.playerId !== activePlayerId) {
+    const entry = { playerId: activePlayerId, at: Date.now() };
+    turnStartByRoom.set(room.roomId, entry);
+    return entry.at;
+  }
+
+  return existing.at;
+}
+
+function reconcileTurnPunishmentTimer(roomId: string): void {
+  clearTurnPunishmentTimer(roomId);
+
+  const turnTimerMs = getTurnTimerMs(roomId);
+  if (!turnTimerMs || turnTimerMs <= 0) {
+    return;
+  }
+
+  const humanPlayerId = getActiveHumanPlayer(roomId);
+  if (!humanPlayerId) {
+    return;
+  }
+
+  const started = turnStartByRoom.get(roomId);
+  const elapsed = started && started.playerId === humanPlayerId ? Date.now() - started.at : 0;
+  const remaining = Math.max(0, turnTimerMs - elapsed);
+
+  const timer = setTimeout(() => {
+    turnPunishmentTimers.delete(roomId);
+    if (getActiveHumanPlayer(roomId) !== humanPlayerId || !getTurnTimerMs(roomId)) {
+      return;
+    }
+
+    try {
+      const result = advanceTurnTimeoutBot(roomId, humanPlayerId);
+      if (result.ended) {
+        broadcastRoom(result.room);
+      }
+    } catch (error) {
+      app.log.error({ err: error, roomId }, "Falha ao resolver turno por tempo esgotado.");
+    }
+  }, remaining);
+
+  timer.unref();
+  turnPunishmentTimers.set(roomId, timer);
+}
+
 function broadcastRoom(room: PublicRoomState): void {
+  room.activeTurnStartedAt = trackActiveTurn(room);
   io.to(room.roomId).emit("room:update", room);
   scheduleRoomSave(room);
   reconcileTurnTimer(room.roomId);
   if (room.status === "finished") {
     clearBotTurnTimer(room.roomId);
     clearAutomaticScoreTimer(room.roomId);
+    clearTurnPunishmentTimer(room.roomId);
+    turnStartByRoom.delete(room.roomId);
     return;
   }
   scheduleAutomaticScore(room.roomId);
   scheduleBotTurn(room.roomId);
+  reconcileTurnPunishmentTimer(room.roomId);
 }
 
 function scheduleRoomSave(room: PublicRoomState): void {
@@ -282,6 +358,15 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = setBotTurnDelay(payload.roomId, playerId, payload.delayMs);
       clearBotTurnTimer(room.roomId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("turn-timer:set", (payload: { roomId: string; turnTimerMs: number | null }, reply) => {
+    withReply(reply, () => {
+      const room = setTurnTimer(payload.roomId, playerId, payload.turnTimerMs);
+      clearTurnPunishmentTimer(room.roomId);
       broadcastRoom(room);
       return room;
     });

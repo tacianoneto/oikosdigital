@@ -23,7 +23,7 @@ import {
   spendWolfResourcesForPoints
 } from "@oikos/rules";
 import type { ForestCardState, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
-import { playBotStep } from "./bots";
+import { playBotStep, playRandomStep } from "./bots";
 import { loadRooms } from "./store";
 
 interface ServerRoom {
@@ -34,7 +34,11 @@ interface ServerRoom {
   game: PublicRoomState["game"];
   warnings: string[];
   botTurnDelayMs?: number;
+  turnTimerMs?: number | null;
 }
+
+const MIN_TURN_TIMER_MS = 15000;
+const MAX_TURN_TIMER_MS = 300000;
 
 const rooms = new Map<string, ServerRoom>();
 
@@ -52,7 +56,8 @@ for (const persisted of loadRooms()) {
     status: persisted.status,
     game: persisted.game,
     warnings: persisted.warnings,
-    botTurnDelayMs: persisted.botTurnDelayMs
+    botTurnDelayMs: persisted.botTurnDelayMs,
+    turnTimerMs: persisted.turnTimerMs ?? null
   });
 }
 
@@ -72,7 +77,8 @@ export function createRoom(hostSocketId: string, hostName: string): PublicRoomSt
     players: [player],
     status: "lobby",
     game: null,
-    warnings: []
+    warnings: [],
+    turnTimerMs: null
   };
 
   rooms.set(roomId, room);
@@ -247,6 +253,78 @@ export function setBotTurnDelay(roomId: string, playerId: string, delayMs: numbe
 
 export function getBotTurnDelay(roomId: string): number | null {
   return rooms.get(roomId.trim().toUpperCase())?.botTurnDelayMs ?? null;
+}
+
+export function setTurnTimer(roomId: string, playerId: string, turnTimerMs: number | null): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (room.hostPlayerId !== playerId) {
+    throw new Error("Apenas o anfitriao pode ajustar o cronometro de turno.");
+  }
+
+  room.turnTimerMs = turnTimerMs === null ? null : clampTurnTimer(turnTimerMs);
+  return toPublicRoom(room);
+}
+
+export function getTurnTimerMs(roomId: string): number | null {
+  return rooms.get(roomId.trim().toUpperCase())?.turnTimerMs ?? null;
+}
+
+// Active player whose own turn timer should run: an online, non-bot human in an
+// active game. Bots advance through scheduleBotTurn instead.
+export function getActiveHumanPlayer(roomId: string): string | null {
+  const room = rooms.get(roomId.trim().toUpperCase());
+  if (!room?.game || room.game.status !== "active" || !room.game.activePlayerId) {
+    return null;
+  }
+
+  const activePlayer = room.players.find((player) => player.playerId === room.game?.activePlayerId);
+  if (!activePlayer || activePlayer.isBot) {
+    return null;
+  }
+
+  return activePlayer.playerId;
+}
+
+// Turn-timeout punishment: a random bot resolves the rest of the active human's
+// turn. Steps until the turn ends (active player changes or game finishes), with
+// a hard cap so a stuck state cannot loop forever.
+export function advanceTurnTimeoutBot(roomId: string, playerId: string): { room: PublicRoomState; ended: boolean } {
+  const room = getRoom(roomId);
+  if (!room.game || room.game.status !== "active" || room.game.activePlayerId !== playerId) {
+    return { room: toPublicRoom(room), ended: false };
+  }
+
+  room.game = {
+    ...room.game,
+    log: [
+      ...room.game.log,
+      {
+        id: `turn_timeout_${playerId}_${room.game.log.length + 1}`,
+        message: "Tempo do turno esgotado: jogada resolvida automaticamente.",
+        createdAt: Date.now()
+      }
+    ]
+  };
+
+  let guard = 0;
+  while (room.game.status === "active" && room.game.activePlayerId === playerId && guard < 100) {
+    guard += 1;
+    try {
+      room.game = playRandomStep(room.game, playerId);
+    } catch {
+      room.game = forceEndPlayerTurn(room.game, playerId, "tempo do turno esgotado");
+    }
+  }
+
+  if (room.game.status === "active" && room.game.activePlayerId === playerId) {
+    room.game = forceEndPlayerTurn(room.game, playerId, "tempo do turno esgotado");
+  }
+
+  room.status = room.game.status === "finished" ? "finished" : "active";
+  room.warnings = room.game.contentWarnings;
+
+  return { room: toPublicRoom(room), ended: true };
 }
 
 export function startGame(roomId: string, playerId: string): PublicRoomState {
@@ -700,7 +778,8 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     players: room.players,
     game: room.game,
     warnings: room.warnings,
-    botTurnDelayMs: room.botTurnDelayMs
+    botTurnDelayMs: room.botTurnDelayMs,
+    turnTimerMs: room.turnTimerMs ?? null
   };
 }
 
@@ -746,6 +825,14 @@ function clampBotTurnDelay(delayMs: number): number {
   }
 
   return Math.max(250, Math.min(8000, Math.round(delayMs)));
+}
+
+function clampTurnTimer(turnTimerMs: number): number {
+  if (!Number.isFinite(turnTimerMs)) {
+    return 60000;
+  }
+
+  return Math.max(MIN_TURN_TIMER_MS, Math.min(MAX_TURN_TIMER_MS, Math.round(turnTimerMs)));
 }
 
 function createRoomId(): string {

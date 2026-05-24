@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Clock,
   Copy,
   Crown,
   GraduationCap,
@@ -1239,6 +1240,47 @@ function isSmallScreen(): boolean {
   return typeof window !== "undefined" && window.innerWidth <= 820;
 }
 
+// Selectable turn-timer durations for online rooms (ms).
+const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
+const DEFAULT_TURN_TIMER_MS = 60000;
+
+function formatTurnTimer(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest > 0 ? `${minutes}min ${rest}s` : `${minutes}min`;
+}
+
+// Live turn countdown shown in the turn banner for timed online games.
+function TurnCountdown({ startedAt, durationMs }: { startedAt: number; durationMs: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const remaining = Math.max(0, durationMs - (now - startedAt));
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const label = minutes > 0 ? `${minutes}:${String(seconds).padStart(2, "0")}` : `${seconds}s`;
+  const ratio = durationMs > 0 ? Math.max(0, Math.min(1, remaining / durationMs)) : 0;
+  const low = remaining <= 10000;
+
+  return (
+    <div className={`turn-countdown ${low ? "is-low" : ""}`} role="timer" aria-label="Tempo restante do turno">
+      <Clock aria-hidden="true" />
+      <span className="turn-countdown-value">{label}</span>
+      <span className="turn-countdown-bar" aria-hidden="true">
+        <span className="turn-countdown-fill" style={{ width: `${Math.round(ratio * 100)}%` }} />
+      </span>
+    </div>
+  );
+}
+
 export function App() {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -1697,6 +1739,10 @@ export function App() {
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const botTurnDelayMs = room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
+  const turnTimerMs = room?.turnTimerMs ?? null;
+  const showTurnCountdown = Boolean(
+    !isLocalRoom && room?.game?.status === "active" && turnTimerMs && room?.activeTurnStartedAt
+  );
   const setEffectTarget = useCallback((key: string, element: HTMLElement | null) => {
     if (element) {
       effectTargetRefs.current.set(key, element);
@@ -2536,6 +2582,28 @@ export function App() {
 
     const nextDelay = Math.max(minBotTurnDelayMs, Math.min(maxBotTurnDelayMs, botTurnDelayMs + deltaMs));
     void run(() => roomApi.setBotSpeed(requireSocket(), room.roomId, nextDelay));
+  }
+
+  function toggleTurnTimer() {
+    if (!room || !isHost) {
+      return;
+    }
+
+    void run(
+      () => roomApi.setTurnTimer(requireSocket(), room.roomId, turnTimerMs ? null : DEFAULT_TURN_TIMER_MS),
+      turnTimerMs ? "Cronômetro de turno desligado." : "Cronômetro de turno ligado."
+    );
+  }
+
+  function adjustTurnTimer(direction: number) {
+    if (!room || !isHost || !turnTimerMs) {
+      return;
+    }
+
+    const currentIndex = TURN_TIMER_OPTIONS.indexOf(turnTimerMs);
+    const baseIndex = currentIndex >= 0 ? currentIndex : TURN_TIMER_OPTIONS.indexOf(DEFAULT_TURN_TIMER_MS);
+    const nextIndex = Math.max(0, Math.min(TURN_TIMER_OPTIONS.length - 1, baseIndex + direction));
+    void run(() => roomApi.setTurnTimer(requireSocket(), room.roomId, TURN_TIMER_OPTIONS[nextIndex]));
   }
 
   const handleCardClick = useCallback(
@@ -4295,6 +4363,41 @@ export function App() {
                         <Plus aria-hidden="true" />
                       </button>
                     </div>
+
+                    <div className="lobby-turn-timer">
+                      <button
+                        type="button"
+                        className={`lobby-mini-button ${turnTimerMs ? "is-on" : ""}`}
+                        onClick={toggleTurnTimer}
+                      >
+                        <Clock aria-hidden="true" />
+                        {turnTimerMs ? "Cronômetro de turno: ligado" : "Cronômetro de turno: desligado"}
+                      </button>
+                      {turnTimerMs && (
+                        <div className="lobby-bot-speed">
+                          <button
+                            type="button"
+                            className="icon-button compact"
+                            title="Menos tempo por turno"
+                            onClick={() => adjustTurnTimer(-1)}
+                          >
+                            <Minus aria-hidden="true" />
+                          </button>
+                          <span>{formatTurnTimer(turnTimerMs)} por turno</span>
+                          <button
+                            type="button"
+                            className="icon-button compact"
+                            title="Mais tempo por turno"
+                            onClick={() => adjustTurnTimer(1)}
+                          >
+                            <Plus aria-hidden="true" />
+                          </button>
+                        </div>
+                      )}
+                      <p className="lobby-hint-sub">
+                        Ao esgotar, um bot resolve o turno de quem demorou (jogada aleatória).
+                      </p>
+                    </div>
                   </div>
                 )}
               </section>
@@ -4929,6 +5032,13 @@ export function App() {
               <span className="turn-banner-label">Vez:</span>
               <strong>{turnBanner.label}</strong>
             </div>
+          )}
+          {showTurnCountdown && room?.turnTimerMs && room?.activeTurnStartedAt && (
+            <TurnCountdown
+              key={`${room.game?.activePlayerId ?? ""}:${room.activeTurnStartedAt}`}
+              startedAt={room.activeTurnStartedAt}
+              durationMs={room.turnTimerMs}
+            />
           )}
           <ForestCanvas
             ref={forestCanvasRef}
