@@ -23,7 +23,7 @@ import {
   spendWolfResourcesForPoints
 } from "@oikos/rules";
 import type { ForestCardState, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
-import { playBotStep, playRandomStep } from "./bots";
+import { playBotStep, playRandomStep } from "@oikos/rules";
 import { loadRooms } from "./store";
 
 interface ServerRoom {

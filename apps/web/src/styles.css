@@ -4545,6 +4545,74 @@ input:focus {
   stroke-width: 3;
 }
 
+.flow-species-card-wrap {
+  position: relative;
+  display: flex;
+}
+
+.flow-species-card-wrap .flow-species-card {
+  flex: 1;
+  width: 100%;
+}
+
+.flow-species-card-wrap.is-bot .flow-species-card {
+  border-color: var(--species-color, var(--amber));
+  background: color-mix(in srgb, var(--species-color, var(--amber)) 14%, rgba(11, 22, 17, 0.85));
+}
+
+.flow-species-bot-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line-soft);
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--muted);
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease, border-color 120ms ease;
+  z-index: 2;
+}
+
+.flow-species-bot-btn:hover {
+  transform: scale(1.1);
+  color: var(--paper);
+  border-color: var(--species-color, var(--amber));
+}
+
+.flow-species-bot-btn.active {
+  background: var(--species-color, var(--amber));
+  color: var(--ink);
+  border-color: var(--species-color, var(--amber));
+}
+
+.flow-species-bot-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.flow-species-bot-tag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--species-color, var(--amber));
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.flow-species-bot-tag svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* =====================================================
    LOBBY SCREEN
    ===================================================== */

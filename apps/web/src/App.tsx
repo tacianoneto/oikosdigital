@@ -49,6 +49,8 @@ import {
   completeCurrentAction,
   createInitialGameState,
   createPreviewInitialForest,
+  forceEndPlayerTurn,
+  playBotStep,
   getAvailableJaguarPointSpendCount,
   getAvailableWolfPointSpendCount,
   getArmadilloHidePieceIds,
@@ -1244,6 +1246,9 @@ function isSmallScreen(): boolean {
 const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
 const DEFAULT_TURN_TIMER_MS = 60000;
 
+// Delay between automatic bot steps in local test games.
+const LOCAL_BOT_STEP_MS = 750;
+
 function formatTurnTimer(ms: number): string {
   const seconds = Math.round(ms / 1000);
   if (seconds < 60) {
@@ -1289,6 +1294,7 @@ export function App() {
   const [joinCode, setJoinCode] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
   const [localSpeciesIds, setLocalSpeciesIds] = useState<SpeciesId[]>(["maned_wolf", "coati"]);
+  const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [selectedCardRotation, setSelectedCardRotation] = useState<0 | 90 | 180 | 270>(0);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
@@ -1511,12 +1517,17 @@ export function App() {
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom ? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null : playerId;
   const currentPlayer = room?.players.find((player) => player.playerId === controlledPlayerId) ?? null;
+  // In a local game the active species is auto-played when it is a bot, so the
+  // human must not be able to act on its turn.
+  const activeIsLocalBot = Boolean(isLocalRoom && currentPlayer?.isBot);
   const currentGamePlayer = room?.game?.players.find((player) => player.playerId === controlledPlayerId) ?? null;
   const setupActivePlayer = room?.game?.players.find((player) => player.playerId === room.game?.setupActivePlayerId) ?? null;
   const activeGamePlayer = room?.game?.players.find((player) => player.playerId === room.game?.activePlayerId) ?? null;
   const activeSpecies = activeGamePlayer?.speciesId ? speciesDefinitions[activeGamePlayer.speciesId] : null;
   const activeActionId = activeSpecies && room?.game ? activeSpecies.actions[room.game.activeActionIndex] ?? null : null;
-  const canControlActivePlayer = Boolean(room?.game?.activePlayerId && currentGamePlayer?.playerId === room.game.activePlayerId);
+  const canControlActivePlayer = Boolean(
+    room?.game?.activePlayerId && currentGamePlayer?.playerId === room.game.activePlayerId && !activeIsLocalBot
+  );
   const hasPendingCoatiPairBonus = Boolean(room?.game?.pendingCoatiPairBonus);
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
@@ -1752,7 +1763,11 @@ export function App() {
   }, []);
   const forestCards = room?.game?.forest.cards ?? createPreviewInitialForest();
   const pieces = room?.game?.pieces ?? [];
-  const canPlaceSetupPiece = Boolean(room?.game?.status === "setup" && (isLocalRoom || room.game.setupActivePlayerId === playerId));
+  const canPlaceSetupPiece = Boolean(
+    room?.game?.status === "setup" &&
+      !activeIsLocalBot &&
+      (isLocalRoom || room.game.setupActivePlayerId === playerId)
+  );
   const canPlaceSelectedForestCard = Boolean(
     room?.game?.status === "active" &&
       selectedHandCardId &&
@@ -3357,6 +3372,15 @@ export function App() {
     setLocalSpeciesIds((current) =>
       current.includes(speciesId) ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
     );
+    // Dropping a species also clears its bot flag.
+    setLocalBotSpeciesIds((current) => current.filter((candidate) => candidate !== speciesId));
+  }
+
+  function toggleLocalBot(speciesId: SpeciesId) {
+    setLocalSpeciesIds((current) => (current.includes(speciesId) ? current : [...current, speciesId]));
+    setLocalBotSpeciesIds((current) =>
+      current.includes(speciesId) ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
+    );
   }
 
   function startLocalTest() {
@@ -3373,7 +3397,8 @@ export function App() {
       name: speciesDefinitions[speciesId].displayName,
       speciesId,
       ready: true,
-      connected: true
+      connected: true,
+      isBot: localBotSpeciesIds.includes(speciesId)
     }));
     const game = createInitialGameState(localRoomId, localPlayers);
 
@@ -3393,6 +3418,71 @@ export function App() {
     clearRoomState();
     setNotice("Teste local encerrado.");
   }
+
+  // Drives bot-controlled species in local test games. When the active player
+  // (setup or active phase) is a local bot, it steps the bot AI after a short
+  // delay; each state change re-runs the effect, advancing the bot until the
+  // turn passes to a human or the game ends.
+  useEffect(() => {
+    if (room?.roomId !== localRoomId || !room.game) {
+      return;
+    }
+
+    const game = room.game;
+    const activeId =
+      game.status === "setup" ? game.setupActivePlayerId : game.status === "active" ? game.activePlayerId : null;
+    if (!activeId) {
+      return;
+    }
+
+    const activePlayer = room.players.find((player) => player.playerId === activeId);
+    if (!activePlayer?.isBot) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setRoom((current) => {
+        if (!current || current.roomId !== localRoomId || !current.game) {
+          return current;
+        }
+
+        const liveGame = current.game;
+        const liveActiveId =
+          liveGame.status === "setup"
+            ? liveGame.setupActivePlayerId
+            : liveGame.status === "active"
+              ? liveGame.activePlayerId
+              : null;
+        const livePlayer = current.players.find((player) => player.playerId === liveActiveId);
+        if (!liveActiveId || !livePlayer?.isBot) {
+          return current;
+        }
+
+        let nextGame: typeof liveGame;
+        try {
+          nextGame = playBotStep(liveGame, liveActiveId);
+          if (nextGame === liveGame) {
+            nextGame = completeCurrentAction(liveGame, liveActiveId);
+          }
+        } catch {
+          try {
+            nextGame = completeCurrentAction(liveGame, liveActiveId);
+          } catch {
+            nextGame = forceEndPlayerTurn(liveGame, liveActiveId, "bot local sem jogada valida");
+          }
+        }
+
+        return {
+          ...current,
+          status: nextGame.status === "finished" ? "finished" : current.status,
+          game: nextGame,
+          warnings: nextGame.contentWarnings
+        };
+      });
+    }, LOCAL_BOT_STEP_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [room]);
 
   // Rematch for a local test: rebuild a fresh game with the same species.
   function playAgainLocal() {
@@ -3956,27 +4046,47 @@ export function App() {
               <div className="flow-species-grid">
                 {speciesList.map((species) => {
                   const selected = localSpeciesIds.includes(species.speciesId);
+                  const isBotSlot = localBotSpeciesIds.includes(species.speciesId);
                   return (
-                    <button
+                    <div
                       key={species.speciesId}
-                      type="button"
-                      className={`flow-species-card ${selected ? "selected" : ""}`}
-                      onClick={() => toggleLocalSpecies(species.speciesId)}
+                      className={`flow-species-card-wrap ${isBotSlot ? "is-bot" : ""}`}
                       style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
                     >
-                      <div className="flow-species-thumb">
-                        <img src={encodeURI(species.meepleAsset)} alt="" />
-                      </div>
-                      <div className="flow-species-text">
-                        <strong>{species.displayName}</strong>
-                        <small>{categoryLabels[species.category]}</small>
-                      </div>
-                      {selected && (
-                        <span className="flow-species-check" aria-hidden="true">
-                          <Check />
-                        </span>
-                      )}
-                    </button>
+                      <button
+                        type="button"
+                        className={`flow-species-card ${selected ? "selected" : ""}`}
+                        onClick={() => toggleLocalSpecies(species.speciesId)}
+                      >
+                        <div className="flow-species-thumb">
+                          <img src={encodeURI(species.meepleAsset)} alt="" />
+                        </div>
+                        <div className="flow-species-text">
+                          <strong>{species.displayName}</strong>
+                          <small>{categoryLabels[species.category]}</small>
+                        </div>
+                        {isBotSlot ? (
+                          <span className="flow-species-bot-tag" aria-hidden="true">
+                            <Bot /> Bot
+                          </span>
+                        ) : (
+                          selected && (
+                            <span className="flow-species-check" aria-hidden="true">
+                              <Check />
+                            </span>
+                          )
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className={`flow-species-bot-btn ${isBotSlot ? "active" : ""}`}
+                        title={isBotSlot ? "Controlar manualmente" : "Controlar por bot"}
+                        aria-label={isBotSlot ? "Controlar manualmente" : "Controlar por bot"}
+                        onClick={() => toggleLocalBot(species.speciesId)}
+                      >
+                        {isBotSlot ? <X aria-hidden="true" /> : <Bot aria-hidden="true" />}
+                      </button>
+                    </div>
                   );
                 })}
               </div>

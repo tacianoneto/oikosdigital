@@ -7,7 +7,7 @@ import {
   placeInitialPiece
 } from "@oikos/rules";
 import type { RoomPlayer } from "@oikos/shared";
-import { playBotStep, playRandomStep } from "./bots";
+import { playBotStep, playRandomStep } from "@oikos/rules";
 
 function player(playerId: string, speciesId: RoomPlayer["speciesId"], isBot = true): RoomPlayer {
   return {

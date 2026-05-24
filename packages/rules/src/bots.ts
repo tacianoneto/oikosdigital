@@ -35,7 +35,7 @@ import {
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
-} from "@oikos/rules";
+} from "./setup";
 import type { GameState, GridPosition, Habitat, Resource, SpeciesId } from "@oikos/shared";
 
 const resourcePreference: Record<SpeciesId, Resource[]> = {
