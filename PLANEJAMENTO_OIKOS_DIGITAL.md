@@ -47,8 +47,8 @@ Assets encontrados:
 Detalhe importante das cartas:
 
 - 36 cartas são cartas comuns de floresta: 12 `bosque`, 12 `campos`, 12 `rios`. Suficiente para distribuir 6 cartas para cada uma das 5 espécies que usam cartas em uma partida de 6 jogadores (5 × 6 = 30, sobram 6).
-- 14 cartas são candidatas iniciais de floresta (12 ilustrações + 2 reaproveitamentos de canais retos para variar mesas).
-- A partida começa com 9 dessas candidatas formando a floresta inicial em grade 3x3, escolhidas a partir de mesas pré-validadas em `packages/rules/src/setup.ts` (`FOREST_TEMPLATES`). Cada mesa garante que toda boca de rio conecta com outra boca ou sai pela borda do grid, nunca encosta em mata.
+- A floresta inicial usa 9 cartas: 3 rios de face dupla (ovo, pinha, carne) + 6 de terra (bosque/campo). Cada rio é frente/verso da mesma carta física, então a frente e o verso de um rio nunca aparecem juntos; toda floresta inicial sempre tem exatamente 1 rio de ovo, 1 de pinha e 1 de carne. As 12 definições de carta inicial em `packages/content/src/cards.ts` cobrem essas 9 cartas (3 frentes de rio + 3 versos + 6 de terra).
+- A partida começa montando a grade 3x3 a partir de uma das 10 mesas pré-validadas em `packages/rules/src/setup.ts` (`FOREST_TEMPLATES`), sorteada no início. Cada mesa garante que toda boca de rio conecta com outra boca ou sai pela borda do grid, nunca encosta em mata, e usa exatamente uma face de cada rio (validado na carga do módulo).
 
 Status dos manifestos:
 
@@ -162,8 +162,8 @@ Objetivo: transformar assets e GDD em dados implementáveis.
 Entregas:
 
 - Manifesto de cartas com `cardId`, imagem, habitat, recurso, conexões, rios e rotações legais.
-- Manifesto das 12 cartas iniciais candidatas.
-- Regra aprovada para escolher 9 cartas iniciais e montar a grade 3x3.
+- Manifesto das 9 cartas iniciais (3 rios de face dupla + 6 de terra).
+- Regra aprovada para montar a grade 3x3 a partir das mesas pré-validadas.
 - Manifesto de espécies com categoria, total de peças, peças iniciais, uso de cartas e ações.
 - Manifesto de padrões de movimento por espécie e habitat, baseado no Apêndice A do GDD atualizado.
 - Conferência da distribuição de cartas para 2 a 6 jogadores.
@@ -497,8 +497,8 @@ Objetivo da primeira sprint: sair de "assets soltos + GDD" para "conteúdo valid
 Tarefas:
 
 1. Criar manifesto de assets.
-2. Modelar as 12 cartas iniciais candidatas.
-3. Regra de escolha das 9 cartas iniciais e montagem do grid 3x3 validada pelos templates atuais.
+2. Modelar as 9 cartas iniciais (3 rios de face dupla + 6 de terra).
+3. Regra de montagem do grid 3x3 validada pelos templates atuais.
 4. Transcrever recursos, habitats, conexões e rios de cada carta.
 5. Registrar no manifesto os padrões de movimento já validados pelo GDD atualizado.
 6. Criar estrutura do monorepo.
@@ -519,7 +519,7 @@ Resultado esperado:
 
 Resolvidos:
 
-- ~~Como escolher as 9 cartas iniciais, layout 3x3 e rotações.~~ Resolvido por mesas pré-validadas em `FOREST_TEMPLATES` (`packages/rules/src/setup.ts`). Uma mesa é sorteada no início da partida; toda mesa é checada na carga do módulo e quebra o build se o encaixe de rios for inválido.
+- ~~Como escolher as 9 cartas iniciais, layout 3x3 e rotações.~~ Resolvido por 10 mesas pré-validadas em `FOREST_TEMPLATES` (`packages/rules/src/setup.ts`). Uma mesa é sorteada no início da partida. Os 3 rios são de face dupla (ovo, pinha, carne): cada mesa usa exatamente uma face de cada rio, então toda floresta inicial tem 1 rio de cada recurso e nunca a frente e o verso do mesmo rio juntos. Toda mesa é checada na carga do módulo (encaixe de rios + composição) e quebra o build se for inválida.
 - ~~Distribuição de mãos em partida com 6 jogadores.~~ Resolvido: a pasta tem 36 cartas comuns (12 bosque + 12 campo + 12 rio), suficientes para 5 espécies × 6 cartas = 30, com sobra de 6 cartas para reposição/cobrir cenários futuros.
 - ~~Manifesto completo de cada carta comum.~~ Resolvido em `packages/content/src/cards.ts`.
 - ~~Política de desconexão no turno ativo.~~ Resolvido: o servidor pula o turno do jogador desconectado após `TURN_TIMEOUT_MS` (default 90s). O jogador pode reconectar e retomar nas próximas jogadas.
