@@ -110,6 +110,7 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   private surfaceLayer!: Phaser.GameObjects.Container;
   private gridLayer!: Phaser.GameObjects.Container;
+  private ambientLayer!: Phaser.GameObjects.Container;
   private highlightLayer!: Phaser.GameObjects.Container;
   private cardLayer!: Phaser.GameObjects.Container;
   private pieceLayer!: Phaser.GameObjects.Container;
@@ -117,6 +118,7 @@ export class ForestPhaserScene extends Phaser.Scene {
   private cardObjs = new Map<string, CardObj>();
   private pieceObjs = new Map<string, PieceObj>();
   private pulses: Phaser.Tweens.Tween[] = [];
+  private ambient: AmbientParticle[] = [];
 
   private ready = false;
   private userAdjusted = false;
@@ -143,19 +145,25 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     this.surfaceLayer = this.add.container(0, 0);
     this.gridLayer = this.add.container(0, 0);
+    this.ambientLayer = this.add.container(0, 0);
     this.highlightLayer = this.add.container(0, 0);
     this.cardLayer = this.add.container(0, 0);
     this.pieceLayer = this.add.container(0, 0);
     this.surfaceLayer.setDepth(0);
     this.gridLayer.setDepth(1);
+    // Ambient motes float behind the cards, pinned to the screen so they cover
+    // the whole viewport regardless of camera pan/zoom.
+    this.ambientLayer.setDepth(5).setScrollFactor(0);
     this.cardLayer.setDepth(10);
     this.highlightLayer.setDepth(20);
     this.pieceLayer.setDepth(30);
 
     this.setupCameraControls();
+    this.spawnAmbient();
 
     this.scale.on("resize", () => {
       if (!this.userAdjusted) this.fitCamera(true);
+      this.reflowAmbient();
     });
 
     this.ready = true;
@@ -181,6 +189,100 @@ export class ForestPhaserScene extends Phaser.Scene {
   resetView(): void {
     this.userAdjusted = false;
     this.fitCamera(false);
+  }
+
+  // Per-frame drift for the ambient motes. Cheap: no tweens, just integrate a
+  // slow upward velocity, a sine sway, and a sine twinkle. Particles that drift
+  // off the top wrap back in at the bottom.
+  update(_time: number, delta: number): void {
+    if (this.ambient.length === 0) return;
+    const dt = Math.min(delta, 50) / 1000;
+    const t = this.time.now / 1000;
+    const w = this.scale.gameSize.width || this.cameras.main.width;
+    const h = this.scale.gameSize.height || this.cameras.main.height;
+
+    for (const p of this.ambient) {
+      p.y += p.vy * dt;
+      p.x += Math.sin(t * p.swayFreq + p.swayPhase) * p.swayAmp * dt;
+      if (p.y < -16) {
+        p.y = h + 16;
+        p.x = Math.random() * w;
+      }
+      if (p.x < -16) p.x = w + 16;
+      else if (p.x > w + 16) p.x = -16;
+      const alpha = p.baseAlpha + Math.sin(t * p.twinkleFreq + p.twinklePhase) * p.twinkleAmp;
+      p.obj.setPosition(p.x, p.y);
+      p.obj.setAlpha(Phaser.Math.Clamp(alpha, 0, 1));
+    }
+  }
+
+  private spawnAmbient(): void {
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
+    const w = this.scale.gameSize.width || this.cameras.main.width || 1280;
+    const h = this.scale.gameSize.height || this.cameras.main.height || 720;
+    // Keep it sparse: roughly one mote per 60k px², clamped so it never clutters.
+    const count = Phaser.Math.Clamp(Math.round((w * h) / 60000), 12, 24);
+
+    for (let i = 0; i < count; i += 1) {
+      // ~1 in 3 motes is a warm firefly; the rest are pale drifting spores.
+      const firefly = i % 3 === 0;
+      this.ambient.push(this.buildAmbientParticle(firefly, w, h));
+    }
+  }
+
+  private buildAmbientParticle(firefly: boolean, w: number, h: number): AmbientParticle {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
+
+    let obj: Phaser.GameObjects.Arc | Phaser.GameObjects.Ellipse;
+    let baseAlpha: number;
+    let twinkleAmp: number;
+
+    if (firefly) {
+      const r = Phaser.Math.FloatBetween(1.6, 2.8);
+      obj = this.add.circle(x, y, r, 0xffe39a, 1).setBlendMode(Phaser.BlendModes.ADD);
+      baseAlpha = 0.2;
+      twinkleAmp = 0.16;
+    } else {
+      const r = Phaser.Math.FloatBetween(1.4, 2.6);
+      obj = this.add.ellipse(x, y, r * 2, r * 1.4, 0xbcd9a4, 1);
+      obj.setAngle(Phaser.Math.FloatBetween(0, 360));
+      baseAlpha = 0.16;
+      twinkleAmp = 0.06;
+    }
+
+    obj.setAlpha(baseAlpha);
+    this.ambientLayer.add(obj);
+
+    return {
+      obj,
+      x,
+      y,
+      vy: -Phaser.Math.FloatBetween(firefly ? 7 : 4, firefly ? 15 : 11),
+      swayAmp: Phaser.Math.FloatBetween(6, 16),
+      swayFreq: Phaser.Math.FloatBetween(0.18, 0.5),
+      swayPhase: Phaser.Math.FloatBetween(0, Math.PI * 2),
+      baseAlpha,
+      twinkleAmp,
+      twinkleFreq: Phaser.Math.FloatBetween(0.6, 1.6),
+      twinklePhase: Phaser.Math.FloatBetween(0, Math.PI * 2)
+    };
+  }
+
+  // Pull any motes that ended up outside the new viewport back into view.
+  private reflowAmbient(): void {
+    const w = this.scale.gameSize.width || this.cameras.main.width;
+    const h = this.scale.gameSize.height || this.cameras.main.height;
+    if (w < 4 || h < 4) return;
+    for (const p of this.ambient) {
+      if (p.x < -16 || p.x > w + 16) p.x = Math.random() * w;
+      if (p.y < -16 || p.y > h + 16) p.y = Math.random() * h;
+    }
   }
 
   gridToScreenPoint(position: GridPosition): { x: number; y: number } | null {
@@ -1132,6 +1234,20 @@ export class ForestPhaserScene extends Phaser.Scene {
       ly = p.y;
     });
   }
+}
+
+interface AmbientParticle {
+  obj: Phaser.GameObjects.Arc | Phaser.GameObjects.Ellipse;
+  x: number;
+  y: number;
+  vy: number;
+  swayAmp: number;
+  swayFreq: number;
+  swayPhase: number;
+  baseAlpha: number;
+  twinkleAmp: number;
+  twinkleFreq: number;
+  twinklePhase: number;
 }
 
 interface PieceLayout {
