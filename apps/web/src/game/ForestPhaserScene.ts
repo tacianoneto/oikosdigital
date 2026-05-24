@@ -120,6 +120,8 @@ export class ForestPhaserScene extends Phaser.Scene {
   private pulses: Phaser.Tweens.Tween[] = [];
   private ambient: AmbientParticle[] = [];
 
+  private ambientCamera?: Phaser.Cameras.Scene2D.Camera;
+
   private ready = false;
   private userAdjusted = false;
   private lastSlotCount = -1;
@@ -151,18 +153,37 @@ export class ForestPhaserScene extends Phaser.Scene {
     this.pieceLayer = this.add.container(0, 0);
     this.surfaceLayer.setDepth(0);
     this.gridLayer.setDepth(1);
-    // Ambient motes float behind the cards, pinned to the screen so they cover
-    // the whole viewport regardless of camera pan/zoom.
-    this.ambientLayer.setDepth(5).setScrollFactor(0);
+    this.ambientLayer.setDepth(5);
     this.cardLayer.setDepth(10);
     this.highlightLayer.setDepth(20);
     this.pieceLayer.setDepth(30);
+
+    // Ambient motes live on a dedicated camera with no zoom/scroll, so they
+    // float gently over the whole viewport regardless of how the main camera
+    // pans or zooms onto the forest. The main camera ignores the mote layer and
+    // the mote camera ignores the board, so neither bleeds into the other.
+    const gw = this.scale.gameSize.width || this.cameras.main.width || 1280;
+    const gh = this.scale.gameSize.height || this.cameras.main.height || 720;
+    this.ambientCamera = this.cameras.add(0, 0, gw, gh);
+    this.ambientCamera.transparent = true;
+    this.ambientCamera.setScroll(0, 0);
+    this.cameras.main.ignore(this.ambientLayer);
+    this.ambientCamera.ignore([
+      this.surfaceLayer,
+      this.gridLayer,
+      this.highlightLayer,
+      this.cardLayer,
+      this.pieceLayer
+    ]);
 
     this.setupCameraControls();
     this.spawnAmbient();
 
     this.scale.on("resize", () => {
       if (!this.userAdjusted) this.fitCamera(true);
+      const w = this.scale.gameSize.width || this.cameras.main.width;
+      const h = this.scale.gameSize.height || this.cameras.main.height;
+      this.ambientCamera?.setSize(w, h);
       this.reflowAmbient();
     });
 
@@ -244,16 +265,16 @@ export class ForestPhaserScene extends Phaser.Scene {
     let twinkleAmp: number;
 
     if (firefly) {
-      const r = Phaser.Math.FloatBetween(1.6, 2.8);
+      const r = Phaser.Math.FloatBetween(2.4, 3.8);
       obj = this.add.circle(x, y, r, 0xffe39a, 1).setBlendMode(Phaser.BlendModes.ADD);
-      baseAlpha = 0.2;
-      twinkleAmp = 0.16;
+      baseAlpha = 0.34;
+      twinkleAmp = 0.24;
     } else {
-      const r = Phaser.Math.FloatBetween(1.4, 2.6);
+      const r = Phaser.Math.FloatBetween(2, 3.2);
       obj = this.add.ellipse(x, y, r * 2, r * 1.4, 0xbcd9a4, 1);
       obj.setAngle(Phaser.Math.FloatBetween(0, 360));
-      baseAlpha = 0.16;
-      twinkleAmp = 0.06;
+      baseAlpha = 0.24;
+      twinkleAmp = 0.08;
     }
 
     obj.setAlpha(baseAlpha);
