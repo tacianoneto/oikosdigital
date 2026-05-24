@@ -4462,7 +4462,8 @@ input:focus {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  min-height: 76px;
+  padding: 14px 46px 14px 14px;
   border-radius: 14px;
   border: 1px solid var(--line-soft);
   background: rgba(11, 22, 17, 0.65);
@@ -4511,6 +4512,7 @@ input:focus {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  padding-right: 6px;
 }
 
 .flow-species-text strong {
@@ -4518,6 +4520,8 @@ input:focus {
   font-size: 14px;
   font-weight: 800;
   color: var(--paper);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
 }
 
 .flow-species-text small {
@@ -4600,17 +4604,18 @@ input:focus {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: var(--species-color, var(--amber));
   color: var(--ink);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
+  line-height: 1;
 }
 
 .flow-species-bot-tag svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
 }
 
 /* =====================================================
