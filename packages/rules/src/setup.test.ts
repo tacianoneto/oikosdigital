@@ -67,7 +67,7 @@ function createTestGameState(gameId: string, roomPlayers: RoomPlayer[]) {
 describe("setup placement", () => {
   it("has habitat and resource metadata for every forest card", () => {
     expect(commonForestCards).toHaveLength(36);
-    expect(initialForestCardCandidates).toHaveLength(14);
+    expect(initialForestCardCandidates).toHaveLength(12);
     expect(
       [...commonForestCards, ...initialForestCardCandidates].every(
         (card) =>
@@ -88,7 +88,7 @@ describe("setup placement", () => {
     expect(countBy(initialForestCardCandidates, (card) => card.habitat ?? "none")).toEqual({
       field: 3,
       forest: 3,
-      river: 8
+      river: 6
     });
     expect(countResources(commonForestCards)).toEqual({
       egg: 9,
@@ -99,8 +99,8 @@ describe("setup placement", () => {
     expect(countResources(initialForestCardCandidates)).toEqual({
       egg: 3,
       fruit: 2,
-      meat: 4,
-      seed: 5
+      meat: 3,
+      seed: 4
     });
   });
 
@@ -1360,11 +1360,16 @@ describe("setup placement", () => {
 
     const target = getWolfMeatPlacementPositions(game, "wolf")[0];
     const reserveBefore = game.players.find((candidate) => candidate.playerId === "wolf")!.reservePieces.length;
+    const wolvesAtTargetBefore = game.pieces.filter(
+      (piece) => piece.ownerId === "wolf" && piece.location?.x === target.x && piece.location.y === target.y
+    ).length;
     game = addWolfForCurrentAction(game, "wolf", target);
 
     const wolf = game.players.find((candidate) => candidate.playerId === "wolf");
     expect(wolf?.reservePieces).toHaveLength(reserveBefore - 1);
-    expect(game.pieces.filter((piece) => piece.ownerId === "wolf" && piece.location?.x === target.x && piece.location.y === target.y)).toHaveLength(1);
+    expect(
+      game.pieces.filter((piece) => piece.ownerId === "wolf" && piece.location?.x === target.x && piece.location.y === target.y)
+    ).toHaveLength(wolvesAtTargetBefore + 1);
     expect(game.activePlayerId).toBe("coati");
   });
 

@@ -74,7 +74,9 @@ function initialCard(
     imagePath: `${initialBasePath}/${fileName}`,
     connections,
     metadataStatus: "complete",
-    notes: "Carta inicial candidata. O jogo usa 9 das 12 candidatas no setup 3x3."
+    notes:
+      "Carta inicial. O setup 3x3 usa 9 cartas: 3 rios de face dupla (ovo, pinha, carne) " +
+      "e 6 de terra (bosque/campo). Cada rio mostra a frente OU o verso, nunca os dois."
   };
 }
 
@@ -128,6 +130,13 @@ export const commonForestCards: ForestCardDefinition[] = [
   commonCard("rio_12", "Rio 12", "rios (12).png", "river", ["seed"], riverEnd)
 ];
 
+// As 9 cartas iniciais. Os 3 rios sao de face dupla (frente/verso): a mesma
+// carta fisica vira para mostrar uma boca diferente, entao a frente e o verso
+// de um rio nunca aparecem juntos na mesma floresta. Sempre ha exatamente 1 rio
+// de ovo, 1 de pinha (seed) e 1 de carne; as outras 6 sao de terra.
+//   Rio ovo   : frente initial_1 (canal N/S)  | verso initial_1_v (curva N/E)
+//   Rio pinha : frente initial_8 (curva N/E)   | verso initial_8_v (ponta N)
+//   Rio carne : frente initial_9 (canal N/S)   | verso initial_9_v (ponta N)
 export const initialForestCardCandidates: ForestCardDefinition[] = [
   initialCard("initial_1", "Inicial 1", "Inicial (1).png", "river", ["egg"], riverChannel),
   initialCard("initial_1_v", "Inicial 1 V", "Inicial (1) V.png", "river", ["egg"], riverBend),
@@ -140,12 +149,7 @@ export const initialForestCardCandidates: ForestCardDefinition[] = [
   initialCard("initial_8", "Inicial 8", "Inicial (8).png", "river", ["seed"], riverBend),
   initialCard("initial_8_v", "Inicial 8 V", "Inicial (8) V.png", "river", ["seed"], riverEnd),
   initialCard("initial_9", "Inicial 9", "Inicial (9).png", "river", ["meat"], riverChannel),
-  initialCard("initial_9_v", "Inicial 9 V", "Inicial (9) v.png", "river", ["meat"], riverEnd),
-  // Canais verticais limpos (agua so norte/sul, laterais com mata). Reaproveitam
-  // a arte de "rios (1)" e "rios (2)" (pasta comum; sobe um nivel a partir de
-  // /initial para apontar o asset correto).
-  initialCard("initial_10", "Inicial 10", "../rios (1).png", "river", ["seed"], riverChannel),
-  initialCard("initial_11", "Inicial 11", "../rios (2).png", "river", ["meat"], riverChannel)
+  initialCard("initial_9_v", "Inicial 9 V", "Inicial (9) v.png", "river", ["meat"], riverEnd)
 ];
 
 export const forestCardsById = new Map(

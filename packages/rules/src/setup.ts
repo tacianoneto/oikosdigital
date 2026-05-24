@@ -83,189 +83,157 @@ interface ForestTemplate {
 }
 
 // Regra das mesas iniciais:
-//  - No maximo 3 cartas de rio.
+//  - Sempre exatamente 3 cartas de rio: 1 de ovo, 1 de pinha (seed) e 1 de
+//    carne. Cada rio e de face dupla; a mesa usa a frente OU o verso, nunca os
+//    dois (ver RIVER_FACE_PAIRS).
 //  - Toda saida de rio (borda com agua) conecta com outra saida de rio OU
 //    aponta para fora da mesa (borda externa do grid). Nunca encosta em mata.
 //  - O lado fechado (mata) das cartas de rio pode encostar em floresta/campo.
 //
-// Bocas de rio (rotacao 0; girar gira as bocas). Boca so conecta com boca ou
-// sai pela borda do grid; boca nunca encosta em mata.
-//   Canal {N,S}  : CH_*      (rio reto)
-//   Curva {N,E}  : BEND/BEND2 (vira em L)
-//   Ponta {N}    : END/END2   (fim de rio / lago)
-const CH_A = "initial_1";
-const CH_B = "initial_9";
-const CH_C = "initial_10";
-const BEND = "initial_1_v";
-const BEND2 = "initial_8";
-const END = "initial_8_v";
-const END2 = "initial_9_v";
+// Bocas de rio (rotacao 0; girar gira as bocas no sentido horario). Boca so
+// conecta com boca ou sai pela borda do grid; boca nunca encosta em mata.
+//   Canal {N,S} (rio reto), Curva {N,E} (vira em L), Ponta {N} (fim/lago).
+const RIVER_EGG_CHANNEL = "initial_1"; // frente: canal N/S
+const RIVER_EGG_BEND = "initial_1_v"; // verso: curva N/E
+const RIVER_SEED_BEND = "initial_8"; // frente: curva N/E
+const RIVER_SEED_END = "initial_8_v"; // verso: ponta N
+const RIVER_MEAT_CHANNEL = "initial_9"; // frente: canal N/S
+const RIVER_MEAT_END = "initial_9_v"; // verso: ponta N
+
+// Frente/verso de cada rio. Uma mesa nunca pode conter as duas faces do mesmo
+// rio, e nunca dois rios do mesmo recurso.
+const RIVER_FACE_PAIRS: Array<[string, string]> = [
+  [RIVER_EGG_CHANNEL, RIVER_EGG_BEND],
+  [RIVER_SEED_BEND, RIVER_SEED_END],
+  [RIVER_MEAT_CHANNEL, RIVER_MEAT_END]
+];
+
+const RIVER_CARD_IDS = new Set(RIVER_FACE_PAIRS.flat());
 
 const LAND_CARD_IDS = ["initial_2", "initial_3", "initial_4", "initial_5", "initial_6", "initial_7"];
 
 const GRID_RANGE = [-1, 0, 1];
 
-// Cada mesa: 1 linha reta de 3 canais. As 2 pontas do rio saem pela borda
-// do grid; os lados fechados (mata) das cartas encostam em floresta/campo
-// sem criar saida de rio solta. Coluna = canais rot 0; linha = canais rot 90.
+// Cada mesa coloca os 3 rios (1 face cada) no grid 3x3; as 6 cartas de terra
+// preenchem o resto. Canais precisam encadear (nao isolam num 3x3), entao
+// canais sempre conectam com outra boca ou seguem ate a borda; pontas/curvas
+// fecham o rio (lago) ou ficam isoladas com a boca para fora do grid.
 const FOREST_TEMPLATES: ForestTemplate[] = [
+  // Rio reto descendo a coluna central, terminando em lago na base.
   {
-    name: "rio-coluna-central",
+    name: "rio-coluna-central-lago",
     river: [
-      { definitionId: CH_A, x: 0, y: -1, rotation: 0 },
-      { definitionId: CH_C, x: 0, y: 0, rotation: 0 },
-      { definitionId: CH_B, x: 0, y: 1, rotation: 0 }
+      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 0 },
+      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: 0, rotation: 0 },
+      { definitionId: RIVER_SEED_END, x: 0, y: 1, rotation: 0 }
     ]
   },
-  {
-    name: "rio-coluna-esquerda",
-    river: [
-      { definitionId: CH_A, x: -1, y: -1, rotation: 0 },
-      { definitionId: CH_C, x: -1, y: 0, rotation: 0 },
-      { definitionId: CH_B, x: -1, y: 1, rotation: 0 }
-    ]
-  },
-  {
-    name: "rio-coluna-direita",
-    river: [
-      { definitionId: CH_A, x: 1, y: -1, rotation: 0 },
-      { definitionId: CH_C, x: 1, y: 0, rotation: 0 },
-      { definitionId: CH_B, x: 1, y: 1, rotation: 0 }
-    ]
-  },
-  {
-    name: "rio-linha-central",
-    river: [
-      { definitionId: CH_A, x: -1, y: 0, rotation: 90 },
-      { definitionId: CH_C, x: 0, y: 0, rotation: 90 },
-      { definitionId: CH_B, x: 1, y: 0, rotation: 90 }
-    ]
-  },
-  {
-    name: "rio-linha-topo",
-    river: [
-      { definitionId: CH_A, x: -1, y: -1, rotation: 90 },
-      { definitionId: CH_C, x: 0, y: -1, rotation: 90 },
-      { definitionId: CH_B, x: 1, y: -1, rotation: 90 }
-    ]
-  },
-  {
-    name: "rio-linha-base",
-    river: [
-      { definitionId: CH_A, x: -1, y: 1, rotation: 90 },
-      { definitionId: CH_C, x: 0, y: 1, rotation: 90 },
-      { definitionId: CH_B, x: 1, y: 1, rotation: 90 }
-    ]
-  },
-  // L no centro: curva no meio com uma ponta (lago) em cada extremidade.
-  {
-    name: "rio-L-centro",
-    river: [
-      { definitionId: BEND, x: 0, y: 0, rotation: 0 },
-      { definitionId: END, x: 0, y: -1, rotation: 180 },
-      { definitionId: END2, x: 1, y: 0, rotation: 270 }
-    ]
-  },
-  // Rio entra pelo topo, desce, vira a leste e termina num lago.
-  {
-    name: "rio-canal-curva-lago",
-    river: [
-      { definitionId: CH_A, x: 0, y: -1, rotation: 0 },
-      { definitionId: BEND, x: 0, y: 0, rotation: 0 },
-      { definitionId: END, x: 1, y: 0, rotation: 270 }
-    ]
-  },
-  // Rio entra pelo topo, desce a coluna central e termina num lago na base.
-  {
-    name: "rio-coluna-lago",
-    river: [
-      { definitionId: CH_A, x: 0, y: -1, rotation: 0 },
-      { definitionId: CH_C, x: 0, y: 0, rotation: 0 },
-      { definitionId: END, x: 0, y: 1, rotation: 0 }
-    ]
-  },
-  // Rio em zigue-zague: entra pelo topo, vai a leste, desce, termina em lago.
-  {
-    name: "rio-zigue-zague",
-    river: [
-      { definitionId: BEND2, x: 0, y: -1, rotation: 0 },
-      { definitionId: BEND, x: 1, y: -1, rotation: 180 },
-      { definitionId: END, x: 1, y: 0, rotation: 0 }
-    ]
-  },
-  // Rio entra pela esquerda no topo, vira ao sul e termina em lago no centro.
-  {
-    name: "rio-linha-curva-lago",
-    river: [
-      { definitionId: CH_A, x: -1, y: -1, rotation: 90 },
-      { definitionId: BEND, x: 0, y: -1, rotation: 180 },
-      { definitionId: END, x: 0, y: 0, rotation: 0 }
-    ]
-  },
-  // Variante: rio na coluna esquerda terminando em lago na base.
+  // Mesma coluna, encostada a esquerda.
   {
     name: "rio-coluna-esq-lago",
     river: [
-      { definitionId: CH_A, x: -1, y: -1, rotation: 0 },
-      { definitionId: CH_C, x: -1, y: 0, rotation: 0 },
-      { definitionId: END, x: -1, y: 1, rotation: 0 }
+      { definitionId: RIVER_EGG_CHANNEL, x: -1, y: -1, rotation: 0 },
+      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: 0, rotation: 0 },
+      { definitionId: RIVER_SEED_END, x: -1, y: 1, rotation: 0 }
     ]
   },
-  // Coluna direita terminando em lago na base.
+  // Mesma coluna, encostada a direita.
   {
     name: "rio-coluna-dir-lago",
     river: [
-      { definitionId: CH_A, x: 1, y: -1, rotation: 0 },
-      { definitionId: CH_C, x: 1, y: 0, rotation: 0 },
-      { definitionId: END, x: 1, y: 1, rotation: 0 }
+      { definitionId: RIVER_EGG_CHANNEL, x: 1, y: -1, rotation: 0 },
+      { definitionId: RIVER_MEAT_CHANNEL, x: 1, y: 0, rotation: 0 },
+      { definitionId: RIVER_SEED_END, x: 1, y: 1, rotation: 0 }
     ]
   },
-  // Espelho: desce do topo, vira a oeste e termina em lago.
-  {
-    name: "rio-canal-curva-lago-oeste",
-    river: [
-      { definitionId: CH_A, x: 0, y: -1, rotation: 0 },
-      { definitionId: BEND, x: 0, y: 0, rotation: 270 },
-      { definitionId: END, x: -1, y: 0, rotation: 90 }
-    ]
-  },
-  // Rio na linha do topo terminando em lago no canto direito.
+  // Rio reto atravessando a linha do topo, terminando em lago a direita.
   {
     name: "rio-linha-topo-lago",
     river: [
-      { definitionId: CH_A, x: -1, y: -1, rotation: 90 },
-      { definitionId: CH_C, x: 0, y: -1, rotation: 90 },
-      { definitionId: END, x: 1, y: -1, rotation: 270 }
+      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: -1, rotation: 90 },
+      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 90 },
+      { definitionId: RIVER_SEED_END, x: 1, y: -1, rotation: 270 }
     ]
   },
-  // Rio na linha da base terminando em lago no canto direito.
+  // Rio reto atravessando a linha central, terminando em lago a direita.
+  {
+    name: "rio-linha-central-lago",
+    river: [
+      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: 0, rotation: 90 },
+      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: 0, rotation: 90 },
+      { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
+    ]
+  },
+  // Rio reto atravessando a linha da base, terminando em lago a direita.
   {
     name: "rio-linha-base-lago",
     river: [
-      { definitionId: CH_A, x: -1, y: 1, rotation: 90 },
-      { definitionId: CH_C, x: 0, y: 1, rotation: 90 },
-      { definitionId: END2, x: 1, y: 1, rotation: 270 }
+      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: 1, rotation: 90 },
+      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: 1, rotation: 90 },
+      { definitionId: RIVER_SEED_END, x: 1, y: 1, rotation: 270 }
     ]
   },
-  // L no centro (outra orientacao): curva abrindo para leste e sul.
+  // L no centro: carne entra pelo topo, ovo vira em L, pinha fecha a leste.
   {
-    name: "rio-L-centro-sul",
+    name: "rio-L-centro-leste",
     river: [
-      { definitionId: BEND2, x: 0, y: 0, rotation: 90 },
-      { definitionId: END, x: 1, y: 0, rotation: 270 },
-      { definitionId: END2, x: 0, y: 1, rotation: 0 }
+      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: -1, rotation: 0 },
+      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 0 },
+      { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
     ]
   },
-  // Tres nascentes isoladas: cada carta-rio aponta a boca para fora do grid.
+  // Espelho do L: ovo vira a oeste e pinha fecha em lago a esquerda.
+  {
+    name: "rio-L-centro-oeste",
+    river: [
+      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: -1, rotation: 0 },
+      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 270 },
+      { definitionId: RIVER_SEED_END, x: -1, y: 0, rotation: 90 }
+    ]
+  },
+  // Tres nascentes isoladas: cada rio aponta as bocas para fora do grid.
   {
     name: "rio-tres-nascentes",
     river: [
-      { definitionId: BEND, x: 1, y: -1, rotation: 0 },
-      { definitionId: END, x: -1, y: 1, rotation: 180 },
-      { definitionId: END2, x: -1, y: -1, rotation: 270 }
+      { definitionId: RIVER_EGG_BEND, x: -1, y: -1, rotation: 270 },
+      { definitionId: RIVER_SEED_BEND, x: 1, y: -1, rotation: 0 },
+      { definitionId: RIVER_MEAT_END, x: 0, y: 1, rotation: 180 }
+    ]
+  },
+  // Outras tres nascentes isoladas, em cantos/bordas diferentes.
+  {
+    name: "rio-tres-nascentes-2",
+    river: [
+      { definitionId: RIVER_EGG_BEND, x: -1, y: 1, rotation: 180 },
+      { definitionId: RIVER_SEED_END, x: 0, y: -1, rotation: 0 },
+      { definitionId: RIVER_MEAT_END, x: 1, y: 0, rotation: 90 }
     ]
   }
 ];
+
+// Garante a composicao de cada mesa: exatamente 3 rios (1 ovo, 1 pinha, 1
+// carne), nunca as duas faces do mesmo rio, e exatamente 6 cartas de terra.
+function assertForestRiverComposition(cards: ForestCardState[], templateName: string): void {
+  const riverCards = cards.filter((card) => RIVER_CARD_IDS.has(card.definitionId));
+  if (riverCards.length !== 3) {
+    throw new Error(`Mesa inicial "${templateName}" precisa de exatamente 3 rios, tem ${riverCards.length}.`);
+  }
+
+  const riverIds = riverCards.map((card) => card.definitionId);
+  for (const [front, back] of RIVER_FACE_PAIRS) {
+    const usedFaces = riverIds.filter((id) => id === front || id === back).length;
+    if (usedFaces !== 1) {
+      throw new Error(
+        `Mesa inicial "${templateName}" deve usar exatamente uma face do rio ${front}/${back}, usou ${usedFaces}.`
+      );
+    }
+  }
+
+  const landCards = cards.filter((card) => LAND_CARD_IDS.includes(card.definitionId));
+  if (landCards.length !== LAND_CARD_IDS.length) {
+    throw new Error(`Mesa inicial "${templateName}" precisa das ${LAND_CARD_IDS.length} cartas de terra.`);
+  }
+}
 
 function buildForestFromTemplate(template: ForestTemplate): ForestCardState[] {
   const riverByPos = new Map(template.river.map((spec) => [`${spec.x}:${spec.y}`, spec]));
@@ -340,6 +308,7 @@ function assertForestRiverConsistency(cards: ForestCardState[], templateName: st
 const VALIDATED_FOREST_TEMPLATES = FOREST_TEMPLATES.map((template) => {
   const cards = buildForestFromTemplate(template);
   assertForestRiverConsistency(cards, template.name);
+  assertForestRiverComposition(cards, template.name);
   return cards;
 });
 
