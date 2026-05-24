@@ -4394,9 +4394,6 @@ export function App() {
                           </button>
                         </div>
                       )}
-                      <p className="lobby-hint-sub">
-                        Ao esgotar, um bot resolve o turno de quem demorou (jogada aleatória).
-                      </p>
                     </div>
                   </div>
                 )}
