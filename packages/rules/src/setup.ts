@@ -208,6 +208,78 @@ const FOREST_TEMPLATES: ForestTemplate[] = [
       { definitionId: RIVER_SEED_END, x: 0, y: -1, rotation: 0 },
       { definitionId: RIVER_MEAT_END, x: 1, y: 0, rotation: 90 }
     ]
+  },
+  // L pela base: carne sobe pela base, ovo vira a leste, pinha fecha a direita.
+  {
+    name: "rio-L-base-leste",
+    river: [
+      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: 1, rotation: 0 },
+      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 90 },
+      { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
+    ]
+  },
+  // Espelho: carne sobe pela base, ovo vira a oeste, pinha fecha a esquerda.
+  {
+    name: "rio-L-base-oeste",
+    river: [
+      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: 1, rotation: 0 },
+      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 180 },
+      { definitionId: RIVER_SEED_END, x: -1, y: 0, rotation: 90 }
+    ]
+  },
+  // Curva entrando pelo topo-esquerda e descendo ate o centro.
+  {
+    name: "rio-curva-topo-esq",
+    river: [
+      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: -1, rotation: 90 },
+      { definitionId: RIVER_EGG_BEND, x: 0, y: -1, rotation: 180 },
+      { definitionId: RIVER_SEED_END, x: 0, y: 0, rotation: 0 }
+    ]
+  },
+  // Espelho: curva entrando pelo topo-direita e descendo ate o centro.
+  {
+    name: "rio-curva-topo-dir",
+    river: [
+      { definitionId: RIVER_MEAT_CHANNEL, x: 1, y: -1, rotation: 90 },
+      { definitionId: RIVER_EGG_BEND, x: 0, y: -1, rotation: 90 },
+      { definitionId: RIVER_SEED_END, x: 0, y: 0, rotation: 0 }
+    ]
+  },
+  // Zigue-zague: ovo desce pelo topo, pinha vira a leste, carne fecha.
+  {
+    name: "rio-zigue-leste",
+    river: [
+      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 0 },
+      { definitionId: RIVER_SEED_BEND, x: 0, y: 0, rotation: 0 },
+      { definitionId: RIVER_MEAT_END, x: 1, y: 0, rotation: 270 }
+    ]
+  },
+  // Espelho do zigue-zague para o oeste.
+  {
+    name: "rio-zigue-oeste",
+    river: [
+      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 0 },
+      { definitionId: RIVER_SEED_BEND, x: 0, y: 0, rotation: 270 },
+      { definitionId: RIVER_MEAT_END, x: -1, y: 0, rotation: 90 }
+    ]
+  },
+  // Tres nascentes: cantos opostos com curvas + ponta no topo.
+  {
+    name: "rio-tres-nascentes-3",
+    river: [
+      { definitionId: RIVER_EGG_BEND, x: 1, y: 1, rotation: 90 },
+      { definitionId: RIVER_SEED_BEND, x: -1, y: -1, rotation: 270 },
+      { definitionId: RIVER_MEAT_END, x: 0, y: -1, rotation: 0 }
+    ]
+  },
+  // Tres nascentes: curva no canto e duas pontas em bordas opostas.
+  {
+    name: "rio-tres-nascentes-4",
+    river: [
+      { definitionId: RIVER_EGG_BEND, x: 1, y: -1, rotation: 0 },
+      { definitionId: RIVER_SEED_END, x: -1, y: 0, rotation: 270 },
+      { definitionId: RIVER_MEAT_END, x: 0, y: 1, rotation: 180 }
+    ]
   }
 ];
 
@@ -235,7 +307,10 @@ function assertForestRiverComposition(cards: ForestCardState[], templateName: st
   }
 }
 
-function buildForestFromTemplate(template: ForestTemplate): ForestCardState[] {
+function buildForestFromTemplate(
+  template: ForestTemplate,
+  landOrder: readonly string[] = LAND_CARD_IDS
+): ForestCardState[] {
   const riverByPos = new Map(template.river.map((spec) => [`${spec.x}:${spec.y}`, spec]));
   const cards: ForestCardState[] = [];
   let landIndex = 0;
@@ -255,7 +330,7 @@ function buildForestFromTemplate(template: ForestTemplate): ForestCardState[] {
         continue;
       }
 
-      const definitionId = LAND_CARD_IDS[landIndex];
+      const definitionId = landOrder[landIndex];
       landIndex += 1;
       cards.push({
         instanceId: `setup_${definitionId}`,
@@ -305,11 +380,13 @@ function assertForestRiverConsistency(cards: ForestCardState[], templateName: st
   }
 }
 
-const VALIDATED_FOREST_TEMPLATES = FOREST_TEMPLATES.map((template) => {
+// Valida cada mesa na carga do modulo e guarda a spec (rios) para montar a
+// floresta sob demanda; a ordem das 6 cartas de terra e sorteada por partida.
+const VALIDATED_FOREST_TEMPLATES: ForestTemplate[] = FOREST_TEMPLATES.map((template) => {
   const cards = buildForestFromTemplate(template);
   assertForestRiverConsistency(cards, template.name);
   assertForestRiverComposition(cards, template.name);
-  return cards;
+  return template;
 });
 
 export function pickInitialForest(random: () => number = Math.random): ForestCardState[] {
@@ -317,11 +394,15 @@ export function pickInitialForest(random: () => number = Math.random): ForestCar
     VALIDATED_FOREST_TEMPLATES.length - 1,
     Math.floor(random() * VALIDATED_FOREST_TEMPLATES.length)
   );
-  return VALIDATED_FOREST_TEMPLATES[index].map((card) => ({ ...card }));
+  // Sorteia tambem a posicao das 6 cartas de terra: cada mesa de rio ganha
+  // muitas combinacoes de terra (6! = 720) sem afetar o encaixe dos rios.
+  const landOrder = shuffle([...LAND_CARD_IDS], random);
+  return buildForestFromTemplate(VALIDATED_FOREST_TEMPLATES[index], landOrder);
 }
 
 export function createPreviewInitialForest(): ForestCardState[] {
-  return VALIDATED_FOREST_TEMPLATES[0].map((card) => ({ ...card }));
+  // Determinista (ordem fixa de terra), usado por preview e testes.
+  return buildForestFromTemplate(VALIDATED_FOREST_TEMPLATES[0]);
 }
 
 export function getSetupOrder(speciesIds: SpeciesId[]): SpeciesId[] {

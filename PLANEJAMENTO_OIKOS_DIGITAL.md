@@ -48,7 +48,7 @@ Detalhe importante das cartas:
 
 - 36 cartas são cartas comuns de floresta: 12 `bosque`, 12 `campos`, 12 `rios`. Suficiente para distribuir 6 cartas para cada uma das 5 espécies que usam cartas em uma partida de 6 jogadores (5 × 6 = 30, sobram 6).
 - A floresta inicial usa 9 cartas: 3 rios de face dupla (ovo, pinha, carne) + 6 de terra (bosque/campo). Cada rio é frente/verso da mesma carta física, então a frente e o verso de um rio nunca aparecem juntos; toda floresta inicial sempre tem exatamente 1 rio de ovo, 1 de pinha e 1 de carne. As 12 definições de carta inicial em `packages/content/src/cards.ts` cobrem essas 9 cartas (3 frentes de rio + 3 versos + 6 de terra).
-- A partida começa montando a grade 3x3 a partir de uma das 10 mesas pré-validadas em `packages/rules/src/setup.ts` (`FOREST_TEMPLATES`), sorteada no início. Cada mesa garante que toda boca de rio conecta com outra boca ou sai pela borda do grid, nunca encosta em mata, e usa exatamente uma face de cada rio (validado na carga do módulo).
+- A partida começa montando a grade 3x3 a partir de uma das 18 mesas de rio pré-validadas em `packages/rules/src/setup.ts` (`FOREST_TEMPLATES`), sorteada no início. Cada mesa garante que toda boca de rio conecta com outra boca ou sai pela borda do grid, nunca encosta em mata, e usa exatamente uma face de cada rio (validado na carga do módulo). A posição das 6 cartas de terra também é sorteada por partida (6! = 720 arranjos por mesa), dando 18 × 720 = 12.960 florestas iniciais possíveis.
 
 Status dos manifestos:
 
@@ -519,7 +519,7 @@ Resultado esperado:
 
 Resolvidos:
 
-- ~~Como escolher as 9 cartas iniciais, layout 3x3 e rotações.~~ Resolvido por 10 mesas pré-validadas em `FOREST_TEMPLATES` (`packages/rules/src/setup.ts`). Uma mesa é sorteada no início da partida. Os 3 rios são de face dupla (ovo, pinha, carne): cada mesa usa exatamente uma face de cada rio, então toda floresta inicial tem 1 rio de cada recurso e nunca a frente e o verso do mesmo rio juntos. Toda mesa é checada na carga do módulo (encaixe de rios + composição) e quebra o build se for inválida.
+- ~~Como escolher as 9 cartas iniciais, layout 3x3 e rotações.~~ Resolvido por 18 mesas de rio pré-validadas em `FOREST_TEMPLATES` (`packages/rules/src/setup.ts`). Uma mesa é sorteada no início da partida, e a posição das 6 cartas de terra também é sorteada (12.960 florestas possíveis no total). Os 3 rios são de face dupla (ovo, pinha, carne): cada mesa usa exatamente uma face de cada rio, então toda floresta inicial tem 1 rio de cada recurso e nunca a frente e o verso do mesmo rio juntos. Toda mesa é checada na carga do módulo (encaixe de rios + composição) e quebra o build se for inválida.
 - ~~Distribuição de mãos em partida com 6 jogadores.~~ Resolvido: a pasta tem 36 cartas comuns (12 bosque + 12 campo + 12 rio), suficientes para 5 espécies × 6 cartas = 30, com sobra de 6 cartas para reposição/cobrir cenários futuros.
 - ~~Manifesto completo de cada carta comum.~~ Resolvido em `packages/content/src/cards.ts`.
 - ~~Política de desconexão no turno ativo.~~ Resolvido: o servidor pula o turno do jogador desconectado após `TURN_TIMEOUT_MS` (default 90s). O jogador pode reconectar e retomar nas próximas jogadas.
