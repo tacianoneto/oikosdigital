@@ -159,6 +159,15 @@ function isSmallScreen(): boolean {
   return typeof window !== "undefined" && window.innerWidth <= 820;
 }
 
+// Phone breakpoint that switches the HUD to the tabbed bottom-sheet layout.
+// Matches the `.mobile-hud` media query in styles.css.
+const MOBILE_HUD_QUERY = "(max-width: 560px)";
+function isMobileWidth(): boolean {
+  return typeof window !== "undefined" && window.matchMedia(MOBILE_HUD_QUERY).matches;
+}
+
+type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
+
 // Selectable turn-timer durations for online rooms (ms).
 const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
 const DEFAULT_TURN_TIMER_MS = 60000;
@@ -232,6 +241,10 @@ export function App() {
   const [cleanBoardMode, setCleanBoardMode] = useState(false);
   const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  // Mobile-only HUD: below this width the floating docks become bottom sheets
+  // driven by a tab bar. Desktop keeps the original floating layout untouched.
+  const [isMobile, setIsMobile] = useState(isMobileWidth);
+  const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
@@ -310,6 +323,25 @@ export function App() {
       setHoveredSummaryCardIds([]);
     }
   }, [recapCollapsed, turnSummary?.key]);
+
+  // Keep `isMobile` in sync with the phone breakpoint; close any open sheet
+  // when leaving mobile so the desktop layout is never left in a sheet state.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia(MOBILE_HUD_QUERY);
+    const onChange = () => {
+      setIsMobile(mql.matches);
+      if (!mql.matches) setMobileSheet(null);
+    };
+    onChange();
+    mql.addEventListener("change", onChange);
+    // Fallback: some environments don't dispatch matchMedia "change" reliably.
+    window.addEventListener("resize", onChange);
+    return () => {
+      mql.removeEventListener("change", onChange);
+      window.removeEventListener("resize", onChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (room?.game?.status === "active") {
@@ -1285,6 +1317,21 @@ export function App() {
       (room?.game?.status === "setup" || room?.game?.status === "active")
   );
   const canSelectHandCards = Boolean(room?.game?.status === "active");
+  // True while the player must click something on the board (place a card,
+  // move/add a piece, pick a bonus, etc). On mobile we auto-close the
+  // Jogadores/Mão sheets when this turns on so the board is visible.
+  const boardChoiceActive =
+    canPlaceSetupPiece ||
+    Boolean(pendingPlacement) ||
+    displayExpansionTargets.length > 0 ||
+    displayRotateFitTargets.length > 0 ||
+    displayMovementTargets.length > 0 ||
+    displayAddPieceTargets.length > 0 ||
+    displayCoatiPairBonusTargets.length > 0;
+  useEffect(() => {
+    if (!isMobile || !boardChoiceActive) return;
+    setMobileSheet((current) => (current === "jogadores" || current === "mao" ? null : current));
+  }, [isMobile, boardChoiceActive]);
   const roomWarnings = useMemo(() => {
     const warnings = [...(room?.warnings ?? []), ...(room?.game?.contentWarnings ?? [])];
     return [...new Set(warnings)];
@@ -2834,7 +2881,12 @@ export function App() {
   const setupNeeded = setupSpecies?.initialPieces ?? 0;
 
   return (
-    <main className={`app-shell ${hasStartedGame ? "game-active" : "menu-active"}`}>
+    <main
+      className={`app-shell ${hasStartedGame ? "game-active" : "menu-active"} ${
+        isMobile && hasStartedGame && !cleanBoardMode ? "mobile-hud" : ""
+      }`}
+      data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
+    >
       {cardDrag && (
         <div className="card-drag-layer" aria-hidden="true">
           <span
@@ -5341,6 +5393,48 @@ export function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {isMobile && hasStartedGame && !cleanBoardMode && (
+        <nav className="mobile-tabbar" aria-label="Painéis do jogo">
+          {([
+            { id: "acao", label: "Ação", icon: Play, available: true },
+            {
+              id: "mao",
+              label: "Mão",
+              icon: Leaf,
+              available: showHandDuringGame && Boolean(currentGamePlayer)
+            },
+            { id: "jogadores", label: "Jogadores", icon: Users, available: Boolean(room) },
+            {
+              id: "resumo",
+              label: "Resumo",
+              icon: Clock,
+              available: Boolean(turnSummary) && room?.game?.status === "active"
+            }
+          ] as const).map(({ id, label, icon: Icon, available }) => (
+            <button
+              key={id}
+              type="button"
+              className={`mobile-tab ${mobileSheet === id ? "is-active" : ""}`}
+              aria-pressed={mobileSheet === id}
+              disabled={!available}
+              onClick={() =>
+                setMobileSheet((current) => {
+                  const next = current === id ? null : id;
+                  if (next === "acao") setHudLeftCollapsed(false);
+                  if (next === "mao") setHandCollapsed(false);
+                  if (next === "jogadores") setHudRightCollapsed(false);
+                  if (next === "resumo") setRecapCollapsed(false);
+                  return next;
+                })
+              }
+            >
+              <Icon aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
       )}
     </main>
   );

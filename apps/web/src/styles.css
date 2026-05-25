@@ -6327,3 +6327,128 @@ input:focus {
     bottom: 96px;
   }
 }
+
+/* =========================================================================
+   Mobile HUD — tabbed bottom sheets (phones only)
+   The `.mobile-hud` class is added to .app-shell by JS only at the phone
+   breakpoint, so none of this affects the desktop/tablet layout. The four
+   floating docks are re-cast as bottom sheets toggled by `data-sheet`.
+   ========================================================================= */
+.mobile-hud {
+  --mobile-tabbar-h: calc(58px + env(safe-area-inset-bottom, 0px));
+}
+
+/* edge collapse tabs are replaced by the bottom tab bar */
+.mobile-hud .hud-collapse-tab {
+  display: none;
+}
+
+/* keep the recenter button clear of the tab bar */
+.mobile-hud .forest-recenter {
+  bottom: calc(var(--mobile-tabbar-h) + 10px);
+}
+
+/* the four managed panels become bottom sheets */
+.mobile-hud .hud-action.hud-left,
+.mobile-hud .right-panel.hud-right,
+.mobile-hud .table-hand,
+.mobile-hud .turn-recap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: auto;
+  bottom: var(--mobile-tabbar-h);
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  max-height: min(60dvh, calc(100dvh - var(--mobile-tabbar-h) - 12px));
+  border-radius: 18px 18px 0 0;
+  overflow-y: auto;
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
+  z-index: 35;
+}
+
+/* the active sheet slides up into view */
+.mobile-hud[data-sheet="acao"] .hud-action.hud-left,
+.mobile-hud[data-sheet="mao"] .table-hand,
+.mobile-hud[data-sheet="jogadores"] .right-panel.hud-right,
+.mobile-hud[data-sheet="resumo"] .turn-recap {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* let inner blocks fill the sheet and scroll within it */
+.mobile-hud .right-panel.hud-right .panel-block,
+.mobile-hud .hud-right .player-list {
+  max-height: none;
+}
+
+.mobile-hud .table-hand {
+  align-items: stretch;
+}
+
+/* bottom tab bar */
+.mobile-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: var(--mobile-tabbar-h);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: linear-gradient(180deg, rgba(14, 25, 19, 0.97), rgba(8, 15, 12, 0.99));
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 26px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.mobile-tab {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 6px 2px;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.mobile-tab svg {
+  width: 22px;
+  height: 22px;
+}
+
+.mobile-tab.is-active {
+  color: var(--amber);
+}
+
+.mobile-tab.is-active::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: var(--amber);
+}
+
+.mobile-tab:disabled {
+  opacity: 0.32;
+  pointer-events: none;
+}
