@@ -219,13 +219,16 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     const cam = this.cameras.main;
     const z = cam.zoom;
-    const WORLD_MIN = -3000;
+    // Layer top-left is anchored at this world coordinate; must match the
+    // 24000px layer size (covers world [-12000, 12000]) so negative coords show.
+    const WORLD_MIN = -12000;
     const tx = cam.x + (WORLD_MIN - cam.scrollX) * z;
     const ty = cam.y + (WORLD_MIN - cam.scrollY) * z;
     const sig = `${z.toFixed(4)}|${tx.toFixed(1)}|${ty.toFixed(1)}`;
     if (sig === this.lastWoodSig) return;
     this.lastWoodSig = sig;
-    el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${z})`;
+    // 2D transform (not translate3d) to avoid promoting this huge layer.
+    el.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`;
   }
 
   update(_time: number, delta: number): void {

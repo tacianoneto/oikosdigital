@@ -1402,16 +1402,20 @@ input:focus {
 }
 
 /* Wood surface in world coordinates: 1px here = 1 Phaser world unit (a forest
-   card is 196 units wide). Oversized far past the viewport so zoom/pan never
-   exposes an edge; transform-origin 0 0 matches the world→screen mapping. */
+   card is 196 units wide). Sized huge so that even at the minimum camera zoom
+   (0.28) it still blankets the largest viewport — at that zoom this is still
+   24000 * 0.28 = 6720px on screen. No will-change here on purpose: promoting a
+   layer this large would cost gigabytes of GPU memory, so we leave it
+   un-promoted and let the browser raster only the visible (tiled) region; the
+   gradients + small repeated SVG tiles re-raster cheaply on zoom.
+   transform-origin 0 0 matches the world→screen mapping. */
 .table-wood {
   position: absolute;
   left: 0;
   top: 0;
-  width: 6000px;
-  height: 6000px;
+  width: 24000px;
+  height: 24000px;
   transform-origin: 0 0;
-  will-change: transform;
   pointer-events: none;
   background-color: #4a2e1b;
   background-image:
