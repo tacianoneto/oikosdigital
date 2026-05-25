@@ -4946,7 +4946,6 @@ export function App() {
                 <strong>{activeGamePlayer.score}</strong>
               </span>
               <span>
-                {activeSpecies && <img src={encodeURI(activeSpecies.meepleAsset)} alt="" />}
                 <strong>{activeGamePlayer.piecesInForest.length}</strong>
                 <small>/ {activeSpecies?.totalPieces ?? activeGamePlayer.piecesInForest.length}</small>
               </span>

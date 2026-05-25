@@ -1040,7 +1040,7 @@ input:focus {
 
 .audio-card .secondary-button.is-active {
   border-color: color-mix(in srgb, var(--amber) 60%, transparent);
-  color: var(--amber);
+  color: var(--paper);
 }
 
 .audio-slider {
