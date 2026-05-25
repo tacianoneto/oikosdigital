@@ -61,19 +61,8 @@ const GAP = 6;
 const STEP = CARD + GAP;
 const RADIUS = 14;
 
-const SPECIES_COLOR: Record<string, number> = {
-  jaguar: 0xe8a33d,
-  maned_wolf: 0xc8553d,
-  armadillo: 0xb98a4b,
-  macaw: 0x3a7fc4,
-  capuchin: 0x6b8a76,
-  coati: 0xb6815f
-};
-
 const SELECT = 0x5fd08a;
-const INK = 0x101a14;
 const HIDDEN_TINT = 0x7f8780;
-const HIDDEN_BASE = 0x747c76;
 
 function key(p: GridPosition): string {
   return `${p.x}:${p.y}`;
@@ -87,10 +76,6 @@ function angleJitter(instanceId: string): number {
     h = (h * 31 + instanceId.charCodeAt(i)) | 0;
   }
   return (((h % 200) + 200) % 200) / 100 - 1;
-}
-
-function colorForPiece(piece: PieceState): number {
-  return SPECIES_COLOR[piece.speciesId] ?? 0xb6815f;
 }
 
 interface CardObj {
@@ -889,14 +874,14 @@ export class ForestPhaserScene extends Phaser.Scene {
           const fromY = po.root.y;
           po.worldX = tx;
           po.worldY = ty;
-          this.arcMove(po.root, fromX, fromY, tx, ty, ps, colorForPiece(piece));
+          this.arcMove(po.root, fromX, fromY, tx, ty, ps);
         } else {
           po.root.setScale(ps);
         }
 
         const glow = po.root.getData("glow") as Phaser.GameObjects.Graphics;
         const pieceImg = po.root.getData("img") as Phaser.GameObjects.Image;
-        this.applyPieceHiddenState(po.root, piece, colorForPiece(piece));
+        this.applyPieceHiddenState(po.root, piece);
         glow.clear();
         if (pieceImg.postFX) {
           pieceImg.postFX.clear();
@@ -967,8 +952,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     fromY: number,
     toX: number,
     toY: number,
-    scale: number,
-    color: number
+    scale: number
   ): void {
     const dist = Phaser.Math.Distance.Between(fromX, fromY, toX, toY);
     const lift = Math.min(120, 34 + dist * 0.28);
@@ -994,18 +978,18 @@ export class ForestPhaserScene extends Phaser.Scene {
         const air = Math.sin(Math.PI * t);
         root.setPosition(x, y);
         root.setScale(scale * (1 + 0.08 * air));
-        shadow?.setAlpha(Phaser.Math.Linear(0.42, 0.2, air));
-        shadow?.setScale(1 + air * 0.35, 1 + air * 0.1);
+        shadow?.setAlpha(Phaser.Math.Linear(0.18, 0.08, air));
+        shadow?.setScale(1 + air * 0.25, 1 + air * 0.08);
         if (t - lastTrail > 0.085 && t < 0.96) {
           lastTrail = t;
-          this.spawnTrail(x, y + 9, color);
+          this.spawnTrail(x, y + 9);
         }
       },
       onComplete: () => {
         root.setPosition(toX, toY);
         root.setScale(scale);
         root.setDepth(100);
-        shadow?.setAlpha(0.42);
+        shadow?.setAlpha(0.18);
         shadow?.setScale(1, 1);
         this.tweens.add({
           targets: root,
@@ -1100,8 +1084,8 @@ export class ForestPhaserScene extends Phaser.Scene {
     });
   }
 
-  private spawnTrail(x: number, y: number, color: number): void {
-    const dot = this.add.ellipse(x, y, 18, 7, color, 0.5);
+  private spawnTrail(x: number, y: number): void {
+    const dot = this.add.ellipse(x, y, 16, 5, 0x000000, 0.1);
     dot.setDepth(60);
     this.pieceLayer.add(dot);
     this.tweens.add({
@@ -1117,10 +1101,8 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   private buildPiece(piece: PieceState): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
-    const color = colorForPiece(piece);
 
-    const shadow = this.add.ellipse(4, 14, 34, 12, 0x000000, 0.42);
-    const base = this.add.ellipse(0, 9, 26, 9, color, 1).setStrokeStyle(1.5, INK, 0.9);
+    const shadow = this.add.ellipse(3, 15, 28, 8, 0x000000, 0.18);
     const glow = this.add.graphics();
 
     const tex = this.textures.get(`meeple:${piece.speciesId}`).getSourceImage();
@@ -1132,28 +1114,25 @@ export class ForestPhaserScene extends Phaser.Scene {
       .setDisplaySize((targetH * ww) / hh, targetH)
       .setOrigin(0.5, 0.6);
 
-    c.add([shadow, glow, base, img]);
+    c.add([shadow, glow, img]);
 
     const hit = this.add.circle(0, -4, 17, 0xffffff, 0);
     c.add(hit);
     c.setData("shadow", shadow);
-    c.setData("base", base);
     c.setData("glow", glow);
     c.setData("hit", hit);
     c.setData("img", img);
-    this.applyPieceHiddenState(c, piece, color);
+    this.applyPieceHiddenState(c, piece);
     return c;
   }
 
-  private applyPieceHiddenState(root: Phaser.GameObjects.Container, piece: PieceState, color: number): void {
+  private applyPieceHiddenState(root: Phaser.GameObjects.Container, piece: PieceState): void {
     const isHidden = piece.state.hidden;
     const previous = root.getData("hiddenState") as boolean | undefined;
     const shadow = root.getData("shadow") as Phaser.GameObjects.Ellipse;
-    const base = root.getData("base") as Phaser.GameObjects.Ellipse;
     const img = root.getData("img") as Phaser.GameObjects.Image;
 
-    shadow.setAlpha(isHidden ? 0.28 : 0.42);
-    base.setFillStyle(isHidden ? HIDDEN_BASE : color, 1);
+    shadow.setAlpha(isHidden ? 0.12 : 0.18);
     img.setAlpha(1);
     if (isHidden) {
       img.setTint(HIDDEN_TINT);
