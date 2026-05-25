@@ -1387,16 +1387,33 @@ input:focus {
 }
 
 /* ---- playfield / table (full-bleed background) ---- */
-/* Realistic wooden table: horizontal planks (groove + light-catching bevel),
-   anisotropic SVG turbulence for flowing wood grain, micro tooth texture,
-   an overhead key-light sheen and an edge vignette. */
+/* The wood material lives on .table-wood in WORLD space and is transformed by
+   the Phaser camera (see ForestPhaserScene.syncWood), so the planks zoom and
+   pan exactly with the cards resting on them. The room lighting — overhead key
+   light, sheen and vignette — stays fixed to the screen via ::after, the way a
+   real lamp would not move when you slide the table. */
 .playfield-panel {
   position: absolute;
   inset: 0;
   border: 0;
   border-radius: 0;
   overflow: hidden;
-  background-color: #3c2614;
+  background-color: #2a1a0f;
+}
+
+/* Wood surface in world coordinates: 1px here = 1 Phaser world unit (a forest
+   card is 196 units wide). Oversized far past the viewport so zoom/pan never
+   exposes an edge; transform-origin 0 0 matches the world→screen mapping. */
+.table-wood {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6000px;
+  height: 6000px;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
+  background-color: #4a2e1b;
   background-image:
     /* plank seams: dark groove then a thin bevel that catches the light */
     repeating-linear-gradient(
@@ -1419,13 +1436,11 @@ input:focus {
       rgba(88, 57, 33, 0.05) 483px,
       rgba(104, 68, 39, 0.16) 644px
     ),
-    /* gentle cross-table colour drift */
-    radial-gradient(ellipse 120% 90% at 38% 30%, rgba(124, 82, 46, 0.28), transparent 60%),
-    /* warm depth / light falloff down the table */
-    linear-gradient(178deg, #5d3c23 0%, #4c2f1b 40%, #361f11 76%, #1f1209 100%);
+    /* gentle base tone variation across the boards */
+    linear-gradient(92deg, #4f3120 0%, #432a19 50%, #4c2f1c 100%);
 }
 
-.playfield-panel::before {
+.table-wood::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1450,10 +1465,12 @@ input:focus {
   background:
     /* overhead warm key light, brightest toward the top-centre */
     radial-gradient(ellipse 85% 60% at 50% 6%, rgba(255, 226, 168, 0.18), transparent 62%),
-    /* thin sheen band along the top edge of the boards */
+    /* thin sheen band along the top edge */
     linear-gradient(180deg, rgba(255, 234, 196, 0.08) 0%, transparent 26%),
     /* soft polished reflection toward the middle */
     radial-gradient(ellipse 60% 45% at 46% 40%, rgba(214, 168, 110, 0.1), transparent 55%),
+    /* gentle light falloff toward the bottom of the room */
+    linear-gradient(180deg, transparent 55%, rgba(12, 6, 3, 0.42) 100%),
     /* edge vignette to seat the table in the room */
     radial-gradient(ellipse 78% 78% at 50% 46%, transparent 50%, rgba(9, 4, 2, 0.5) 80%, rgba(3, 1, 0, 0.92) 100%);
   mix-blend-mode: normal;

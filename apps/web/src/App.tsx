@@ -5261,6 +5261,7 @@ export function App() {
         )}
 
       <section className="playfield-panel stage-layer">
+        <div className="table-wood" aria-hidden="true" />
         <div className="tabletop-stage">
           {turnBanner && (
             <div

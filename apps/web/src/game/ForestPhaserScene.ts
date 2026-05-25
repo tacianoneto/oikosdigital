@@ -107,6 +107,9 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   private ambientCamera?: Phaser.Cameras.Scene2D.Camera;
 
+  private woodEl?: HTMLElement | null;
+  private lastWoodSig = "";
+
   private ready = false;
   private userAdjusted = false;
   private lastSlotCount = -1;
@@ -200,7 +203,33 @@ export class ForestPhaserScene extends Phaser.Scene {
   // Per-frame drift for the ambient motes. Cheap: no tweens, just integrate a
   // slow upward velocity, a sine sway, and a sine twinkle. Particles that drift
   // off the top wrap back in at the bottom.
+  // Drive the .table-wood DOM layer so the wooden surface zooms and pans with
+  // the main camera, keeping the planks locked to the cards resting on them.
+  // The layer is in world coordinates (origin 0 0); we replicate the camera's
+  // world→screen transform: screen = cam.(x|y) + (world - scroll) * zoom, with
+  // the layer's top-left anchored at world WORLD_MIN so negative coords show.
+  private syncWood(): void {
+    if (this.woodEl === undefined) {
+      const host = this.game.canvas?.parentElement as HTMLElement | null;
+      this.woodEl =
+        (host?.closest(".playfield-panel")?.querySelector(".table-wood") as HTMLElement | null) ?? null;
+    }
+    const el = this.woodEl;
+    if (!el) return;
+
+    const cam = this.cameras.main;
+    const z = cam.zoom;
+    const WORLD_MIN = -3000;
+    const tx = cam.x + (WORLD_MIN - cam.scrollX) * z;
+    const ty = cam.y + (WORLD_MIN - cam.scrollY) * z;
+    const sig = `${z.toFixed(4)}|${tx.toFixed(1)}|${ty.toFixed(1)}`;
+    if (sig === this.lastWoodSig) return;
+    this.lastWoodSig = sig;
+    el.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${z})`;
+  }
+
   update(_time: number, delta: number): void {
+    this.syncWood();
     if (this.ambient.length === 0) return;
     const dt = Math.min(delta, 50) / 1000;
     const t = this.time.now / 1000;
