@@ -4,6 +4,7 @@ dist/
 .claude/
 artifacts/
 .tools/
+logs/
 *.log
 *.tsbuildinfo
 apps/web/public/assets/
