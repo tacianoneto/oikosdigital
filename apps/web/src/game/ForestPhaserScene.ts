@@ -463,15 +463,6 @@ export class ForestPhaserScene extends Phaser.Scene {
   private buildCard(def: ReturnType<typeof getForestCardDefinition>): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
 
-    // Layered shadow: a directional cast plus close contact shadow gives cards weight.
-    const shadow = this.add.graphics();
-    shadow.fillStyle(0x000000, 0.12);
-    shadow.fillRoundedRect(-CARD / 2 + 12, -CARD / 2 + 20, CARD + 12, CARD + 6, RADIUS + 4);
-    shadow.fillStyle(0x000000, 0.2);
-    shadow.fillRoundedRect(-CARD / 2 + 7, -CARD / 2 + 12, CARD + 2, CARD + 1, RADIUS + 2);
-    shadow.fillStyle(0x000000, 0.34);
-    shadow.fillRoundedRect(-CARD / 2 + 3, -CARD / 2 + 5, CARD - 5, CARD - 3, RADIUS);
-
     const img = this.add.image(0, 0, `card:${def.id}`).setDisplaySize(CARD, CARD);
 
     // Subtle top-left rim from the table light.
@@ -491,7 +482,7 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     const hit = this.add.rectangle(0, 0, CARD, CARD, 0xffffff, 0);
 
-    c.add([shadow, img, highlight, frame, hit]);
+    c.add([img, highlight, frame, hit]);
     c.setData("frame", frame);
     c.setData("hit", hit);
     return c;
