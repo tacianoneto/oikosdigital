@@ -4619,6 +4619,25 @@ export function App() {
                 <strong>{currentGamePlayer.speciesId ? speciesDefinitions[currentGamePlayer.speciesId].displayName : "Espécie"}</strong>
               </div>
               <div className="hand-header-side">
+                {!handCollapsed && handCards.length > 0 && (
+                  <div className="hand-tools" aria-label="Organizar mão">
+                    {([
+                      ["habitat", "Hab."],
+                      ["resource", "Rec."]
+                    ] as const).map(([mode, label]) => (
+                      <button
+                        type="button"
+                        className={handSortMode === mode ? "is-active" : ""}
+                        key={mode}
+                        title={mode === "habitat" ? "Organizar por habitat" : "Organizar por recurso"}
+                        aria-label={mode === "habitat" ? "Organizar por habitat" : "Organizar por recurso"}
+                        onClick={() => setHandSortMode(mode)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button
                   type="button"
                   className="hand-toggle"
@@ -4630,26 +4649,6 @@ export function App() {
                 </button>
               </div>
             </div>
-            {!handCollapsed && handCards.length > 0 && (
-              <div className="hand-tools" aria-label="Organizar mão">
-                <span>Organizar por</span>
-                <div className="hand-tool-group" aria-label="Organizar cartas">
-                  {([
-                    ["habitat", "Habitat"],
-                    ["resource", "Recurso"]
-                  ] as const).map(([mode, label]) => (
-                    <button
-                      type="button"
-                      className={handSortMode === mode ? "is-active" : ""}
-                      key={mode}
-                      onClick={() => setHandSortMode(mode)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             {!handCollapsed &&
               (handCards.length > 0 ? (
                 <div

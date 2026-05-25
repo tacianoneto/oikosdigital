@@ -1832,47 +1832,34 @@ input:focus {
 .hand-tools {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  align-self: flex-start;
-  margin-top: 10px;
-}
-
-.hand-tools > span {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.hand-tool-group {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
+  gap: 3px;
+  padding: 3px;
   border: var(--bw) solid var(--line-soft);
-  border-radius: 10px;
+  border-radius: 999px;
   background: rgba(0, 0, 0, 0.18);
 }
 
-.hand-tool-group button {
+.hand-tools button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-height: 28px;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 26px;
   border: 0;
-  border-radius: 7px;
-  padding: 5px 8px;
+  border-radius: 999px;
+  padding: 4px 8px;
   background: transparent;
   color: var(--paper);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   cursor: pointer;
 }
 
-.hand-tool-group button:hover {
+.hand-tools button:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.hand-tool-group button.is-active {
+.hand-tools button.is-active {
   background: var(--amber);
   color: var(--ink);
 }
