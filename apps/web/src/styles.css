@@ -1394,25 +1394,24 @@ input:focus {
   border-radius: 0;
   overflow: hidden;
   background:
-    /* warm ambient light pulling focus to the center */
-    radial-gradient(ellipse at 50% 42%, rgba(122, 75, 45, 0.32), transparent 60%),
-    /* fine diagonal grain veins */
+    radial-gradient(ellipse at 46% 38%, rgba(166, 105, 54, 0.2), transparent 52%),
+    radial-gradient(circle at 17% 18%, rgba(83, 135, 78, 0.18), transparent 29%),
+    radial-gradient(circle at 86% 78%, rgba(42, 94, 58, 0.18), transparent 28%),
     repeating-linear-gradient(
       94deg,
-      rgba(45, 27, 19, 0) 0px,
-      rgba(45, 27, 19, 0.16) 2px,
-      rgba(122, 75, 45, 0.05) 5px,
-      rgba(45, 27, 19, 0) 9px
+      rgba(19, 11, 7, 0) 0px,
+      rgba(19, 11, 7, 0.28) 2px,
+      rgba(143, 91, 48, 0.06) 5px,
+      rgba(19, 11, 7, 0) 10px
     ),
-    /* broad plank tone variation */
     repeating-linear-gradient(
       92deg,
-      #5a3824 0px,
-      #4e3020 80px,
-      #5a3824 150px,
-      #51321f 220px
+      #3d2518 0px,
+      #2d1b12 78px,
+      #432918 148px,
+      #24150e 224px
     ),
-    linear-gradient(180deg, #5a3824 0%, #3f2719 58%, #2d1b13 100%);
+    linear-gradient(180deg, #322014 0%, #22140d 58%, #120906 100%);
 }
 
 .playfield-panel::before {
@@ -1420,9 +1419,13 @@ input:focus {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.11  0 0 0 0 0.07  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-  background-size: 240px 240px;
-  opacity: 0.22;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0.46 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse at 8% 82%, rgba(97, 143, 81, 0.2) 0 9%, transparent 27%),
+    radial-gradient(ellipse at 93% 16%, rgba(67, 112, 68, 0.18) 0 8%, transparent 25%),
+    radial-gradient(ellipse at 75% 86%, rgba(124, 87, 47, 0.18) 0 9%, transparent 23%);
+  background-size: 260px 260px, 420px 260px, 360px 220px, 500px 300px;
+  opacity: 0.34;
   mix-blend-mode: soft-light;
 }
 
@@ -1431,12 +1434,12 @@ input:focus {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(
-    ellipse at 50% 46%,
-    transparent 40%,
-    rgba(20, 10, 5, 0.46) 74%,
-    rgba(8, 4, 2, 0.84) 100%
-  );
+  background:
+    linear-gradient(126deg, rgba(255, 226, 172, 0.18) 0%, rgba(255, 226, 172, 0.05) 23%, transparent 48%),
+    radial-gradient(ellipse at 40% 26%, rgba(208, 232, 201, 0.08), transparent 42%),
+    radial-gradient(ellipse at 70% 64%, rgba(226, 241, 218, 0.05), transparent 36%),
+    radial-gradient(ellipse at 50% 46%, transparent 38%, rgba(13, 7, 4, 0.54) 74%, rgba(4, 2, 1, 0.9) 100%);
+  mix-blend-mode: normal;
 }
 
 .tabletop-hud {

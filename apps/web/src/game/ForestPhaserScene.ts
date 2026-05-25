@@ -246,11 +246,11 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     const w = this.scale.gameSize.width || this.cameras.main.width || 1280;
     const h = this.scale.gameSize.height || this.cameras.main.height || 720;
-    // Keep it sparse: roughly one mote per 60k px², clamped so it never clutters.
-    const count = Phaser.Math.Clamp(Math.round((w * h) / 60000), 12, 24);
+    // Keep it sparse: roughly one mote per 56k px², clamped so it never clutters.
+    const count = Phaser.Math.Clamp(Math.round((w * h) / 56000), 14, 28);
 
     for (let i = 0; i < count; i += 1) {
-      // ~1 in 3 motes is a warm firefly; the rest are pale drifting spores.
+      // ~1 in 3 motes is a warm firefly; the rest are spores or tiny leaf flecks.
       const firefly = i % 3 === 0;
       this.ambient.push(this.buildAmbientParticle(firefly, w, h));
     }
@@ -264,11 +264,19 @@ export class ForestPhaserScene extends Phaser.Scene {
     let baseAlpha: number;
     let twinkleAmp: number;
 
+    const leafFleck = !firefly && Math.random() < 0.28;
+
     if (firefly) {
       const r = Phaser.Math.FloatBetween(2.4, 3.8);
       obj = this.add.circle(x, y, r, 0xffe39a, 1).setBlendMode(Phaser.BlendModes.ADD);
       baseAlpha = 0.34;
       twinkleAmp = 0.24;
+    } else if (leafFleck) {
+      const size = Phaser.Math.FloatBetween(5, 9);
+      obj = this.add.ellipse(x, y, size, size * 0.42, Phaser.Math.RND.pick([0x6f8f53, 0x7a6a3f, 0x4d764a]), 1);
+      obj.setAngle(Phaser.Math.FloatBetween(0, 360));
+      baseAlpha = 0.16;
+      twinkleAmp = 0.04;
     } else {
       const r = Phaser.Math.FloatBetween(2, 3.2);
       obj = this.add.ellipse(x, y, r * 2, r * 1.4, 0xbcd9a4, 1);
@@ -284,9 +292,9 @@ export class ForestPhaserScene extends Phaser.Scene {
       obj,
       x,
       y,
-      vy: -Phaser.Math.FloatBetween(firefly ? 7 : 4, firefly ? 15 : 11),
-      swayAmp: Phaser.Math.FloatBetween(6, 16),
-      swayFreq: Phaser.Math.FloatBetween(0.18, 0.5),
+      vy: -Phaser.Math.FloatBetween(firefly ? 7 : leafFleck ? 2 : 4, firefly ? 15 : leafFleck ? 7 : 11),
+      swayAmp: Phaser.Math.FloatBetween(leafFleck ? 10 : 6, leafFleck ? 22 : 16),
+      swayFreq: Phaser.Math.FloatBetween(leafFleck ? 0.26 : 0.18, leafFleck ? 0.62 : 0.5),
       swayPhase: Phaser.Math.FloatBetween(0, Math.PI * 2),
       baseAlpha,
       twinkleAmp,
@@ -470,22 +478,28 @@ export class ForestPhaserScene extends Phaser.Scene {
   private buildCard(def: ReturnType<typeof getForestCardDefinition>): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
 
-    // Contact shadow: a short, darker shadow sits close below the card, with a
-    // wider soft falloff beneath it. Reads as a card resting on the table.
+    // Layered shadow: a directional cast plus close contact shadow gives cards weight.
     const shadow = this.add.graphics();
     shadow.fillStyle(0x000000, 0.12);
-    shadow.fillRoundedRect(-CARD / 2, -CARD / 2 + 9, CARD + 2, CARD, RADIUS + 2);
-    shadow.fillStyle(0x000000, 0.3);
-    shadow.fillRoundedRect(-CARD / 2 + 3, -CARD / 2 + 4, CARD - 4, CARD, RADIUS);
+    shadow.fillRoundedRect(-CARD / 2 + 12, -CARD / 2 + 20, CARD + 12, CARD + 6, RADIUS + 4);
+    shadow.fillStyle(0x000000, 0.2);
+    shadow.fillRoundedRect(-CARD / 2 + 7, -CARD / 2 + 12, CARD + 2, CARD + 1, RADIUS + 2);
+    shadow.fillStyle(0x000000, 0.34);
+    shadow.fillRoundedRect(-CARD / 2 + 3, -CARD / 2 + 5, CARD - 5, CARD - 3, RADIUS);
 
     const img = this.add.image(0, 0, `card:${def.id}`).setDisplaySize(CARD, CARD);
 
-    // Subtle lit edge along the top of the card.
+    // Subtle top-left rim from the table light.
     const highlight = this.add.graphics();
-    highlight.lineStyle(1.5, 0xffffff, 0.16);
+    highlight.lineStyle(1.5, 0xffffff, 0.22);
     highlight.beginPath();
     highlight.moveTo(-CARD / 2 + RADIUS, -CARD / 2 + 1);
     highlight.lineTo(CARD / 2 - RADIUS, -CARD / 2 + 1);
+    highlight.strokePath();
+    highlight.lineStyle(1, 0xffffff, 0.12);
+    highlight.beginPath();
+    highlight.moveTo(-CARD / 2 + 1, -CARD / 2 + RADIUS);
+    highlight.lineTo(-CARD / 2 + 1, CARD / 2 - RADIUS);
     highlight.strokePath();
 
     const frame = this.add.graphics();
@@ -961,6 +975,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     const cx = (fromX + toX) / 2;
     const cy = (fromY + toY) / 2 - lift;
     const duration = Phaser.Math.Clamp(260 + dist * 0.45, 320, 720);
+    const shadow = root.getData("shadow") as Phaser.GameObjects.Ellipse | undefined;
 
     let lastTrail = 0;
     const proxy = { t: 0 };
@@ -976,8 +991,11 @@ export class ForestPhaserScene extends Phaser.Scene {
         const inv = 1 - t;
         const x = inv * inv * fromX + 2 * inv * t * cx + t * t * toX;
         const y = inv * inv * fromY + 2 * inv * t * cy + t * t * toY;
+        const air = Math.sin(Math.PI * t);
         root.setPosition(x, y);
-        root.setScale(scale * (1 + 0.12 * Math.sin(Math.PI * t)));
+        root.setScale(scale * (1 + 0.08 * air));
+        shadow?.setAlpha(Phaser.Math.Linear(0.42, 0.2, air));
+        shadow?.setScale(1 + air * 0.35, 1 + air * 0.1);
         if (t - lastTrail > 0.085 && t < 0.96) {
           lastTrail = t;
           this.spawnTrail(x, y + 9, color);
@@ -987,6 +1005,17 @@ export class ForestPhaserScene extends Phaser.Scene {
         root.setPosition(toX, toY);
         root.setScale(scale);
         root.setDepth(100);
+        shadow?.setAlpha(0.42);
+        shadow?.setScale(1, 1);
+        this.tweens.add({
+          targets: root,
+          scaleX: scale * 1.04,
+          scaleY: scale * 0.94,
+          duration: 80,
+          yoyo: true,
+          ease: "Quad.easeOut",
+          onComplete: () => root.setScale(scale)
+        });
       }
     });
   }
@@ -1090,8 +1119,8 @@ export class ForestPhaserScene extends Phaser.Scene {
     const c = this.add.container(0, 0);
     const color = colorForPiece(piece);
 
-    const shadow = this.add.ellipse(0, 10, 26, 8, 0x000000, 0.32);
-    const base = this.add.ellipse(0, 8, 24, 8, color, 1).setStrokeStyle(1.5, INK, 0.9);
+    const shadow = this.add.ellipse(4, 14, 34, 12, 0x000000, 0.42);
+    const base = this.add.ellipse(0, 9, 26, 9, color, 1).setStrokeStyle(1.5, INK, 0.9);
     const glow = this.add.graphics();
 
     const tex = this.textures.get(`meeple:${piece.speciesId}`).getSourceImage();
@@ -1123,7 +1152,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     const base = root.getData("base") as Phaser.GameObjects.Ellipse;
     const img = root.getData("img") as Phaser.GameObjects.Image;
 
-    shadow.setAlpha(isHidden ? 0.3 : 0.32);
+    shadow.setAlpha(isHidden ? 0.28 : 0.42);
     base.setFillStyle(isHidden ? HIDDEN_BASE : color, 1);
     img.setAlpha(1);
     if (isHidden) {
