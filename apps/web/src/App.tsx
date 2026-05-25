@@ -1329,7 +1329,7 @@ export function App() {
   // open (toggle is hidden and the collapse CSS lives only in the phone query).
   const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
-  const [landingMode, setLandingMode] = useState<"idle" | "join" | "spectate" | "local" | "tutorials">("idle");
+  const [landingMode, setLandingMode] = useState<"idle" | "join" | "local" | "tutorials">("idle");
   const [tutorialId, setTutorialId] = useState<TutorialId | null>(null);
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   // Log length captured when the move step begins, to detect the taught move.
@@ -4019,20 +4019,6 @@ export function App() {
               <button
                 type="button"
                 className="landing-action landing-action-secondary"
-                onClick={() => setLandingMode("spectate")}
-              >
-                <span className="landing-action-icon">
-                  <Eye aria-hidden="true" />
-                </span>
-                <span className="landing-action-text">
-                  <strong>Assistir</strong>
-                  <small>Entre só para assistir a uma partida</small>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                className="landing-action landing-action-secondary"
                 onClick={() => setLandingMode("local")}
               >
                 <span className="landing-action-icon">
@@ -4146,70 +4132,25 @@ export function App() {
 
               <button type="submit" className="flow-submit" disabled={joinCode.length < 4}>
                 <LogIn aria-hidden="true" />
-                Entrar na Sala
+                Entrar para Jogar
               </button>
-            </form>
-          </div>
-        </div>
-      )}
 
-      {!hasStartedGame && !room && landingMode === "spectate" && (
-        <div className="flow-screen flow-screen-join" role="main">
-          <div className="landing-bg-orbs" aria-hidden="true">
-            <span className="orb orb-1" />
-            <span className="orb orb-2" />
-          </div>
-
-          <header className="flow-header">
-            <button
-              type="button"
-              className="flow-back"
-              onClick={() => setLandingMode("idle")}
-              aria-label="Voltar"
-            >
-              <ChevronLeft aria-hidden="true" />
-              <span>Voltar</span>
-            </button>
-            <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
-            </div>
-            <span className="flow-spacer" aria-hidden="true" />
-          </header>
-
-          <div className="flow-body">
-            <div className="flow-icon-large">
-              <Eye aria-hidden="true" />
-            </div>
-            <h2 className="flow-title">Assistir Partida</h2>
-            <p className="flow-subtitle">
-              Digite o código da sala para entrar como espectador. Você verá o jogo, mas não joga.
-            </p>
-
-            <form
-              className="flow-card flow-card-join"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (joinCode.length >= 4) {
-                  void spectate(joinCode);
-                }
-              }}
-            >
-              <div className="flow-code-field">
-                <span className="flow-code-label">Código da sala</span>
-                <input
-                  className="landing-code-input flow-code-input"
-                  value={joinCode}
-                  onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
-                  placeholder="ABCDE"
-                  maxLength={5}
-                  autoFocus
-                />
-              </div>
-
-              <button type="submit" className="flow-submit" disabled={joinCode.length < 4}>
+              <button
+                type="button"
+                className="flow-submit flow-submit-ghost"
+                disabled={joinCode.length < 4}
+                onClick={() => {
+                  if (joinCode.length >= 4) {
+                    void spectate(joinCode);
+                  }
+                }}
+              >
                 <Eye aria-hidden="true" />
-                Assistir
+                Entrar como Espectador
               </button>
+              <small className="flow-spectate-hint">
+                Espectador assiste à partida sem ocupar uma vaga de jogador.
+              </small>
             </form>
           </div>
         </div>
