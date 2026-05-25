@@ -4,6 +4,13 @@ Fonte principal atualizada: `C:/Users/Everton/Downloads/GDD_Oikos_Digital_6_Espe
 
 Data do levantamento: 2026-05-13
 
+## 0. Diretrizes de Fluxo de Trabalho
+
+- **Sempre subir as alterações para o GitHub.** Após cada modificação/atualização concluída, fazer `git commit` e em seguida `git push` para `main`, sem aguardar confirmação. O repositório remoto deve refletir o estado local a todo momento.
+- Mensagens de commit em formato Conventional Commits (`feat`, `fix`, `refactor`, `test`, `docs`...).
+- Rodar `npm run typecheck` e `npm run test` antes de subir, quando aplicável.
+- Nunca usar `--no-verify` nem pular hooks; corrigir a causa raiz de falhas.
+
 ## 1. Objetivo do Projeto
 
 Criar um port digital multiplayer fiel ao jogo de tabuleiro Oikos, seguindo 100% o GDD fornecido e sem adicionar regras, modos, espécies, cartas ou efeitos que não estejam documentados ou aprovados.
