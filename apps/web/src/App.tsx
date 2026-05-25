@@ -4550,10 +4550,6 @@ export function App() {
 
                 {isHost && !isLocalRoom && (
                   <div className="lobby-host-controls">
-                    <p className="lobby-hint">
-                      <Bot aria-hidden="true" />
-                      <span>Clique no botão de bot em cada espécie para adicionar/remover bots.</span>
-                    </p>
                     {roomHasBots && (
                       <button
                         type="button"
