@@ -127,6 +127,16 @@ export function leaveRooms(playerId: string): PublicRoomState[] {
   return updatedRooms;
 }
 
+export function leaveRoom(roomId: string, playerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+  const player = getPlayer(room, playerId);
+
+  player.connected = false;
+  player.ready = false;
+
+  return toPublicRoom(room);
+}
+
 export function selectSpecies(roomId: string, playerId: string, speciesId: SpeciesId): PublicRoomState {
   const room = getRoom(roomId);
   const player = getPlayer(room, playerId);

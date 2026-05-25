@@ -1407,6 +1407,9 @@ export function App() {
   const autoScoredRef = useRef<string | null>(null);
   const lastOnlineRoomSnapshotRef = useRef("");
   const onlineActionInFlightRef = useRef(false);
+  const activeOnlineRoomIdRef = useRef<string | null>(null);
+  const ignoredOnlineRoomIdsRef = useRef<Set<string>>(new Set());
+  const roomActionEpochRef = useRef(0);
 
   const showMovementPreview = useCallback((speciesId: SpeciesId, rect: DOMRect) => {
     const previewWidth = 220;
@@ -1424,7 +1427,40 @@ export function App() {
     setMovementPreview({ speciesId, left, top });
   }, []);
 
-  const applyOnlineRoomState = useCallback((nextRoom: PublicRoomState) => {
+  const resetRoomUiState = useCallback(() => {
+    setConfigOpen(false);
+    setBoardSpecies(null);
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setHoveredSummaryCardIds([]);
+    setTurnRecap({ history: [], index: -1, visible: false });
+    setRecapCollapsed(true);
+  }, []);
+
+  const applyOnlineRoomState = useCallback((nextRoom: PublicRoomState, options?: { direct?: boolean }) => {
+    const direct = options?.direct ?? false;
+
+    if (!direct) {
+      if (ignoredOnlineRoomIdsRef.current.has(nextRoom.roomId)) {
+        return false;
+      }
+
+      const activeRoomId = activeOnlineRoomIdRef.current;
+      if (!activeRoomId || activeRoomId !== nextRoom.roomId) {
+        return false;
+      }
+    }
+
+    activeOnlineRoomIdRef.current = nextRoom.roomId;
+    ignoredOnlineRoomIdsRef.current.delete(nextRoom.roomId);
+
     const snapshot = JSON.stringify(nextRoom);
     if (lastOnlineRoomSnapshotRef.current === snapshot) {
       return false;
@@ -1436,9 +1472,12 @@ export function App() {
   }, []);
 
   const clearRoomState = useCallback(() => {
+    roomActionEpochRef.current += 1;
     lastOnlineRoomSnapshotRef.current = "";
+    activeOnlineRoomIdRef.current = null;
+    resetRoomUiState();
     setRoom(null);
-  }, []);
+  }, [resetRoomUiState]);
 
   useEffect(() => {
     const nextSocket = createSocket();
@@ -1450,14 +1489,23 @@ export function App() {
       const savedName = window.localStorage.getItem(lastOnlineNameStorageKey) ?? name;
 
       if (savedRoomId) {
+        const reconnectEpoch = roomActionEpochRef.current;
         setName(savedName);
         void roomApi
           .join(nextSocket, savedRoomId, savedName)
           .then((nextRoom) => {
-            applyOnlineRoomState(nextRoom);
+            if (roomActionEpochRef.current !== reconnectEpoch) {
+              return;
+            }
+
+            applyOnlineRoomState(nextRoom, { direct: true });
             setNotice("Reconectado a sala.");
           })
           .catch((err) => {
+            if (roomActionEpochRef.current !== reconnectEpoch) {
+              return;
+            }
+
             clearOnlineSession();
             clearRoomState();
             setNotice(
@@ -2543,13 +2591,18 @@ export function App() {
       return;
     }
 
+    const actionEpoch = roomActionEpochRef.current;
     onlineActionInFlightRef.current = true;
     setError(null);
     setNotice(null);
 
     try {
       const nextRoom = await action();
-      applyOnlineRoomState(nextRoom);
+      if (roomActionEpochRef.current !== actionEpoch) {
+        return;
+      }
+
+      applyOnlineRoomState(nextRoom, { direct: true });
       saveOnlineSession(nextRoom, name);
       if (success) {
         setNotice(success);
@@ -3678,11 +3731,21 @@ export function App() {
   }
 
   function leaveTable() {
-    if (room?.roomId !== localRoomId) {
+    const leavingRoomId = room?.roomId ?? null;
+
+    if (leavingRoomId && leavingRoomId !== localRoomId) {
+      ignoredOnlineRoomIdsRef.current.add(leavingRoomId);
       clearOnlineSession();
+      if (socket?.connected) {
+        void roomApi.leave(socket, leavingRoomId).catch(() => {
+          // Local UI already left; stale updates are ignored by room id.
+        });
+      }
     }
+
     setTutorialId(null);
     setTutorialStep(null);
+    setLandingMode("idle");
     autoScoredRef.current = null;
     clearRoomState();
     setError(null);

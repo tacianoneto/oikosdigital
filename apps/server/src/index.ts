@@ -28,6 +28,7 @@ import {
   getPublicRoom,
   hideArmadillo,
   joinRoom,
+  leaveRoom,
   leaveRooms,
   movePiece,
   placeCardInForest,
@@ -313,6 +314,15 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = joinRoom(payload.roomId, playerId, payload.name);
       socket.join(room.roomId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("room:leave", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = leaveRoom(payload.roomId, playerId);
+      socket.leave(room.roomId);
       broadcastRoom(room);
       return room;
     });
