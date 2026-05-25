@@ -13,6 +13,7 @@ import {
   Copy,
   Crown,
   Eye,
+  EyeOff,
   GraduationCap,
   Leaf,
   Lock,
@@ -228,6 +229,7 @@ export function App() {
   const [notice, setNotice] = useState<string | null>(null);
   const [handCollapsed, setHandCollapsed] = useState(isSmallScreen);
   const [handSortMode, setHandSortMode] = useState<HandSortMode>("habitat");
+  const [cleanBoardMode, setCleanBoardMode] = useState(false);
   const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
@@ -1300,6 +1302,18 @@ export function App() {
   function closeTurnRecap(): void {
     setTurnRecap((current) => ({ ...current, visible: false }));
     setHoveredSummaryCardIds([]);
+  }
+
+  function toggleCleanBoardMode(): void {
+    setCleanBoardMode((value) => {
+      const next = !value;
+      if (next) {
+        setConfigOpen(false);
+        setMovementPreview(null);
+        setHoveredSummaryCardIds([]);
+      }
+      return next;
+    });
   }
 
   function moveTurnRecapHistory(delta: -1 | 1): void {
@@ -2870,7 +2884,7 @@ export function App() {
           })}
         </div>
       )}
-      {macawScoreAnim && (
+      {!cleanBoardMode && macawScoreAnim && (
         // The scoring lines themselves are drawn on the board by the Phaser scene
         // (scoringLineHighlights); this panel just narrates the result.
         <div className="macaw-score-panel" role="status">
@@ -2888,7 +2902,7 @@ export function App() {
           </div>
         </div>
       )}
-      {capuchinScoreAnim && (
+      {!cleanBoardMode && capuchinScoreAnim && (
         // The scored habitat cards are highlighted on the board by the Phaser
         // scene (scoringCardHighlights); this panel narrates the result.
         <div className="capuchin-score-panel" role="status">
@@ -2906,7 +2920,7 @@ export function App() {
           </div>
         </div>
       )}
-      {hasStartedGame && (
+      {hasStartedGame && !cleanBoardMode && (
         <button
           type="button"
           className={`hud-collapse-tab hud-collapse-left ${hudLeftCollapsed ? "is-collapsed" : ""}`}
@@ -2917,7 +2931,7 @@ export function App() {
           {hudLeftCollapsed ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
         </button>
       )}
-      {hasStartedGame && (
+      {hasStartedGame && !cleanBoardMode && (
         <button
           type="button"
           className={`hud-collapse-tab hud-collapse-right ${hudRightCollapsed ? "is-collapsed" : ""}`}
@@ -3955,6 +3969,19 @@ export function App() {
       {hasStartedGame && (
         <button
           type="button"
+          className={`clean-board-toggle ${cleanBoardMode ? "is-clean" : ""}`}
+          title={cleanBoardMode ? "Mostrar HUD" : "Ocultar HUD"}
+          aria-label={cleanBoardMode ? "Mostrar HUD" : "Ocultar HUD"}
+          aria-pressed={cleanBoardMode}
+          onClick={toggleCleanBoardMode}
+        >
+          {cleanBoardMode ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+        </button>
+      )}
+
+      {hasStartedGame && !cleanBoardMode && (
+        <button
+          type="button"
           className="hud-config-btn"
           title="Mesa e configurações"
           aria-label="Mesa e configurações"
@@ -3964,7 +3991,7 @@ export function App() {
         </button>
       )}
 
-      {hasStartedGame && isSpectator && (
+      {hasStartedGame && !cleanBoardMode && isSpectator && (
         <div className="spectator-banner" role="status">
           <Eye aria-hidden="true" />
           <span>Modo espectador</span>
@@ -3974,7 +4001,7 @@ export function App() {
         </div>
       )}
 
-      {tutorialActive && hasStartedGame && tutorialDef && (
+      {tutorialActive && hasStartedGame && !cleanBoardMode && tutorialDef && (
         <div className="tutorial-coach" role="dialog" aria-live="polite">
           <div className="tutorial-coach-progress" aria-hidden="true">
             {tutorialSteps.map((_, i) => (
@@ -4015,7 +4042,7 @@ export function App() {
         </div>
       )}
 
-      {hasStartedGame && configOpen && (
+      {hasStartedGame && !cleanBoardMode && configOpen && (
         <div className="config-modal-backdrop" role="presentation" onClick={() => setConfigOpen(false)}>
           <div
             className="config-modal"
@@ -4110,7 +4137,7 @@ export function App() {
         </div>
       )}
 
-      {hasStartedGame && hudGamePlayer && hudSpecies && (
+      {hasStartedGame && !cleanBoardMode && hudGamePlayer && hudSpecies && (
         <section
           className={`hud-species panel-block species-hud ${hudSpeciesCollapsed ? "is-collapsed" : ""}`}
           style={speciesVar(hudGamePlayer.speciesId)}
@@ -4186,14 +4213,14 @@ export function App() {
           </section>
         )}
 
-        {(error || notice) && (
+        {!cleanBoardMode && (error || notice) && (
           <div className={`status-message hud-toast ${error ? "error" : "notice"}`}>
             {error ? <AlertTriangle aria-hidden="true" /> : <Check aria-hidden="true" />}
             <span>{error ?? notice}</span>
           </div>
         )}
 
-        {hasStartedGame && (
+        {hasStartedGame && !cleanBoardMode && (
         <div className={`hud-action hud-dock hud-left ${hudLeftCollapsed ? "is-collapsed" : ""} ${turnSummary ? "has-turn-recap" : ""}`}>
         {room?.game?.status === "setup" && (
           <section className="panel-block setup-block">
@@ -4502,7 +4529,7 @@ export function App() {
       <section className="playfield-panel stage-layer">
         <div className="table-wood" aria-hidden="true" />
         <div className="tabletop-stage">
-          {turnBanner && (
+          {!cleanBoardMode && turnBanner && (
             <div
               className="turn-banner"
               key={turnBanner.key}
@@ -4516,7 +4543,7 @@ export function App() {
               <strong>{turnBanner.label}</strong>
             </div>
           )}
-          {showTurnCountdown && room?.turnTimerMs && room?.activeTurnStartedAt && (
+          {!cleanBoardMode && showTurnCountdown && room?.turnTimerMs && room?.activeTurnStartedAt && (
             <TurnCountdown
               key={`${room.game?.activePlayerId ?? ""}:${room.activeTurnStartedAt}`}
               startedAt={room.activeTurnStartedAt}
@@ -4584,7 +4611,7 @@ export function App() {
           />
         </div>
 
-        {showHandDuringGame && currentGamePlayer && (
+        {!cleanBoardMode && showHandDuringGame && currentGamePlayer && (
           <section className={`table-hand ${handCollapsed ? "collapsed" : ""}`} aria-label="Mão de cartas">
             <div className="hand-header">
               <div>
@@ -4797,6 +4824,7 @@ export function App() {
         )}
       </section>
 
+      {!cleanBoardMode && (
       <aside className={`right-panel hud-dock hud-right ${hudRightCollapsed ? "is-collapsed" : ""}`}>
         <section className="panel-block">
           <h2>Jogadores</h2>
@@ -4910,8 +4938,9 @@ export function App() {
         </section>
 
       </aside>
+      )}
 
-      {movementPreview && typeof document !== "undefined" && createPortal(
+      {!cleanBoardMode && movementPreview && typeof document !== "undefined" && createPortal(
         (() => {
           const species = speciesDefinitions[movementPreview.speciesId];
           return (
@@ -4934,7 +4963,7 @@ export function App() {
         document.body
       )}
 
-      {shouldShowJaguarScoreModal && showJaguarScoreModal && (
+      {!cleanBoardMode && shouldShowJaguarScoreModal && showJaguarScoreModal && (
           <div className="choice-modal-backdrop" role="presentation">
             <div
               className="choice-modal"
@@ -4976,7 +5005,7 @@ export function App() {
           </div>
         )}
 
-      {room?.game?.status === "finished" && room.game.finalScoreBreakdown && (() => {
+      {!cleanBoardMode && room?.game?.status === "finished" && room.game.finalScoreBreakdown && (() => {
         const breakdown = room.game.finalScoreBreakdown;
         const winnerIds = room.game.winnerPlayerIds;
         const ranked = [...breakdown.entries].sort(
@@ -5116,7 +5145,8 @@ export function App() {
         );
       })()}
 
-      {hasStartedGame &&
+      {!cleanBoardMode &&
+        hasStartedGame &&
         !hasPendingCoatiPairBonus &&
         room?.game?.status === "active" &&
         activeGamePlayer &&
@@ -5193,7 +5223,7 @@ export function App() {
           </div>
         )}
 
-      {turnSummary && room?.game?.status === "active" && (
+      {!cleanBoardMode && turnSummary && room?.game?.status === "active" && (
         <aside
           className={`turn-recap ${recapCollapsed ? "is-collapsed" : ""}`}
           role="status"
@@ -5276,7 +5306,7 @@ export function App() {
         </aside>
       )}
 
-      {boardSpecies && (
+      {!cleanBoardMode && boardSpecies && (
         <div
           className="board-modal-backdrop"
           role="presentation"

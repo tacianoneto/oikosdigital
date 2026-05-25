@@ -341,6 +341,39 @@ label {
 }
 
 /* gear button — opens Mesa / config modal */
+.clean-board-toggle {
+  position: fixed;
+  z-index: 10;
+  top: 16px;
+  right: 72px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: var(--bw) solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--paper);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+  transition: transform 140ms ease, border-color 120ms ease, background 120ms ease, right 140ms ease;
+}
+
+.clean-board-toggle.is-clean {
+  right: 16px;
+}
+
+.clean-board-toggle:hover {
+  border-color: var(--amber);
+  background: var(--panel-2);
+  transform: translateY(-1px);
+}
+
+.clean-board-toggle svg {
+  width: 22px;
+  height: 22px;
+}
+
 .hud-config-btn {
   position: fixed;
   z-index: 9;
