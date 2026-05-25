@@ -1198,6 +1198,16 @@ input:focus {
   grid-row: span 2;
 }
 
+.hud-stat-card img.is-in-forest {
+  opacity: 0.42;
+  filter: grayscale(1) saturate(0.3) brightness(0.82);
+}
+
+.hud-stat-card img.is-in-reserve {
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
 .hud-stat-card span {
   font-size: 9px;
   font-weight: 700;
@@ -1236,7 +1246,7 @@ input:focus {
   object-fit: contain;
 }
 
-.resource-chip span {
+.resource-chip > span {
   display: none;
 }
 
@@ -1245,6 +1255,11 @@ input:focus {
   font-size: 15px;
   font-weight: 900;
   text-align: right;
+}
+
+.resource-chip strong .num-roll,
+.resource-chip strong .num-roll.active {
+  color: var(--paper);
 }
 
 /* ---- species / local pickers ---- */

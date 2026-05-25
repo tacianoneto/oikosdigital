@@ -19,7 +19,6 @@ import {
   LogOut,
   MapPin,
   Minus,
-  Package,
   Play,
   Plus,
   RotateCcw,
@@ -4838,17 +4837,17 @@ export function App() {
 
             <div className="hud-stat-grid">
               <div className="hud-stat-card">
-                <Trophy aria-hidden="true" />
+                <img src={encodeURI(resourceAssets.point)} alt="" />
                 <span>Pontos</span>
                 <strong><AnimatedNumber value={hudGamePlayer.score} /></strong>
               </div>
               <div className="hud-stat-card" ref={(node) => setEffectTarget("hud:reserve", node)}>
-                <Package aria-hidden="true" />
+                <img className="is-in-reserve" src={encodeURI(hudSpecies.meepleAsset)} alt="" />
                 <span>Reserva</span>
                 <strong>{hudGamePlayer.reservePieces.length}</strong>
               </div>
               <div className="hud-stat-card">
-                <img src={encodeURI(hudSpecies.meepleAsset)} alt="" />
+                <img className="is-in-forest" src={encodeURI(hudSpecies.meepleAsset)} alt="" />
                 <span>Na floresta</span>
                 <strong>{hudGamePlayer.piecesInForest.length}</strong>
               </div>
@@ -4936,7 +4935,7 @@ export function App() {
             )}
             <div className="active-turn-vitals" aria-label="Resumo do jogador ativo">
               <span>
-                <Trophy aria-hidden="true" />
+                <img src={encodeURI(resourceAssets.point)} alt="" />
                 <strong>{activeGamePlayer.score}</strong>
               </span>
               <span>
