@@ -21,9 +21,18 @@ const FRONTEND_URL = (process.env.FRONTEND_URL ?? "https://oikosdigital.netlify.
 const localBin = join(repoRoot, ".tools", process.platform === "win32" ? "cloudflared.exe" : "cloudflared");
 const bin = existsSync(localBin) ? localBin : "cloudflared";
 
-const child = spawn(bin, ["tunnel", "--url", `http://localhost:${PORT}`, "--no-autoupdate"], {
-  stdio: ["ignore", "pipe", "pipe"]
-});
+// --protocol http2 forca o transporte TCP (HTTP/2) em vez de QUIC/UDP. Em redes
+// que bloqueiam/instabilizam UDP (7844), o QUIC falha com "control stream
+// encountered a failure" e o tunnel nunca conecta. Pode ser sobrescrito por env.
+const protocol = process.env.TUNNEL_PROTOCOL ?? "http2";
+
+const child = spawn(
+  bin,
+  ["tunnel", "--url", `http://localhost:${PORT}`, "--protocol", protocol, "--no-autoupdate"],
+  {
+    stdio: ["ignore", "pipe", "pipe"]
+  }
+);
 
 let printed = false;
 const urlRe = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/i;
