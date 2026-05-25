@@ -4622,8 +4622,8 @@ export function App() {
                 {!handCollapsed && handCards.length > 0 && (
                   <div className="hand-tools" aria-label="Organizar mão">
                     {([
-                      ["habitat", "H"],
-                      ["resource", "R"]
+                      ["habitat", "Hab."],
+                      ["resource", "Rec."]
                     ] as const).map(([mode, label]) => (
                       <button
                         type="button"

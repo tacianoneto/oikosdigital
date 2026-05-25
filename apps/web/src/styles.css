@@ -1772,49 +1772,36 @@ input:focus {
   position: absolute;
   z-index: 7;
   left: 50%;
-  bottom: 12px;
+  bottom: 16px;
   transform: translateX(-50%);
-  width: min(760px, calc(100vw - 96px));
+  width: min(680px, calc(100vw - 96px));
   display: flex;
   flex-direction: column;
   border: var(--bw) solid var(--line);
-  border-radius: 12px;
-  padding: 8px 12px 10px;
-  background: linear-gradient(180deg, rgba(20, 36, 28, 0.88), rgba(12, 24, 18, 0.92));
+  border-radius: 16px;
+  padding: 12px 16px 14px;
+  background: linear-gradient(180deg, rgba(22, 39, 31, 0.94), rgba(15, 27, 21, 0.95));
   backdrop-filter: blur(10px);
-  box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
   transition: transform 220ms ease;
 }
 
 .hand-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  min-height: 32px;
-}
-
-.hand-header > div:first-child {
-  min-width: 0;
-}
-
-.hand-header span {
-  font-size: 10px;
-  line-height: 1;
-}
-
-.hand-header strong {
-  display: block;
-  margin-top: 2px;
-  font-size: 15px;
-  line-height: 1.05;
+  gap: 14px;
+  padding-right: 104px;
 }
 
 .hand-header-side {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
-  flex: 0 0 auto;
+  gap: 6px;
 }
 
 .hand-header small {
@@ -1829,8 +1816,8 @@ input:focus {
   justify-content: center;
   border: var(--bw) solid var(--line-soft);
   border-radius: 999px;
-  width: 32px;
-  height: 30px;
+  width: 38px;
+  height: 34px;
   padding: 0;
   background: var(--slot);
   color: var(--paper);
@@ -1843,8 +1830,8 @@ input:focus {
 }
 
 .hand-toggle svg {
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
 }
 
 .hand-tools {
@@ -1861,17 +1848,15 @@ input:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 25px;
-  height: 25px;
-  min-width: 25px;
-  min-height: 25px;
+  min-width: 34px;
+  min-height: 24px;
   border: 0;
   border-radius: 999px;
-  padding: 0;
+  padding: 3px 7px;
   background: transparent;
   color: var(--paper);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 10px;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -1885,14 +1870,13 @@ input:focus {
 }
 
 .table-hand.collapsed {
-  width: min(340px, calc(100vw - 96px));
-  padding-bottom: 8px;
+  padding-bottom: 12px;
 }
 
 .hand-rail {
   --half: calc((var(--hand-count, 1) - 1) / 2);
-  height: 118px;
-  margin-top: 8px;
+  height: 162px;
+  margin-top: 14px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1906,16 +1890,16 @@ input:focus {
   height: 100%;
   aspect-ratio: 1;
   flex: 0 0 auto;
-  margin-left: -8px;
+  margin-left: -22px;
   padding: 0;
-  border: 2px solid var(--ink);
-  border-radius: 9px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
   background: var(--panel-2);
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
   transform-origin: bottom center;
-  transform: rotate(calc(var(--offset) * 0.8deg)) translateY(calc(var(--dist) * 1px));
+  transform: rotate(calc(var(--offset) * 2.4deg)) translateY(calc(var(--dist) * 3px));
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
@@ -1929,17 +1913,17 @@ input:focus {
 }
 
 .hand-card:hover {
-  transform: rotate(0deg) translateY(-8px) scale(1.035);
+  transform: rotate(0deg) translateY(-16px) scale(1.07);
   border-color: var(--amber);
-  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.52);
+  box-shadow: 0 16px 26px rgba(0, 0, 0, 0.55);
   z-index: 5;
 }
 
 .hand-card.selected {
   border-color: var(--amber);
   overflow: visible;
-  transform: rotate(0deg) translateY(-12px) scale(1.045);
-  box-shadow: 0 0 0 2px rgba(242, 193, 78, 0.36), 0 14px 24px rgba(0, 0, 0, 0.58);
+  transform: rotate(0deg) translateY(-22px) scale(1.09);
+  box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.4), 0 18px 28px rgba(0, 0, 0, 0.6);
   z-index: 6;
 }
 
@@ -1948,7 +1932,7 @@ input:focus {
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 7px;
+  border-radius: 9px;
   transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -3567,25 +3551,25 @@ input:focus {
 
 /* ---- hand: selected vs rest + playable indicator ---- */
 .hand-rail.has-selection .hand-card:not(.selected) {
-  filter: brightness(0.58) blur(0.8px) saturate(0.75);
-  opacity: 0.66;
-  transform: rotate(calc(var(--offset) * 0.8deg)) translateY(calc(var(--dist) * 1px)) scale(0.96);
+  filter: brightness(0.5) blur(1.4px) saturate(0.7);
+  opacity: 0.62;
+  transform: rotate(calc(var(--offset) * 2.4deg)) translateY(calc(var(--dist) * 3px)) scale(0.94);
 }
 
 .hand-rail.has-selection .hand-card:not(.selected):hover {
-  filter: brightness(0.82) blur(0.2px);
+  filter: brightness(0.78) blur(0.4px);
   opacity: 0.92;
 }
 
 .hand-card.playable {
   border-color: var(--leaf, #6fae5f);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--leaf, #6fae5f) 42%, transparent),
-    0 5px 12px rgba(0, 0, 0, 0.42);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--leaf, #6fae5f) 45%, transparent),
+    0 6px 14px rgba(0, 0, 0, 0.45);
 }
 
 .hand-card.not-playable {
   border-color: var(--ink);
-  filter: grayscale(0.25);
+  filter: grayscale(0.35);
 }
 
 .hand-card.selected {
