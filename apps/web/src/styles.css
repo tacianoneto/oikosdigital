@@ -141,8 +141,8 @@ label {
   z-index: 6;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: min(330px, 30vw);
+  gap: 8px;
+  width: min(310px, 28vw);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 2px;
@@ -165,15 +165,15 @@ label {
   z-index: 6;
   top: 16px;
   left: 16px;
-  width: min(296px, 26vw);
+  width: min(340px, 30vw);
 }
 
 /* action / setup panel — left, below species HUD, collapsible */
 .hud-action.hud-left {
-  top: 284px;
+  top: 238px;
   left: 16px;
-  width: min(296px, 26vw);
-  max-height: calc(100vh - 308px);
+  width: min(340px, 30vw);
+  max-height: calc(100vh - 262px);
 }
 
 .hud-action.hud-left.has-turn-recap {
@@ -331,9 +331,13 @@ label {
 .config-modal .panel-block,
 .menu-card .panel-block,
 .menu-card .brand-strip {
-  background: linear-gradient(180deg, rgba(22, 39, 31, 0.94), rgba(15, 27, 21, 0.94));
-  backdrop-filter: blur(9px);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  border-width: 1px;
+  background: linear-gradient(180deg, rgba(18, 32, 25, 0.88), rgba(8, 16, 13, 0.9));
+  backdrop-filter: blur(13px) saturate(1.15);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35);
 }
 
 /* gear button — opens Mesa / config modal */
@@ -1120,26 +1124,28 @@ input:focus {
 /* ---- species HUD ---- */
 .species-hud {
   display: grid;
-  gap: 10px;
-  border-top: 5px solid var(--amber);
-  padding: 12px;
+  gap: 8px;
+  border-left: 3px solid var(--species, var(--amber));
+  border-radius: 8px;
+  padding: 10px;
 }
 
 .species-hud-header {
   display: grid;
-  grid-template-columns: 50px 1fr;
+  grid-template-columns: 52px 1fr;
   gap: 10px;
   align-items: center;
 }
 
 .species-hud-header > img {
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
-  border-radius: 50%;
-  padding: 5px;
-  background: var(--slot);
-  border: 2px solid var(--amber);
+  border-radius: 12px;
+  padding: 0;
+  background: color-mix(in srgb, var(--species, var(--amber)) 18%, var(--slot));
+  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 64%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--species, var(--amber)) 24%, transparent);
 }
 
 /* animal portrait fills the circular HUD icon */
@@ -1149,14 +1155,15 @@ input:focus {
 }
 
 .species-hud-header h2 {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 900;
   text-transform: none;
   letter-spacing: -0.01em;
 }
 
 .species-hud-header p {
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.1;
 }
 
 /* Collapse toggle is mobile-only; hidden (and out of the 2-col grid) on desktop. */
@@ -1167,18 +1174,19 @@ input:focus {
 .hud-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
+  gap: 6px;
 }
 
 .hud-stat-card {
-  min-height: 58px;
-  border: var(--bw) solid var(--line-soft);
-  border-radius: 8px;
-  padding: 7px;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 24%, transparent);
+  border-radius: 6px;
+  padding: 6px;
   display: grid;
-  gap: 2px;
+  grid-template-columns: 16px 1fr;
+  gap: 1px 5px;
   align-content: center;
-  background: var(--slot);
+  background: rgba(0, 0, 0, 0.22);
 }
 
 .hud-stat-card svg,
@@ -1186,7 +1194,8 @@ input:focus {
   width: 17px;
   height: 17px;
   object-fit: contain;
-  color: var(--amber);
+  color: var(--species, var(--amber));
+  grid-row: span 2;
 }
 
 .hud-stat-card span {
@@ -1198,44 +1207,44 @@ input:focus {
 
 .hud-stat-card strong {
   color: var(--paper);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 900;
   line-height: 1;
 }
 
 .resource-bank {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .resource-chip {
-  min-height: 38px;
-  border: var(--bw) solid var(--line-soft);
-  border-radius: 8px;
-  padding: 5px 7px;
+  min-height: 34px;
+  border: 1px solid rgba(244, 236, 216, 0.1);
+  border-radius: 6px;
+  padding: 5px 6px;
   display: grid;
-  grid-template-columns: 22px 1fr auto;
-  gap: 6px;
+  grid-template-columns: 20px 1fr;
+  gap: 4px;
   align-items: center;
-  background: var(--slot);
+  background: rgba(0, 0, 0, 0.24);
 }
 
 .resource-chip img {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
 }
 
 .resource-chip span {
-  font-size: 10.5px;
-  font-weight: 600;
+  display: none;
 }
 
 .resource-chip strong {
   color: var(--paper);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 900;
+  text-align: right;
 }
 
 /* ---- species / local pickers ---- */
@@ -1927,9 +1936,9 @@ input:focus {
 .player-row {
   position: relative;
   display: grid;
-  gap: 10px;
-  padding: 11px 10px 11px 14px;
-  border-radius: 12px;
+  gap: 7px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 8px;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--species, var(--line-soft)) 7%, var(--slot)) 0%,
@@ -1944,7 +1953,7 @@ input:focus {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
-  width: 3px;
+  width: 2px;
   background: color-mix(in srgb, var(--species, var(--line-soft)) 55%, transparent);
 }
 
@@ -1966,15 +1975,15 @@ input:focus {
 }
 
 .player-row.active::before {
-  width: 4px;
+  width: 3px;
   background: var(--species, var(--amber));
   box-shadow: 0 0 12px color-mix(in srgb, var(--species, var(--amber)) 70%, transparent);
 }
 
 .player-summary-head {
   display: grid;
-  grid-template-columns: auto 40px 1fr auto;
-  gap: 8px;
+  grid-template-columns: auto 34px 1fr auto;
+  gap: 7px;
   align-items: center;
   width: 100%;
   border: 0;
@@ -1988,8 +1997,8 @@ input:focus {
 
 .player-summary-head .turn-order-badge {
   position: relative;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2027,8 +2036,8 @@ input:focus {
 }
 
 .player-summary-head img {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
   background: color-mix(in srgb, var(--species, var(--panel)) 18%, var(--panel));
   border: 2px solid color-mix(in srgb, var(--species, var(--line-soft)) 55%, transparent);
@@ -2054,7 +2063,7 @@ input:focus {
   color: var(--paper);
   font-family: Outfit, sans-serif;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
@@ -2074,7 +2083,8 @@ input:focus {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding: 2px 6px;
+  min-width: 42px;
+  padding: 2px 5px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--species, var(--amber)) 20%, transparent);
   color: var(--species, var(--amber));
@@ -2158,17 +2168,17 @@ input:focus {
 .player-summary-stats {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 0;
+  gap: 7px;
+  padding: 4px 0;
   border-top: 1px solid color-mix(in srgb, var(--paper) 6%, transparent);
   border-bottom: 1px solid color-mix(in srgb, var(--paper) 6%, transparent);
 }
 
 .player-summary-stats .stat-score {
   position: relative;
-  flex: 0 0 30px;
-  width: 30px;
-  height: 30px;
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   font-family: Outfit, sans-serif;
@@ -2178,8 +2188,8 @@ input:focus {
 }
 
 .player-summary-stats .stat-score img {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
@@ -2212,8 +2222,8 @@ input:focus {
 }
 
 .player-piece-track img {
-  width: 21px;
-  height: 21px;
+  width: 17px;
+  height: 17px;
   object-fit: contain;
   transition: filter 120ms ease, opacity 120ms ease;
 }
@@ -2231,26 +2241,26 @@ input:focus {
 .player-summary-resources {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 
 .mini-resource {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 5px 6px;
-  border-radius: 8px;
+  gap: 3px;
+  padding: 4px 5px;
+  border-radius: 6px;
   background: color-mix(in srgb, var(--panel) 75%, transparent);
   border: 1px solid color-mix(in srgb, var(--paper) 6%, transparent);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--paper);
 }
 
 .mini-resource img {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   object-fit: contain;
 }
 
@@ -2370,12 +2380,17 @@ input:focus {
 
 .active-turn-block {
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-top: 5px solid var(--species, var(--amber));
-  border-color: color-mix(in srgb, var(--species, var(--line)) 55%, var(--line));
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 1px color-mix(in srgb, var(--species, transparent) 30%, transparent);
+  gap: 9px;
+  padding: 10px;
+  border-left: 3px solid var(--species, var(--amber));
+  border-color: color-mix(in srgb, var(--species, var(--line)) 45%, var(--line));
+  background:
+    radial-gradient(circle at 18% 6%, color-mix(in srgb, var(--species, var(--amber)) 32%, transparent), transparent 40%),
+    linear-gradient(180deg, rgba(18, 32, 25, 0.9), rgba(8, 16, 13, 0.92));
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.56),
+    0 0 0 1px color-mix(in srgb, var(--species, var(--amber)) 24%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   overflow: visible;
 }
 
@@ -2390,8 +2405,9 @@ input:focus {
 }
 
 .active-turn-card {
+  position: relative;
   display: grid;
-  grid-template-columns: 48px 1fr;
+  grid-template-columns: 64px 1fr auto;
   gap: 10px;
   align-items: center;
   border: 0;
@@ -2400,13 +2416,16 @@ input:focus {
 }
 
 .active-turn-card img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  background: var(--slot);
-  border: 2px solid var(--species, var(--amber));
-  border-radius: 50%;
-  padding: 5px;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  background: color-mix(in srgb, var(--species, var(--amber)) 18%, var(--slot));
+  border: 1px solid var(--species, var(--amber));
+  border-radius: 14px;
+  padding: 0;
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--species, var(--amber)) 30%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .active-turn-card div {
@@ -2437,15 +2456,27 @@ input:focus {
   color: color-mix(in srgb, var(--paper) 65%, transparent);
 }
 
+.active-turn-round {
+  align-self: start;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--species, var(--amber)) 22%, rgba(0, 0, 0, 0.25));
+  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 46%, transparent);
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .active-turn-block .action-list {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  justify-content: center;
-  margin: 6px 0 4px;
-  padding: 6px;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 5px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  background: rgba(0, 0, 0, 0.22);
 }
 
 .active-turn-block .action-list span {
@@ -2471,11 +2502,51 @@ input:focus {
   transform: scale(1.08);
 }
 
+.active-turn-vitals {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.active-turn-vitals span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 5px;
+  border: 1px solid rgba(244, 236, 216, 0.1);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.active-turn-vitals svg,
+.active-turn-vitals img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  color: var(--species, var(--amber));
+}
+
+.active-turn-vitals strong {
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: 14px;
+}
+
+.active-turn-vitals small {
+  color: color-mix(in srgb, var(--paper) 45%, transparent);
+  font-size: 10px;
+}
+
 .current-action-card {
   margin-top: 0;
-  border: 0;
-  background: transparent;
-  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 22%, transparent);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 8px;
   display: grid;
   grid-template-columns: 42px 1fr;
   gap: 9px;
@@ -2495,14 +2566,14 @@ input:focus {
 .current-action-card strong {
   color: var(--species, var(--amber));
   font-family: Outfit, sans-serif;
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 900;
   line-height: 0.9;
   width: 42px;
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--species, var(--amber)) 14%, var(--ink));
   border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 40%, transparent);
 }
@@ -2518,6 +2589,12 @@ input:focus {
 .current-action-card small,
 .current-action-card button {
   grid-column: 1 / -1;
+}
+
+.current-action-card .secondary-button {
+  border-color: var(--species, var(--amber));
+  background: linear-gradient(180deg, var(--species, var(--amber)), color-mix(in srgb, var(--species, var(--amber)) 72%, #000));
+  color: var(--ink);
 }
 
 .current-action-card small {

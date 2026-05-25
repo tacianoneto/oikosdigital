@@ -4856,7 +4856,13 @@ export function App() {
 
             <div className="resource-bank">
               {resourceOrder.map((resource) => (
-                <div className="resource-chip" key={resource} ref={(node) => setEffectTarget(`hud:${resource}`, node)}>
+                <div
+                  className="resource-chip"
+                  key={resource}
+                  ref={(node) => setEffectTarget(`hud:${resource}`, node)}
+                  title={resourceLabels[resource]}
+                  aria-label={`${resourceLabels[resource]}: ${hudGamePlayer.resources[resource] ?? 0}`}
+                >
                   <img src={encodeURI(resourceAssets[resource])} alt="" />
                   <span>{resourceLabels[resource]}</span>
                   <strong><AnimatedNumber value={hudGamePlayer.resources[resource] ?? 0} /></strong>
@@ -4913,12 +4919,13 @@ export function App() {
               <h2>Turno ativo</h2>
             </div>
             <div className="active-turn-card">
-              {activeSpecies && <img src={encodeURI(activeSpecies.meepleAsset)} alt="" />}
+              {activeSpecies && <img src={encodeURI(activeSpecies.portraitAsset)} alt="" />}
               <div>
                 <span>Jogador atual</span>
                 <strong>{activeSpecies?.displayName ?? activeGamePlayer.name}</strong>
-                <small>Rodada {room.game.round}/{room.game.maxRounds}</small>
+                <small>{activeGamePlayer.name}</small>
               </div>
+              <span className="active-turn-round">R{room.game.round}/{room.game.maxRounds}</span>
             </div>
             {activeSpecies && (
               <div className="action-list">
@@ -4927,6 +4934,23 @@ export function App() {
                 ))}
               </div>
             )}
+            <div className="active-turn-vitals" aria-label="Resumo do jogador ativo">
+              <span>
+                <Trophy aria-hidden="true" />
+                <strong>{activeGamePlayer.score}</strong>
+              </span>
+              <span>
+                {activeSpecies && <img src={encodeURI(activeSpecies.meepleAsset)} alt="" />}
+                <strong>{activeGamePlayer.piecesInForest.length}</strong>
+                <small>/ {activeSpecies?.totalPieces ?? activeGamePlayer.piecesInForest.length}</small>
+              </span>
+              {resourceOrder.map((resource) => (
+                <span key={resource} title={resourceLabels[resource]}>
+                  <img src={encodeURI(resourceAssets[resource])} alt="" />
+                  <strong>{activeGamePlayer.resources[resource] ?? 0}</strong>
+                </span>
+              ))}
+            </div>
             {activeSpecies && activeActionId && (
               <div className="current-action-card">
                 <span>Ação atual</span>
