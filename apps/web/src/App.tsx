@@ -4265,6 +4265,24 @@ export function App() {
           </section>
         )}
 
+        {!cleanBoardMode && turnBanner && turnBanner.speciesId && (
+          <div
+            className="turn-sweep"
+            key={`turn-sweep-${turnBanner.key}`}
+            style={speciesVar(turnBanner.speciesId)}
+            aria-hidden="true"
+          >
+            <span className="turn-sweep-band" />
+            <span className="turn-sweep-card">
+              <img src={encodeURI(speciesDefinitions[turnBanner.speciesId].portraitAsset)} alt="" />
+              <span className="turn-sweep-text">
+                <small>Vez de</small>
+                <strong>{turnBanner.label}</strong>
+              </span>
+            </span>
+          </div>
+        )}
+
         {!cleanBoardMode && (error || notice) && (
           <div className={`status-message hud-toast ${error ? "error" : "notice"}`}>
             {error ? <AlertTriangle aria-hidden="true" /> : <Check aria-hidden="true" />}
@@ -4578,7 +4596,7 @@ export function App() {
         </div>
         )}
 
-      <section className="playfield-panel stage-layer">
+      <section className={`playfield-panel stage-layer ${turnBanner && !cleanBoardMode ? "is-turn-shift" : ""}`}>
         <div className="table-wood" aria-hidden="true" />
         <div className="tabletop-stage">
           {!cleanBoardMode && turnBanner && (

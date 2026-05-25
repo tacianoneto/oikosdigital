@@ -3274,6 +3274,166 @@ input:focus {
   }
 }
 
+/* Turn transition: a species-colored band sweeps the board while the new
+   active species' portrait slides in, holds, and exits. Pairs with a subtle
+   board parallax settle (.playfield-panel.is-turn-shift). Decorative only. */
+.turn-sweep {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.turn-sweep-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 55%;
+  transform: skewX(-12deg);
+  filter: blur(2px);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--species, var(--amber)) 26%, transparent) 45%,
+    color-mix(in srgb, var(--species, var(--amber)) 44%, transparent) 55%,
+    transparent
+  );
+  animation: turn-sweep-band 1.9s cubic-bezier(0.5, 0, 0.2, 1) forwards;
+}
+
+.turn-sweep-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: clamp(18px, 8vw, 140px);
+  padding: 12px 26px 12px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--species, var(--amber));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--species, var(--amber)) 22%, var(--panel)),
+    var(--panel)
+  );
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55),
+    0 0 0 6px color-mix(in srgb, var(--species, var(--amber)) 18%, transparent);
+  animation: turn-sweep-card 1.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.turn-sweep-card img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 50%;
+  border: 2px solid var(--species, var(--amber));
+  background: var(--slot);
+  padding: 4px;
+}
+
+.turn-sweep-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.turn-sweep-text small {
+  font: 700 12px Outfit, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--species, var(--amber));
+}
+
+.turn-sweep-text strong {
+  font: 800 23px Outfit, sans-serif;
+  color: var(--paper);
+}
+
+@keyframes turn-sweep-band {
+  0% {
+    transform: translateX(0) skewX(-12deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(300%) skewX(-12deg);
+    opacity: 0;
+  }
+}
+
+@keyframes turn-sweep-card {
+  0% {
+    opacity: 0;
+    transform: translateX(-60px) scale(0.92);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(40px) scale(0.98);
+  }
+}
+
+.playfield-panel.is-turn-shift {
+  animation: board-turn-parallax 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes board-turn-parallax {
+  0% {
+    transform: scale(1) translateX(0);
+  }
+  28% {
+    transform: scale(1.014) translateX(-7px);
+  }
+  100% {
+    transform: scale(1) translateX(0);
+  }
+}
+
+@media (max-width: 560px) {
+  .turn-sweep-card img {
+    width: 56px;
+    height: 56px;
+  }
+  .turn-sweep-text strong {
+    font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-sweep-band {
+    display: none;
+  }
+  .turn-sweep-card {
+    animation: turn-sweep-card-fade 1.9s ease forwards;
+  }
+  .playfield-panel.is-turn-shift {
+    animation: none;
+  }
+}
+
+@keyframes turn-sweep-card-fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  18%,
+  72% {
+    opacity: 1;
+  }
+}
+
 /* Persistent turn countdown (timed online games). Sits under the turn banner. */
 .turn-countdown {
   position: absolute;
