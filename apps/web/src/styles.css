@@ -1431,13 +1431,14 @@ input:focus {
   inset: 0;
   pointer-events: none;
   background-image:
-    /* flowing wood grain — turbulence stretched along the plank direction */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='760' height='520'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.085' numOctaves='5' seed='14' stitchTiles='stitch' result='n'/><feColorMatrix in='n' type='matrix' values='0 0 0 0 0.09  0 0 0 0 0.055  0 0 0 0 0.03  0 0 1.05 0 -0.42'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
+    /* flowing wood grain — turbulence stretched hard along the plank direction
+       (low octaves keep it as long smooth streaks, not blotchy gouges) */
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='760' height='520'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.004 0.05' numOctaves='3' seed='14' stitchTiles='stitch' result='n'/><feColorMatrix in='n' type='matrix' values='0 0 0 0 0.1  0 0 0 0 0.065  0 0 0 0 0.04  0 0 0.6 0 -0.22'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
     /* fine micro tooth so the surface is not glassy */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.14  0 0 0 0 0.09  0 0 0 0 0.05  0 0 0 0.4 0'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.14  0 0 0 0 0.09  0 0 0 0 0.05  0 0 0 0.32 0'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
   background-size: 760px 520px, 180px 180px;
   background-repeat: repeat, repeat;
-  opacity: 0.9;
+  opacity: 0.6;
   mix-blend-mode: multiply;
 }
 
