@@ -4835,21 +4835,28 @@ export function App() {
               </button>
             </div>
 
-            <div className="hud-stat-grid">
-              <div className="hud-stat-card">
+            <div className="hud-player-strip">
+              <div className="hud-score-chip" title="Pontos" aria-label={`Pontos: ${hudGamePlayer.score}`}>
                 <img src={encodeURI(resourceAssets.point)} alt="" />
-                <span>Pontos</span>
                 <strong><AnimatedNumber value={hudGamePlayer.score} /></strong>
               </div>
-              <div className="hud-stat-card" ref={(node) => setEffectTarget("hud:reserve", node)}>
-                <img className="is-in-reserve" src={encodeURI(hudSpecies.meepleAsset)} alt="" />
-                <span>Reserva</span>
-                <strong>{hudGamePlayer.reservePieces.length}</strong>
-              </div>
-              <div className="hud-stat-card">
-                <img className="is-in-forest" src={encodeURI(hudSpecies.meepleAsset)} alt="" />
-                <span>Na floresta</span>
-                <strong>{hudGamePlayer.piecesInForest.length}</strong>
+              <div
+                className="hud-piece-track"
+                ref={(node) => setEffectTarget("hud:reserve", node)}
+                title={`${hudGamePlayer.reservePieces.length} na reserva · ${hudGamePlayer.piecesInForest.length} na floresta`}
+                aria-label={`${hudGamePlayer.reservePieces.length} peças na reserva, ${hudGamePlayer.piecesInForest.length} peças na floresta`}
+              >
+                {Array.from({ length: hudSpecies.totalPieces }, (_, pieceIndex) => {
+                  const isInForest = pieceIndex >= hudGamePlayer.reservePieces.length;
+                  return (
+                    <img
+                      key={`${hudGamePlayer.playerId}_hud_piece_${pieceIndex}`}
+                      src={encodeURI(hudSpecies.meepleAsset)}
+                      alt=""
+                      className={isInForest ? "is-in-forest" : "is-in-reserve"}
+                    />
+                  );
+                })}
               </div>
             </div>
 

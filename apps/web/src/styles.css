@@ -1171,55 +1171,70 @@ input:focus {
   display: none;
 }
 
-.hud-stat-grid {
+.hud-player-strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 52px 1fr;
+  align-items: center;
   gap: 6px;
 }
 
-.hud-stat-card {
-  min-height: 44px;
+.hud-score-chip {
+  min-height: 34px;
   border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 24%, transparent);
   border-radius: 6px;
-  padding: 6px;
-  display: grid;
-  grid-template-columns: 16px 1fr;
-  gap: 1px 5px;
-  align-content: center;
+  padding: 5px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   background: rgba(0, 0, 0, 0.22);
 }
 
-.hud-stat-card svg,
-.hud-stat-card img {
+.hud-score-chip img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.hud-score-chip strong {
+  color: var(--paper);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hud-score-chip .num-roll,
+.hud-score-chip .num-roll.active {
+  color: var(--paper);
+}
+
+.hud-piece-track {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px 7px;
+  border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 24%, transparent);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.hud-piece-track img {
   width: 17px;
   height: 17px;
   object-fit: contain;
-  color: var(--species, var(--amber));
-  grid-row: span 2;
+  transition: filter 120ms ease, opacity 120ms ease;
 }
 
-.hud-stat-card img.is-in-forest {
-  opacity: 0.42;
-  filter: grayscale(1) saturate(0.3) brightness(0.82);
+.hud-piece-track img.is-in-forest {
+  opacity: 0.34;
+  filter: grayscale(1) saturate(0.3) brightness(0.75);
 }
 
-.hud-stat-card img.is-in-reserve {
+.hud-piece-track img.is-in-reserve {
   opacity: 1;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
-}
-
-.hud-stat-card span {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.hud-stat-card strong {
-  color: var(--paper);
-  font-size: 17px;
-  font-weight: 900;
-  line-height: 1;
 }
 
 .resource-bank {
@@ -2899,7 +2914,7 @@ input:focus {
     width: max-content;
   }
 
-  .species-hud.is-collapsed .hud-stat-grid,
+  .species-hud.is-collapsed .hud-player-strip,
   .species-hud.is-collapsed .resource-bank {
     display: none;
   }
