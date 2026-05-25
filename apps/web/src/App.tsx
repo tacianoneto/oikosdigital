@@ -12,6 +12,7 @@ import {
   Clock,
   Copy,
   Crown,
+  Eye,
   GraduationCap,
   Leaf,
   Lock,
@@ -122,7 +123,8 @@ import {
   isMissingRoomError,
   lastOnlineNameStorageKey,
   lastOnlineRoomStorageKey,
-  saveOnlineSession
+  saveOnlineSession,
+  wasSpectatorSession
 } from "./ui/session";
 import { speciesVar } from "./ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "./ui/turnSummary";
@@ -1288,6 +1290,7 @@ export function App() {
   const [room, setRoom] = useState<PublicRoomState | null>(null);
   const [name, setName] = useState("Jogador");
   const [joinCode, setJoinCode] = useState("");
+  const [isSpectator, setIsSpectator] = useState(false);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
   const [localSpeciesIds, setLocalSpeciesIds] = useState<SpeciesId[]>(["maned_wolf", "coati"]);
   const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
@@ -1326,7 +1329,7 @@ export function App() {
   // open (toggle is hidden and the collapse CSS lives only in the phone query).
   const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
-  const [landingMode, setLandingMode] = useState<"idle" | "join" | "local" | "tutorials">("idle");
+  const [landingMode, setLandingMode] = useState<"idle" | "join" | "spectate" | "local" | "tutorials">("idle");
   const [tutorialId, setTutorialId] = useState<TutorialId | null>(null);
   const [tutorialStep, setTutorialStep] = useState<number | null>(null);
   // Log length captured when the move step begins, to detect the taught move.
@@ -1476,6 +1479,7 @@ export function App() {
     lastOnlineRoomSnapshotRef.current = "";
     activeOnlineRoomIdRef.current = null;
     resetRoomUiState();
+    setIsSpectator(false);
     setRoom(null);
   }, [resetRoomUiState]);
 
@@ -1490,16 +1494,20 @@ export function App() {
 
       if (savedRoomId) {
         const reconnectEpoch = roomActionEpochRef.current;
+        const reconnectAsSpectator = wasSpectatorSession();
         setName(savedName);
-        void roomApi
-          .join(nextSocket, savedRoomId, savedName)
+        const reconnectPromise = reconnectAsSpectator
+          ? roomApi.spectate(nextSocket, savedRoomId)
+          : roomApi.join(nextSocket, savedRoomId, savedName);
+        void reconnectPromise
           .then((nextRoom) => {
             if (roomActionEpochRef.current !== reconnectEpoch) {
               return;
             }
 
+            setIsSpectator(reconnectAsSpectator);
             applyOnlineRoomState(nextRoom, { direct: true });
-            setNotice("Reconectado a sala.");
+            setNotice(reconnectAsSpectator ? "Reconectado como espectador." : "Reconectado a sala.");
           })
           .catch((err) => {
             if (roomActionEpochRef.current !== reconnectEpoch) {
@@ -1560,7 +1568,11 @@ export function App() {
   }, [error]);
 
   const isLocalRoom = room?.roomId === localRoomId;
-  const controlledPlayerId = isLocalRoom ? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null : playerId;
+  const controlledPlayerId = isLocalRoom
+    ? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null
+    : isSpectator
+      ? null
+      : playerId;
   const currentPlayer = room?.players.find((player) => player.playerId === controlledPlayerId) ?? null;
   // In a local game the active species is auto-played when it is a bot, so the
   // human must not be able to act on its turn.
@@ -2628,6 +2640,41 @@ export function App() {
     }
 
     return socket;
+  }
+
+  async function spectate(roomId: string) {
+    if (onlineActionInFlightRef.current) {
+      return;
+    }
+
+    const actionEpoch = roomActionEpochRef.current;
+    onlineActionInFlightRef.current = true;
+    setError(null);
+    setNotice(null);
+
+    try {
+      const nextRoom = await roomApi.spectate(requireSocket(), roomId);
+      if (roomActionEpochRef.current !== actionEpoch) {
+        return;
+      }
+
+      setIsSpectator(true);
+      applyOnlineRoomState(nextRoom, { direct: true });
+      saveOnlineSession(nextRoom, name, true);
+      setNotice("Assistindo a sala.");
+    } catch (err) {
+      if (isMissingRoomError(err)) {
+        clearOnlineSession();
+        clearRoomState();
+        setJoinCode("");
+        setNotice("Essa sala não existe. Confira o código com o anfitrião.");
+        return;
+      }
+
+      setError(err instanceof Error ? err.message : "Erro desconhecido.");
+    } finally {
+      onlineActionInFlightRef.current = false;
+    }
   }
 
   function requireRoom(): PublicRoomState {
@@ -3972,6 +4019,20 @@ export function App() {
               <button
                 type="button"
                 className="landing-action landing-action-secondary"
+                onClick={() => setLandingMode("spectate")}
+              >
+                <span className="landing-action-icon">
+                  <Eye aria-hidden="true" />
+                </span>
+                <span className="landing-action-text">
+                  <strong>Assistir</strong>
+                  <small>Entre só para assistir a uma partida</small>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="landing-action landing-action-secondary"
                 onClick={() => setLandingMode("local")}
               >
                 <span className="landing-action-icon">
@@ -4086,6 +4147,68 @@ export function App() {
               <button type="submit" className="flow-submit" disabled={joinCode.length < 4}>
                 <LogIn aria-hidden="true" />
                 Entrar na Sala
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {!hasStartedGame && !room && landingMode === "spectate" && (
+        <div className="flow-screen flow-screen-join" role="main">
+          <div className="landing-bg-orbs" aria-hidden="true">
+            <span className="orb orb-1" />
+            <span className="orb orb-2" />
+          </div>
+
+          <header className="flow-header">
+            <button
+              type="button"
+              className="flow-back"
+              onClick={() => setLandingMode("idle")}
+              aria-label="Voltar"
+            >
+              <ChevronLeft aria-hidden="true" />
+              <span>Voltar</span>
+            </button>
+            <div className="landing-logo flow-logo">
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+            </div>
+            <span className="flow-spacer" aria-hidden="true" />
+          </header>
+
+          <div className="flow-body">
+            <div className="flow-icon-large">
+              <Eye aria-hidden="true" />
+            </div>
+            <h2 className="flow-title">Assistir Partida</h2>
+            <p className="flow-subtitle">
+              Digite o código da sala para entrar como espectador. Você verá o jogo, mas não joga.
+            </p>
+
+            <form
+              className="flow-card flow-card-join"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (joinCode.length >= 4) {
+                  void spectate(joinCode);
+                }
+              }}
+            >
+              <div className="flow-code-field">
+                <span className="flow-code-label">Código da sala</span>
+                <input
+                  className="landing-code-input flow-code-input"
+                  value={joinCode}
+                  onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
+                  placeholder="ABCDE"
+                  maxLength={5}
+                  autoFocus
+                />
+              </div>
+
+              <button type="submit" className="flow-submit" disabled={joinCode.length < 4}>
+                <Eye aria-hidden="true" />
+                Assistir
               </button>
             </form>
           </div>
@@ -4471,9 +4594,11 @@ export function App() {
 
           <div className="flow-body flow-body-lobby">
             <div className="lobby-hero">
-              <span className="lobby-badge">{isLocalRoom ? "Teste Local" : "Sala Online"}</span>
+              <span className="lobby-badge">
+                {isLocalRoom ? "Teste Local" : isSpectator ? "Espectador" : "Sala Online"}
+              </span>
               <h2 className="flow-title lobby-title">
-                {isLocalRoom ? "Mesa Local" : "Sala de Espera"}
+                {isLocalRoom ? "Mesa Local" : isSpectator ? "Assistindo" : "Sala de Espera"}
               </h2>
               {!isLocalRoom && (
                 <div className="lobby-code-card">
@@ -4503,6 +4628,12 @@ export function App() {
                   <Users aria-hidden="true" />
                   <h3>Jogadores</h3>
                   <span className="lobby-count">{room.players.length}</span>
+                  {Boolean(room.spectatorCount) && (
+                    <span className="lobby-spectator-count" title="Espectadores assistindo">
+                      <Eye aria-hidden="true" />
+                      {room.spectatorCount}
+                    </span>
+                  )}
                 </header>
                 <ul className="lobby-player-list">
                   {room.players.map((player) => {
@@ -4615,6 +4746,21 @@ export function App() {
                 )}
               </section>
 
+              {isSpectator ? (
+                <section className="lobby-card lobby-species">
+                  <header className="lobby-card-header">
+                    <Eye aria-hidden="true" />
+                    <h3>Modo Espectador</h3>
+                  </header>
+                  <div className="lobby-spectator-note">
+                    <Eye aria-hidden="true" />
+                    <p>
+                      Você está assistindo a esta sala. Quando o anfitrião iniciar, a partida
+                      aparecerá aqui automaticamente.
+                    </p>
+                  </div>
+                </section>
+              ) : (
               <section className="lobby-card lobby-species">
                 <header className="lobby-card-header">
                   <ShieldCheck aria-hidden="true" />
@@ -4691,10 +4837,11 @@ export function App() {
                   })}
                 </div>
               </section>
+              )}
             </div>
 
             <div className="lobby-footer-actions">
-              {!isLocalRoom && (
+              {!isLocalRoom && !isSpectator && (
                 <button
                   type="button"
                   className={`lobby-ready-btn ${currentPlayer?.ready ? "is-ready" : ""}`}
@@ -4733,6 +4880,16 @@ export function App() {
         >
           <Settings aria-hidden="true" />
         </button>
+      )}
+
+      {hasStartedGame && isSpectator && (
+        <div className="spectator-banner" role="status">
+          <Eye aria-hidden="true" />
+          <span>Modo espectador</span>
+          <button type="button" className="spectator-leave" onClick={leaveTable} title="Sair">
+            <LogOut aria-hidden="true" />
+          </button>
+        </div>
       )}
 
       {tutorialActive && hasStartedGame && tutorialDef && (

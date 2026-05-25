@@ -43,6 +43,7 @@ import {
   selectSpecies,
   setBotTurnDelay,
   setReady,
+  spectateRoom,
   spendJaguarMeat,
   spendWolfResources,
   startGame
@@ -313,6 +314,15 @@ io.on("connection", (socket) => {
   socket.on("room:join", (payload: { roomId: string; name: string }, reply) => {
     withReply(reply, () => {
       const room = joinRoom(payload.roomId, playerId, payload.name);
+      socket.join(room.roomId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("room:spectate", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = spectateRoom(payload.roomId, playerId);
       socket.join(room.roomId);
       broadcastRoom(room);
       return room;

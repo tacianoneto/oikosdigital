@@ -4935,6 +4935,98 @@ input:focus {
   color: var(--leaf);
 }
 
+.lobby-spectator-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(58, 127, 196, 0.2);
+  border: 1px solid rgba(58, 127, 196, 0.45);
+  color: var(--sky, #6fb3e8);
+}
+
+.lobby-spectator-count svg {
+  width: 13px;
+  height: 13px;
+}
+
+.lobby-spectator-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(58, 127, 196, 0.12);
+  border: 1px dashed rgba(58, 127, 196, 0.45);
+}
+
+.lobby-spectator-note svg {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--sky, #6fb3e8);
+  margin-top: 2px;
+}
+
+.lobby-spectator-note p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--paper);
+}
+
+.spectator-banner {
+  position: fixed;
+  z-index: 9;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(58, 127, 196, 0.2);
+  border: var(--bw) solid rgba(58, 127, 196, 0.5);
+  backdrop-filter: blur(6px);
+  color: var(--paper);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.spectator-banner > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--sky, #6fb3e8);
+}
+
+.spectator-leave {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.spectator-leave:hover {
+  border-color: var(--amber);
+  background: var(--panel-2);
+}
+
+.spectator-leave svg {
+  width: 15px;
+  height: 15px;
+}
+
 .lobby-player-list {
   list-style: none;
   margin: 0;

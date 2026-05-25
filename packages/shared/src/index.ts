@@ -226,4 +226,7 @@ export interface PublicRoomState {
   // render the countdown. Transient: recomputed by the server, not authoritative
   // after a restart.
   activeTurnStartedAt?: number | null;
+  // Number of connected spectators watching the room. Spectators do not occupy a
+  // player slot and never affect game state. Transient: reset to 0 on restart.
+  spectatorCount?: number;
 }

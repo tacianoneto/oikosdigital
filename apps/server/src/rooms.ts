@@ -35,6 +35,10 @@ interface ServerRoom {
   warnings: string[];
   botTurnDelayMs?: number;
   turnTimerMs?: number | null;
+  // Connected spectators (by playerId). They receive room broadcasts but never
+  // occupy a player slot or affect game state. Not persisted: rebuilt as sockets
+  // reconnect after a restart.
+  spectators: Set<string>;
 }
 
 const MIN_TURN_TIMER_MS = 15000;
@@ -57,7 +61,8 @@ for (const persisted of loadRooms()) {
     game: persisted.game,
     warnings: persisted.warnings,
     botTurnDelayMs: persisted.botTurnDelayMs,
-    turnTimerMs: persisted.turnTimerMs ?? null
+    turnTimerMs: persisted.turnTimerMs ?? null,
+    spectators: new Set<string>()
   });
 }
 
@@ -78,15 +83,29 @@ export function createRoom(hostSocketId: string, hostName: string): PublicRoomSt
     status: "lobby",
     game: null,
     warnings: [],
-    turnTimerMs: null
+    turnTimerMs: null,
+    spectators: new Set<string>()
   };
 
   rooms.set(roomId, room);
   return toPublicRoom(room);
 }
 
+export function spectateRoom(roomId: string, playerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+
+  // A seated player is never a spectator; just return the current state.
+  if (room.players.some((player) => player.playerId === playerId)) {
+    return toPublicRoom(room);
+  }
+
+  room.spectators.add(playerId);
+  return toPublicRoom(room);
+}
+
 export function joinRoom(roomId: string, playerId: string, playerName: string): PublicRoomState {
   const room = getRoom(roomId);
+  room.spectators.delete(playerId);
   const existing = room.players.find((player) => player.playerId === playerId);
 
   if (existing) {
@@ -115,13 +134,16 @@ export function leaveRooms(playerId: string): PublicRoomState[] {
 
   for (const room of rooms.values()) {
     const player = room.players.find((candidate) => candidate.playerId === playerId);
-    if (!player) {
+    if (player) {
+      player.connected = false;
+      player.ready = false;
+      updatedRooms.push(toPublicRoom(room));
       continue;
     }
 
-    player.connected = false;
-    player.ready = false;
-    updatedRooms.push(toPublicRoom(room));
+    if (room.spectators.delete(playerId)) {
+      updatedRooms.push(toPublicRoom(room));
+    }
   }
 
   return updatedRooms;
@@ -129,10 +151,14 @@ export function leaveRooms(playerId: string): PublicRoomState[] {
 
 export function leaveRoom(roomId: string, playerId: string): PublicRoomState {
   const room = getRoom(roomId);
-  const player = getPlayer(room, playerId);
+  const player = room.players.find((candidate) => candidate.playerId === playerId);
 
-  player.connected = false;
-  player.ready = false;
+  if (player) {
+    player.connected = false;
+    player.ready = false;
+  } else {
+    room.spectators.delete(playerId);
+  }
 
   return toPublicRoom(room);
 }
@@ -789,7 +815,8 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     game: room.game,
     warnings: room.warnings,
     botTurnDelayMs: room.botTurnDelayMs,
-    turnTimerMs: room.turnTimerMs ?? null
+    turnTimerMs: room.turnTimerMs ?? null,
+    spectatorCount: room.spectators.size
   };
 }
 
