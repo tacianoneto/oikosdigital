@@ -229,4 +229,18 @@ export interface PublicRoomState {
   // Number of connected spectators watching the room. Spectators do not occupy a
   // player slot and never affect game state. Transient: reset to 0 on restart.
   spectatorCount?: number;
+  // True when the room was created with a password. The password itself is never
+  // sent to clients. Private rooms are hidden from the public open-room list.
+  isPrivate?: boolean;
+}
+
+// Lightweight room descriptor for the public matchmaking list. Never includes
+// the password and omits the full game state to keep the payload small.
+export interface RoomSummary {
+  roomId: string;
+  hostName: string;
+  status: RoomStatus;
+  playerCount: number;
+  maxPlayers: number;
+  spectatorCount: number;
 }

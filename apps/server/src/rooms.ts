@@ -22,7 +22,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { ForestCardState, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
+import type { ForestCardState, PublicRoomState, Resource, RoomPlayer, RoomSummary, SpeciesId } from "@oikos/shared";
 import { playBotStep, playRandomStep } from "@oikos/rules";
 import { loadRooms } from "./store";
 
@@ -39,6 +39,10 @@ interface ServerRoom {
   // occupy a player slot or affect game state. Not persisted: rebuilt as sockets
   // reconnect after a restart.
   spectators: Set<string>;
+  // Optional join password. When set, the room is private: hidden from the public
+  // open-room list and joinable/spectatable only with the matching password. Never
+  // sent to clients. Not persisted, so a restart turns private rooms public.
+  password?: string | null;
 }
 
 const MIN_TURN_TIMER_MS = 15000;
@@ -62,11 +66,17 @@ for (const persisted of loadRooms()) {
     warnings: persisted.warnings,
     botTurnDelayMs: persisted.botTurnDelayMs,
     turnTimerMs: persisted.turnTimerMs ?? null,
-    spectators: new Set<string>()
+    spectators: new Set<string>(),
+    password: null
   });
 }
 
-export function createRoom(hostSocketId: string, hostName: string): PublicRoomState {
+function normalizePassword(password?: string | null): string | null {
+  const trimmed = typeof password === "string" ? password.trim() : "";
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+export function createRoom(hostSocketId: string, hostName: string, password?: string | null): PublicRoomState {
   const roomId = createRoomId();
   const player: RoomPlayer = {
     playerId: hostSocketId,
@@ -84,14 +94,44 @@ export function createRoom(hostSocketId: string, hostName: string): PublicRoomSt
     game: null,
     warnings: [],
     turnTimerMs: null,
-    spectators: new Set<string>()
+    spectators: new Set<string>(),
+    password: normalizePassword(password)
   };
 
   rooms.set(roomId, room);
   return toPublicRoom(room);
 }
 
-export function spectateRoom(roomId: string, playerId: string): PublicRoomState {
+// Open rooms for the public matchmaking list: never private, never finished.
+// Ordered with joinable lobbies first, then ongoing games.
+export function listOpenRooms(): RoomSummary[] {
+  const summaries: RoomSummary[] = [];
+
+  for (const room of rooms.values()) {
+    if (room.password || room.status === "finished" || room.game?.status === "finished") {
+      continue;
+    }
+
+    const host = room.players.find((player) => player.playerId === room.hostPlayerId);
+    summaries.push({
+      roomId: room.roomId,
+      hostName: host?.name ?? "Sala",
+      status: room.status,
+      playerCount: room.players.length,
+      maxPlayers: 6,
+      spectatorCount: room.spectators.size
+    });
+  }
+
+  return summaries.sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === "lobby" ? -1 : 1;
+    }
+    return a.roomId.localeCompare(b.roomId);
+  });
+}
+
+export function spectateRoom(roomId: string, playerId: string, password?: string | null): PublicRoomState {
   const room = getRoom(roomId);
 
   // A seated player is never a spectator; just return the current state.
@@ -99,25 +139,29 @@ export function spectateRoom(roomId: string, playerId: string): PublicRoomState 
     return toPublicRoom(room);
   }
 
+  assertPassword(room, playerId, password);
   room.spectators.add(playerId);
   return toPublicRoom(room);
 }
 
-export function joinRoom(roomId: string, playerId: string, playerName: string): PublicRoomState {
+export function joinRoom(roomId: string, playerId: string, playerName: string, password?: string | null): PublicRoomState {
   const room = getRoom(roomId);
-  room.spectators.delete(playerId);
   const existing = room.players.find((player) => player.playerId === playerId);
 
   if (existing) {
+    room.spectators.delete(playerId);
     existing.connected = true;
     existing.name = playerName || existing.name;
     return toPublicRoom(room);
   }
 
+  assertPassword(room, playerId, password);
+
   if (room.players.length >= 6) {
     throw new Error("A sala já tem 6 jogadores.");
   }
 
+  room.spectators.delete(playerId);
   room.players.push({
     playerId,
     name: playerName || `Jogador ${room.players.length + 1}`,
@@ -816,7 +860,8 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     warnings: room.warnings,
     botTurnDelayMs: room.botTurnDelayMs,
     turnTimerMs: room.turnTimerMs ?? null,
-    spectatorCount: room.spectators.size
+    spectatorCount: room.spectators.size,
+    isPrivate: Boolean(room.password)
   };
 }
 
@@ -827,6 +872,17 @@ function getRoom(roomId: string): ServerRoom {
   }
 
   return room;
+}
+
+function assertPassword(room: ServerRoom, playerId: string, password?: string | null): void {
+  // Players already seated (reconnects) bypass the password check.
+  if (!room.password || room.players.some((player) => player.playerId === playerId)) {
+    return;
+  }
+
+  if (normalizePassword(password) !== room.password) {
+    throw new Error("Senha incorreta.");
+  }
 }
 
 function getPlayer(room: ServerRoom, playerId: string): RoomPlayer {

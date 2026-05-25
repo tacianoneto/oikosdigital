@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import type { ForestCardState, PublicRoomState, Resource, SpeciesId } from "@oikos/shared";
+import type { ForestCardState, PublicRoomState, Resource, RoomSummary, SpeciesId } from "@oikos/shared";
 
 export interface SocketReply<T> {
   ok: boolean;
@@ -81,9 +81,13 @@ export function emitWithReply<T>(socket: OikosSocket, event: string, payload: un
 
 export const roomApi = {
   ping: (socket: OikosSocket, roomId: string) => emitWithReply<{ ok: true; roomId: string | null; now: number }>(socket, "presence:ping", { roomId }),
-  create: (socket: OikosSocket, name: string) => emitWithReply<PublicRoomState>(socket, "room:create", { name }),
-  join: (socket: OikosSocket, roomId: string, name: string) => emitWithReply<PublicRoomState>(socket, "room:join", { roomId, name }),
-  spectate: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "room:spectate", { roomId }),
+  listRooms: (socket: OikosSocket) => emitWithReply<RoomSummary[]>(socket, "rooms:list", {}),
+  create: (socket: OikosSocket, name: string, password?: string | null) =>
+    emitWithReply<PublicRoomState>(socket, "room:create", { name, password }),
+  join: (socket: OikosSocket, roomId: string, name: string, password?: string | null) =>
+    emitWithReply<PublicRoomState>(socket, "room:join", { roomId, name, password }),
+  spectate: (socket: OikosSocket, roomId: string, password?: string | null) =>
+    emitWithReply<PublicRoomState>(socket, "room:spectate", { roomId, password }),
   leave: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "room:leave", { roomId }),
   addBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:add", { roomId }),
   removeBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:remove", { roomId }),

@@ -26,6 +26,7 @@ import {
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
+  listOpenRooms,
   hideArmadillo,
   joinRoom,
   leaveRoom,
@@ -302,27 +303,31 @@ io.on("connection", (socket) => {
     }));
   });
 
-  socket.on("room:create", (payload: { name: string }, reply) => {
+  socket.on("rooms:list", (_payload: unknown, reply) => {
+    withReply(reply, () => listOpenRooms());
+  });
+
+  socket.on("room:create", (payload: { name: string; password?: string | null }, reply) => {
     withReply(reply, () => {
-      const room = createRoom(playerId, payload.name);
+      const room = createRoom(playerId, payload.name, payload.password);
       socket.join(room.roomId);
       scheduleRoomSave(room);
       return room;
     });
   });
 
-  socket.on("room:join", (payload: { roomId: string; name: string }, reply) => {
+  socket.on("room:join", (payload: { roomId: string; name: string; password?: string | null }, reply) => {
     withReply(reply, () => {
-      const room = joinRoom(payload.roomId, playerId, payload.name);
+      const room = joinRoom(payload.roomId, playerId, payload.name, payload.password);
       socket.join(room.roomId);
       broadcastRoom(room);
       return room;
     });
   });
 
-  socket.on("room:spectate", (payload: { roomId: string }, reply) => {
+  socket.on("room:spectate", (payload: { roomId: string; password?: string | null }, reply) => {
     withReply(reply, () => {
-      const room = spectateRoom(payload.roomId, playerId);
+      const room = spectateRoom(payload.roomId, playerId, payload.password);
       socket.join(room.roomId);
       broadcastRoom(room);
       return room;
