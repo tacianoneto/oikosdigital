@@ -112,6 +112,14 @@ export function listOpenRooms(): RoomSummary[] {
       continue;
     }
 
+    // Only real, live rooms: at least one connected human. Excludes abandoned
+    // rooms (everyone left), bot-only rooms, and ghosts restored from storage
+    // after a restart (all humans start disconnected until they rejoin).
+    const hasConnectedHuman = room.players.some((player) => !player.isBot && player.connected);
+    if (!hasConnectedHuman) {
+      continue;
+    }
+
     const host = room.players.find((player) => player.playerId === room.hostPlayerId);
     summaries.push({
       roomId: room.roomId,
