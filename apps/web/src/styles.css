@@ -2329,6 +2329,18 @@ input:focus {
   color: var(--paper);
 }
 
+/* Leader of a resource majority (meat/egg/fruit). Seed never gets this. */
+.mini-resource.is-leader {
+  background: color-mix(in srgb, var(--amber) 26%, transparent);
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--amber) 45%, transparent);
+}
+
+.mini-resource.is-leader b {
+  color: var(--amber);
+}
+
 .mini-resource img {
   width: 15px;
   height: 15px;

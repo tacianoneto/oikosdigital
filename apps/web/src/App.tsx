@@ -1629,6 +1629,32 @@ export function App() {
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
 
+  // Leader(s) per resource for the players panel. Seed (pinha) has no majority
+  // in scoring, so it is excluded. Ties highlight every top holder. Count 0 = no
+  // leader. Mirrors the endgame resource-majority rule (meat/egg/fruit only).
+  const resourceLeaders = useMemo(() => {
+    const leaders: Partial<Record<Resource, Set<string>>> = {};
+    const gamePlayers = room?.game?.players ?? [];
+    if (gamePlayers.length === 0) {
+      return leaders;
+    }
+
+    for (const resource of ["meat", "egg", "fruit"] as Resource[]) {
+      let top = 0;
+      for (const player of gamePlayers) {
+        top = Math.max(top, player.resources[resource] ?? 0);
+      }
+      if (top <= 0) {
+        continue;
+      }
+      leaders[resource] = new Set(
+        gamePlayers.filter((player) => (player.resources[resource] ?? 0) === top).map((player) => player.playerId)
+      );
+    }
+
+    return leaders;
+  }, [room?.game?.players]);
+
   // Tutorial state derived from the current step.
   const tutorialSteps =
     tutorialId === "jaguar"
@@ -5935,17 +5961,20 @@ export function App() {
                       )}
                     </div>
                     <div className="player-summary-resources">
-                      {resourceOrder.map((resource) => (
-                        <span
-                          className="mini-resource"
-                          title={resourceLabels[resource]}
-                          key={resource}
-                          ref={(node) => setEffectTarget(`${gamePlayer.playerId}:${resource}`, node)}
-                        >
-                          <img src={encodeURI(resourceAssets[resource])} alt="" />
-                          <b>{gamePlayer.resources[resource] ?? 0}</b>
-                        </span>
-                      ))}
+                      {resourceOrder.map((resource) => {
+                        const isLeader = resourceLeaders[resource]?.has(gamePlayer.playerId) ?? false;
+                        return (
+                          <span
+                            className={`mini-resource ${isLeader ? "is-leader" : ""}`}
+                            title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
+                            key={resource}
+                            ref={(node) => setEffectTarget(`${gamePlayer.playerId}:${resource}`, node)}
+                          >
+                            <img src={encodeURI(resourceAssets[resource])} alt="" />
+                            <b>{gamePlayer.resources[resource] ?? 0}</b>
+                          </span>
+                        );
+                      })}
                     </div>
                   </>
                 )}
