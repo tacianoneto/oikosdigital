@@ -4619,6 +4619,15 @@ export function App() {
                 <strong>{currentGamePlayer.speciesId ? speciesDefinitions[currentGamePlayer.speciesId].displayName : "Espécie"}</strong>
               </div>
               <div className="hand-header-side">
+                <button
+                  type="button"
+                  className="hand-toggle"
+                  title={handCollapsed ? "Expandir" : "Recolher"}
+                  aria-label={handCollapsed ? "Expandir mão de cartas" : "Recolher mão de cartas"}
+                  onClick={() => setHandCollapsed((value) => !value)}
+                >
+                  {handCollapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+                </button>
                 {!handCollapsed && handCards.length > 0 && (
                   <div className="hand-tools" aria-label="Organizar mão">
                     {([
@@ -4638,15 +4647,6 @@ export function App() {
                     ))}
                   </div>
                 )}
-                <button
-                  type="button"
-                  className="hand-toggle"
-                  title={handCollapsed ? "Expandir" : "Recolher"}
-                  aria-label={handCollapsed ? "Expandir mão de cartas" : "Recolher mão de cartas"}
-                  onClick={() => setHandCollapsed((value) => !value)}
-                >
-                  {handCollapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
-                </button>
               </div>
             </div>
             {!handCollapsed &&

@@ -1792,7 +1792,7 @@ input:focus {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding-right: 104px;
+  padding-right: 126px;
 }
 
 .hand-header-side {
@@ -1836,6 +1836,7 @@ input:focus {
 
 .hand-tools {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
   gap: 2px;
   padding: 2px;
