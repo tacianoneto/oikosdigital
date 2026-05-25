@@ -162,8 +162,7 @@ function isSmallScreen(): boolean {
 const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
 const DEFAULT_TURN_TIMER_MS = 60000;
 const handHabitatOrder: Habitat[] = ["forest", "field", "river"];
-type HandSortMode = "original" | "habitat" | "resource" | "valid";
-type HandFilterMode = "all" | "valid" | `habitat:${Habitat}` | `resource:${Resource}`;
+type HandSortMode = "habitat" | "resource";
 
 function formatTurnTimer(ms: number): string {
   const seconds = Math.round(ms / 1000);
@@ -228,8 +227,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [handCollapsed, setHandCollapsed] = useState(isSmallScreen);
-  const [handSortMode, setHandSortMode] = useState<HandSortMode>("original");
-  const [handFilterMode, setHandFilterMode] = useState<HandFilterMode>("all");
+  const [handSortMode, setHandSortMode] = useState<HandSortMode>("habitat");
   const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
@@ -1254,50 +1252,13 @@ export function App() {
     () => (currentGamePlayer?.hand ?? []).map((cardId) => getForestCardDefinition(cardId)),
     [currentGamePlayer?.hand]
   );
-  const handCardFitCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const card of handCards) {
-      counts.set(card.id, 0);
-    }
-    if (!room?.game || !handPlayableThisAction) {
-      return counts;
-    }
-
-    for (const card of handCards) {
-      if (tutorialPlaceStep && tutorialDef?.requiredCardId && card.id !== tutorialDef.requiredCardId) {
-        continue;
-      }
-
-      const validKeys = new Set<string>();
-      for (const rotation of [0, 90, 180, 270] as const) {
-        for (const position of getAvailableForestExpansionPositionsForCard(room.game, card.id, rotation)) {
-          if (tutorialPlaceStep && tutorialMarkedSlot && !sameGridPosition(position, tutorialMarkedSlot)) {
-            continue;
-          }
-          validKeys.add(`${position.x}:${position.y}`);
-        }
-      }
-      counts.set(card.id, validKeys.size);
-    }
-
-    return counts;
-  }, [handCards, handPlayableThisAction, room?.game, tutorialDef?.requiredCardId, tutorialMarkedSlot, tutorialPlaceStep]);
-  const visibleHandCards = useMemo(() => {
+  const sortedHandCards = useMemo(() => {
     const habitatRank = new Map(handHabitatOrder.map((habitat, index) => [habitat, index]));
     const resourceRank = new Map(resourceOrder.map((resource, index) => [resource, index]));
 
     return handCards
-      .map((card, index) => ({ card, index, validCount: handCardFitCounts.get(card.id) ?? 0 }))
-      .filter(({ card, validCount }) => {
-        if (handFilterMode === "valid") return validCount > 0;
-        if (handFilterMode.startsWith("habitat:")) return card.habitat === handFilterMode.slice("habitat:".length);
-        if (handFilterMode.startsWith("resource:")) return card.resource === handFilterMode.slice("resource:".length);
-        return true;
-      })
+      .map((card, index) => ({ card, index }))
       .sort((a, b) => {
-        if (handSortMode === "valid") {
-          return b.validCount - a.validCount || a.index - b.index;
-        }
         if (handSortMode === "habitat") {
           return (
             (habitatRank.get(a.card.habitat as Habitat) ?? 99) -
@@ -1314,7 +1275,7 @@ export function App() {
         }
         return a.index - b.index;
       });
-  }, [handCardFitCounts, handCards, handFilterMode, handSortMode]);
+  }, [handCards, handSortMode]);
   const showHandDuringGame = Boolean(
     hasStartedGame &&
       currentGamePlayer &&
@@ -1359,14 +1320,6 @@ export function App() {
       setSelectedCardRotation(0);
     }
   }, [handCards, selectedHandCardId]);
-
-  useEffect(() => {
-    if (selectedHandCardId && !visibleHandCards.some(({ card }) => card.id === selectedHandCardId)) {
-      setSelectedHandCardId(null);
-      setSelectedCardRotation(0);
-      setPendingPlacement(null);
-    }
-  }, [selectedHandCardId, visibleHandCards]);
 
   useEffect(() => {
     if (selectedPieceId && !selectablePieceIds.includes(selectedPieceId)) {
@@ -4651,11 +4604,10 @@ export function App() {
               </div>
             </div>
             {!handCollapsed && handCards.length > 0 && (
-              <div className="hand-tools" aria-label="Filtros da mão">
-                <div className="hand-tool-group" aria-label="Ordenar cartas">
+              <div className="hand-tools" aria-label="Organizar mão">
+                <span>Organizar por</span>
+                <div className="hand-tool-group" aria-label="Organizar cartas">
                   {([
-                    ["original", "Mão"],
-                    ["valid", "Válidas"],
                     ["habitat", "Habitat"],
                     ["resource", "Recurso"]
                   ] as const).map(([mode, label]) => (
@@ -4669,43 +4621,6 @@ export function App() {
                     </button>
                   ))}
                 </div>
-                <div className="hand-tool-group" aria-label="Filtrar cartas">
-                  <button
-                    type="button"
-                    className={handFilterMode === "all" ? "is-active" : ""}
-                    onClick={() => setHandFilterMode("all")}
-                  >
-                    Todas
-                  </button>
-                  <button
-                    type="button"
-                    className={handFilterMode === "valid" ? "is-active" : ""}
-                    onClick={() => setHandFilterMode("valid")}
-                  >
-                    Encaixa
-                  </button>
-                  {handHabitatOrder.map((habitat) => (
-                    <button
-                      type="button"
-                      className={handFilterMode === `habitat:${habitat}` ? "is-active" : ""}
-                      key={habitat}
-                      onClick={() => setHandFilterMode(`habitat:${habitat}`)}
-                    >
-                      {habitatLabels[habitat]}
-                    </button>
-                  ))}
-                  {resourceOrder.map((resource) => (
-                    <button
-                      type="button"
-                      className={handFilterMode === `resource:${resource}` ? "is-active" : ""}
-                      key={resource}
-                      onClick={() => setHandFilterMode(`resource:${resource}`)}
-                    >
-                      <img src={encodeURI(resourceAssets[resource])} alt="" />
-                      {resourceLabels[resource]}
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
             {!handCollapsed &&
@@ -4714,12 +4629,9 @@ export function App() {
                   className={`hand-rail ${selectedHandCardId ? "has-selection" : ""} ${
                     handPlayableThisAction ? "hand-playable" : "hand-idle"
                   }`}
-                  style={{ ["--hand-count" as string]: Math.max(visibleHandCards.length, 1) }}
+                  style={{ ["--hand-count" as string]: sortedHandCards.length }}
                 >
-                  {visibleHandCards.length === 0 && (
-                    <p className="empty-state">Nenhuma carta neste filtro.</p>
-                  )}
-                  {visibleHandCards.map(({ card, validCount }, handIndex) => {
+                  {sortedHandCards.map(({ card }, handIndex) => {
                     const isSelected = selectedHandCardId === card.id;
                     const showRotate = isSelected && canPlaceSelectedForestCard;
 
@@ -4847,11 +4759,6 @@ export function App() {
                           alt={card.label}
                           style={isSelected ? { transform: `rotate(${selectedCardRotation}deg)` } : undefined}
                         />
-                        {handPlayableThisAction && (
-                          <span className={`hand-valid-badge ${validCount > 0 ? "has-valid" : ""}`}>
-                            {validCount}
-                          </span>
-                        )}
                         {showRotate && (
                           <div className="card-rotate" onClick={(event) => event.stopPropagation()}>
                             <button
