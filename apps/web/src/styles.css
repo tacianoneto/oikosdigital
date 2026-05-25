@@ -1387,31 +1387,42 @@ input:focus {
 }
 
 /* ---- playfield / table (full-bleed background) ---- */
+/* Realistic wooden table: horizontal planks (groove + light-catching bevel),
+   anisotropic SVG turbulence for flowing wood grain, micro tooth texture,
+   an overhead key-light sheen and an edge vignette. */
 .playfield-panel {
   position: absolute;
   inset: 0;
   border: 0;
   border-radius: 0;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 46% 38%, rgba(166, 105, 54, 0.2), transparent 52%),
-    radial-gradient(circle at 17% 18%, rgba(83, 135, 78, 0.18), transparent 29%),
-    radial-gradient(circle at 86% 78%, rgba(42, 94, 58, 0.18), transparent 28%),
+  background-color: #3c2614;
+  background-image:
+    /* plank seams: dark groove then a thin bevel that catches the light */
     repeating-linear-gradient(
-      94deg,
-      rgba(19, 11, 7, 0) 0px,
-      rgba(19, 11, 7, 0.28) 2px,
-      rgba(143, 91, 48, 0.06) 5px,
-      rgba(19, 11, 7, 0) 10px
+      0deg,
+      rgba(18, 10, 5, 0) 0px,
+      rgba(18, 10, 5, 0) 148px,
+      rgba(14, 7, 3, 0.55) 150px,
+      rgba(9, 4, 2, 0.92) 152px,
+      rgba(14, 7, 3, 0.55) 154px,
+      rgba(122, 86, 50, 0.42) 156px,
+      rgba(150, 108, 66, 0.18) 158px,
+      rgba(18, 10, 5, 0) 161px
     ),
+    /* per-board tone variation so adjacent planks differ in colour */
     repeating-linear-gradient(
-      92deg,
-      #3d2518 0px,
-      #2d1b12 78px,
-      #432918 148px,
-      #24150e 224px
+      0deg,
+      rgba(104, 68, 39, 0.16) 0px,
+      rgba(70, 44, 25, 0) 161px,
+      rgba(52, 32, 18, 0.2) 322px,
+      rgba(88, 57, 33, 0.05) 483px,
+      rgba(104, 68, 39, 0.16) 644px
     ),
-    linear-gradient(180deg, #322014 0%, #22140d 58%, #120906 100%);
+    /* gentle cross-table colour drift */
+    radial-gradient(ellipse 120% 90% at 38% 30%, rgba(124, 82, 46, 0.28), transparent 60%),
+    /* warm depth / light falloff down the table */
+    linear-gradient(178deg, #5d3c23 0%, #4c2f1b 40%, #361f11 76%, #1f1209 100%);
 }
 
 .playfield-panel::before {
@@ -1420,13 +1431,14 @@ input:focus {
   inset: 0;
   pointer-events: none;
   background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0.46 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
-    radial-gradient(ellipse at 8% 82%, rgba(97, 143, 81, 0.2) 0 9%, transparent 27%),
-    radial-gradient(ellipse at 93% 16%, rgba(67, 112, 68, 0.18) 0 8%, transparent 25%),
-    radial-gradient(ellipse at 75% 86%, rgba(124, 87, 47, 0.18) 0 9%, transparent 23%);
-  background-size: 260px 260px, 420px 260px, 360px 220px, 500px 300px;
-  opacity: 0.34;
-  mix-blend-mode: soft-light;
+    /* flowing wood grain — turbulence stretched along the plank direction */
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='760' height='520'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.006 0.085' numOctaves='5' seed='14' stitchTiles='stitch' result='n'/><feColorMatrix in='n' type='matrix' values='0 0 0 0 0.09  0 0 0 0 0.055  0 0 0 0 0.03  0 0 1.05 0 -0.42'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
+    /* fine micro tooth so the surface is not glassy */
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.14  0 0 0 0 0.09  0 0 0 0 0.05  0 0 0 0.4 0'/></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+  background-size: 760px 520px, 180px 180px;
+  background-repeat: repeat, repeat;
+  opacity: 0.9;
+  mix-blend-mode: multiply;
 }
 
 .playfield-panel::after {
@@ -1435,10 +1447,14 @@ input:focus {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(126deg, rgba(255, 226, 172, 0.18) 0%, rgba(255, 226, 172, 0.05) 23%, transparent 48%),
-    radial-gradient(ellipse at 40% 26%, rgba(208, 232, 201, 0.08), transparent 42%),
-    radial-gradient(ellipse at 70% 64%, rgba(226, 241, 218, 0.05), transparent 36%),
-    radial-gradient(ellipse at 50% 46%, transparent 38%, rgba(13, 7, 4, 0.54) 74%, rgba(4, 2, 1, 0.9) 100%);
+    /* overhead warm key light, brightest toward the top-centre */
+    radial-gradient(ellipse 85% 60% at 50% 6%, rgba(255, 226, 168, 0.18), transparent 62%),
+    /* thin sheen band along the top edge of the boards */
+    linear-gradient(180deg, rgba(255, 234, 196, 0.08) 0%, transparent 26%),
+    /* soft polished reflection toward the middle */
+    radial-gradient(ellipse 60% 45% at 46% 40%, rgba(214, 168, 110, 0.1), transparent 55%),
+    /* edge vignette to seat the table in the room */
+    radial-gradient(ellipse 78% 78% at 50% 46%, transparent 50%, rgba(9, 4, 2, 0.5) 80%, rgba(3, 1, 0, 0.92) 100%);
   mix-blend-mode: normal;
 }
 
