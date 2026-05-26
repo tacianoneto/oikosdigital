@@ -412,7 +412,7 @@ const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Cenário preparado",
-    body: "Vamos treinar como se a partida já estivesse no segundo turno: três araras estão na floresta e outras estão na reserva. O objetivo é completar uma linha horizontal de 3.",
+    body: "Vamos treinar como se a partida já estivesse no segundo turno: quatro araras estão na floresta e duas estão na reserva. O objetivo é montar 3 linhas de uma vez para marcar 3 pontos.",
     gate: "none",
     autoAdvance: false
   },
@@ -426,40 +426,40 @@ const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação A: adicionar em ovo",
-    body: "Depois de jogar a carta, a Arara pode adicionar 1 peça da reserva em qualquer local com ovo. Clique na carta de ovo destacada. Essa adição não depende da carta jogada.",
+    body: "Depois de jogar a carta, a Arara pode adicionar 1 peça da reserva em qualquer local com ovo. Clique na carta de ovo destacada: ela vira a ponta da linha de cima e da diagonal.",
     gate: "addPiece",
     autoAdvance: true,
-    markedAddPieceTarget: { x: 1, y: 0 },
+    markedAddPieceTarget: { x: -1, y: -1 },
     completeWhenActionIndex: 1
   },
   {
     title: "Ação B: mover pela carta jogada",
-    body: "A carta jogada foi de campo. Para a Arara, campo permite movimento adjacente. Mova a arara destacada para o espaço destacado; ao mover, ela coleta o recurso do destino.",
+    body: "A carta jogada foi de campo. Para a Arara, campo permite movimento adjacente. Mova a arara destacada para o centro: ela conecta a coluna central e a diagonal.",
     gate: "move",
     autoAdvance: true,
     markedPieceId: MACAW_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: 0, y: -1 },
+    markedMoveTarget: { x: 0, y: 0 },
     highlightMovementGuideSpecies: "macaw",
     completeWhenActionIndex: 2
   },
   {
     title: "Ação C: reforçar ao redor",
-    body: "Na ação C, você pode adicionar 1 arara da reserva ao redor da arara que acabou de mover, ou realocar outra arara para um desses espaços. A ação C não coleta recurso. Aqui vamos adicionar para completar a linha.",
+    body: "Na ação C, você pode adicionar 1 arara da reserva ao redor da arara que acabou de mover, ou realocar outra arara para um desses espaços. Adicione abaixo do centro para fechar a terceira linha.",
     gate: "addPiece",
     autoAdvance: true,
-    markedAddPieceTarget: { x: 1, y: -1 },
+    markedAddPieceTarget: { x: 0, y: 1 },
     completeWhenActionIndex: 3
   },
   {
     title: "Ação D: pontuar linhas",
-    body: "Na ação D, a Arara marca 1 ponto por cada linha reta de 3 araras: horizontal, vertical ou diagonal. A linha destacada vale 1 ponto e será pontuada automaticamente.",
+    body: "Na ação D, a Arara marca 1 ponto por cada linha reta de 3 araras. Agora há 3 linhas: a linha de cima, a coluna central e a diagonal. São 3 pontos.",
     gate: "score",
     autoAdvance: true,
-    completeWhenScoreAtLeast: 1
+    completeWhenScoreAtLeast: 3
   },
   {
     title: "Turno da Arara completo",
-    body: "Resumo: A joga carta e pode adicionar em ovo; B move conforme o habitat da carta e coleta recurso; C adiciona ou realoca ao redor da arara movida sem coletar; D pontua linhas retas de 3.",
+    body: "Resumo: A joga carta e adiciona em ovo; B move para conectar linhas; C adiciona ao redor da arara movida; D pontua cada linha reta de 3. A Arara consegue fazer 3 pontos quando uma jogada fecha várias linhas.",
     gate: "none",
     autoAdvance: false
   }
@@ -966,9 +966,10 @@ export function createMacawTutorialRoom(): PublicRoomState {
     player.hand = [MACAW_TUTORIAL_CARD];
   }
 
-  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 1, { x: 0, y: 0 });
-  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 2, { x: -1, y: -1 });
-  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 3, { x: -2, y: 0 });
+  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
+  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 2, { x: 0, y: -1 });
+  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 3, { x: 1, y: -1 });
+  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 4, { x: 1, y: 1 });
 
   game.status = "active";
   game.round = 2;

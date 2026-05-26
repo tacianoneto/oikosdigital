@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { commonForestCards, initialForestCardCandidates } from "@oikos/content";
-import type { RoomPlayer } from "@oikos/shared";
+import type { ForestCardState, RoomPlayer } from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
@@ -1093,6 +1093,77 @@ describe("setup placement", () => {
     expect(game.players.find((candidate) => candidate.playerId === "macaw")?.score).toBe(1);
     expect(game.players.find((candidate) => candidate.playerId === "macaw")?.turnsTaken).toBe(1);
     expect(game.activePlayerId).toBe("coati");
+  });
+
+  it("lets the Arara-azul tutorial score three lines in one turn", () => {
+    const tutorialForest: ForestCardState[] = [
+      { instanceId: "mac_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+      { instanceId: "mac_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
+    ];
+    let game = createInitialGameState("room", [player("macaw", "macaw")], () => 0.999999, tutorialForest);
+
+    game = placeInitialPiece(game, "macaw", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "macaw", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 1, y: -1 });
+    game = {
+      ...game,
+      players: game.players.map((candidate) =>
+        candidate.playerId === "macaw"
+          ? {
+              ...candidate,
+              hand: ["campo_2_copy"],
+              reservePieces: candidate.reservePieces.filter((pieceId) => pieceId !== "macaw_piece_4"),
+              piecesInForest: [...candidate.piecesInForest, "macaw_piece_4"]
+            }
+          : candidate
+      ),
+      pieces: game.pieces.map((piece) =>
+        piece.pieceId === "macaw_piece_4" ? { ...piece, location: { x: 1, y: 1, siteId: "main" } } : piece
+      )
+    };
+
+    game = placeForestCard(game, "macaw", "campo_2_copy", { x: 2, y: 0 });
+    expect(getMacawEggPlacementPositions(game, "macaw")).toContainEqual({ x: -1, y: -1 });
+
+    game = addMacawForCurrentAction(game, "macaw", { x: -1, y: -1 });
+    expect(getValidPieceMovementDestinations(game, "macaw", "macaw_piece_1")).toContainEqual({ x: 0, y: 0 });
+
+    game = movePieceForCurrentAction(game, "macaw", "macaw_piece_1", { x: 0, y: 0 });
+    expect(getMacawActionCTargets(game, "macaw")).toContainEqual({ x: 0, y: 1 });
+
+    game = addMacawForCurrentAction(game, "macaw", { x: 0, y: 1 });
+
+    expect(getMacawLineScore(game, "macaw")).toBe(3);
+    expect(getMacawScoringLines(game, "macaw").map((line) => line.positions)).toEqual([
+      [
+        { x: 0, y: -1 },
+        { x: 0, y: 0 },
+        { x: 0, y: 1 }
+      ],
+      [
+        { x: -1, y: -1 },
+        { x: 0, y: -1 },
+        { x: 1, y: -1 }
+      ],
+      [
+        { x: -1, y: -1 },
+        { x: 0, y: 0 },
+        { x: 1, y: 1 }
+      ]
+    ]);
+
+    game = scoreMacawLines(game, "macaw");
+
+    expect(game.players.find((candidate) => candidate.playerId === "macaw")?.score).toBe(3);
   });
 
   it("plays Tatu-bola action A by expanding and adding an armadillo on a seed card", () => {
