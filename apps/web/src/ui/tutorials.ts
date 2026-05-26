@@ -412,7 +412,7 @@ const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Cenário preparado",
-    body: "Vamos treinar como se a partida já estivesse no segundo turno: quatro araras estão na floresta e duas estão na reserva. O objetivo é montar 3 linhas de uma vez para marcar 3 pontos.",
+    body: "Este é um treinamento do tutorial da Arara: quatro araras estão na floresta e duas estão na reserva. O objetivo é montar 3 linhas de uma vez para marcar 3 pontos.",
     gate: "none",
     autoAdvance: false
   },
