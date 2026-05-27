@@ -4,6 +4,7 @@ import {
   createPreviewInitialForest,
   forceEndPlayerTurn,
   getCapuchinHabitatScore,
+  movePieceForCurrentAction,
   placeInitialPiece
 } from "@oikos/rules";
 import type { RoomPlayer } from "@oikos/shared";
@@ -106,6 +107,53 @@ describe("bot decisions", () => {
     expect(wolf?.score).toBe(3);
     expect(wolf?.resources).toEqual({ meat: 0, egg: 0, fruit: 0, seed: 0 });
     expect(game.activePlayerId).toBe("coati");
+  });
+
+  it("prefers adding a reserve Arara-azul over relocating one on action C", () => {
+    let game = createTestGameState("room", [player("macaw", "macaw"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 1, y: 1 });
+    game = {
+      ...game,
+      status: "active",
+      activePlayerId: "macaw",
+      activeActionIndex: 2,
+      activePlayedForestCardId: "campo_1",
+      pendingMacawMovedPiece: {
+        playerId: "macaw",
+        pieceId: "macaw_piece_1",
+        location: { x: 0, y: 0 }
+      },
+      players: game.players.map((candidate) =>
+        candidate.playerId === "macaw"
+          ? {
+              ...candidate,
+              reservePieces: candidate.reservePieces.filter((pieceId) => pieceId !== "macaw_piece_1"),
+              piecesInForest: [...candidate.piecesInForest, "macaw_piece_1"]
+            }
+          : candidate
+      ),
+      pieces: game.pieces.map((piece) =>
+        piece.pieceId === "macaw_piece_1" ? { ...piece, location: { x: 0, y: 0, siteId: "main" } } : piece
+      )
+    };
+
+    const reserveBefore = game.players.find((candidate) => candidate.playerId === "macaw")!.reservePieces.length;
+    const logLengthBefore = game.log.length;
+    const relocationWouldBeLegal = movePieceForCurrentAction(game, "macaw", "macaw_piece_3", { x: 1, y: -1 });
+
+    game = playBotStep(game, "macaw");
+
+    const macaw = game.players.find((candidate) => candidate.playerId === "macaw")!;
+    expect(relocationWouldBeLegal.pieces.find((piece) => piece.pieceId === "macaw_piece_3")?.location).toMatchObject({
+      x: 1,
+      y: -1
+    });
+    expect(macaw.reservePieces).toHaveLength(reserveBefore - 1);
+    expect(game.pieces.find((piece) => piece.pieceId === "macaw_piece_3")?.location).toMatchObject({ x: 1, y: 1 });
+    expect(game.log.slice(logLengthBefore).some((entry) => entry.id.includes("add_macaw"))).toBe(true);
+    expect(game.activeActionIndex).toBe(3);
   });
 
   it("random takeover resolves a full game for every species without getting stuck", () => {

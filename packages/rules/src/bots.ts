@@ -317,12 +317,18 @@ function randomMacaw(game: GameState, playerId: string, action: string): GameSta
   }
 
   if (action === "C") {
-    const plays: Array<() => GameState> = [];
-    if (hasReserve(game, playerId)) {
-      for (const target of getMacawActionCTargets(game, playerId)) {
-        plays.push(() => addMacawForCurrentAction(game, playerId, target));
+    const addTargets = getMacawActionCTargets(game, playerId);
+    if (hasReserve(game, playerId) && addTargets.length > 0) {
+      for (const target of shuffle(addTargets)) {
+        try {
+          return addMacawForCurrentAction(game, playerId, target);
+        } catch {
+          // try next add target
+        }
       }
     }
+
+    const plays: Array<() => GameState> = [];
     for (const pieceId of getMacawRelocatablePieceIds(game, playerId)) {
       for (const target of getValidPieceMovementDestinations(game, playerId, pieceId)) {
         plays.push(() => movePieceForCurrentAction(game, playerId, pieceId, target));
@@ -544,34 +550,44 @@ function playMacaw(game: GameState, playerId: string, action: string): GameState
 
   if (action === "C") {
     const addTargets = getMacawActionCTargets(game, playerId);
-    const relocatable = getMacawRelocatablePieceIds(game, playerId);
-    const candidates: Array<{ score: number; play: () => GameState }> = [];
 
-    if (hasReserve(game, playerId)) {
-      for (const target of addTargets) {
-        candidates.push({
+    if (hasReserve(game, playerId) && addTargets.length > 0) {
+      const addCandidates = addTargets
+        .map((target) => ({
           score: scorePosition(game, "macaw", target) + 4,
           play: () => addMacawForCurrentAction(game, playerId, target)
-        });
+        }))
+        .sort((a, b) => b.score - a.score);
+
+      for (const candidate of chooseCandidatePool(addCandidates)) {
+        try {
+          return candidate.play();
+        } catch {
+          // Try the next add candidate before considering relocation.
+        }
       }
     }
 
+    const relocatable = getMacawRelocatablePieceIds(game, playerId);
+    const relocationCandidates: Array<{ score: number; play: () => GameState }> = [];
     for (const pieceId of relocatable) {
       for (const target of getValidPieceMovementDestinations(game, playerId, pieceId)) {
-        candidates.push({
+        relocationCandidates.push({
           score: scoreMove(game, playerId, "macaw", pieceId, target),
           play: () => movePieceForCurrentAction(game, playerId, pieceId, target)
         });
       }
     }
 
-    for (const candidate of chooseCandidatePool(candidates.sort((a, b) => b.score - a.score))) {
+    for (const candidate of chooseCandidatePool(relocationCandidates.sort((a, b) => b.score - a.score))) {
       try {
         return candidate.play();
       } catch {
-        // Try the next add/relocation candidate.
+        // Try the next relocation candidate.
       }
     }
+
+    return completeOrSkip(game, playerId);
   }
 
   return scoreMacawLines(game, playerId);
