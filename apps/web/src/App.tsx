@@ -171,6 +171,7 @@ type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 // Selectable turn-timer durations for online rooms (ms).
 const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
 const DEFAULT_TURN_TIMER_MS = 60000;
+const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
 const handHabitatOrder: Habitat[] = ["forest", "field", "river"];
 type HandSortMode = "habitat" | "resource";
 
@@ -367,6 +368,7 @@ export function App() {
   const lastOnlineRoomSnapshotRef = useRef("");
   const onlineActionInFlightRef = useRef(false);
   const activeOnlineRoomIdRef = useRef<string | null>(null);
+  const showServerWarningRef = useRef(false);
   const ignoredOnlineRoomIdsRef = useRef<Set<string>>(new Set());
   const roomActionEpochRef = useRef(0);
 
@@ -440,8 +442,17 @@ export function App() {
   }, [resetRoomUiState]);
 
   useEffect(() => {
+    showServerWarningRef.current =
+      landingMode === "create" || landingMode === "join" || Boolean(room && room.roomId !== localRoomId);
+  }, [landingMode, room]);
+
+  useEffect(() => {
     const nextSocket = createSocket();
     setSocket(nextSocket);
+
+    nextSocket.on("connect", () => {
+      setError((current) => (current === SERVER_UNAVAILABLE_MESSAGE ? null : current));
+    });
 
     nextSocket.on("connected", (payload: { playerId: string }) => {
       setPlayerId(payload.playerId);
@@ -486,13 +497,21 @@ export function App() {
     });
 
     nextSocket.on("connect_error", () => {
-      setError("Servidor indisponível. Inicie o servidor para testar lobby multiplayer.");
+      if (showServerWarningRef.current) {
+        setError(SERVER_UNAVAILABLE_MESSAGE);
+      }
     });
 
     return () => {
       nextSocket.disconnect();
     };
   }, [applyOnlineRoomState]);
+
+  useEffect(() => {
+    if ((landingMode === "create" || landingMode === "join") && socket && !socket.connected) {
+      setError(SERVER_UNAVAILABLE_MESSAGE);
+    }
+  }, [landingMode, socket]);
 
   useEffect(() => {
     if (!socket || !room || room.roomId === localRoomId) {
