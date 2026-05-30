@@ -1357,7 +1357,6 @@ export function App() {
   const showHandDuringGame = Boolean(
     hasStartedGame &&
       currentGamePlayer &&
-      currentGamePlayer.speciesId !== "jaguar" &&
       (room?.game?.status === "setup" || room?.game?.status === "active")
   );
   const canSelectHandCards = Boolean(room?.game?.status === "active");
@@ -4751,7 +4750,7 @@ export function App() {
           <section className={`table-hand ${handCollapsed ? "collapsed" : ""}`} aria-label="Mão de cartas">
             <div className="hand-header">
               <div>
-                <span>Mão · {handCards.length} cartas</span>
+                <span>Mão · {handCards.length + (selectedObjectiveCard ? 1 : 0)} cartas</span>
                 <strong>{currentGamePlayer.speciesId ? speciesDefinitions[currentGamePlayer.speciesId].displayName : "Espécie"}</strong>
               </div>
               <div className="hand-header-side">
@@ -4785,25 +4784,13 @@ export function App() {
                 </button>
               </div>
             </div>
-            {!handCollapsed && selectedObjectiveCard && (
-              <div className="objective-hand-slot">
-                <button
-                  type="button"
-                  className="objective-hand-card"
-                  onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)}
-                  aria-label={`Ampliar ${selectedObjectiveCard.label}`}
-                >
-                  <img src={encodeURI(selectedObjectiveCard.imagePath)} alt={selectedObjectiveCard.label} />
-                </button>
-              </div>
-            )}
             {!handCollapsed &&
-              (handCards.length > 0 ? (
+              (handCards.length > 0 || selectedObjectiveCard ? (
                 <div
                   className={`hand-rail ${selectedHandCardId ? "has-selection" : ""} ${
                     handPlayableThisAction ? "hand-playable" : "hand-idle"
                   }`}
-                  style={{ ["--hand-count" as string]: sortedHandCards.length }}
+                  style={{ ["--hand-count" as string]: sortedHandCards.length + (selectedObjectiveCard ? 1 : 0) }}
                 >
                   {sortedHandCards.map(({ card }, handIndex) => {
                     const isSelected = selectedHandCardId === card.id;
@@ -4959,6 +4946,25 @@ export function App() {
                       </div>
                     );
                   })}
+                  {selectedObjectiveCard && (
+                    <div
+                      key={selectedObjectiveCard.id}
+                      role="button"
+                      tabIndex={0}
+                      className="hand-card objective-card-in-hand"
+                      style={{ ["--hand-index" as string]: sortedHandCards.length }}
+                      onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setExpandedObjectiveCardId(selectedObjectiveCard.id);
+                        }
+                      }}
+                      aria-label={`Ampliar ${selectedObjectiveCard.label}`}
+                    >
+                      <img src={encodeURI(selectedObjectiveCard.imagePath)} alt={selectedObjectiveCard.label} />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="empty-state">
