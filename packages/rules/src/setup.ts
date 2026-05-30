@@ -17,6 +17,7 @@ import type {
   FinalScoreEntry,
   GameState,
   GridPosition,
+  MiniExpansionId,
   PieceLocation,
   PieceState,
   PlayerState,
@@ -572,8 +573,10 @@ export function createInitialGameState(
   gameId: string,
   roomPlayers: RoomPlayer[],
   random: () => number = Math.random,
-  initialForest?: ForestCardState[]
+  initialForest?: ForestCardState[],
+  options?: { enabledMiniExpansions?: MiniExpansionId[] }
 ): GameState {
+  const enabledMiniExpansions = options?.enabledMiniExpansions ?? ["objectives"];
   const selectedSpecies = roomPlayers.map((player) => player.speciesId).filter((speciesId): speciesId is SpeciesId => Boolean(speciesId));
   const setupSpeciesOrder = getSetupOrder(selectedSpecies);
   const turnSpeciesOrder = getTurnOrder(selectedSpecies);
@@ -587,11 +590,14 @@ export function createInitialGameState(
   }
 
   const { players, remainingCommonCardIds } = createPlayersWithInitialHands(roomPlayers, turnSpeciesOrder, contentWarnings, random);
-  dealObjectiveChoices(players, roomPlayers, random);
+  if (enabledMiniExpansions.includes("objectives")) {
+    dealObjectiveChoices(players, roomPlayers, random);
+  }
 
   return {
     gameId,
     status: "setup",
+    enabledMiniExpansions: [...enabledMiniExpansions],
     round: 1,
     maxRounds: 5,
     activePlayerId: null,
@@ -3379,6 +3385,7 @@ function findPlayer(game: GameState, playerId: string): PlayerState {
 function cloneGameState(game: GameState): GameState {
   return {
     ...game,
+    enabledMiniExpansions: [...(game.enabledMiniExpansions ?? ["objectives"])],
     pendingCoatiPairBonus: game.pendingCoatiPairBonus
       ? {
           ...game.pendingCoatiPairBonus,

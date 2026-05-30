@@ -23,7 +23,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { ForestCardState, PublicRoomState, Resource, RoomPlayer, RoomSummary, SpeciesId } from "@oikos/shared";
+import type { ForestCardState, MiniExpansionId, PublicRoomState, Resource, RoomPlayer, RoomSummary, SpeciesId } from "@oikos/shared";
 import { playBotStep, playRandomStep } from "@oikos/rules";
 import { loadRooms } from "./store";
 
@@ -31,6 +31,7 @@ interface ServerRoom {
   roomId: string;
   hostPlayerId: string;
   players: RoomPlayer[];
+  enabledMiniExpansions: MiniExpansionId[];
   status: PublicRoomState["status"];
   game: PublicRoomState["game"];
   warnings: string[];
@@ -48,6 +49,7 @@ interface ServerRoom {
 
 const MIN_TURN_TIMER_MS = 15000;
 const MAX_TURN_TIMER_MS = 300000;
+const defaultMiniExpansions: MiniExpansionId[] = ["objectives"];
 
 const rooms = new Map<string, ServerRoom>();
 
@@ -62,6 +64,7 @@ for (const persisted of loadRooms()) {
       connected: Boolean(player.isBot),
       ready: player.isBot ? true : false
     })),
+    enabledMiniExpansions: persisted.enabledMiniExpansions ?? persisted.game?.enabledMiniExpansions ?? defaultMiniExpansions,
     status: persisted.status,
     game: persisted.game,
     warnings: persisted.warnings,
@@ -91,6 +94,7 @@ export function createRoom(hostSocketId: string, hostName: string, password?: st
     roomId,
     hostPlayerId: hostSocketId,
     players: [player],
+    enabledMiniExpansions: [...defaultMiniExpansions],
     status: "lobby",
     game: null,
     warnings: [],
@@ -451,9 +455,37 @@ export function startGame(roomId: string, playerId: string): PublicRoomState {
     );
   }
 
-  room.game = createInitialGameState(roomId, room.players);
+  room.game = createInitialGameState(roomId, room.players, Math.random, undefined, {
+    enabledMiniExpansions: room.enabledMiniExpansions
+  });
   room.status = "setup";
   room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
+export function setMiniExpansion(roomId: string, playerId: string, expansionId: MiniExpansionId, enabled: boolean): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (room.hostPlayerId !== playerId) {
+    throw new Error("Apenas o anfitrião pode alterar mini-expansões.");
+  }
+
+  if (room.status !== "lobby") {
+    throw new Error("Mini-expansões só podem ser alteradas no lobby.");
+  }
+
+  if (expansionId !== "objectives") {
+    throw new Error("Mini-expansão indisponível.");
+  }
+
+  const current = new Set(room.enabledMiniExpansions ?? defaultMiniExpansions);
+  if (enabled) {
+    current.add(expansionId);
+  } else {
+    current.delete(expansionId);
+  }
+  room.enabledMiniExpansions = Array.from(current);
 
   return toPublicRoom(room);
 }
@@ -879,6 +911,7 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     status: room.game?.status === "finished" ? "finished" : room.status,
     hostPlayerId: room.hostPlayerId,
     players: room.players,
+    enabledMiniExpansions: [...(room.enabledMiniExpansions ?? defaultMiniExpansions)],
     game: room.game,
     warnings: room.warnings,
     botTurnDelayMs: room.botTurnDelayMs,

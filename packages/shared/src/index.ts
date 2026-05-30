@@ -16,6 +16,7 @@ export type CardKind = "common" | "initial";
 export type ContentStatus = "complete" | "needs_review";
 export type ActionId = "A" | "B" | "C" | "D";
 export type ObjectiveRuleTier = "red" | "yellow" | "blue";
+export type MiniExpansionId = "objectives";
 
 export interface GridPosition {
   x: number;
@@ -175,6 +176,7 @@ export interface FinalScoreBreakdown {
 export interface GameState {
   gameId: string;
   status: GameStatus;
+  enabledMiniExpansions: MiniExpansionId[];
   round: number;
   maxRounds: number;
   activePlayerId: string | null;
@@ -227,6 +229,7 @@ export interface PublicRoomState {
   status: RoomStatus;
   hostPlayerId: string;
   players: RoomPlayer[];
+  enabledMiniExpansions: MiniExpansionId[];
   game: GameState | null;
   warnings: string[];
   botTurnDelayMs?: number;

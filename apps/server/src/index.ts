@@ -1,7 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { Server } from "socket.io";
-import type { PublicRoomState, SpeciesId } from "@oikos/shared";
+import type { MiniExpansionId, PublicRoomState, SpeciesId } from "@oikos/shared";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
@@ -44,6 +44,7 @@ import {
   scoreMacaw,
   selectSpecies,
   setBotTurnDelay,
+  setMiniExpansion,
   setReady,
   spectateRoom,
   spendJaguarMeat,
@@ -393,6 +394,14 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = setTurnTimer(payload.roomId, playerId, payload.turnTimerMs);
       clearTurnPunishmentTimer(room.roomId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("mini-expansion:set", (payload: { roomId: string; expansionId: MiniExpansionId; enabled: boolean }, reply) => {
+    withReply(reply, () => {
+      const room = setMiniExpansion(payload.roomId, playerId, payload.expansionId, payload.enabled);
       broadcastRoom(room);
       return room;
     });

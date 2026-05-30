@@ -762,6 +762,7 @@ export function createJaguarTutorialRoom(): PublicRoomState {
     status: "active",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
     game,
     warnings: game.contentWarnings
   };
@@ -831,6 +832,7 @@ export function createWolfTutorialRoom(): PublicRoomState {
     status: "active",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
     game,
     warnings: game.contentWarnings
   };
@@ -909,6 +911,7 @@ export function createArmadilloTutorialRoom(): PublicRoomState {
     status: "active",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
     game,
     warnings: game.contentWarnings
   };
@@ -994,6 +997,7 @@ export function createMacawTutorialRoom(): PublicRoomState {
     status: "active",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
     game,
     warnings: game.contentWarnings
   };
@@ -1050,6 +1054,7 @@ export function createCapuchinTutorialRoom(): PublicRoomState {
     status: "active",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
     game,
     warnings: game.contentWarnings
   };
@@ -1106,6 +1111,7 @@ export function createCoatiTutorialRoom(): PublicRoomState {
     status: "active",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
     game,
     warnings: game.contentWarnings
   };
@@ -1151,6 +1157,7 @@ export function createInitialTutorialRoom(): PublicRoomState {
     status: "setup",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
     game,
     warnings: game.contentWarnings
   };

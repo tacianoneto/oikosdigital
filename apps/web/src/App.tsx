@@ -97,6 +97,7 @@ import type {
   GameState,
   GridPosition,
   Habitat,
+  MiniExpansionId,
   ObjectiveCardDefinition,
   PublicRoomState,
   Resource,
@@ -187,6 +188,18 @@ const DEFAULT_TURN_TIMER_MS = 60000;
 const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
 const handHabitatOrder: Habitat[] = ["forest", "field", "river"];
 type HandSortMode = "habitat" | "resource";
+
+const miniExpansionOptions: Array<{
+  id: MiniExpansionId;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "objectives",
+    label: "Cartas de objetivo",
+    description: "Cada jogador escolhe 1 de 2 objetivos e pode ganhar ponto extra no fim do turno."
+  }
+];
 
 function formatTurnTimer(ms: number): string {
   const seconds = Math.round(ms / 1000);
@@ -831,6 +844,8 @@ export function App() {
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
+  const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
+  const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? ["objectives"];
   const botTurnDelayMs = isLocalRoom
     ? room?.botTurnDelayMs ?? localBotTurnDelayMs
     : room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
@@ -1836,6 +1851,18 @@ export function App() {
     void run(() => roomApi.setTurnTimer(requireSocket(), room.roomId, TURN_TIMER_OPTIONS[nextIndex]));
   }
 
+  function toggleMiniExpansion(expansionId: MiniExpansionId) {
+    if (!room || !isHost || room.status !== "lobby") {
+      return;
+    }
+
+    const enabled = !enabledMiniExpansions.includes(expansionId);
+    void run(
+      () => roomApi.setMiniExpansion(requireSocket(), room.roomId, expansionId, enabled),
+      enabled ? "Mini-expansão ligada." : "Mini-expansão desligada."
+    );
+  }
+
   const handleCardClick = useCallback(
     (position: { x: number; y: number }) => {
       if (!room || !canPlaceSetupPiece) {
@@ -2645,6 +2672,7 @@ export function App() {
       status: "setup",
       hostPlayerId: "local_host",
       players: localPlayers,
+      enabledMiniExpansions: game.enabledMiniExpansions,
       game,
       warnings: game.contentWarnings,
       botTurnDelayMs: localBotTurnDelayMs
@@ -3776,12 +3804,6 @@ export function App() {
 
       {!hasStartedGame && room && (
         <div className="flow-screen flow-screen-lobby" role="main">
-          <div className="landing-bg-orbs" aria-hidden="true">
-            <span className="orb orb-1" />
-            <span className="orb orb-2" />
-            <span className="orb orb-3" />
-          </div>
-
           <header className="flow-header">
             <button
               type="button"
@@ -3807,12 +3829,28 @@ export function App() {
 
           <div className="flow-body flow-body-lobby">
             <div className="lobby-hero">
-              <span className="lobby-badge">
-                {isLocalRoom ? "Teste Local" : isSpectator ? "Espectador" : "Sala Online"}
-              </span>
-              <h2 className="flow-title lobby-title">
-                {isLocalRoom ? "Mesa Local" : isSpectator ? "Assistindo" : "Sala de Espera"}
-              </h2>
+              <div className="lobby-hero-copy">
+                <span className="lobby-badge">
+                  {isLocalRoom ? "Teste Local" : isSpectator ? "Espectador" : "Sala Online"}
+                </span>
+                <h2 className="flow-title lobby-title">
+                  {isLocalRoom ? "Mesa Local" : isSpectator ? "Assistindo" : "Sala de Espera"}
+                </h2>
+                <div className="lobby-status-strip" aria-label="Status da sala">
+                  <span>
+                    <Users aria-hidden="true" />
+                    {room.players.length}/6 jogadores
+                  </span>
+                  <span>
+                    <Check aria-hidden="true" />
+                    {readyPlayerCount}/{room.players.length} prontos
+                  </span>
+                  <span>
+                    <Leaf aria-hidden="true" />
+                    {enabledMiniExpansions.includes("objectives") ? "Objetivos ligados" : "Objetivos desligados"}
+                  </span>
+                </div>
+              </div>
               {!isLocalRoom && (
                 <div className="lobby-code-card">
                   <span className="lobby-code-label">Código da Sala</span>
@@ -3836,6 +3874,7 @@ export function App() {
             </div>
 
             <div className="lobby-columns">
+              <div className="lobby-side-stack">
               <section className="lobby-card lobby-players">
                 <header className="lobby-card-header">
                   <Users aria-hidden="true" />
@@ -3892,72 +3931,130 @@ export function App() {
                   })}
                 </ul>
 
-                {isHost && !isLocalRoom && (
-                  <div className="lobby-host-controls">
-                    {roomHasBots && (
-                      <button
-                        type="button"
-                        className="lobby-mini-button"
-                        onClick={() => run(() => roomApi.removeBots(requireSocket(), room.roomId), "Bots removidos.")}
-                      >
-                        <X aria-hidden="true" />
-                        Remover todos os bots
-                      </button>
-                    )}
-                    <div className="lobby-bot-speed">
-                      <button
-                        type="button"
-                        className="icon-button compact"
-                        title="Bots mais rápidos"
-                        onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
-                      >
-                        <Minus aria-hidden="true" />
-                      </button>
-                      <span>Velocidade: {formatBotDelay(botTurnDelayMs)}</span>
-                      <button
-                        type="button"
-                        className="icon-button compact"
-                        title="Bots mais lentos"
-                        onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
-                      >
-                        <Plus aria-hidden="true" />
-                      </button>
+              </section>
+
+              {!isLocalRoom && (
+                <section className="lobby-card lobby-settings">
+                  <header className="lobby-card-header">
+                    <Settings aria-hidden="true" />
+                    <h3>Configuração da Mesa</h3>
+                    {isHost ? <span className="lobby-count">Host</span> : <span className="lobby-count">Leitura</span>}
+                  </header>
+
+                  <div className="lobby-setting-list">
+                    <div className="lobby-setting-row">
+                      <div className="lobby-setting-copy">
+                        <strong>Mini-expansões</strong>
+                        <small>Escolha os módulos usados nesta partida.</small>
+                      </div>
+                      <div className="lobby-expansion-list">
+                        {miniExpansionOptions.map((expansion) => {
+                          const enabled = enabledMiniExpansions.includes(expansion.id);
+                          return (
+                            <button
+                              key={expansion.id}
+                              type="button"
+                              className={`lobby-expansion-toggle ${enabled ? "is-on" : ""}`}
+                              aria-pressed={enabled}
+                              disabled={!isHost || room.status !== "lobby"}
+                              onClick={() => toggleMiniExpansion(expansion.id)}
+                            >
+                              <Leaf aria-hidden="true" />
+                              <span>
+                                <strong>{expansion.label}</strong>
+                                <small>{expansion.description}</small>
+                              </span>
+                              <b>{enabled ? "Ligada" : "Desligada"}</b>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <div className="lobby-turn-timer">
-                      <button
-                        type="button"
-                        className={`lobby-mini-button ${turnTimerMs ? "is-on" : ""}`}
-                        onClick={toggleTurnTimer}
-                      >
-                        <Clock aria-hidden="true" />
-                        {turnTimerMs ? "Cronômetro de turno: ligado" : "Cronômetro de turno: desligado"}
-                      </button>
-                      {turnTimerMs && (
-                        <div className="lobby-bot-speed">
+                    <div className="lobby-setting-row">
+                      <div className="lobby-setting-copy">
+                        <strong>Cronômetro</strong>
+                        <small>{turnTimerMs ? `${formatTurnTimer(turnTimerMs)} por turno` : "Sem limite por turno."}</small>
+                      </div>
+                      <div className="lobby-setting-actions">
+                        <button
+                          type="button"
+                          className={`lobby-mini-button ${turnTimerMs ? "is-on" : ""}`}
+                          disabled={!isHost}
+                          onClick={toggleTurnTimer}
+                        >
+                          <Clock aria-hidden="true" />
+                          {turnTimerMs ? "Ligado" : "Desligado"}
+                        </button>
+                        {turnTimerMs && (
+                          <div className="lobby-stepper">
+                            <button
+                              type="button"
+                              className="icon-button compact"
+                              title="Menos tempo por turno"
+                              disabled={!isHost}
+                              onClick={() => adjustTurnTimer(-1)}
+                            >
+                              <Minus aria-hidden="true" />
+                            </button>
+                            <span>{formatTurnTimer(turnTimerMs)}</span>
+                            <button
+                              type="button"
+                              className="icon-button compact"
+                              title="Mais tempo por turno"
+                              disabled={!isHost}
+                              onClick={() => adjustTurnTimer(1)}
+                            >
+                              <Plus aria-hidden="true" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="lobby-setting-row">
+                      <div className="lobby-setting-copy">
+                        <strong>Bots</strong>
+                        <small>Velocidade: {formatBotDelay(botTurnDelayMs)}</small>
+                      </div>
+                      <div className="lobby-setting-actions">
+                        {isHost && roomHasBots && (
+                          <button
+                            type="button"
+                            className="lobby-mini-button"
+                            onClick={() => run(() => roomApi.removeBots(requireSocket(), room.roomId), "Bots removidos.")}
+                          >
+                            <X aria-hidden="true" />
+                            Remover bots
+                          </button>
+                        )}
+                        <div className="lobby-stepper">
                           <button
                             type="button"
                             className="icon-button compact"
-                            title="Menos tempo por turno"
-                            onClick={() => adjustTurnTimer(-1)}
+                            title="Bots mais rápidos"
+                            disabled={!isHost}
+                            onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
                           >
                             <Minus aria-hidden="true" />
                           </button>
-                          <span>{formatTurnTimer(turnTimerMs)} por turno</span>
+                          <span>{formatBotDelay(botTurnDelayMs)}</span>
                           <button
                             type="button"
                             className="icon-button compact"
-                            title="Mais tempo por turno"
-                            onClick={() => adjustTurnTimer(1)}
+                            title="Bots mais lentos"
+                            disabled={!isHost}
+                            onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
                           >
                             <Plus aria-hidden="true" />
                           </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
-                )}
-              </section>
+                </section>
+              )}
+              </div>
 
               {isSpectator ? (
                 <section className="lobby-card lobby-species">

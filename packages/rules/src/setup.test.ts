@@ -176,6 +176,24 @@ describe("setup placement", () => {
     expect(selected.players.find((candidate) => candidate.playerId === "jaguar")?.selectedObjectiveCardId).toBe(jaguar.objectiveChoices[0]);
   });
 
+  it("skips objective cards when the objective mini-expansion is disabled", () => {
+    let game = createInitialGameState(
+      "no_objectives",
+      [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
+      () => 0.999999,
+      createPreviewInitialForest(),
+      { enabledMiniExpansions: [] }
+    );
+    const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+
+    expect(game.enabledMiniExpansions).toEqual([]);
+    expect(jaguar.objectiveChoices).toEqual([]);
+    expect(jaguar.selectedObjectiveCardId).toBeNull();
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    expect(game.setupActivePlayerId).toBe("wolf");
+  });
+
   it("places initial pieces and advances setup player when initial quota is met", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("wolf", "maned_wolf")]);
 
