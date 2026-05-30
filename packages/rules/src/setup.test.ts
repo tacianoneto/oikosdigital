@@ -42,6 +42,7 @@ import {
   removeBasePieceForWolfAction,
   removePiecesForCurrentAction,
   resolveCoatiPairBonus,
+  selectObjectiveCard,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
@@ -61,7 +62,12 @@ function player(playerId: string, speciesId: RoomPlayer["speciesId"]): RoomPlaye
 }
 
 function createTestGameState(gameId: string, roomPlayers: RoomPlayer[]) {
-  return createInitialGameState(gameId, roomPlayers, () => 0.999999, createPreviewInitialForest());
+  const game = createInitialGameState(gameId, roomPlayers, () => 0.999999, createPreviewInitialForest());
+  for (const gamePlayer of game.players) {
+    gamePlayer.objectiveChoices = [];
+    gamePlayer.selectedObjectiveCardId = null;
+  }
+  return game;
 }
 
 describe("setup placement", () => {
@@ -151,6 +157,23 @@ describe("setup placement", () => {
     expect(game.deck.commonCardIds).toHaveLength(6);
     expect(game.contentWarnings).toHaveLength(0);
     expect(game.contentWarnings.some((warning) => warning.includes("faltaram"))).toBe(false);
+  });
+
+  it("deals two objective cards and requires one selected before setup placement", () => {
+    const game = createInitialGameState(
+      "objectives",
+      [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
+      () => 0.999999,
+      createPreviewInitialForest()
+    );
+    const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+
+    expect(jaguar.objectiveChoices).toHaveLength(2);
+    expect(jaguar.selectedObjectiveCardId).toBeNull();
+    expect(() => placeInitialPiece(game, "jaguar", { x: 0, y: 0 })).toThrow("Escolha uma carta de objetivo");
+
+    const selected = selectObjectiveCard(game, "jaguar", jaguar.objectiveChoices[0]!);
+    expect(selected.players.find((candidate) => candidate.playerId === "jaguar")?.selectedObjectiveCardId).toBe(jaguar.objectiveChoices[0]);
   });
 
   it("places initial pieces and advances setup player when initial quota is met", () => {
@@ -1110,6 +1133,7 @@ describe("setup placement", () => {
       { instanceId: "mac_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
     ];
     let game = createInitialGameState("room", [player("macaw", "macaw")], () => 0.999999, tutorialForest);
+    game.players[0]!.objectiveChoices = [];
 
     game = placeInitialPiece(game, "macaw", { x: -1, y: 0 });
     game = placeInitialPiece(game, "macaw", { x: 0, y: -1 });

@@ -15,6 +15,7 @@ export type RoomStatus = "lobby" | "setup" | "active" | "finished";
 export type CardKind = "common" | "initial";
 export type ContentStatus = "complete" | "needs_review";
 export type ActionId = "A" | "B" | "C" | "D";
+export type ObjectiveRuleTier = "red" | "yellow" | "blue";
 
 export interface GridPosition {
   x: number;
@@ -51,6 +52,13 @@ export interface ForestCardDefinition {
   connections: CardConnections | null;
   metadataStatus: ContentStatus;
   notes?: string;
+}
+
+export interface ObjectiveCardDefinition {
+  id: string;
+  label: string;
+  imagePath: string;
+  rules: Partial<Record<ObjectiveRuleTier, string>>;
 }
 
 export interface ForestCardState {
@@ -95,6 +103,8 @@ export interface PlayerState {
   score: number;
   resources: Record<Resource, number>;
   hand: string[];
+  objectiveChoices: string[];
+  selectedObjectiveCardId: string | null;
   reservePieces: string[];
   piecesInForest: string[];
   turnsTaken: number;
@@ -109,6 +119,7 @@ export type GameLogPayloadKind =
   | "pair_bonus"
   | "score"
   | "spend"
+  | "objective"
   | "skip"
   | "complete_action"
   | "advance_turn"

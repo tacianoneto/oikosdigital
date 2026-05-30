@@ -35,8 +35,10 @@ import {
 } from "lucide-react";
 import {
   getForestCardDefinition,
+  getObjectiveCardDefinition,
   habitatLabels,
   movementLabels,
+  objectiveCardsById,
   resourceAssets,
   resourceLabels,
   speciesDefinitions
@@ -83,6 +85,7 @@ import {
   removeBasePieceForWolfAction,
   removePiecesForCurrentAction,
   resolveCoatiPairBonus,
+  selectObjectiveCard,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
@@ -90,7 +93,17 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { GameState, GridPosition, Habitat, PublicRoomState, Resource, RoomPlayer, RoomSummary, SpeciesId } from "@oikos/shared";
+import type {
+  GameState,
+  GridPosition,
+  Habitat,
+  ObjectiveCardDefinition,
+  PublicRoomState,
+  Resource,
+  RoomPlayer,
+  RoomSummary,
+  SpeciesId
+} from "@oikos/shared";
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
 import { AnimatedNumber } from "./ui/AnimatedNumber";
@@ -235,6 +248,7 @@ export function App() {
   const [selectedWolfTargetPieceId, setSelectedWolfTargetPieceId] = useState<string | null>(null);
   const [selectedWolfResources, setSelectedWolfResources] = useState<Resource[]>([]);
   const [selectedRemovalPieceIds, setSelectedRemovalPieceIds] = useState<string[]>([]);
+  const [expandedObjectiveCardId, setExpandedObjectiveCardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [handCollapsed, setHandCollapsed] = useState(isSmallScreen);
@@ -1305,6 +1319,17 @@ export function App() {
     () => (currentGamePlayer?.hand ?? []).map((cardId) => getForestCardDefinition(cardId)),
     [currentGamePlayer?.hand]
   );
+  const objectiveChoices = useMemo(
+    () =>
+      (currentGamePlayer?.objectiveChoices ?? [])
+        .map((cardId) => objectiveCardsById.get(cardId))
+        .filter((card): card is ObjectiveCardDefinition => Boolean(card)),
+    [currentGamePlayer?.objectiveChoices]
+  );
+  const selectedObjectiveCard = currentGamePlayer?.selectedObjectiveCardId
+    ? getObjectiveCardDefinition(currentGamePlayer.selectedObjectiveCardId)
+    : null;
+  const needsObjectiveChoice = Boolean(currentGamePlayer && objectiveChoices.length > 0 && !currentGamePlayer.selectedObjectiveCardId);
   const sortedHandCards = useMemo(() => {
     const habitatRank = new Map(handHabitatOrder.map((habitat, index) => [habitat, index]));
     const resourceRank = new Map(resourceOrder.map((resource, index) => [resource, index]));
@@ -2558,6 +2583,28 @@ export function App() {
       setSelectedRemovalPieceIds([]);
     });
   }, [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive]);
+
+  const handleSelectObjective = useCallback(
+    (objectiveCardId: string) => {
+      if (!room?.game || !currentGamePlayer) {
+        return;
+      }
+
+      if (isLocalRoom) {
+        const nextGame = selectObjectiveCard(room.game, currentGamePlayer.playerId, objectiveCardId);
+        setRoom({
+          ...room,
+          game: nextGame,
+          warnings: nextGame.contentWarnings
+        });
+        setNotice("Objetivo escolhido.");
+        return;
+      }
+
+      void run(() => roomApi.selectObjective(requireSocket(), room.roomId, objectiveCardId), "Objetivo escolhido.");
+    },
+    [currentGamePlayer, isLocalRoom, room, socket]
+  );
 
   function toggleLocalSpecies(speciesId: SpeciesId) {
     setLocalSpeciesIds((current) =>
@@ -4738,6 +4785,18 @@ export function App() {
                 </button>
               </div>
             </div>
+            {!handCollapsed && selectedObjectiveCard && (
+              <div className="objective-hand-slot">
+                <button
+                  type="button"
+                  className="objective-hand-card"
+                  onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)}
+                  aria-label={`Ampliar ${selectedObjectiveCard.label}`}
+                >
+                  <img src={encodeURI(selectedObjectiveCard.imagePath)} alt={selectedObjectiveCard.label} />
+                </button>
+              </div>
+            )}
             {!handCollapsed &&
               (handCards.length > 0 ? (
                 <div
@@ -4911,6 +4970,48 @@ export function App() {
           </section>
         )}
       </section>
+
+      {!cleanBoardMode && needsObjectiveChoice && (
+        <div className="choice-modal-backdrop objective-choice-backdrop" role="presentation">
+          <div className="choice-modal objective-choice-modal" role="dialog" aria-modal="true" aria-label="Escolha objetivo">
+            <header className="choice-modal-head">
+              <span className="choice-icon">
+                <Trophy aria-hidden="true" />
+              </span>
+              <div>
+                <strong>Escolha seu objetivo</strong>
+                <small>Fique com 1 carta. A outra sera descartada.</small>
+              </div>
+            </header>
+            <div className="objective-choice-grid">
+              {objectiveChoices.map((card) => (
+                <button type="button" className="objective-choice-card" key={card.id} onClick={() => handleSelectObjective(card.id)}>
+                  <img src={encodeURI(card.imagePath)} alt={card.label} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {expandedObjectiveCardId && (
+        <div className="choice-modal-backdrop objective-preview-backdrop" role="presentation" onClick={() => setExpandedObjectiveCardId(null)}>
+          <div className="objective-preview-modal" role="dialog" aria-modal="true" aria-label="Carta de objetivo" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="board-modal-close objective-preview-close"
+              aria-label="Fechar objetivo"
+              onClick={() => setExpandedObjectiveCardId(null)}
+            >
+              <X aria-hidden="true" />
+            </button>
+            <img
+              src={encodeURI(getObjectiveCardDefinition(expandedObjectiveCardId).imagePath)}
+              alt={getObjectiveCardDefinition(expandedObjectiveCardId).label}
+            />
+          </div>
+        </div>
+      )}
 
       {!cleanBoardMode && (
       <aside className={`right-panel hud-dock hud-right ${hudRightCollapsed ? "is-collapsed" : ""}`}>

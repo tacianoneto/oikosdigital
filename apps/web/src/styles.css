@@ -499,6 +499,68 @@ label {
   flex: 1 1 140px;
 }
 
+.objective-choice-modal {
+  width: min(760px, 96vw);
+}
+
+.objective-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.objective-choice-card,
+.objective-hand-card {
+  padding: 0;
+  border: 3px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+}
+
+.objective-choice-card:hover,
+.objective-hand-card:hover {
+  border-color: var(--amber);
+  transform: translateY(-3px);
+}
+
+.objective-choice-card img,
+.objective-hand-card img,
+.objective-preview-modal img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.objective-preview-backdrop {
+  z-index: 75;
+}
+
+.objective-preview-modal {
+  position: relative;
+  width: min(620px, 92vw);
+  max-height: 92vh;
+  padding: 14px;
+  border: 3px solid var(--amber);
+  border-radius: 14px;
+  background: rgba(13, 24, 19, 0.98);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.65);
+}
+
+.objective-preview-modal img {
+  max-height: calc(92vh - 28px);
+}
+
+.objective-preview-close {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  z-index: 2;
+}
+
 .turn-recap {
   position: fixed;
   left: 18px;
@@ -1885,6 +1947,17 @@ input:focus {
   justify-content: center;
   align-items: center;
   overflow: visible;
+}
+
+.objective-hand-slot {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.objective-hand-card {
+  width: 116px;
+  height: 116px;
 }
 
 .hand-card {

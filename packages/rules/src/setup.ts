@@ -1,6 +1,8 @@
 import {
   commonForestCards,
   initialForestCardCandidates,
+  objectiveCards,
+  objectiveResourceByCard,
   speciesDefinitions,
   speciesOrderBySetup,
   speciesOrderByTurn
@@ -19,6 +21,7 @@ import type {
   PieceState,
   PlayerState,
   Resource,
+  ObjectiveRuleTier,
   RoomPlayer,
   SpeciesId
 } from "@oikos/shared";
@@ -433,6 +436,8 @@ export function createPlayerState(player: RoomPlayer): PlayerState {
       seed: 0
     },
     hand: [],
+    objectiveChoices: [],
+    selectedObjectiveCardId: null,
     reservePieces,
     piecesInForest: [],
     turnsTaken: 0
@@ -582,6 +587,7 @@ export function createInitialGameState(
   }
 
   const { players, remainingCommonCardIds } = createPlayersWithInitialHands(roomPlayers, turnSpeciesOrder, contentWarnings, random);
+  dealObjectiveChoices(players, roomPlayers, random);
 
   return {
     gameId,
@@ -673,6 +679,45 @@ function shuffle<T>(items: T[], random: () => number): T[] {
   return shuffled;
 }
 
+function dealObjectiveChoices(players: PlayerState[], roomPlayers: RoomPlayer[], random: () => number): void {
+  const objectiveDeck = shuffle(objectiveCards.map((card) => card.id), random);
+
+  for (const player of players) {
+    player.objectiveChoices = [objectiveDeck.shift(), objectiveDeck.shift()].filter((id): id is string => Boolean(id));
+    const roomPlayer = roomPlayers.find((candidate) => candidate.playerId === player.playerId);
+    player.selectedObjectiveCardId = roomPlayer?.isBot ? (player.objectiveChoices[0] ?? null) : null;
+  }
+}
+
+export function selectObjectiveCard(game: GameState, playerId: string, objectiveCardId: string): GameState {
+  if (game.status !== "setup") {
+    throw new Error("Objetivo so pode ser escolhido no inicio da partida.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.selectedObjectiveCardId) {
+    throw new Error("Objetivo ja escolhido.");
+  }
+
+  if (!player.objectiveChoices.includes(objectiveCardId)) {
+    throw new Error("Escolha uma das 2 cartas de objetivo recebidas.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  nextPlayer.selectedObjectiveCardId = objectiveCardId;
+  next.log = [
+    ...next.log,
+    {
+      id: `objective_select_${playerId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} escolheu uma carta de objetivo.`,
+      createdAt: Date.now()
+    }
+  ];
+
+  return next;
+}
+
 export function placeInitialPiece(game: GameState, playerId: string, location: GridPosition): GameState {
   if (game.status !== "setup") {
     throw new Error("O posicionamento inicial só acontece durante o setup.");
@@ -685,6 +730,10 @@ export function placeInitialPiece(game: GameState, playerId: string, location: G
   const player = game.players.find((candidate) => candidate.playerId === playerId);
   if (!player?.speciesId) {
     throw new Error("Jogador sem espécie selecionada.");
+  }
+
+  if ((player.objectiveChoices ?? []).length > 0 && !player.selectedObjectiveCardId) {
+    throw new Error("Escolha uma carta de objetivo antes de posicionar pecas iniciais.");
   }
 
   const targetCard = game.forest.cards.find((card) => card.x === location.x && card.y === location.y);
@@ -2832,6 +2881,7 @@ function advanceActiveAction(game: GameState): void {
 
 function finishPlayerTurn(game: GameState, player: PlayerState): void {
   player.turnsTaken += 1;
+  awardObjectivePointsForTurn(game, player);
   const currentTurnIndex = game.turnOrder.indexOf(player.playerId);
   const nextTurnIndex = currentTurnIndex >= 0 ? (currentTurnIndex + 1) % game.turnOrder.length : 0;
   const nextPlayerId = game.turnOrder[nextTurnIndex] ?? null;
@@ -2868,6 +2918,222 @@ const RESOURCE_MAJORITY_POINTS = 1;
 const SEEDS_PER_POINT = 2;
 const MAJORITY_RESOURCES: Resource[] = ["meat", "egg", "fruit"];
 const ALL_RESOURCES: Resource[] = ["meat", "egg", "fruit", "seed"];
+
+function awardObjectivePointsForTurn(game: GameState, player: PlayerState): void {
+  const points = getObjectivePointsForTurn(game, player);
+  if (points <= 0 || !player.selectedObjectiveCardId) {
+    return;
+  }
+
+  player.score += points;
+  game.log = [
+    ...game.log,
+    {
+      id: `objective_score_${player.playerId}_${player.turnsTaken}_${game.log.length + 1}`,
+      message: `${player.name} cumpriu o objetivo e ganhou ${points} ponto(s).`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "objective",
+        actorPlayerId: player.playerId,
+        points
+      }
+    }
+  ];
+}
+
+function getObjectivePointsForTurn(game: GameState, player: PlayerState): number {
+  if (!player.speciesId || !player.selectedObjectiveCardId) {
+    return 0;
+  }
+
+  const tier = getObjectiveRuleTier(player.speciesId);
+  if (tier === "subpredator") {
+    return Math.max(
+      getObjectivePointsForTier(game, player, player.selectedObjectiveCardId, "red"),
+      getObjectivePointsForTier(game, player, player.selectedObjectiveCardId, "yellow")
+    );
+  }
+
+  return getObjectivePointsForTier(game, player, player.selectedObjectiveCardId, tier);
+}
+
+function getObjectiveRuleTier(speciesId: SpeciesId): ObjectiveRuleTier | "subpredator" {
+  const category = speciesDefinitions[speciesId].category;
+  if (category === "predator") return "red";
+  if (category === "subpredator") return "subpredator";
+  if (category === "base") return "blue";
+  return "yellow";
+}
+
+function getObjectivePointsForTier(
+  game: GameState,
+  player: PlayerState,
+  objectiveCardId: string,
+  tier: ObjectiveRuleTier
+): number {
+  if (tier === "red") {
+    if (objectiveCardId === "objective_1" || objectiveCardId === "objective_5") {
+      return getRemovedSpeciesCount(game, player.playerId) >= 3 ? 2 : getRemovedSpeciesCount(game, player.playerId) >= 2 ? 1 : 0;
+    }
+
+    if (objectiveCardId === "objective_3" || objectiveCardId === "objective_4") {
+      return getResourceMajorityCount(game, player.playerId);
+    }
+
+    return 0;
+  }
+
+  if (tier === "yellow") {
+    if (objectiveCardId === "objective_1" || objectiveCardId === "objective_2" || objectiveCardId === "objective_5") {
+      const resource = objectiveResourceByCard[objectiveCardId];
+      return resource ? getResourceMajorityObjectivePoints(game, player.playerId, resource) : 0;
+    }
+
+    if (objectiveCardId === "objective_3") {
+      return Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.habitat === "field", false, 3));
+    }
+
+    if (objectiveCardId === "objective_4") {
+      return Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.habitat === "river", false, 4));
+    }
+
+    if (objectiveCardId === "objective_6") {
+      return Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.habitat === "forest", true, 3));
+    }
+
+    if (objectiveCardId === "objective_7" || objectiveCardId === "objective_12") {
+      return Math.min(2, ALL_RESOURCES.filter((resource) => (player.resources[resource] ?? 0) === 0).length);
+    }
+
+    return 0;
+  }
+
+  if (objectiveCardId === "objective_7" || objectiveCardId === "objective_8" || objectiveCardId === "objective_9" || objectiveCardId === "objective_10") {
+    const resource = objectiveResourceByCard[objectiveCardId];
+    return resource ? Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.resource === resource, false, 3)) : 0;
+  }
+
+  if (objectiveCardId === "objective_11") {
+    return Math.min(2, countResourceSquares(game));
+  }
+
+  if (objectiveCardId === "objective_12" && player.speciesId) {
+    const totalPieces = speciesDefinitions[player.speciesId].totalPieces;
+    const inForest = player.piecesInForest.length;
+    return (inForest > totalPieces / 2 ? 1 : 0) + (inForest === totalPieces ? 1 : 0);
+  }
+
+  return 0;
+}
+
+function getRemovedSpeciesCount(game: GameState, playerId: string): number {
+  const species = new Set<SpeciesId>();
+  for (const entry of game.log) {
+    if (entry.payload?.kind !== "remove_piece" || entry.payload.actorPlayerId !== playerId) {
+      continue;
+    }
+
+    for (const pieceId of entry.payload.pieceIds ?? []) {
+      const piece = game.pieces.find((candidate) => candidate.pieceId === pieceId);
+      if (piece?.speciesId) {
+        species.add(piece.speciesId);
+      }
+    }
+  }
+
+  return species.size;
+}
+
+function getResourceMajorityCount(game: GameState, playerId: string): number {
+  return MAJORITY_RESOURCES.filter((resource) => getResourceMajorityObjectivePoints(game, playerId, resource) > 0).length;
+}
+
+function getResourceMajorityObjectivePoints(game: GameState, playerId: string, resource: Resource): number {
+  const player = findPlayer(game, playerId);
+  const count = player.resources[resource] ?? 0;
+  if (count <= 0) {
+    return 0;
+  }
+
+  const top = game.players.reduce((max, candidate) => Math.max(max, candidate.resources[resource] ?? 0), 0);
+  if (count < top) {
+    return 0;
+  }
+
+  const tied = game.players.filter((candidate) => (candidate.resources[resource] ?? 0) === top).length;
+  return tied === 1 ? 2 : 1;
+}
+
+function countLines(
+  game: GameState,
+  matches: (card: ForestCardState) => boolean,
+  diagonalsOnly: boolean,
+  minLength: number
+): number {
+  const positions = new Set(game.forest.cards.filter(matches).map((card) => positionKey(card)));
+  const directions = diagonalsOnly
+    ? [
+        { x: 1, y: 1 },
+        { x: 1, y: -1 }
+      ]
+    : [
+        { x: 1, y: 0 },
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+        { x: 1, y: -1 }
+      ];
+  let count = 0;
+
+  for (const card of game.forest.cards) {
+    if (!positions.has(positionKey(card))) {
+      continue;
+    }
+
+    for (const direction of directions) {
+      const before = { x: card.x - direction.x, y: card.y - direction.y };
+      if (positions.has(positionKey(before))) {
+        continue;
+      }
+
+      let length = 0;
+      let cursor = { x: card.x, y: card.y };
+      while (positions.has(positionKey(cursor))) {
+        length += 1;
+        cursor = { x: cursor.x + direction.x, y: cursor.y + direction.y };
+      }
+
+      if (length >= minLength) {
+        count += 1;
+      }
+    }
+  }
+
+  return count;
+}
+
+function countResourceSquares(game: GameState): number {
+  const cardsByPosition = new Map(game.forest.cards.map((card) => [positionKey(card), card]));
+  let count = 0;
+
+  for (const card of game.forest.cards) {
+    const square = [
+      card,
+      cardsByPosition.get(positionKey({ x: card.x + 1, y: card.y })),
+      cardsByPosition.get(positionKey({ x: card.x, y: card.y + 1 })),
+      cardsByPosition.get(positionKey({ x: card.x + 1, y: card.y + 1 }))
+    ];
+    if (square.some((candidate) => !candidate)) {
+      continue;
+    }
+
+    const resources = square.map((candidate) => getCardDefinitionOrNull(candidate!.definitionId)?.resource);
+    if (new Set(resources).size === 4 && resources.every(Boolean)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
 
 function getPopulationValue(speciesId: SpeciesId | null): number {
   return speciesId ? speciesDefinitions[speciesId].totalPieces : 0;
@@ -3136,6 +3402,7 @@ function cloneGameState(game: GameState): GameState {
       ...player,
       resources: { ...player.resources },
       hand: [...player.hand],
+      objectiveChoices: [...(player.objectiveChoices ?? [])],
       reservePieces: [...player.reservePieces],
       piecesInForest: [...player.piecesInForest]
     })),

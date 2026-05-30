@@ -110,6 +110,8 @@ function fromPayload(entry: GameLogEntry, speciesId: SpeciesId | null, pieceById
       return { id: entry.id, icon: "add", text: `Dupla de quatis: +1 ${pieceLabel} adjacente`, points: payload.points, cardInstanceIds: cards };
     case "score":
       return { id: entry.id, icon: "score", text: `Pontuou ação ${payload.actionId ?? ""}`.trim(), points: payload.points, cardInstanceIds: cards };
+    case "objective":
+      return { id: entry.id, icon: "score", text: "Cumpriu objetivo", points: payload.points, cardInstanceIds: cards };
     case "spend":
       return {
         id: entry.id,

@@ -104,6 +104,8 @@ export const roomApi = {
   ready: (socket: OikosSocket, roomId: string, ready: boolean) =>
     emitWithReply<PublicRoomState>(socket, "player:ready", { roomId, ready }),
   start: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "game:start", { roomId }),
+  selectObjective: (socket: OikosSocket, roomId: string, objectiveCardId: string) =>
+    emitWithReply<PublicRoomState>(socket, "objective:select", { roomId, objectiveCardId }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "setup:place-piece", { roomId, x, y }),
   placeForestCard: (

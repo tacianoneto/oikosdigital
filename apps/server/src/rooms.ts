@@ -14,6 +14,7 @@ import {
   removeBasePieceForWolfAction,
   removePiecesForCurrentAction,
   resolveCoatiPairBonus,
+  selectObjectiveCard,
   requiredCommonCardsForPlayers,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
@@ -466,6 +467,20 @@ export function placeSetupPiece(roomId: string, playerId: string, x: number, y: 
 
   room.game = placeInitialPiece(room.game, playerId, { x, y });
   room.status = room.game.status === "active" ? "active" : "setup";
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
+export function chooseObjective(roomId: string, playerId: string, objectiveCardId: string): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (!room.game) {
+    throw new Error("A partida ainda nao foi iniciada.");
+  }
+
+  room.game = selectObjectiveCard(room.game, playerId, objectiveCardId);
+  room.status = room.game.status === "setup" ? "setup" : room.status;
   room.warnings = room.game.contentWarnings;
 
   return toPublicRoom(room);

@@ -23,6 +23,7 @@ import {
   getBotTurnDelay,
   getTurnTimerMs,
   setTurnTimer,
+  chooseObjective,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -416,6 +417,14 @@ io.on("connection", (socket) => {
   socket.on("game:start", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
       const room = startGame(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("objective:select", (payload: { roomId: string; objectiveCardId: string }, reply) => {
+    withReply(reply, () => {
+      const room = chooseObjective(payload.roomId, playerId, payload.objectiveCardId);
       broadcastRoom(room);
       return room;
     });
