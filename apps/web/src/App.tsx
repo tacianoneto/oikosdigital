@@ -3945,30 +3945,45 @@ export function App() {
                   </header>
 
                   <div className="lobby-setting-list">
-                    <div className="lobby-setting-row">
-                      <div className="lobby-setting-copy">
+                    <div className="lobby-expansions-block">
+                      <div className="lobby-expansions-head">
                         <strong>Mini-expansões</strong>
+                        <span className="lobby-expansions-count">
+                          {enabledMiniExpansions.filter((id) => miniExpansionOptions.some((opt) => opt.id === id)).length}/{miniExpansionOptions.length}
+                        </span>
                       </div>
-                      <div className="lobby-expansion-list">
+                      <ul className="lobby-expansion-list">
                         {miniExpansionOptions.map((expansion) => {
                           const enabled = enabledMiniExpansions.includes(expansion.id);
+                          const locked = !isHost || room.status !== "lobby";
                           return (
-                            <button
-                              key={expansion.id}
-                              type="button"
-                              className={`lobby-expansion-toggle ${enabled ? "is-on" : ""}`}
-                              aria-pressed={enabled}
-                              aria-label={`${enabled ? "Desligar" : "Ligar"} ${expansion.label}. ${expansion.description}`}
-                              title={expansion.description}
-                              data-tooltip={expansion.description}
-                              disabled={!isHost || room.status !== "lobby"}
-                              onClick={() => toggleMiniExpansion(expansion.id)}
-                            >
-                              <img src={encodeURI(expansion.iconPath)} alt="" />
-                            </button>
+                            <li key={expansion.id}>
+                              <label
+                                className={`lobby-expansion-card ${enabled ? "is-on" : ""} ${locked ? "is-locked" : ""}`}
+                              >
+                                <span className="lobby-expansion-thumb" aria-hidden="true">
+                                  <img src={encodeURI(expansion.iconPath)} alt="" />
+                                </span>
+                                <span className="lobby-expansion-text">
+                                  <strong>{expansion.label}</strong>
+                                  <small>{expansion.description}</small>
+                                </span>
+                                <span className="lobby-switch" aria-hidden="true">
+                                  <span className="lobby-switch-knob" />
+                                </span>
+                                <input
+                                  type="checkbox"
+                                  className="lobby-expansion-input"
+                                  checked={enabled}
+                                  disabled={locked}
+                                  onChange={() => toggleMiniExpansion(expansion.id)}
+                                  aria-label={`${enabled ? "Desligar" : "Ligar"} ${expansion.label}. ${expansion.description}`}
+                                />
+                              </label>
+                            </li>
                           );
                         })}
-                      </div>
+                      </ul>
                     </div>
 
                     <div className="lobby-setting-row">
