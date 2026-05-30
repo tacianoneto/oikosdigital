@@ -11,12 +11,20 @@ export type Habitat = "forest" | "field" | "river";
 export type Resource = "meat" | "egg" | "fruit" | "seed";
 export type MovementKind = "adjacent" | "diagonal" | "straight_jump" | "knight_jump";
 export type GameStatus = "lobby" | "setup" | "active" | "scoring" | "finished";
-export type RoomStatus = "lobby" | "setup" | "active" | "finished";
+export type RoomStatus = "lobby" | "scenario_voting" | "setup" | "active" | "finished";
 export type CardKind = "common" | "initial";
 export type ContentStatus = "complete" | "needs_review";
 export type ActionId = "A" | "B" | "C" | "D";
 export type ObjectiveRuleTier = "red" | "yellow" | "blue";
-export type MiniExpansionId = "objectives";
+export type MiniExpansionId = "objectives" | "scenarios";
+
+export type ScenarioCardId =
+  | "amazonia"
+  | "caatinga"
+  | "cerrado"
+  | "mata_atlantica"
+  | "pampa"
+  | "pantanal";
 
 export interface GridPosition {
   x: number;
@@ -60,6 +68,20 @@ export interface ObjectiveCardDefinition {
   label: string;
   imagePath: string;
   rules: Partial<Record<ObjectiveRuleTier, string>>;
+}
+
+export interface ScenarioCardDefinition {
+  id: ScenarioCardId;
+  label: string;
+  imagePath: string;
+  description: string;
+}
+
+export interface ScenarioVotingState {
+  candidateIds: ScenarioCardId[];
+  votesByPlayer: Record<string, ScenarioCardId[]>;
+  deadline: number;
+  selectedIds: ScenarioCardId[] | null;
 }
 
 export interface ForestCardState {
@@ -213,6 +235,7 @@ export interface GameState {
   contentWarnings: string[];
   finalScoreBreakdown: FinalScoreBreakdown | null;
   winnerPlayerIds: string[];
+  activeScenarioIds: ScenarioCardId[];
 }
 
 export interface RoomPlayer {
@@ -246,6 +269,7 @@ export interface PublicRoomState {
   // True when the room was created with a password. The password itself is never
   // sent to clients. Private rooms are hidden from the public open-room list.
   isPrivate?: boolean;
+  scenarioVoting?: ScenarioVotingState | null;
 }
 
 // Lightweight room descriptor for the public matchmaking list. Never includes

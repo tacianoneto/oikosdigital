@@ -24,6 +24,7 @@ import type {
   Resource,
   ObjectiveRuleTier,
   RoomPlayer,
+  ScenarioCardId,
   SpeciesId
 } from "@oikos/shared";
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
@@ -574,9 +575,10 @@ export function createInitialGameState(
   roomPlayers: RoomPlayer[],
   random: () => number = Math.random,
   initialForest?: ForestCardState[],
-  options?: { enabledMiniExpansions?: MiniExpansionId[] }
+  options?: { enabledMiniExpansions?: MiniExpansionId[]; activeScenarioIds?: ScenarioCardId[] }
 ): GameState {
   const enabledMiniExpansions = options?.enabledMiniExpansions ?? ["objectives"];
+  const activeScenarioIds = options?.activeScenarioIds ?? [];
   const selectedSpecies = roomPlayers.map((player) => player.speciesId).filter((speciesId): speciesId is SpeciesId => Boolean(speciesId));
   const setupSpeciesOrder = getSetupOrder(selectedSpecies);
   const turnSpeciesOrder = getTurnOrder(selectedSpecies);
@@ -628,7 +630,8 @@ export function createInitialGameState(
     ],
     contentWarnings,
     finalScoreBreakdown: null,
-    winnerPlayerIds: []
+    winnerPlayerIds: [],
+    activeScenarioIds: [...activeScenarioIds]
   };
 }
 
@@ -3386,6 +3389,7 @@ function cloneGameState(game: GameState): GameState {
   return {
     ...game,
     enabledMiniExpansions: [...(game.enabledMiniExpansions ?? ["objectives"])],
+    activeScenarioIds: [...(game.activeScenarioIds ?? [])],
     pendingCoatiPairBonus: game.pendingCoatiPairBonus
       ? {
           ...game.pendingCoatiPairBonus,

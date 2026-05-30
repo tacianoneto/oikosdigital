@@ -39,6 +39,9 @@ import {
   habitatLabels,
   movementLabels,
   objectiveCardBackPath,
+  scenarioCardBackPath,
+  scenarioCards,
+  scenarioCardsById,
   objectiveCardsById,
   resourceAssets,
   resourceLabels,
@@ -104,6 +107,7 @@ import type {
   Resource,
   RoomPlayer,
   RoomSummary,
+  ScenarioCardId,
   SpeciesId
 } from "@oikos/shared";
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
@@ -201,6 +205,13 @@ const miniExpansionOptions: Array<{
     label: "Cartas de objetivo",
     description: "Cada jogador escolhe 1 de 2 objetivos e pode ganhar ponto extra no fim do turno.",
     iconPath: objectiveCardBackPath
+  },
+  {
+    id: "scenarios",
+    label: "Cartas de cenário",
+    description:
+      "Antes da partida, jogadores votam 2 cenários (bioma do Brasil) que alteram regras durante todo o jogo.",
+    iconPath: scenarioCardBackPath
   }
 ];
 
@@ -237,6 +248,142 @@ function TurnCountdown({ startedAt, durationMs }: { startedAt: number; durationM
       <span className="turn-countdown-bar" aria-hidden="true">
         <span className="turn-countdown-fill" style={{ width: `${Math.round(ratio * 100)}%` }} />
       </span>
+    </div>
+  );
+}
+
+function ScenarioVotingOverlay({
+  room,
+  playerId,
+  isSpectator,
+  onSubmitVotes
+}: {
+  room: PublicRoomState;
+  playerId: string | null;
+  isSpectator: boolean;
+  onSubmitVotes: (votes: ScenarioCardId[]) => void;
+}) {
+  const voting = room.scenarioVoting;
+  const [now, setNow] = useState(() => Date.now());
+  const [localVotes, setLocalVotes] = useState<ScenarioCardId[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!voting || !playerId) return;
+    const serverVotes = voting.votesByPlayer[playerId] ?? [];
+    if (serverVotes.length >= 2) {
+      setSubmitted(true);
+      setLocalVotes(serverVotes);
+    }
+  }, [voting, playerId]);
+
+  if (!voting) return null;
+
+  const remaining = Math.max(0, voting.deadline - now);
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const low = remaining <= 10000;
+  const canVote = Boolean(playerId) && !isSpectator && !submitted && !voting.selectedIds;
+  const totalPlayers = room.players.length;
+  const votedPlayers = room.players.filter(
+    (p) => (voting.votesByPlayer[p.playerId] ?? []).length >= 2
+  ).length;
+
+  const toggleVote = (id: ScenarioCardId) => {
+    if (!canVote) return;
+    setLocalVotes((prev) => {
+      if (prev.includes(id)) return prev.filter((v) => v !== id);
+      if (prev.length >= 2) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const submit = () => {
+    if (!canVote || localVotes.length !== 2) return;
+    onSubmitVotes(localVotes);
+    setSubmitted(true);
+  };
+
+  const selectedDefinitions = voting.selectedIds?.map((id) => scenarioCardsById.get(id)).filter(Boolean) ?? [];
+
+  return (
+    <div className="scenario-vote-overlay" role="dialog" aria-label="Votação de cenários">
+      <div className="scenario-vote-panel">
+        <header className="scenario-vote-header">
+          <div>
+            <span className="scenario-vote-badge">Mini-expansão: Cenários</span>
+            <h2>Vote em 2 cartas de cenário</h2>
+            <p>As 2 mais votadas alteram regras durante toda esta partida.</p>
+          </div>
+          <div className={`scenario-vote-timer ${low ? "is-low" : ""}`}>
+            <Clock aria-hidden="true" />
+            <span>{totalSeconds}s</span>
+          </div>
+        </header>
+
+        <div className="scenario-vote-status">
+          <span>{votedPlayers}/{totalPlayers} jogadores votaram</span>
+          {isSpectator && <span>· Você está assistindo</span>}
+          {submitted && !isSpectator && <span>· Aguardando demais jogadores…</span>}
+        </div>
+
+        <ul className="scenario-vote-grid">
+          {voting.candidateIds.map((id) => {
+            const def = scenarioCardsById.get(id);
+            if (!def) return null;
+            const selected = localVotes.includes(id);
+            const winner = voting.selectedIds?.includes(id);
+            return (
+              <li key={id}>
+                <button
+                  type="button"
+                  className={`scenario-vote-card ${selected ? "is-selected" : ""} ${winner ? "is-winner" : ""}`}
+                  disabled={!canVote}
+                  onClick={() => toggleVote(id)}
+                  aria-pressed={selected}
+                  title={def.description}
+                >
+                  <img src={encodeURI(def.imagePath)} alt={def.label} />
+                  <span className="scenario-vote-card-name">{def.label}</span>
+                  {selected && <span className="scenario-vote-card-check">✓</span>}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        {voting.selectedIds && voting.selectedIds.length > 0 && (
+          <div className="scenario-vote-result">
+            <strong>Cenários selecionados:</strong>
+            <div>
+              {selectedDefinitions.map((def) =>
+                def ? <span key={def.id} className="scenario-vote-result-tag">{def.label}</span> : null
+              )}
+            </div>
+          </div>
+        )}
+
+        <footer className="scenario-vote-footer">
+          {canVote ? (
+            <button
+              type="button"
+              className="primary-button"
+              disabled={localVotes.length !== 2}
+              onClick={submit}
+            >
+              Confirmar voto ({localVotes.length}/2)
+            </button>
+          ) : isSpectator ? (
+            <span className="scenario-vote-hint">Espectadores não votam.</span>
+          ) : (
+            <span className="scenario-vote-hint">Voto registrado.</span>
+          )}
+        </footer>
+      </div>
     </div>
   );
 }
@@ -4194,6 +4341,17 @@ export function App() {
         </div>
       )}
 
+
+      {room?.status === "scenario_voting" && room.scenarioVoting && (
+        <ScenarioVotingOverlay
+          room={room}
+          playerId={playerId}
+          isSpectator={isSpectator}
+          onSubmitVotes={(votes) => {
+            run(() => roomApi.voteScenarios(requireSocket(), room.roomId, votes));
+          }}
+        />
+      )}
 
       {hasStartedGame && (
         <button

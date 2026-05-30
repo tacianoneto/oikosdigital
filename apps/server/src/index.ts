@@ -1,7 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { Server } from "socket.io";
-import type { MiniExpansionId, PublicRoomState, SpeciesId } from "@oikos/shared";
+import type { MiniExpansionId, PublicRoomState, ScenarioCardId, SpeciesId } from "@oikos/shared";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
@@ -49,7 +49,11 @@ import {
   spectateRoom,
   spendJaguarMeat,
   spendWolfResources,
-  startGame
+  startGame,
+  castScenarioVote,
+  finalizeScenarioVoting,
+  isScenarioVotingComplete,
+  SCENARIO_VOTING_DURATION_MS
 } from "./rooms";
 
 const port = Number(process.env.PORT ?? 4173);
@@ -61,6 +65,7 @@ const turnSkipTimers = new Map<string, NodeJS.Timeout>();
 const botTurnTimers = new Map<string, NodeJS.Timeout>();
 const automaticScoreTimers = new Map<string, NodeJS.Timeout>();
 const turnPunishmentTimers = new Map<string, NodeJS.Timeout>();
+const scenarioVotingTimers = new Map<string, NodeJS.Timeout>();
 // Tracks when the current active turn began, per room, so clients can render a
 // countdown and the punishment timer fires at the right moment.
 const turnStartByRoom = new Map<string, { playerId: string; at: number }>();
@@ -253,6 +258,31 @@ function reconcileTurnPunishmentTimer(roomId: string): void {
   turnPunishmentTimers.set(roomId, timer);
 }
 
+function clearScenarioVotingTimer(roomId: string): void {
+  const timer = scenarioVotingTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    scenarioVotingTimers.delete(roomId);
+  }
+}
+
+function scheduleScenarioVotingDeadline(room: PublicRoomState): void {
+  clearScenarioVotingTimer(room.roomId);
+  if (room.status !== "scenario_voting" || !room.scenarioVoting) return;
+  const remaining = Math.max(0, room.scenarioVoting.deadline - Date.now());
+  const timer = setTimeout(() => {
+    scenarioVotingTimers.delete(room.roomId);
+    try {
+      const finalized = finalizeScenarioVoting(room.roomId);
+      broadcastRoom(finalized);
+    } catch (error) {
+      app.log.error({ err: error, roomId: room.roomId }, "Falha ao finalizar votacao de cenarios.");
+    }
+  }, remaining);
+  timer.unref();
+  scenarioVotingTimers.set(room.roomId, timer);
+}
+
 function broadcastRoom(room: PublicRoomState): void {
   room.activeTurnStartedAt = trackActiveTurn(room);
   io.to(room.roomId).emit("room:update", room);
@@ -262,8 +292,14 @@ function broadcastRoom(room: PublicRoomState): void {
     clearBotTurnTimer(room.roomId);
     clearAutomaticScoreTimer(room.roomId);
     clearTurnPunishmentTimer(room.roomId);
+    clearScenarioVotingTimer(room.roomId);
     turnStartByRoom.delete(room.roomId);
     return;
+  }
+  if (room.status === "scenario_voting") {
+    scheduleScenarioVotingDeadline(room);
+  } else {
+    clearScenarioVotingTimer(room.roomId);
   }
   scheduleAutomaticScore(room.roomId);
   scheduleBotTurn(room.roomId);
@@ -427,6 +463,24 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = startGame(payload.roomId, playerId);
       broadcastRoom(room);
+      if (room.status === "scenario_voting" && isScenarioVotingComplete(room.roomId)) {
+        const finalized = finalizeScenarioVoting(room.roomId);
+        broadcastRoom(finalized);
+        return finalized;
+      }
+      return room;
+    });
+  });
+
+  socket.on("scenario:vote", (payload: { roomId: string; votes: ScenarioCardId[] }, reply) => {
+    withReply(reply, () => {
+      const room = castScenarioVote(payload.roomId, playerId, payload.votes);
+      broadcastRoom(room);
+      if (isScenarioVotingComplete(room.roomId)) {
+        const finalized = finalizeScenarioVoting(room.roomId);
+        broadcastRoom(finalized);
+        return finalized;
+      }
       return room;
     });
   });

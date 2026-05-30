@@ -23,7 +23,8 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { ForestCardState, MiniExpansionId, PublicRoomState, Resource, RoomPlayer, RoomSummary, SpeciesId } from "@oikos/shared";
+import type { ForestCardState, MiniExpansionId, PublicRoomState, Resource, RoomPlayer, RoomSummary, ScenarioCardId, ScenarioVotingState, SpeciesId } from "@oikos/shared";
+import { scenarioCards } from "@oikos/content";
 import { playBotStep, playRandomStep } from "@oikos/rules";
 import { loadRooms } from "./store";
 
@@ -37,6 +38,7 @@ interface ServerRoom {
   warnings: string[];
   botTurnDelayMs?: number;
   turnTimerMs?: number | null;
+  scenarioVoting?: ScenarioVotingState | null;
   // Connected spectators (by playerId). They receive room broadcasts but never
   // occupy a player slot or affect game state. Not persisted: rebuilt as sockets
   // reconnect after a restart.
@@ -50,6 +52,58 @@ interface ServerRoom {
 const MIN_TURN_TIMER_MS = 15000;
 const MAX_TURN_TIMER_MS = 300000;
 const defaultMiniExpansions: MiniExpansionId[] = ["objectives"];
+export const SCENARIO_VOTING_DURATION_MS = 50000;
+
+function pickRandom<T>(items: T[], random: () => number): T {
+  return items[Math.floor(random() * items.length)];
+}
+
+function shuffleArr<T>(items: T[], random: () => number): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function tallyScenarioVotes(voting: ScenarioVotingState, random: () => number): ScenarioCardId[] {
+  const tally = new Map<ScenarioCardId, number>();
+  for (const id of voting.candidateIds) tally.set(id, 0);
+  for (const votes of Object.values(voting.votesByPlayer)) {
+    for (const id of votes) {
+      if (tally.has(id)) tally.set(id, (tally.get(id) ?? 0) + 1);
+    }
+  }
+  const byCount = new Map<number, ScenarioCardId[]>();
+  for (const [id, count] of tally) {
+    const arr = byCount.get(count) ?? [];
+    arr.push(id);
+    byCount.set(count, arr);
+  }
+  const sortedCounts = Array.from(byCount.keys()).sort((a, b) => b - a);
+  const selected: ScenarioCardId[] = [];
+  for (const count of sortedCounts) {
+    const tied = shuffleArr(byCount.get(count) ?? [], random);
+    for (const id of tied) {
+      if (selected.length >= 2) break;
+      selected.push(id);
+    }
+    if (selected.length >= 2) break;
+  }
+  return selected;
+}
+
+function fillMissingScenarioVotes(voting: ScenarioVotingState, players: RoomPlayer[], random: () => number): void {
+  for (const player of players) {
+    const existing = voting.votesByPlayer[player.playerId] ?? [];
+    if (existing.length >= 2) continue;
+    const pool = voting.candidateIds.filter((id) => !existing.includes(id));
+    const shuffled = shuffleArr(pool, random);
+    const needed = 2 - existing.length;
+    voting.votesByPlayer[player.playerId] = [...existing, ...shuffled.slice(0, needed)];
+  }
+}
 
 const rooms = new Map<string, ServerRoom>();
 
@@ -71,7 +125,8 @@ for (const persisted of loadRooms()) {
     botTurnDelayMs: persisted.botTurnDelayMs,
     turnTimerMs: persisted.turnTimerMs ?? null,
     spectators: new Set<string>(),
-    password: null
+    password: null,
+    scenarioVoting: persisted.scenarioVoting ?? null
   });
 }
 
@@ -100,7 +155,8 @@ export function createRoom(hostSocketId: string, hostName: string, password?: st
     warnings: [],
     turnTimerMs: null,
     spectators: new Set<string>(),
-    password: normalizePassword(password)
+    password: normalizePassword(password),
+    scenarioVoting: null
   };
 
   rooms.set(roomId, room);
@@ -455,6 +511,28 @@ export function startGame(roomId: string, playerId: string): PublicRoomState {
     );
   }
 
+  if (room.enabledMiniExpansions.includes("scenarios")) {
+    const candidateIds = shuffleArr(scenarioCards.map((c) => c.id), Math.random);
+    const votesByPlayer: Record<string, ScenarioCardId[]> = {};
+    for (const player of room.players) {
+      if (player.isBot) {
+        const shuffled = shuffleArr(candidateIds, Math.random);
+        votesByPlayer[player.playerId] = shuffled.slice(0, 2);
+      } else {
+        votesByPlayer[player.playerId] = [];
+      }
+    }
+    room.scenarioVoting = {
+      candidateIds,
+      votesByPlayer,
+      deadline: Date.now() + SCENARIO_VOTING_DURATION_MS,
+      selectedIds: null
+    };
+    room.status = "scenario_voting";
+    room.warnings = [];
+    return toPublicRoom(room);
+  }
+
   room.game = createInitialGameState(roomId, room.players, Math.random, undefined, {
     enabledMiniExpansions: room.enabledMiniExpansions
   });
@@ -462,6 +540,43 @@ export function startGame(roomId: string, playerId: string): PublicRoomState {
   room.warnings = room.game.contentWarnings;
 
   return toPublicRoom(room);
+}
+
+export function castScenarioVote(roomId: string, playerId: string, votes: ScenarioCardId[]): PublicRoomState {
+  const room = getRoom(roomId);
+  if (room.status !== "scenario_voting" || !room.scenarioVoting) {
+    throw new Error("Votação de cenários não está ativa.");
+  }
+  const player = getPlayer(room, playerId);
+  if (!player) throw new Error("Jogador não encontrado.");
+  const unique = Array.from(new Set(votes)).filter((id) => room.scenarioVoting!.candidateIds.includes(id));
+  if (unique.length > 2) throw new Error("Máximo 2 votos por jogador.");
+  room.scenarioVoting.votesByPlayer[playerId] = unique;
+  return toPublicRoom(room);
+}
+
+export function finalizeScenarioVoting(roomId: string): PublicRoomState {
+  const room = getRoom(roomId);
+  if (room.status !== "scenario_voting" || !room.scenarioVoting) {
+    return toPublicRoom(room);
+  }
+  fillMissingScenarioVotes(room.scenarioVoting, room.players, Math.random);
+  const selected = tallyScenarioVotes(room.scenarioVoting, Math.random);
+  room.scenarioVoting.selectedIds = selected;
+
+  room.game = createInitialGameState(room.roomId, room.players, Math.random, undefined, {
+    enabledMiniExpansions: room.enabledMiniExpansions,
+    activeScenarioIds: selected
+  });
+  room.status = "setup";
+  room.warnings = room.game.contentWarnings;
+  return toPublicRoom(room);
+}
+
+export function isScenarioVotingComplete(roomId: string): boolean {
+  const room = rooms.get(roomId.trim().toUpperCase());
+  if (!room || room.status !== "scenario_voting" || !room.scenarioVoting) return false;
+  return room.players.every((p) => (room.scenarioVoting!.votesByPlayer[p.playerId] ?? []).length >= 2);
 }
 
 export function setMiniExpansion(roomId: string, playerId: string, expansionId: MiniExpansionId, enabled: boolean): PublicRoomState {
@@ -475,7 +590,7 @@ export function setMiniExpansion(roomId: string, playerId: string, expansionId: 
     throw new Error("Mini-expansões só podem ser alteradas no lobby.");
   }
 
-  if (expansionId !== "objectives") {
+  if (expansionId !== "objectives" && expansionId !== "scenarios") {
     throw new Error("Mini-expansão indisponível.");
   }
 
@@ -917,7 +1032,17 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     botTurnDelayMs: room.botTurnDelayMs,
     turnTimerMs: room.turnTimerMs ?? null,
     spectatorCount: room.spectators.size,
-    isPrivate: Boolean(room.password)
+    isPrivate: Boolean(room.password),
+    scenarioVoting: room.scenarioVoting
+      ? {
+          candidateIds: [...room.scenarioVoting.candidateIds],
+          votesByPlayer: Object.fromEntries(
+            Object.entries(room.scenarioVoting.votesByPlayer).map(([id, votes]) => [id, [...votes]])
+          ),
+          deadline: room.scenarioVoting.deadline,
+          selectedIds: room.scenarioVoting.selectedIds ? [...room.scenarioVoting.selectedIds] : null
+        }
+      : null
   };
 }
 

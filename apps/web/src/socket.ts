@@ -1,5 +1,5 @@
 import { io, type Socket } from "socket.io-client";
-import type { ForestCardState, MiniExpansionId, PublicRoomState, Resource, RoomSummary, SpeciesId } from "@oikos/shared";
+import type { ForestCardState, MiniExpansionId, PublicRoomState, Resource, RoomSummary, ScenarioCardId, SpeciesId } from "@oikos/shared";
 
 export interface SocketReply<T> {
   ok: boolean;
@@ -106,6 +106,8 @@ export const roomApi = {
   ready: (socket: OikosSocket, roomId: string, ready: boolean) =>
     emitWithReply<PublicRoomState>(socket, "player:ready", { roomId, ready }),
   start: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "game:start", { roomId }),
+  voteScenarios: (socket: OikosSocket, roomId: string, votes: ScenarioCardId[]) =>
+    emitWithReply<PublicRoomState>(socket, "scenario:vote", { roomId, votes }),
   selectObjective: (socket: OikosSocket, roomId: string, objectiveCardId: string) =>
     emitWithReply<PublicRoomState>(socket, "objective:select", { roomId, objectiveCardId }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>
