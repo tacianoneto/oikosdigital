@@ -1,6 +1,7 @@
 import type { ObjectiveCardDefinition, Resource } from "@oikos/shared";
 
 const objectiveBasePath = "/assets/objective-cards";
+export const objectiveCardBackPath = `${objectiveBasePath}/Verso das cartas OBJ.png`;
 
 function objectiveCard(
   id: string,

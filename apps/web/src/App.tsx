@@ -38,6 +38,7 @@ import {
   getObjectiveCardDefinition,
   habitatLabels,
   movementLabels,
+  objectiveCardBackPath,
   objectiveCardsById,
   resourceAssets,
   resourceLabels,
@@ -193,11 +194,13 @@ const miniExpansionOptions: Array<{
   id: MiniExpansionId;
   label: string;
   description: string;
+  iconPath: string;
 }> = [
   {
     id: "objectives",
     label: "Cartas de objetivo",
-    description: "Cada jogador escolhe 1 de 2 objetivos e pode ganhar ponto extra no fim do turno."
+    description: "Cada jogador escolhe 1 de 2 objetivos e pode ganhar ponto extra no fim do turno.",
+    iconPath: objectiveCardBackPath
   }
 ];
 
@@ -3945,7 +3948,6 @@ export function App() {
                     <div className="lobby-setting-row">
                       <div className="lobby-setting-copy">
                         <strong>Mini-expansões</strong>
-                        <small>Escolha os módulos usados nesta partida.</small>
                       </div>
                       <div className="lobby-expansion-list">
                         {miniExpansionOptions.map((expansion) => {
@@ -3956,15 +3958,13 @@ export function App() {
                               type="button"
                               className={`lobby-expansion-toggle ${enabled ? "is-on" : ""}`}
                               aria-pressed={enabled}
+                              aria-label={`${enabled ? "Desligar" : "Ligar"} ${expansion.label}. ${expansion.description}`}
+                              title={expansion.description}
+                              data-tooltip={expansion.description}
                               disabled={!isHost || room.status !== "lobby"}
                               onClick={() => toggleMiniExpansion(expansion.id)}
                             >
-                              <Leaf aria-hidden="true" />
-                              <span>
-                                <strong>{expansion.label}</strong>
-                                <small>{expansion.description}</small>
-                              </span>
-                              <b>{enabled ? "Ligada" : "Desligada"}</b>
+                              <img src={encodeURI(expansion.iconPath)} alt="" />
                             </button>
                           );
                         })}
