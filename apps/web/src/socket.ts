@@ -108,6 +108,8 @@ export const roomApi = {
   start: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "game:start", { roomId }),
   voteScenarios: (socket: OikosSocket, roomId: string, votes: ScenarioCardId[]) =>
     emitWithReply<PublicRoomState>(socket, "scenario:vote", { roomId, votes }),
+  collectCaatinga: (socket: OikosSocket, roomId: string) =>
+    emitWithReply<PublicRoomState>(socket, "scenario:caatinga-collect", { roomId }),
   selectObjective: (socket: OikosSocket, roomId: string, objectiveCardId: string) =>
     emitWithReply<PublicRoomState>(socket, "objective:select", { roomId, objectiveCardId }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>

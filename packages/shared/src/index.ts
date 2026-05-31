@@ -236,6 +236,10 @@ export interface GameState {
   finalScoreBreakdown: FinalScoreBreakdown | null;
   winnerPlayerIds: string[];
   activeScenarioIds: ScenarioCardId[];
+  // Tracks per-round/per-turn scenario usage. Reset by round/turn boundaries.
+  cerradoTriggeredAtRound: number | null;
+  caatingaUsedByPlayer: Record<string, number>;
+  caatingaPending: { playerId: string; resource: Resource; location: GridPosition } | null;
 }
 
 export interface RoomPlayer {

@@ -53,6 +53,7 @@ import {
   castScenarioVote,
   finalizeScenarioVoting,
   isScenarioVotingComplete,
+  collectCaatinga,
   SCENARIO_VOTING_DURATION_MS
 } from "./rooms";
 
@@ -468,6 +469,14 @@ io.on("connection", (socket) => {
         broadcastRoom(finalized);
         return finalized;
       }
+      return room;
+    });
+  });
+
+  socket.on("scenario:caatinga-collect", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = collectCaatinga(payload.roomId, playerId);
+      broadcastRoom(room);
       return room;
     });
   });

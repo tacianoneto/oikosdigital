@@ -15,6 +15,7 @@ import {
   removePiecesForCurrentAction,
   resolveCoatiPairBonus,
   selectObjectiveCard,
+  collectCaatingaBonus,
   requiredCommonCardsForPlayers,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
@@ -630,6 +631,17 @@ export function chooseObjective(roomId: string, playerId: string, objectiveCardI
   room.status = room.game.status === "setup" ? "setup" : room.status;
   room.warnings = room.game.contentWarnings;
 
+  return toPublicRoom(room);
+}
+
+export function collectCaatinga(roomId: string, playerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+  if (!room.game) {
+    throw new Error("A partida ainda nao foi iniciada.");
+  }
+  room.game = collectCaatingaBonus(room.game, playerId);
+  room.status = room.game.status === "active" ? "active" : room.status;
+  room.warnings = room.game.contentWarnings;
   return toPublicRoom(room);
 }
 

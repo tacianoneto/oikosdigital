@@ -17,6 +17,7 @@ import type {
   FinalScoreEntry,
   GameState,
   GridPosition,
+  Habitat,
   MiniExpansionId,
   PieceLocation,
   PieceState,
@@ -631,7 +632,10 @@ export function createInitialGameState(
     contentWarnings,
     finalScoreBreakdown: null,
     winnerPlayerIds: [],
-    activeScenarioIds: [...activeScenarioIds]
+    activeScenarioIds: [...activeScenarioIds],
+    cerradoTriggeredAtRound: null,
+    caatingaUsedByPlayer: {},
+    caatingaPending: null
   };
 }
 
@@ -765,6 +769,7 @@ export function placeInitialPiece(game: GameState, playerId: string, location: G
   nextPiece.location = createPieceLocation(game, location);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location);
 
   const cardDefinition = getCardDefinitionOrNull(targetCard.definitionId);
   if (cardDefinition?.resource) {
@@ -1006,6 +1011,7 @@ export function addCoatiForCurrentAction(game: GameState, playerId: string, loca
   nextPiece.location = createPieceLocation(game, location, findFirstForestSiteWithResource(game, location, "fruit")?.siteId);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location);
   next.log = [
     ...next.log,
     {
@@ -1090,6 +1096,7 @@ export function resolveCoatiPairBonus(game: GameState, playerId: string, locatio
   nextPiece.location = createPieceLocation(game, location);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location);
   nextPlayer.score += 1;
   next.resolvedCoatiPairBonuses = [...new Set([...next.resolvedCoatiPairBonuses, pending.pairKey])];
   next.pendingCoatiPairBonus = null;
@@ -1208,6 +1215,7 @@ export function addCapuchinForCurrentAction(game: GameState, playerId: string, l
   nextPiece.location = createPieceLocation(game, location);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location);
   const capuchinTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -1404,6 +1412,7 @@ export function addMacawForCurrentAction(game: GameState, playerId: string, loca
   nextPiece.location = createPieceLocation(game, location, action === "A" ? findFirstForestSiteWithResource(game, location, "egg")?.siteId : undefined);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location);
   const macawTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -1701,6 +1710,7 @@ export function addArmadilloForCurrentAction(game: GameState, playerId: string, 
   nextPiece.state.hidden = false;
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location);
   const armadilloTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -1995,6 +2005,8 @@ export function removeBasePieceForWolfAction(game: GameState, playerId: string, 
     removedPlayer.resources[resource] += 1;
   }
 
+  if (targetPiece.location) applyCaatingaTrigger(next, playerId, targetPiece.location);
+
   if (nextTargetPiece.speciesId === "coati") {
     pruneResolvedCoatiPairBonuses(next, nextTargetPiece.ownerId);
   }
@@ -2170,6 +2182,7 @@ export function addWolfForCurrentAction(game: GameState, playerId: string, locat
   nextPiece.location = createPieceLocation(game, location, findFirstForestSiteWithResource(game, location, "meat")?.siteId);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location);
   const wolfTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -2509,6 +2522,11 @@ export function removePiecesForCurrentAction(game: GameState, playerId: string, 
 
   nextPlayer.piecesInForest = nextPlayer.piecesInForest.filter((pieceId) => !uniquePieceIds.includes(pieceId));
   nextPlayer.reservePieces = [...nextPlayer.reservePieces, ...uniquePieceIds];
+  // Caatinga trigger: use location of first removed piece.
+  {
+    const firstRemoved = game.pieces.find((p) => uniquePieceIds.includes(p.pieceId))?.location;
+    if (firstRemoved) applyCaatingaTrigger(next, playerId, firstRemoved);
+  }
   pruneResolvedCoatiPairBonuses(next, playerId);
   next.log = [
     ...next.log,
@@ -2901,6 +2919,7 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
   game.pendingCoatiPairBonus = null;
   game.pendingMacawMovedPiece = null;
   game.pendingWolfMoves = null;
+  game.caatingaPending = null;
 
   if (nextTurnIndex === 0) {
     game.round += 1;
@@ -2921,6 +2940,90 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
   }
 
   skipAutomaticActionIfNeeded(game);
+}
+
+function applyCaatingaTrigger(game: GameState, playerId: string, location: GridPosition): void {
+  if (!(game.activeScenarioIds ?? []).includes("caatinga")) return;
+  if (game.activePlayerId !== playerId) return;
+  const player = findPlayer(game, playerId);
+  if ((game.caatingaUsedByPlayer ?? {})[playerId] === player.turnsTaken) return;
+  const card = getForestCardAtPosition(game, location);
+  const def = card ? getCardDefinitionOrNull(card.definitionId) : null;
+  const resource = def?.resource ?? null;
+  if (!resource) return;
+  game.caatingaPending = { playerId, resource, location: { x: location.x, y: location.y } };
+}
+
+export function collectCaatingaBonus(game: GameState, playerId: string): GameState {
+  if (game.status !== "active") {
+    throw new Error("Bonus de Caatinga so pode ser coletado durante a fase ativa.");
+  }
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Apenas o jogador ativo pode coletar o bonus de Caatinga.");
+  }
+  if (!game.caatingaPending || game.caatingaPending.playerId !== playerId) {
+    throw new Error("Nenhum bonus de Caatinga disponivel.");
+  }
+
+  const next = cloneGameState(game);
+  const player = findPlayer(next, playerId);
+  const pending = next.caatingaPending!;
+  player.resources = {
+    ...player.resources,
+    [pending.resource]: (player.resources[pending.resource] ?? 0) + 1
+  };
+  next.caatingaUsedByPlayer = { ...next.caatingaUsedByPlayer, [playerId]: player.turnsTaken };
+  next.caatingaPending = null;
+  next.log = [
+    ...next.log,
+    {
+      id: `caatinga_collect_${playerId}_${next.log.length + 1}`,
+      message: `${player.name} coletou +1 ${pending.resource} (Caatinga).`,
+      createdAt: Date.now()
+    }
+  ];
+  return next;
+}
+
+function applyPantanalScenario(game: GameState): void {
+  for (const player of game.players) {
+    if (player.hand.length === 0) {
+      player.score += 1;
+      game.log = [
+        ...game.log,
+        {
+          id: `pantanal_no_card_${player.playerId}_${game.log.length + 1}`,
+          message: `${player.name} sem cartas na mão (Pantanal): +1 ponto.`,
+          createdAt: Date.now()
+        }
+      ];
+      continue;
+    }
+    const cardId = player.hand[0];
+    player.hand = player.hand.slice(1);
+    const definition = getCardDefinitionOrNull(cardId);
+    const resource = definition?.resource ?? null;
+    if (!resource) {
+      game.log = [
+        ...game.log,
+        {
+          id: `pantanal_reveal_${player.playerId}_${game.log.length + 1}`,
+          message: `${player.name} revelou ${definition?.label ?? "carta"} (Pantanal): sem recurso para adicionar.`,
+          createdAt: Date.now()
+        }
+      ];
+      continue;
+    }
+    player.resources[resource] = (player.resources[resource] ?? 0) + 2;
+    game.log = [
+      ...game.log,
+      {
+        id: `pantanal_reveal_${player.playerId}_${game.log.length + 1}`,
+        message: `${player.name} revelou ${definition?.label ?? "carta"} (Pantanal): +2 ${resource}.`,
+        createdAt: Date.now()
+      }
+    ];
+  }
 }
 
 const RESOURCE_MAJORITY_POINTS = 1;
@@ -3149,8 +3252,17 @@ function getPopulationValue(speciesId: SpeciesId | null): number {
 }
 
 function applyFinalScoring(game: GameState): void {
+  const scenarioIds = new Set(game.activeScenarioIds ?? []);
+
+  if (scenarioIds.has("pantanal")) {
+    applyPantanalScenario(game);
+  }
+
+  const amazoniaActive = scenarioIds.has("amazonia");
+
   // Majority per resource, except seed. Each player tied for the most of a
-  // resource scores 1 point and spends ALL of that resource.
+  // resource scores 1 point and spends ALL of that resource. With Amazonia
+  // scenario: solo winner scores 2, tied players score 1 each.
   const resourceMajorities = MAJORITY_RESOURCES.map((resource) => {
     const topCount = game.players.reduce((max, player) => Math.max(max, player.resources[resource] ?? 0), 0);
     const winnerPlayerIds =
@@ -3158,11 +3270,17 @@ function applyFinalScoring(game: GameState): void {
         ? game.players.filter((player) => (player.resources[resource] ?? 0) === topCount).map((player) => player.playerId)
         : [];
 
+    const pointsEach = amazoniaActive
+      ? winnerPlayerIds.length === 1
+        ? 2
+        : 1
+      : RESOURCE_MAJORITY_POINTS;
+
     return {
       resource,
       topCount,
       winnerPlayerIds,
-      pointsEach: RESOURCE_MAJORITY_POINTS
+      pointsEach
     };
   });
 
@@ -3390,6 +3508,14 @@ function cloneGameState(game: GameState): GameState {
     ...game,
     enabledMiniExpansions: [...(game.enabledMiniExpansions ?? ["objectives"])],
     activeScenarioIds: [...(game.activeScenarioIds ?? [])],
+    cerradoTriggeredAtRound: game.cerradoTriggeredAtRound ?? null,
+    caatingaUsedByPlayer: { ...(game.caatingaUsedByPlayer ?? {}) },
+    caatingaPending: game.caatingaPending
+      ? {
+          ...game.caatingaPending,
+          location: { ...game.caatingaPending.location }
+        }
+      : null,
     pendingCoatiPairBonus: game.pendingCoatiPairBonus
       ? {
           ...game.pendingCoatiPairBonus,
@@ -3462,10 +3588,29 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
   }
 
   const player = findPlayer(game, playerId);
+  const cerradoActive = (game.activeScenarioIds ?? []).includes("cerrado");
+  const cerradoTriggered =
+    cerradoActive &&
+    game.cerradoTriggeredAtRound !== game.round &&
+    (player.resources[resource] ?? 0) === 0;
+  const gain = cerradoTriggered ? 2 : 1;
+
   player.resources = {
     ...player.resources,
-    [resource]: player.resources[resource] + 1
+    [resource]: (player.resources[resource] ?? 0) + gain
   };
+
+  if (cerradoTriggered) {
+    game.cerradoTriggeredAtRound = game.round;
+    game.log = [
+      ...game.log,
+      {
+        id: `cerrado_bonus_${player.playerId}_${game.round}_${game.log.length + 1}`,
+        message: `${player.name} ganhou +2 ${resource} (Cerrado, primeiro novo recurso da rodada).`,
+        createdAt: Date.now()
+      }
+    ];
+  }
 
   return resource;
 }
@@ -3645,12 +3790,37 @@ function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, orig
     return [];
   }
 
-  const movementKind = getMovementKindForSpecies(speciesId, playedCard.habitat);
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
+  const pampaActive = (game.activeScenarioIds ?? []).includes("pampa");
+  const allHabitats: Habitat[] = ["forest", "field", "river"];
+  const habitatPool = pampaActive
+    ? allHabitats.filter((habitat) => habitat !== playedCard.habitat)
+    : [playedCard.habitat];
 
-  return getPotentialDestinations(origin, movementKind)
-    .filter((position) => forestPositions.has(positionKey(position)))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
+  const collected = new Map<string, GridPosition>();
+  for (const habitat of habitatPool) {
+    const kind = getMovementKindForSpecies(speciesId, habitat);
+    for (const position of getPotentialDestinations(origin, kind)) {
+      const key = positionKey(position);
+      if (forestPositions.has(key) && !collected.has(key)) {
+        collected.set(key, position);
+      }
+    }
+  }
+
+  // Pampa fallback: if no movement of any other suit is reachable, allow the
+  // original played-card habitat so the player isn't stuck.
+  if (pampaActive && collected.size === 0) {
+    const kind = getMovementKindForSpecies(speciesId, playedCard.habitat);
+    for (const position of getPotentialDestinations(origin, kind)) {
+      const key = positionKey(position);
+      if (forestPositions.has(key)) {
+        collected.set(key, position);
+      }
+    }
+  }
+
+  return Array.from(collected.values()).sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 function getWolfMovablePieceIdsForCurrentAction(game: GameState, playerId: string): string[] {

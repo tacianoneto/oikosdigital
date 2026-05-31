@@ -6976,6 +6976,38 @@ input:focus {
   pointer-events: none;
 }
 
+.caatinga-collect-btn {
+  margin-top: 10px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(242, 193, 78, 0.85), rgba(79, 174, 110, 0.75));
+  color: var(--ink);
+  border: 1px solid rgba(242, 193, 78, 0.85);
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.caatinga-collect-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.45);
+}
+
+.caatinga-collect-btn img {
+  width: 18px;
+  height: 18px;
+}
+
 /* =====================================================
    SCENARIO VOTING OVERLAY
    ===================================================== */

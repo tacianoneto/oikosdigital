@@ -95,7 +95,8 @@ import {
   scoreCapuchinHabitatPresence,
   scoreMacawLines,
   spendJaguarMeatForPoints,
-  spendWolfResourcesForPoints
+  spendWolfResourcesForPoints,
+  collectCaatingaBonus
 } from "@oikos/rules";
 import type {
   GameState,
@@ -4597,6 +4598,35 @@ export function App() {
                 </div>
               )}
             </div>
+
+            {room?.game?.caatingaPending &&
+              controlledPlayerId &&
+              room.game.caatingaPending.playerId === controlledPlayerId && (
+                <button
+                  type="button"
+                  className="caatinga-collect-btn"
+                  onClick={() => {
+                    if (!room?.game?.caatingaPending) return;
+                    if (isLocalRoom) {
+                      try {
+                        const nextGame = collectCaatingaBonus(room.game, controlledPlayerId);
+                        setRoom((current) => (current ? { ...current, game: nextGame } : current));
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : "Falha ao coletar bonus.");
+                      }
+                    } else {
+                      const rid = room.roomId;
+                      run(() => roomApi.collectCaatinga(requireSocket(), rid));
+                    }
+                  }}
+                >
+                  <img
+                    src={encodeURI(resourceAssets[room.game.caatingaPending.resource])}
+                    alt=""
+                  />
+                  Coletar +1 {resourceLabels[room.game.caatingaPending.resource]} (Caatinga)
+                </button>
+              )}
           </section>
         )}
 
