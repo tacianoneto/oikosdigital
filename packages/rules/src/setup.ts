@@ -663,7 +663,7 @@ export function createInitialGameState(
     activeThreatCardId: null,
     threatDeckIds,
     threatDiscardIds: [],
-    cerradoTriggeredAtRound: null,
+    cerradoTriggeredByPlayer: {},
     caatingaUsedByPlayer: {},
     caatingaPending: null,
     sharedHand,
@@ -801,7 +801,7 @@ export function placeInitialPiece(game: GameState, playerId: string, location: G
   nextPiece.location = createPieceLocation(game, location);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location);
+  applyCaatingaTrigger(next, playerId, location, "add");
 
   const cardDefinition = getCardDefinitionOrNull(targetCard.definitionId);
   if (cardDefinition?.resource) {
@@ -1046,7 +1046,7 @@ export function addCoatiForCurrentAction(game: GameState, playerId: string, loca
   nextPiece.location = createPieceLocation(game, location, findFirstForestSiteWithResource(game, location, "fruit")?.siteId);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location);
+  applyCaatingaTrigger(next, playerId, location, "add");
   next.log = [
     ...next.log,
     {
@@ -1131,7 +1131,7 @@ export function resolveCoatiPairBonus(game: GameState, playerId: string, locatio
   nextPiece.location = createPieceLocation(game, location);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location);
+  applyCaatingaTrigger(next, playerId, location, "add");
   nextPlayer.score += 1;
   next.resolvedCoatiPairBonuses = [...new Set([...next.resolvedCoatiPairBonuses, pending.pairKey])];
   next.pendingCoatiPairBonus = null;
@@ -1250,7 +1250,7 @@ export function addCapuchinForCurrentAction(game: GameState, playerId: string, l
   nextPiece.location = createPieceLocation(game, location);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location);
+  applyCaatingaTrigger(next, playerId, location, "add");
   const capuchinTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -1447,7 +1447,7 @@ export function addMacawForCurrentAction(game: GameState, playerId: string, loca
   nextPiece.location = createPieceLocation(game, location, action === "A" ? findFirstForestSiteWithResource(game, location, "egg")?.siteId : undefined);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location);
+  applyCaatingaTrigger(next, playerId, location, "add");
   const macawTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -1745,7 +1745,7 @@ export function addArmadilloForCurrentAction(game: GameState, playerId: string, 
   nextPiece.state.hidden = false;
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location);
+  applyCaatingaTrigger(next, playerId, location, "add");
   const armadilloTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -2040,7 +2040,7 @@ export function removeBasePieceForWolfAction(game: GameState, playerId: string, 
     removedPlayer.resources[resource] += 1;
   }
 
-  if (targetPiece.location) applyCaatingaTrigger(next, playerId, targetPiece.location);
+  if (targetPiece.location) applyCaatingaTrigger(next, playerId, targetPiece.location, "remove");
 
   if (nextTargetPiece.speciesId === "coati") {
     pruneResolvedCoatiPairBonuses(next, nextTargetPiece.ownerId);
@@ -2217,7 +2217,7 @@ export function addWolfForCurrentAction(game: GameState, playerId: string, locat
   nextPiece.location = createPieceLocation(game, location, findFirstForestSiteWithResource(game, location, "meat")?.siteId);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location);
+  applyCaatingaTrigger(next, playerId, location, "add");
   const wolfTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
   next.log = [
     ...next.log,
@@ -2560,7 +2560,7 @@ export function removePiecesForCurrentAction(game: GameState, playerId: string, 
   // Caatinga trigger: use location of first removed piece.
   {
     const firstRemoved = game.pieces.find((p) => uniquePieceIds.includes(p.pieceId))?.location;
-    if (firstRemoved) applyCaatingaTrigger(next, playerId, firstRemoved);
+    if (firstRemoved) applyCaatingaTrigger(next, playerId, firstRemoved, "remove");
   }
   pruneResolvedCoatiPairBonuses(next, playerId);
   next.log = [
@@ -2655,19 +2655,56 @@ export function getValidJaguarMovementDestinations(game: GameState, playerId: st
   }
 
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
-  const movementKind =
-    game.activeThreatCardId === "threat_6"
-      ? "knight_jump"
-      : action === "A"
-        ? "adjacent"
-        : getJaguarMovementKindFromCurrentLocation(game, jaguarPiece.location);
-  if (!movementKind) {
+
+  if (game.activeThreatCardId === "threat_6") {
+    return getPotentialDestinations(jaguarPiece.location, "knight_jump")
+      .filter((position) => forestPositions.has(positionKey(position)))
+      .sort((a, b) => a.y - b.y || a.x - b.x);
+  }
+
+  if (action === "A") {
+    return getPotentialDestinations(jaguarPiece.location, "adjacent")
+      .filter((position) => forestPositions.has(positionKey(position)))
+      .sort((a, b) => a.y - b.y || a.x - b.x);
+  }
+
+  const currentCard = getForestCardAtPosition(game, jaguarPiece.location);
+  const currentDef = currentCard ? getCardDefinitionOrNull(currentCard.definitionId) : null;
+  const currentHabitat = currentDef?.habitat ?? null;
+  if (!currentHabitat) {
     return [];
   }
 
-  return getPotentialDestinations(jaguarPiece.location, movementKind)
-    .filter((position) => forestPositions.has(positionKey(position)))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
+  const pampaActive = (game.activeScenarioIds ?? []).includes("pampa");
+  const allHabitats: Habitat[] = ["forest", "field", "river"];
+  const habitatPool = pampaActive
+    ? allHabitats.filter((habitat) => habitat !== currentHabitat)
+    : [currentHabitat];
+
+  const collected = new Map<string, GridPosition>();
+  for (const habitat of habitatPool) {
+    const kind = getMovementKindForSpecies("jaguar", habitat);
+    for (const position of getPotentialDestinations(jaguarPiece.location, kind)) {
+      const key = positionKey(position);
+      if (forestPositions.has(key) && !collected.has(key)) {
+        collected.set(key, position);
+      }
+    }
+  }
+
+  // Pampa fallback: if no destination via alternate habitats, allow the
+  // jaguar's current-card habitat so the player isn't stuck.
+  if (pampaActive && collected.size === 0) {
+    const kind = getMovementKindForSpecies("jaguar", currentHabitat);
+    for (const position of getPotentialDestinations(jaguarPiece.location, kind)) {
+      const key = positionKey(position);
+      if (forestPositions.has(key)) {
+        collected.set(key, position);
+      }
+    }
+  }
+
+  return Array.from(collected.values()).sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 export function movePieceForCurrentAction(
@@ -2858,6 +2895,8 @@ export function moveJaguarForCurrentAction(
     if (nextTargetPiece.speciesId === "coati") {
       pruneResolvedCoatiPairBonuses(next, nextTargetPiece.ownerId);
     }
+
+    applyCaatingaTrigger(next, playerId, destination, "remove");
   }
 
   const jaguarDestCard = next.forest.cards.find((card) => card.x === destination.x && card.y === destination.y);
@@ -3133,7 +3172,12 @@ export function discardSharedHandCard(game: GameState, playerId: string, cardId:
   return next;
 }
 
-function applyCaatingaTrigger(game: GameState, playerId: string, location: GridPosition): void {
+function applyCaatingaTrigger(
+  game: GameState,
+  playerId: string,
+  location: GridPosition,
+  trigger: "add" | "remove"
+): void {
   if (!(game.activeScenarioIds ?? []).includes("caatinga")) return;
   if (game.activePlayerId !== playerId) return;
   const player = findPlayer(game, playerId);
@@ -3142,34 +3186,51 @@ function applyCaatingaTrigger(game: GameState, playerId: string, location: GridP
   const def = card ? getCardDefinitionOrNull(card.definitionId) : null;
   const resource = def?.resource ?? null;
   if (!resource) return;
-  game.caatingaPending = { playerId, resource, location: { x: location.x, y: location.y } };
+  game.caatingaPending = {
+    playerId,
+    resource,
+    location: { x: location.x, y: location.y },
+    trigger
+  };
 }
 
-export function collectCaatingaBonus(game: GameState, playerId: string): GameState {
+export function collectCaatingaBonus(
+  game: GameState,
+  playerId: string,
+  mode: "gain" | "lose" = "gain"
+): GameState {
   if (game.status !== "active") {
     throw new Error("Bonus de Caatinga so pode ser coletado durante a fase ativa.");
   }
   if (game.activePlayerId !== playerId) {
-    throw new Error("Apenas o jogador ativo pode coletar o bonus de Caatinga.");
+    throw new Error("Apenas o jogador ativo pode resolver Caatinga.");
   }
   if (!game.caatingaPending || game.caatingaPending.playerId !== playerId) {
-    throw new Error("Nenhum bonus de Caatinga disponivel.");
+    throw new Error("Nenhum efeito de Caatinga disponivel.");
   }
 
   const next = cloneGameState(game);
   const player = findPlayer(next, playerId);
   const pending = next.caatingaPending!;
+  const current = player.resources[pending.resource] ?? 0;
+  if (mode === "lose" && current <= 0) {
+    throw new Error("Sem recurso suficiente para perder em Caatinga.");
+  }
+  const delta = mode === "gain" ? 1 : -1;
   player.resources = {
     ...player.resources,
-    [pending.resource]: (player.resources[pending.resource] ?? 0) + 1
+    [pending.resource]: current + delta
   };
   next.caatingaUsedByPlayer = { ...next.caatingaUsedByPlayer, [playerId]: player.turnsTaken };
   next.caatingaPending = null;
   next.log = [
     ...next.log,
     {
-      id: `caatinga_collect_${playerId}_${next.log.length + 1}`,
-      message: `${player.name} coletou +1 ${pending.resource} (Caatinga).`,
+      id: `caatinga_resolve_${playerId}_${next.log.length + 1}`,
+      message:
+        mode === "gain"
+          ? `${player.name} coletou +1 ${pending.resource} (Caatinga).`
+          : `${player.name} perdeu 1 ${pending.resource} (Caatinga).`,
       createdAt: Date.now()
     }
   ];
@@ -3702,7 +3763,7 @@ function cloneGameState(game: GameState): GameState {
     activeThreatCardId: game.activeThreatCardId ?? null,
     threatDeckIds: [...(game.threatDeckIds ?? [])],
     threatDiscardIds: [...(game.threatDiscardIds ?? [])],
-    cerradoTriggeredAtRound: game.cerradoTriggeredAtRound ?? null,
+    cerradoTriggeredByPlayer: { ...(game.cerradoTriggeredByPlayer ?? {}) },
     caatingaUsedByPlayer: { ...(game.caatingaUsedByPlayer ?? {}) },
     caatingaPending: game.caatingaPending
       ? {
@@ -3802,7 +3863,7 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
   const cerradoActive = (game.activeScenarioIds ?? []).includes("cerrado");
   const cerradoTriggered =
     cerradoActive &&
-    game.cerradoTriggeredAtRound !== game.round &&
+    (game.cerradoTriggeredByPlayer ?? {})[playerId] !== game.round &&
     (player.resources[resource] ?? 0) === 0;
   const gain = cerradoTriggered ? 2 : 1;
 
@@ -3812,7 +3873,10 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
   };
 
   if (cerradoTriggered) {
-    game.cerradoTriggeredAtRound = game.round;
+    game.cerradoTriggeredByPlayer = {
+      ...(game.cerradoTriggeredByPlayer ?? {}),
+      [playerId]: game.round
+    };
     game.log = [
       ...game.log,
       {
@@ -4185,16 +4249,6 @@ function getCoatiPiecesByLocation(game: GameState, playerId: string): Map<string
 
 function getJaguarPieceInForest(game: GameState, playerId: string): PieceState | null {
   return game.pieces.find((piece) => piece.ownerId === playerId && piece.speciesId === "jaguar" && piece.location) ?? null;
-}
-
-function getJaguarMovementKindFromCurrentLocation(game: GameState, location: GridPosition): ReturnType<typeof getMovementKindForSpecies> | null {
-  const card = getForestCardAtPosition(game, location);
-  const cardDefinition = card ? getCardDefinitionOrNull(card.definitionId) : null;
-  if (!cardDefinition?.habitat) {
-    return null;
-  }
-
-  return getMovementKindForSpecies("jaguar", cardDefinition.habitat);
 }
 
 function getRemovablePiecesAtPosition(game: GameState, playerId: string, location: GridPosition): PieceState[] {

@@ -4889,32 +4889,45 @@ export function App() {
 
             {room?.game?.caatingaPending &&
               controlledPlayerId &&
-              room.game.caatingaPending.playerId === controlledPlayerId && (
-                <button
-                  type="button"
-                  className="caatinga-collect-btn"
-                  onClick={() => {
-                    if (!room?.game?.caatingaPending) return;
-                    if (isLocalRoom) {
-                      try {
-                        const nextGame = collectCaatingaBonus(room.game, controlledPlayerId);
-                        setRoom((current) => (current ? { ...current, game: nextGame } : current));
-                      } catch (e) {
-                        setError(e instanceof Error ? e.message : "Falha ao coletar bonus.");
-                      }
-                    } else {
-                      const rid = room.roomId;
-                      run(() => roomApi.collectCaatinga(requireSocket(), rid));
+              room.game.caatingaPending.playerId === controlledPlayerId && (() => {
+                const pending = room.game.caatingaPending;
+                const owned = hudGamePlayer.resources[pending.resource] ?? 0;
+                const handle = (mode: "gain" | "lose") => {
+                  if (isLocalRoom) {
+                    try {
+                      const nextGame = collectCaatingaBonus(room.game!, controlledPlayerId, mode);
+                      setRoom((current) => (current ? { ...current, game: nextGame } : current));
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "Falha ao resolver Caatinga.");
                     }
-                  }}
-                >
-                  <img
-                    src={encodeURI(resourceAssets[room.game.caatingaPending.resource])}
-                    alt=""
-                  />
-                  Coletar +1 {resourceLabels[room.game.caatingaPending.resource]} (Caatinga)
-                </button>
-              )}
+                  } else {
+                    const rid = room.roomId;
+                    run(() => roomApi.collectCaatinga(requireSocket(), rid, mode));
+                  }
+                };
+                return (
+                  <div className="caatinga-collect-row">
+                    <button
+                      type="button"
+                      className="caatinga-collect-btn"
+                      onClick={() => handle("gain")}
+                    >
+                      <img src={encodeURI(resourceAssets[pending.resource])} alt="" />
+                      +1 {resourceLabels[pending.resource]} (Caatinga)
+                    </button>
+                    <button
+                      type="button"
+                      className="caatinga-collect-btn caatinga-collect-btn--lose"
+                      onClick={() => handle("lose")}
+                      disabled={owned <= 0}
+                      title={owned <= 0 ? "Sem recurso para perder" : undefined}
+                    >
+                      <img src={encodeURI(resourceAssets[pending.resource])} alt="" />
+                      -1 {resourceLabels[pending.resource]} (Caatinga)
+                    </button>
+                  </div>
+                );
+              })()}
           </section>
         )}
 

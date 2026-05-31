@@ -257,9 +257,14 @@ export interface GameState {
   threatDeckIds: ThreatCardId[];
   threatDiscardIds: ThreatCardId[];
   // Tracks per-round/per-turn scenario usage. Reset by round/turn boundaries.
-  cerradoTriggeredAtRound: number | null;
+  cerradoTriggeredByPlayer: Record<string, number>;
   caatingaUsedByPlayer: Record<string, number>;
-  caatingaPending: { playerId: string; resource: Resource; location: GridPosition } | null;
+  caatingaPending: {
+    playerId: string;
+    resource: Resource;
+    location: GridPosition;
+    trigger: "add" | "remove";
+  } | null;
   // Mata Atlântica scenario: a single shared hand replaces per-player hands.
   // When non-null, every card-using player draws from / sees this same list.
   sharedHand: string[] | null;

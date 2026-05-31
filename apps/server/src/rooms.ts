@@ -715,12 +715,16 @@ export function chooseObjective(roomId: string, playerId: string, objectiveCardI
   return toPublicRoom(room);
 }
 
-export function collectCaatinga(roomId: string, playerId: string): PublicRoomState {
+export function collectCaatinga(
+  roomId: string,
+  playerId: string,
+  mode: "gain" | "lose" = "gain"
+): PublicRoomState {
   const room = getRoom(roomId);
   if (!room.game) {
     throw new Error("A partida ainda nao foi iniciada.");
   }
-  room.game = collectCaatingaBonus(room.game, playerId);
+  room.game = collectCaatingaBonus(room.game, playerId, mode);
   room.status = room.game.status === "active" ? "active" : room.status;
   room.warnings = room.game.contentWarnings;
   return toPublicRoom(room);

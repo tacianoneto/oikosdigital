@@ -7022,6 +7022,29 @@ input:focus {
   height: 18px;
 }
 
+.caatinga-collect-row {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.caatinga-collect-row .caatinga-collect-btn {
+  margin-top: 0;
+}
+
+.caatinga-collect-btn--lose {
+  background: linear-gradient(135deg, rgba(214, 96, 96, 0.85), rgba(120, 60, 60, 0.75));
+  border-color: rgba(214, 96, 96, 0.85);
+}
+
+.caatinga-collect-btn--lose:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .mata-discard-btn {
   position: absolute;
   top: 6px;
