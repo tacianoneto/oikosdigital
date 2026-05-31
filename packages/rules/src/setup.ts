@@ -2999,7 +2999,6 @@ function advanceActiveAction(game: GameState): void {
 function finishPlayerTurn(game: GameState, player: PlayerState): void {
   const turnBeforeIncrement = player.turnsTaken;
   player.turnsTaken += 1;
-  awardObjectivePointsForTurn(game, player);
   applyEndTurnThreatPenalty(game, player);
   // Mata Atlântica: species that don't use cards must discard 1 from the
   // shared piles on their turn. If they didn't pick one manually, auto-discard
@@ -3297,28 +3296,6 @@ const SEEDS_PER_POINT = 2;
 const MAJORITY_RESOURCES: Resource[] = ["meat", "egg", "fruit"];
 const ALL_RESOURCES: Resource[] = ["meat", "egg", "fruit", "seed"];
 
-function awardObjectivePointsForTurn(game: GameState, player: PlayerState): void {
-  const points = getObjectivePointsForTurn(game, player);
-  if (points <= 0 || !player.selectedObjectiveCardId) {
-    return;
-  }
-
-  player.score += points;
-  game.log = [
-    ...game.log,
-    {
-      id: `objective_score_${player.playerId}_${player.turnsTaken}_${game.log.length + 1}`,
-      message: `${player.name} cumpriu o objetivo e ganhou ${points} ponto(s).`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "objective",
-        actorPlayerId: player.playerId,
-        points
-      }
-    }
-  ];
-}
-
 function getObjectivePointsForTurn(game: GameState, player: PlayerState): number {
   if (!player.speciesId || !player.selectedObjectiveCardId) {
     return 0;
@@ -3563,6 +3540,7 @@ function applyFinalScoring(game: GameState): void {
 
   const entries: FinalScoreEntry[] = game.players.map((player) => {
     const baseScore = player.score;
+    const objectivePoints = getObjectivePointsForTurn(game, player);
     const resourceMajorityPoints = majorityPointsByPlayer.get(player.playerId) ?? 0;
 
     // Each player may spend 2 seeds for 1 point, as many times as possible.
@@ -3571,7 +3549,7 @@ function applyFinalScoring(game: GameState): void {
     player.resources.seed = seeds - seedPoints * SEEDS_PER_POINT;
 
     const remainingResources = ALL_RESOURCES.reduce((sum, resource) => sum + (player.resources[resource] ?? 0), 0);
-    const rawScore = baseScore + resourceMajorityPoints + seedPoints;
+    const rawScore = baseScore + objectivePoints + resourceMajorityPoints + seedPoints;
     const totalScore = Math.min(rawScore, pointCap);
     player.score = totalScore;
 
@@ -3580,6 +3558,7 @@ function applyFinalScoring(game: GameState): void {
       name: player.name,
       speciesId: player.speciesId,
       baseScore,
+      objectivePoints,
       resourceMajorityPoints,
       seedPoints,
       totalScore,

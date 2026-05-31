@@ -31,6 +31,8 @@ describe("end game scoring", () => {
     // meat -> a (+1); egg -> b (+1); fruit tie -> both (+1)
     expect(entryA.resourceMajorityPoints).toBe(2);
     expect(entryB.resourceMajorityPoints).toBe(2);
+    expect(entryA.objectivePoints).toBe(0);
+    expect(entryB.objectivePoints).toBe(0);
     // a has 5 seeds -> floor(5/2)=2 points
     expect(entryA.seedPoints).toBe(2);
     expect(entryB.seedPoints).toBe(0);
@@ -45,6 +47,26 @@ describe("end game scoring", () => {
     expect(finishedB.resources).toEqual({ meat: 1, egg: 0, fruit: 0, seed: 0 });
     expect(entryA.remainingResources).toBe(1);
     expect(entryB.remainingResources).toBe(1);
+  });
+
+  it("scores selected objective only in final scoring", () => {
+    let game = activeGame([player("p1", "coati"), player("p2", "macaw")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    a.score = 4;
+    a.selectedObjectiveCardId = "objective_12";
+    a.piecesInForest = ["a", "b", "c", "d", "e"]; // Quati has 8 pieces: more than half = +1 objective point.
+
+    game = forceEndPlayerTurn(game, "p1", "end turn");
+    const afterTurn = game.players.find((p) => p.playerId === "p1")!;
+    expect(afterTurn.score).toBe(4);
+    expect(game.log.some((entry) => entry.payload?.kind === "objective")).toBe(false);
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+    expect(entryA.baseScore).toBe(4);
+    expect(entryA.objectivePoints).toBe(1);
+    expect(entryA.totalScore).toBe(5);
+    expect(finished.players.find((p) => p.playerId === "p1")!.score).toBe(5);
   });
 
   it("tiebreak falls back to higher population value", () => {

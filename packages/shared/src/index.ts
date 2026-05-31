@@ -201,6 +201,7 @@ export interface FinalScoreEntry {
   name: string;
   speciesId: SpeciesId | null;
   baseScore: number;
+  objectivePoints: number;
   resourceMajorityPoints: number;
   seedPoints: number;
   totalScore: number;
