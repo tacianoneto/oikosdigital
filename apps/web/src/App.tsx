@@ -340,19 +340,28 @@ function ScenarioVotingOverlay({
             const selected = localVotes.includes(id);
             const winner = voting.selectedIds?.includes(id);
             return (
-              <li key={id}>
+              <li key={id} className="scenario-vote-card-wrap">
                 <button
                   type="button"
                   className={`scenario-vote-card ${selected ? "is-selected" : ""} ${winner ? "is-winner" : ""}`}
                   disabled={!canVote}
                   onClick={() => toggleVote(id)}
                   aria-pressed={selected}
-                  title={def.description}
+                  aria-label={`${def.label}: ${def.description}`}
                 >
-                  <img src={encodeURI(def.imagePath)} alt={def.label} />
+                  <span className="scenario-vote-card-img">
+                    <img src={encodeURI(def.imagePath)} alt={def.label} />
+                  </span>
                   <span className="scenario-vote-card-name">{def.label}</span>
-                  {selected && <span className="scenario-vote-card-check">✓</span>}
+                  {selected && (
+                    <span className="scenario-vote-card-check" aria-hidden="true">
+                      ✓
+                    </span>
+                  )}
                 </button>
+                <span className="scenario-vote-card-zoom" aria-hidden="true">
+                  <img src={encodeURI(def.imagePath)} alt="" />
+                </span>
               </li>
             );
           })}
