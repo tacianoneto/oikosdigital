@@ -109,6 +109,7 @@ import type {
   Resource,
   RoomPlayer,
   RoomSummary,
+  ScenarioCardDefinition,
   ScenarioCardId,
   SpeciesId
 } from "@oikos/shared";
@@ -316,10 +317,13 @@ function ScenarioVotingOverlay({
     <div className="scenario-vote-overlay" role="dialog" aria-label="Votação de cenários">
       <div className="scenario-vote-panel">
         <header className="scenario-vote-header">
-          <div>
+          <div className="scenario-vote-copy">
             <span className="scenario-vote-badge">Mini-expansão: Cenários</span>
             <h2>Vote em 2 cartas de cenário</h2>
             <p>As 2 mais votadas alteram regras durante toda esta partida.</p>
+            <div className="scenario-vote-progress" aria-hidden="true">
+              <span style={{ width: `${Math.round((votedPlayers / Math.max(1, totalPlayers)) * 100)}%` }} />
+            </div>
           </div>
           <div className={`scenario-vote-timer ${low ? "is-low" : ""}`}>
             <Clock aria-hidden="true" />
@@ -351,8 +355,14 @@ function ScenarioVotingOverlay({
                 >
                   <span className="scenario-vote-card-img">
                     <img src={encodeURI(def.imagePath)} alt={def.label} />
+                    <span className="scenario-vote-zoom-cue" aria-hidden="true">
+                      <Eye aria-hidden="true" />
+                    </span>
                   </span>
-                  <span className="scenario-vote-card-name">{def.label}</span>
+                  <span className="scenario-vote-card-copy">
+                    <span className="scenario-vote-card-name">{def.label}</span>
+                    <span className="scenario-vote-card-desc">{def.description}</span>
+                  </span>
                   {selected && (
                     <span className="scenario-vote-card-check" aria-hidden="true">
                       ✓
@@ -399,6 +409,53 @@ function ScenarioVotingOverlay({
   );
 }
 
+function ActiveScenariosDock({
+  scenarios,
+  open,
+  onToggle
+}: {
+  scenarios: ScenarioCardDefinition[];
+  open: boolean;
+  onToggle: () => void;
+}) {
+  if (scenarios.length === 0) return null;
+
+  return (
+    <aside className={`scenario-dock ${open ? "is-open" : ""}`} aria-label="Cenários ativos">
+      <button
+        type="button"
+        className="scenario-dock-toggle"
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        <MapPin aria-hidden="true" />
+        <span>Cenários</span>
+        <strong>{scenarios.length}</strong>
+        {open ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+      </button>
+      {open && (
+        <div className="scenario-dock-panel">
+          <div className="scenario-dock-head">
+            <span>Regras da partida</span>
+            <small>Ativas até o fim do jogo</small>
+          </div>
+          <div className="scenario-dock-list">
+            {scenarios.map((scenario) => (
+              <article className="scenario-dock-card" key={scenario.id}>
+                <img src={encodeURI(scenario.imagePath)} alt="" />
+                <div>
+                  <strong>{scenario.label}</strong>
+                  <p>{scenario.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 export function App() {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -430,6 +487,7 @@ export function App() {
   const [cleanBoardMode, setCleanBoardMode] = useState(false);
   const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [scenarioDockOpen, setScenarioDockOpen] = useState(false);
   // Mobile-only HUD: below this width the floating docks become bottom sheets
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
   const [isMobile, setIsMobile] = useState(isMobileWidth);
@@ -1007,6 +1065,18 @@ export function App() {
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
   const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? ["objectives"];
+  const activeScenarioDefinitions = useMemo(
+    () => (room?.game?.activeScenarioIds ?? []).map((id) => scenarioCardsById.get(id)).filter(Boolean) as ScenarioCardDefinition[],
+    [room?.game?.activeScenarioIds]
+  );
+  const activeScenarioKey = activeScenarioDefinitions.map((scenario) => scenario.id).join("|");
+  useEffect(() => {
+    if (activeScenarioKey) {
+      setScenarioDockOpen(true);
+    } else {
+      setScenarioDockOpen(false);
+    }
+  }, [activeScenarioKey]);
   const botTurnDelayMs = isLocalRoom
     ? room?.botTurnDelayMs ?? localBotTurnDelayMs
     : room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
@@ -4389,6 +4459,14 @@ export function App() {
         </button>
       )}
 
+      {hasStartedGame && !cleanBoardMode && activeScenarioDefinitions.length > 0 && (
+        <ActiveScenariosDock
+          scenarios={activeScenarioDefinitions}
+          open={scenarioDockOpen}
+          onToggle={() => setScenarioDockOpen((value) => !value)}
+        />
+      )}
+
       {hasStartedGame && !cleanBoardMode && isSpectator && (
         <div className="spectator-banner" role="status">
           <Eye aria-hidden="true" />
@@ -4493,6 +4571,20 @@ export function App() {
                 >
                   <Plus aria-hidden="true" />
                 </button>
+              </div>
+            )}
+            {activeScenarioDefinitions.length > 0 && (
+              <div className="config-scenarios">
+                <strong>Cenários ativos</strong>
+                {activeScenarioDefinitions.map((scenario) => (
+                  <article key={scenario.id} className="config-scenario-card">
+                    <img src={encodeURI(scenario.imagePath)} alt="" />
+                    <div>
+                      <span>{scenario.label}</span>
+                      <p>{scenario.description}</p>
+                    </div>
+                  </article>
+                ))}
               </div>
             )}
             <button className="secondary-button exit-button" onClick={leaveTable}>
