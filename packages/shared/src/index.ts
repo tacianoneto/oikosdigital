@@ -202,6 +202,7 @@ export interface FinalScoreEntry {
   speciesId: SpeciesId | null;
   baseScore: number;
   objectivePoints: number;
+  scenarioPoints: number;
   resourceMajorityPoints: number;
   seedPoints: number;
   totalScore: number;

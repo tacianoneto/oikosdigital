@@ -6137,7 +6137,7 @@ export function App() {
               <details className="endgame-details">
                 <summary>Ver detalhamento de pontos</summary>
                 <p className="endgame-note">
-                  Total = pontos da partida + objetivo + maioria de carne/ovo/fruta (+1 cada, gasta o recurso) + 1 ponto por 2
+                  Total = pontos da partida + objetivo + cenário + maioria de carne/ovo/fruta (+1 cada, gasta o recurso) + 1 ponto por 2
                   sementes. Limite {breakdown.pointCap} pts. Desempate: recursos restantes, depois maior população.
                 </p>
                 <table className="final-score-table">
@@ -6147,6 +6147,7 @@ export function App() {
                       <th>Jogador</th>
                       <th>Partida</th>
                       <th>Objetivo</th>
+                      <th>Cenário</th>
                       <th>Maioria</th>
                       <th>Sementes</th>
                       <th>Total</th>
@@ -6167,6 +6168,7 @@ export function App() {
                         </td>
                         <td>{entry.baseScore}</td>
                         <td>+{entry.objectivePoints}</td>
+                        <td>+{entry.scenarioPoints}</td>
                         <td>+{entry.resourceMajorityPoints}</td>
                         <td>+{entry.seedPoints}</td>
                         <td>

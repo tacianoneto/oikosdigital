@@ -33,6 +33,8 @@ describe("end game scoring", () => {
     expect(entryB.resourceMajorityPoints).toBe(2);
     expect(entryA.objectivePoints).toBe(0);
     expect(entryB.objectivePoints).toBe(0);
+    expect(entryA.scenarioPoints).toBe(0);
+    expect(entryB.scenarioPoints).toBe(0);
     // a has 5 seeds -> floor(5/2)=2 points
     expect(entryA.seedPoints).toBe(2);
     expect(entryB.seedPoints).toBe(0);
@@ -47,6 +49,28 @@ describe("end game scoring", () => {
     expect(finishedB.resources).toEqual({ meat: 1, egg: 0, fruit: 0, seed: 0 });
     expect(entryA.remainingResources).toBe(1);
     expect(entryB.remainingResources).toBe(1);
+  });
+
+  it("separates final scenario points from base majority points", () => {
+    const game = activeGame();
+    game.activeScenarioIds = ["amazonia"];
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    const b = game.players.find((p) => p.playerId === "p2")!;
+    a.score = 5;
+    b.score = 5;
+    a.resources = { meat: 3, egg: 0, fruit: 1, seed: 0 };
+    b.resources = { meat: 1, egg: 4, fruit: 1, seed: 0 };
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+    const entryB = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p2")!;
+
+    expect(entryA.resourceMajorityPoints).toBe(2); // meat + tied fruit base points
+    expect(entryB.resourceMajorityPoints).toBe(2); // egg + tied fruit base points
+    expect(entryA.scenarioPoints).toBe(1); // solo meat majority gets Amazonia bonus
+    expect(entryB.scenarioPoints).toBe(1); // solo egg majority gets Amazonia bonus
+    expect(entryA.totalScore).toBe(8);
+    expect(entryB.totalScore).toBe(8);
   });
 
   it("scores selected objective only in final scoring", () => {

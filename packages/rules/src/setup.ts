@@ -3528,9 +3528,14 @@ function applyFinalScoring(game: GameState): void {
   });
 
   const majorityPointsByPlayer = new Map<string, number>();
+  const scenarioPointsByPlayer = new Map<string, number>();
   for (const majority of resourceMajorities) {
     for (const winnerId of majority.winnerPlayerIds) {
-      majorityPointsByPlayer.set(winnerId, (majorityPointsByPlayer.get(winnerId) ?? 0) + majority.pointsEach);
+      majorityPointsByPlayer.set(winnerId, (majorityPointsByPlayer.get(winnerId) ?? 0) + RESOURCE_MAJORITY_POINTS);
+      scenarioPointsByPlayer.set(
+        winnerId,
+        (scenarioPointsByPlayer.get(winnerId) ?? 0) + Math.max(0, majority.pointsEach - RESOURCE_MAJORITY_POINTS)
+      );
       // Scoring the majority spends all of that resource.
       findPlayer(game, winnerId).resources[majority.resource] = 0;
     }
@@ -3541,6 +3546,7 @@ function applyFinalScoring(game: GameState): void {
   const entries: FinalScoreEntry[] = game.players.map((player) => {
     const baseScore = player.score;
     const objectivePoints = getObjectivePointsForTurn(game, player);
+    const scenarioPoints = scenarioPointsByPlayer.get(player.playerId) ?? 0;
     const resourceMajorityPoints = majorityPointsByPlayer.get(player.playerId) ?? 0;
 
     // Each player may spend 2 seeds for 1 point, as many times as possible.
@@ -3549,7 +3555,7 @@ function applyFinalScoring(game: GameState): void {
     player.resources.seed = seeds - seedPoints * SEEDS_PER_POINT;
 
     const remainingResources = ALL_RESOURCES.reduce((sum, resource) => sum + (player.resources[resource] ?? 0), 0);
-    const rawScore = baseScore + objectivePoints + resourceMajorityPoints + seedPoints;
+    const rawScore = baseScore + objectivePoints + scenarioPoints + resourceMajorityPoints + seedPoints;
     const totalScore = Math.min(rawScore, pointCap);
     player.score = totalScore;
 
@@ -3559,6 +3565,7 @@ function applyFinalScoring(game: GameState): void {
       speciesId: player.speciesId,
       baseScore,
       objectivePoints,
+      scenarioPoints,
       resourceMajorityPoints,
       seedPoints,
       totalScore,
