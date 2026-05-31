@@ -1525,7 +1525,7 @@ describe("setup placement", () => {
 });
 
 describe("threat mini expansion", () => {
-  it("reveals one threat when setup ends", () => {
+  it("reveals one threat when round one starts", () => {
     let game = createInitialGameState(
       "threats",
       [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
@@ -1544,7 +1544,39 @@ describe("threat mini expansion", () => {
     expect(game.threatDiscardIds).toHaveLength(0);
   });
 
-  it("draws a fresh threat each turn without repeating cards", () => {
+  it("keeps the same threat during a round and draws a fresh one for the next round", () => {
+    let game = createInitialGameState(
+      "threats",
+      [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
+      () => 0,
+      createPreviewInitialForest(),
+      { enabledMiniExpansions: ["threats"] }
+    );
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+
+    const roundOneThreat = game.activeThreatCardId;
+    expect(roundOneThreat).not.toBeNull();
+    expect(game.round).toBe(1);
+
+    game = forceEndPlayerTurn(game, game.activePlayerId!, "teste");
+
+    expect(game.round).toBe(1);
+    expect(game.activeThreatCardId).toBe(roundOneThreat);
+    expect(game.threatDeckIds).toHaveLength(7);
+    expect(game.threatDiscardIds).toHaveLength(0);
+
+    game = forceEndPlayerTurn(game, game.activePlayerId!, "teste");
+
+    expect(game.round).toBe(2);
+    expect(game.activeThreatCardId).not.toBe(roundOneThreat);
+    expect(game.threatDeckIds).toHaveLength(6);
+    expect(game.threatDiscardIds).toEqual([roundOneThreat]);
+  });
+
+  it("uses at most one unique threat per round", () => {
     let game = createInitialGameState(
       "threats",
       [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
@@ -1558,16 +1590,16 @@ describe("threat mini expansion", () => {
     game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
 
     const seen = new Set<string>();
-    for (let index = 0; index < 8; index += 1) {
-      expect(game.activeThreatCardId).not.toBeNull();
-      seen.add(game.activeThreatCardId!);
+    while (game.status === "active" && game.round <= game.maxRounds) {
+      if (game.activeThreatCardId) {
+        seen.add(game.activeThreatCardId);
+      }
       game = forceEndPlayerTurn(game, game.activePlayerId!, "teste");
     }
 
-    expect(seen.size).toBe(8);
-    expect(game.activeThreatCardId).toBeNull();
-    expect(game.threatDeckIds).toHaveLength(0);
-    expect(game.threatDiscardIds).toHaveLength(8);
+    expect(seen.size).toBe(5);
+    expect(game.status).toBe("finished");
+    expect(game.threatDeckIds).toHaveLength(3);
   });
 });
 

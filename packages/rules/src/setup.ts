@@ -2913,7 +2913,7 @@ function advanceSetupTurn(game: GameState): void {
       createdAt: Date.now()
     }
   ];
-  revealThreatForActiveTurn(game);
+  revealThreatForRound(game);
   skipAutomaticActionIfNeeded(game);
 }
 
@@ -2989,7 +2989,8 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
   game.pendingWolfMoves = null;
   game.caatingaPending = null;
 
-  if (nextTurnIndex === 0) {
+  const startedNewRound = nextTurnIndex === 0;
+  if (startedNewRound) {
     game.round += 1;
   }
 
@@ -3007,11 +3008,13 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
     return;
   }
 
-  revealThreatForActiveTurn(game);
+  if (startedNewRound) {
+    revealThreatForRound(game);
+  }
   skipAutomaticActionIfNeeded(game);
 }
 
-function revealThreatForActiveTurn(game: GameState): void {
+function revealThreatForRound(game: GameState): void {
   if (!(game.enabledMiniExpansions ?? []).includes("threats") || game.status !== "active" || !game.activePlayerId) {
     return;
   }
@@ -3024,14 +3027,13 @@ function revealThreatForActiveTurn(game: GameState): void {
   game.threatDeckIds = remainingThreatIds;
   game.activeThreatCardId = nextThreatId ?? null;
 
-  const player = findPlayer(game, game.activePlayerId);
   if (nextThreatId) {
     const threat = threatCards.find((card) => card.id === nextThreatId);
     game.log = [
       ...game.log,
       {
-        id: `threat_reveal_${nextThreatId}_${player.playerId}_${player.turnsTaken}`,
-        message: `${threat?.label ?? "Ameaca"} revelada para o turno de ${player.name}.`,
+        id: `threat_reveal_${nextThreatId}_round_${game.round}`,
+        message: `${threat?.label ?? "Ameaca"} revelada para a rodada ${game.round}.`,
         createdAt: Date.now()
       }
     ];
@@ -3041,7 +3043,7 @@ function revealThreatForActiveTurn(game: GameState): void {
   game.log = [
     ...game.log,
     {
-      id: `threat_deck_empty_${player.playerId}_${player.turnsTaken}`,
+      id: `threat_deck_empty_round_${game.round}`,
       message: "Pilha de ameacas esgotada. Nenhuma ameaca sera repetida nesta partida.",
       createdAt: Date.now()
     }
