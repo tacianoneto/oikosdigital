@@ -524,6 +524,20 @@ label {
   transform: translateY(-3px);
 }
 
+.objective-choice-card:disabled {
+  cursor: wait;
+}
+
+.objective-choice-card:disabled:not(.is-pending) {
+  opacity: 0.55;
+}
+
+.objective-choice-card.is-pending {
+  border-color: var(--amber);
+  transform: translateY(-3px);
+  box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.36), 0 14px 28px rgba(0, 0, 0, 0.55);
+}
+
 .objective-choice-card img,
 .objective-preview-modal img {
   display: block;

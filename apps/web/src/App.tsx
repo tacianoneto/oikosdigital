@@ -480,6 +480,7 @@ export function App() {
   const [selectedWolfResources, setSelectedWolfResources] = useState<Resource[]>([]);
   const [selectedRemovalPieceIds, setSelectedRemovalPieceIds] = useState<string[]>([]);
   const [expandedObjectiveCardId, setExpandedObjectiveCardId] = useState<string | null>(null);
+  const [pendingObjectiveCardId, setPendingObjectiveCardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [handCollapsed, setHandCollapsed] = useState(isSmallScreen);
@@ -1582,7 +1583,21 @@ export function App() {
   const selectedObjectiveCard = currentGamePlayer?.selectedObjectiveCardId
     ? getObjectiveCardDefinition(currentGamePlayer.selectedObjectiveCardId)
     : null;
-  const needsObjectiveChoice = Boolean(currentGamePlayer && objectiveChoices.length > 0 && !currentGamePlayer.selectedObjectiveCardId);
+  const needsObjectiveChoice = Boolean(
+    currentGamePlayer &&
+      objectiveChoices.length > 0 &&
+      !currentGamePlayer.selectedObjectiveCardId &&
+      !pendingObjectiveCardId
+  );
+  useEffect(() => {
+    if (
+      pendingObjectiveCardId &&
+      (currentGamePlayer?.selectedObjectiveCardId ||
+        !currentGamePlayer?.objectiveChoices.includes(pendingObjectiveCardId))
+    ) {
+      setPendingObjectiveCardId(null);
+    }
+  }, [currentGamePlayer?.objectiveChoices, currentGamePlayer?.selectedObjectiveCardId, pendingObjectiveCardId]);
   const sortedHandCards = useMemo(() => {
     const habitatRank = new Map(handHabitatOrder.map((habitat, index) => [habitat, index]));
     const resourceRank = new Map(resourceOrder.map((resource, index) => [resource, index]));
@@ -2879,25 +2894,42 @@ export function App() {
   }, [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive]);
 
   const handleSelectObjective = useCallback(
-    (objectiveCardId: string) => {
-      if (!room?.game || !currentGamePlayer) {
+    async (objectiveCardId: string) => {
+      if (!room?.game || !currentGamePlayer || pendingObjectiveCardId) {
         return;
       }
+
+      setPendingObjectiveCardId(objectiveCardId);
+      setError(null);
+      setNotice(null);
 
       if (isLocalRoom) {
-        const nextGame = selectObjectiveCard(room.game, currentGamePlayer.playerId, objectiveCardId);
-        setRoom({
-          ...room,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setNotice("Objetivo escolhido.");
+        try {
+          const nextGame = selectObjectiveCard(room.game, currentGamePlayer.playerId, objectiveCardId);
+          setRoom({
+            ...room,
+            game: nextGame,
+            warnings: nextGame.contentWarnings
+          });
+          setNotice("Objetivo escolhido.");
+        } catch (err) {
+          setPendingObjectiveCardId(null);
+          setError(err instanceof Error ? err.message : "Falha ao escolher objetivo.");
+        }
         return;
       }
 
-      void run(() => roomApi.selectObjective(requireSocket(), room.roomId, objectiveCardId), "Objetivo escolhido.");
+      try {
+        const nextRoom = await roomApi.selectObjective(requireSocket(), room.roomId, objectiveCardId);
+        applyOnlineRoomState(nextRoom, { direct: true });
+        saveOnlineSession(nextRoom, name);
+        setNotice("Objetivo escolhido.");
+      } catch (err) {
+        setPendingObjectiveCardId(null);
+        setError(err instanceof Error ? err.message : "Falha ao escolher objetivo.");
+      }
     },
-    [currentGamePlayer, isLocalRoom, room, socket]
+    [currentGamePlayer, isLocalRoom, name, pendingObjectiveCardId, room, socket]
   );
 
   function toggleLocalSpecies(speciesId: SpeciesId) {
@@ -5529,7 +5561,15 @@ export function App() {
             </header>
             <div className="objective-choice-grid">
               {objectiveChoices.map((card) => (
-                <button type="button" className="objective-choice-card" key={card.id} onClick={() => handleSelectObjective(card.id)}>
+                <button
+                  type="button"
+                  className={`objective-choice-card ${pendingObjectiveCardId === card.id ? "is-pending" : ""}`}
+                  key={card.id}
+                  disabled={Boolean(pendingObjectiveCardId)}
+                  onClick={() => {
+                    void handleSelectObjective(card.id);
+                  }}
+                >
                   <img src={encodeURI(card.imagePath)} alt={card.label} />
                 </button>
               ))}
