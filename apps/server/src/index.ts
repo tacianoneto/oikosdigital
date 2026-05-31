@@ -1,7 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { Server } from "socket.io";
-import type { MiniExpansionId, PublicRoomState, ScenarioCardId, SpeciesId } from "@oikos/shared";
+import type { MiniExpansionId, PublicRoomState, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
@@ -46,6 +46,7 @@ import {
   setBotTurnDelay,
   setMiniExpansion,
   setScenarioSelectionMode,
+  setScenarioCount,
   setHostSelectedScenarios,
   setReady,
   spectateRoom,
@@ -450,6 +451,14 @@ io.on("connection", (socket) => {
   socket.on("scenario:selection-mode", (payload: { roomId: string; mode: "vote" | "host" }, reply) => {
     withReply(reply, () => {
       const room = setScenarioSelectionMode(payload.roomId, playerId, payload.mode);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("scenario:count", (payload: { roomId: string; scenarioCount: ScenarioCount }, reply) => {
+    withReply(reply, () => {
+      const room = setScenarioCount(payload.roomId, playerId, payload.scenarioCount);
       broadcastRoom(room);
       return room;
     });

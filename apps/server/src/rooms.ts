@@ -32,6 +32,7 @@ import type {
   Resource,
   RoomPlayer,
   RoomSummary,
+  ScenarioCount,
   ScenarioCardId,
   ScenarioSelectionMode,
   ScenarioVotingState,
@@ -52,6 +53,7 @@ interface ServerRoom {
   botTurnDelayMs?: number;
   turnTimerMs?: number | null;
   scenarioSelectionMode: ScenarioSelectionMode;
+  scenarioCount: ScenarioCount;
   hostSelectedScenarioIds: ScenarioCardId[];
   scenarioVoting?: ScenarioVotingState | null;
   // Connected spectators (by playerId). They receive room broadcasts but never
@@ -67,6 +69,7 @@ interface ServerRoom {
 const MIN_TURN_TIMER_MS = 15000;
 const MAX_TURN_TIMER_MS = 300000;
 const defaultMiniExpansions: MiniExpansionId[] = ["objectives"];
+const defaultScenarioCount: ScenarioCount = 2;
 export const SCENARIO_VOTING_DURATION_MS = 50000;
 
 function pickRandom<T>(items: T[], random: () => number): T {
@@ -93,6 +96,7 @@ function isExclusivePair(a: ScenarioCardId, b: ScenarioCardId): boolean {
 }
 
 function tallyScenarioVotes(voting: ScenarioVotingState, random: () => number): ScenarioCardId[] {
+  const scenarioCount = voting.scenarioCount ?? defaultScenarioCount;
   const tally = new Map<ScenarioCardId, number>();
   for (const id of voting.candidateIds) tally.set(id, 0);
   for (const votes of Object.values(voting.votesByPlayer)) {
@@ -111,26 +115,31 @@ function tallyScenarioVotes(voting: ScenarioVotingState, random: () => number): 
   for (const count of sortedCounts) {
     const tied = shuffleArr(byCount.get(count) ?? [], random);
     for (const id of tied) {
-      if (selected.length >= 2) break;
+      if (selected.length >= scenarioCount) break;
       // Skip ids that would form an exclusive pair with anything already
       // picked. They fall through to the next-most-voted scenario.
       if (selected.some((picked) => isExclusivePair(picked, id))) continue;
       selected.push(id);
     }
-    if (selected.length >= 2) break;
+    if (selected.length >= scenarioCount) break;
   }
   return selected;
 }
 
 function fillMissingScenarioVotes(voting: ScenarioVotingState, players: RoomPlayer[], random: () => number): void {
+  const scenarioCount = voting.scenarioCount ?? defaultScenarioCount;
   for (const player of players) {
     const existing = voting.votesByPlayer[player.playerId] ?? [];
-    if (existing.length >= 2) continue;
+    if (existing.length >= scenarioCount) continue;
     const pool = voting.candidateIds.filter((id) => !existing.includes(id));
     const shuffled = shuffleArr(pool, random);
-    const needed = 2 - existing.length;
+    const needed = scenarioCount - existing.length;
     voting.votesByPlayer[player.playerId] = [...existing, ...shuffled.slice(0, needed)];
   }
+}
+
+function normalizeScenarioCount(value: unknown): ScenarioCount {
+  return value === 1 ? 1 : 2;
 }
 
 const rooms = new Map<string, ServerRoom>();
@@ -153,6 +162,7 @@ for (const persisted of loadRooms()) {
     botTurnDelayMs: persisted.botTurnDelayMs,
     turnTimerMs: persisted.turnTimerMs ?? null,
     scenarioSelectionMode: persisted.scenarioSelectionMode ?? "vote",
+    scenarioCount: normalizeScenarioCount(persisted.scenarioCount),
     hostSelectedScenarioIds: persisted.hostSelectedScenarioIds ?? [],
     spectators: new Set<string>(),
     password: null,
@@ -185,6 +195,7 @@ export function createRoom(hostSocketId: string, hostName: string, password?: st
     warnings: [],
     turnTimerMs: null,
     scenarioSelectionMode: "vote",
+    scenarioCount: defaultScenarioCount,
     hostSelectedScenarioIds: [],
     spectators: new Set<string>(),
     password: normalizePassword(password),
@@ -470,6 +481,22 @@ export function setScenarioSelectionMode(
   return toPublicRoom(room);
 }
 
+export function setScenarioCount(roomId: string, playerId: string, scenarioCount: ScenarioCount): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (room.hostPlayerId !== playerId) {
+    throw new Error("Apenas o anfitriao pode alterar a quantidade de cenarios.");
+  }
+
+  if (room.status !== "lobby") {
+    throw new Error("Quantidade de cenarios so pode ser alterada no lobby.");
+  }
+
+  room.scenarioCount = normalizeScenarioCount(scenarioCount);
+  room.hostSelectedScenarioIds = room.hostSelectedScenarioIds.slice(0, room.scenarioCount);
+  return toPublicRoom(room);
+}
+
 export function setHostSelectedScenarios(
   roomId: string,
   playerId: string,
@@ -487,8 +514,8 @@ export function setHostSelectedScenarios(
 
   const validIds = new Set(scenarioCards.map((card) => card.id));
   const unique = Array.from(new Set(scenarioIds)).filter((id) => validIds.has(id));
-  if (unique.length > 2) {
-    throw new Error("Escolha no maximo 2 cenarios.");
+  if (unique.length > room.scenarioCount) {
+    throw new Error(`Escolha no maximo ${room.scenarioCount} cenario(s).`);
   }
   if (unique.includes("pantanal") && unique.includes("mata_atlantica")) {
     throw new Error("Pantanal e Mata Atlantica nao podem coexistir na mesma partida.");
@@ -595,8 +622,8 @@ export function startGame(roomId: string, playerId: string): PublicRoomState {
   }
 
   if (room.enabledMiniExpansions.includes("scenarios") && room.scenarioSelectionMode === "host") {
-    if (room.hostSelectedScenarioIds.length !== 2) {
-      throw new Error("Escolha exatamente 2 cartas de cenario antes de iniciar.");
+    if (room.hostSelectedScenarioIds.length !== room.scenarioCount) {
+      throw new Error(`Escolha exatamente ${room.scenarioCount} carta(s) de cenario antes de iniciar.`);
     }
 
     room.game = createInitialGameState(roomId, room.players, Math.random, undefined, {
@@ -615,13 +642,14 @@ export function startGame(roomId: string, playerId: string): PublicRoomState {
     for (const player of room.players) {
       if (player.isBot) {
         const shuffled = shuffleArr(candidateIds, Math.random);
-        votesByPlayer[player.playerId] = shuffled.slice(0, 2);
+        votesByPlayer[player.playerId] = shuffled.slice(0, room.scenarioCount);
       } else {
         votesByPlayer[player.playerId] = [];
       }
     }
     room.scenarioVoting = {
       candidateIds,
+      scenarioCount: room.scenarioCount,
       votesByPlayer,
       deadline: Date.now() + SCENARIO_VOTING_DURATION_MS,
       selectedIds: null
@@ -648,7 +676,8 @@ export function castScenarioVote(roomId: string, playerId: string, votes: Scenar
   const player = getPlayer(room, playerId);
   if (!player) throw new Error("Jogador não encontrado.");
   const unique = Array.from(new Set(votes)).filter((id) => room.scenarioVoting!.candidateIds.includes(id));
-  if (unique.length > 2) throw new Error("Máximo 2 votos por jogador.");
+  const scenarioCount = room.scenarioVoting.scenarioCount ?? defaultScenarioCount;
+  if (unique.length > scenarioCount) throw new Error(`Maximo ${scenarioCount} voto(s) por jogador.`);
   room.scenarioVoting.votesByPlayer[playerId] = unique;
   return toPublicRoom(room);
 }
@@ -674,7 +703,8 @@ export function finalizeScenarioVoting(roomId: string): PublicRoomState {
 export function isScenarioVotingComplete(roomId: string): boolean {
   const room = rooms.get(roomId.trim().toUpperCase());
   if (!room || room.status !== "scenario_voting" || !room.scenarioVoting) return false;
-  return room.players.every((p) => (room.scenarioVoting!.votesByPlayer[p.playerId] ?? []).length >= 2);
+  const scenarioCount = room.scenarioVoting.scenarioCount ?? defaultScenarioCount;
+  return room.players.every((p) => (room.scenarioVoting!.votesByPlayer[p.playerId] ?? []).length >= scenarioCount);
 }
 
 export function setMiniExpansion(roomId: string, playerId: string, expansionId: MiniExpansionId, enabled: boolean): PublicRoomState {
@@ -1158,10 +1188,12 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     spectatorCount: room.spectators.size,
     isPrivate: Boolean(room.password),
     scenarioSelectionMode: room.scenarioSelectionMode,
+    scenarioCount: room.scenarioCount,
     hostSelectedScenarioIds: [...room.hostSelectedScenarioIds],
     scenarioVoting: room.scenarioVoting
       ? {
           candidateIds: [...room.scenarioVoting.candidateIds],
+          scenarioCount: room.scenarioVoting.scenarioCount ?? defaultScenarioCount,
           votesByPlayer: Object.fromEntries(
             Object.entries(room.scenarioVoting.votesByPlayer).map(([id, votes]) => [id, [...votes]])
           ),

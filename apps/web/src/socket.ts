@@ -5,6 +5,7 @@ import type {
   PublicRoomState,
   Resource,
   RoomSummary,
+  ScenarioCount,
   ScenarioCardId,
   ScenarioSelectionMode,
   SpeciesId
@@ -112,6 +113,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "mini-expansion:set", { roomId, expansionId, enabled }),
   setScenarioSelectionMode: (socket: OikosSocket, roomId: string, mode: ScenarioSelectionMode) =>
     emitWithReply<PublicRoomState>(socket, "scenario:selection-mode", { roomId, mode }),
+  setScenarioCount: (socket: OikosSocket, roomId: string, scenarioCount: ScenarioCount) =>
+    emitWithReply<PublicRoomState>(socket, "scenario:count", { roomId, scenarioCount }),
   setHostSelectedScenarios: (socket: OikosSocket, roomId: string, scenarioIds: ScenarioCardId[]) =>
     emitWithReply<PublicRoomState>(socket, "scenario:host-select", { roomId, scenarioIds }),
   selectSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>

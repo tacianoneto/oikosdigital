@@ -26,6 +26,7 @@ export type ScenarioCardId =
   | "pampa"
   | "pantanal";
 export type ScenarioSelectionMode = "vote" | "host";
+export type ScenarioCount = 1 | 2;
 export type ThreatCardId =
   | "threat_1"
   | "threat_2"
@@ -96,6 +97,7 @@ export interface ThreatCardDefinition {
 
 export interface ScenarioVotingState {
   candidateIds: ScenarioCardId[];
+  scenarioCount: ScenarioCount;
   votesByPlayer: Record<string, ScenarioCardId[]>;
   deadline: number;
   selectedIds: ScenarioCardId[] | null;
@@ -307,6 +309,7 @@ export interface PublicRoomState {
   // sent to clients. Private rooms are hidden from the public open-room list.
   isPrivate?: boolean;
   scenarioSelectionMode?: ScenarioSelectionMode;
+  scenarioCount?: ScenarioCount;
   hostSelectedScenarioIds?: ScenarioCardId[];
   scenarioVoting?: ScenarioVotingState | null;
 }

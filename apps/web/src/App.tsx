@@ -111,6 +111,7 @@ import type {
   Resource,
   RoomPlayer,
   RoomSummary,
+  ScenarioCount,
   ScenarioCardDefinition,
   ScenarioCardId,
   SpeciesId,
@@ -216,7 +217,7 @@ const miniExpansionOptions: Array<{
     id: "scenarios",
     label: "Cartas de cenário",
     description:
-      "Antes da partida, jogadores votam 2 cenários (bioma do Brasil) que alteram regras durante todo o jogo.",
+      "Antes da partida, jogadores votam em 1 ou 2 cenarios (bioma do Brasil) que alteram regras durante todo o jogo.",
     iconPath: scenarioCardBackPath
   },
   {
@@ -283,6 +284,7 @@ function ScenarioVotingOverlay({
   const [now, setNow] = useState(() => Date.now());
   const [localVotes, setLocalVotes] = useState<ScenarioCardId[]>([]);
   const [submitted, setSubmitted] = useState(false);
+  const scenarioCount = voting?.scenarioCount ?? room.scenarioCount ?? 2;
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 250);
@@ -292,11 +294,11 @@ function ScenarioVotingOverlay({
   useEffect(() => {
     if (!voting || !playerId) return;
     const serverVotes = voting.votesByPlayer[playerId] ?? [];
-    if (serverVotes.length >= 2) {
+    if (serverVotes.length >= scenarioCount) {
       setSubmitted(true);
       setLocalVotes(serverVotes);
     }
-  }, [voting, playerId]);
+  }, [voting, playerId, scenarioCount]);
 
   if (!voting) return null;
 
@@ -306,20 +308,20 @@ function ScenarioVotingOverlay({
   const canVote = Boolean(playerId) && !isSpectator && !submitted && !voting.selectedIds;
   const totalPlayers = room.players.length;
   const votedPlayers = room.players.filter(
-    (p) => (voting.votesByPlayer[p.playerId] ?? []).length >= 2
+    (p) => (voting.votesByPlayer[p.playerId] ?? []).length >= scenarioCount
   ).length;
 
   const toggleVote = (id: ScenarioCardId) => {
     if (!canVote) return;
     setLocalVotes((prev) => {
       if (prev.includes(id)) return prev.filter((v) => v !== id);
-      if (prev.length >= 2) return prev;
+      if (prev.length >= scenarioCount) return prev;
       return [...prev, id];
     });
   };
 
   const submit = () => {
-    if (!canVote || localVotes.length !== 2) return;
+    if (!canVote || localVotes.length !== scenarioCount) return;
     onSubmitVotes(localVotes);
     setSubmitted(true);
   };
@@ -332,8 +334,10 @@ function ScenarioVotingOverlay({
         <header className="scenario-vote-header">
           <div className="scenario-vote-copy">
             <span className="scenario-vote-badge">Mini-expansão: Cenários</span>
-            <h2>Vote em 2 cartas de cenário</h2>
-            <p>As 2 mais votadas alteram regras durante toda esta partida.</p>
+            <h2>Vote em {scenarioCount} carta{scenarioCount === 1 ? "" : "s"} de cenário</h2>
+            <p>
+              {scenarioCount === 1 ? "A mais votada altera" : "As mais votadas alteram"} regras durante toda esta partida.
+            </p>
             <div className="scenario-vote-progress" aria-hidden="true">
               <span style={{ width: `${Math.round((votedPlayers / Math.max(1, totalPlayers)) * 100)}%` }} />
             </div>
@@ -406,10 +410,10 @@ function ScenarioVotingOverlay({
             <button
               type="button"
               className="primary-button"
-              disabled={localVotes.length !== 2}
+              disabled={localVotes.length !== scenarioCount}
               onClick={submit}
             >
-              Confirmar voto ({localVotes.length}/2)
+              Confirmar voto ({localVotes.length}/{scenarioCount})
             </button>
           ) : isSpectator ? (
             <span className="scenario-vote-hint">Espectadores não votam.</span>
@@ -507,6 +511,7 @@ export function App() {
   const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
   const [localBotTurnDelayMs, setLocalBotTurnDelayMs] = useState(defaultBotTurnDelayMs);
   const [localEnabledMiniExpansions, setLocalEnabledMiniExpansions] = useState<MiniExpansionId[]>(["objectives"]);
+  const [localScenarioCount, setLocalScenarioCount] = useState<ScenarioCount>(2);
   const [localSelectedScenarioIds, setLocalSelectedScenarioIds] = useState<ScenarioCardId[]>(["amazonia", "cerrado"]);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [selectedCardRotation, setSelectedCardRotation] = useState<0 | 90 | 180 | 270>(0);
@@ -1104,12 +1109,13 @@ export function App() {
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
   const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? ["objectives"];
   const scenarioSelectionMode = room?.scenarioSelectionMode ?? "vote";
+  const scenarioCount = room?.scenarioCount ?? 2;
   const hostSelectedScenarioIds = room?.hostSelectedScenarioIds ?? [];
   const needsHostScenarioSelection =
     !isLocalRoom &&
     enabledMiniExpansions.includes("scenarios") &&
     scenarioSelectionMode === "host" &&
-    hostSelectedScenarioIds.length !== 2;
+    hostSelectedScenarioIds.length !== scenarioCount;
   const activeScenarioDefinitions = useMemo(
     () => (room?.game?.activeScenarioIds ?? []).map((id) => scenarioCardsById.get(id)).filter(Boolean) as ScenarioCardDefinition[],
     [room?.game?.activeScenarioIds]
@@ -2190,6 +2196,17 @@ export function App() {
     );
   }
 
+  function setRoomScenarioCount(nextCount: ScenarioCount) {
+    if (!room || !isHost || room.status !== "lobby" || scenarioCount === nextCount) {
+      return;
+    }
+
+    void run(
+      () => roomApi.setScenarioCount(requireSocket(), room.roomId, nextCount),
+      `${nextCount} cenario${nextCount === 1 ? "" : "s"} por partida.`
+    );
+  }
+
   function toggleHostScenario(scenarioId: ScenarioCardId) {
     if (!room || !isHost || room.status !== "lobby") {
       return;
@@ -2205,12 +2222,12 @@ export function App() {
 
     const next = hostSelectedScenarioIds.includes(scenarioId)
       ? hostSelectedScenarioIds.filter((id) => id !== scenarioId)
-      : hostSelectedScenarioIds.length >= 2
+      : hostSelectedScenarioIds.length >= scenarioCount
         ? hostSelectedScenarioIds
         : [...hostSelectedScenarioIds, scenarioId];
 
     if (next === hostSelectedScenarioIds) {
-      setNotice("Escolha no máximo 2 cenários.");
+      setNotice(`Escolha no maximo ${scenarioCount} cenario(s).`);
       return;
     }
 
@@ -2225,14 +2242,19 @@ export function App() {
     );
   }
 
+  function setLocalScenarioCountValue(nextCount: ScenarioCount) {
+    setLocalScenarioCount(nextCount);
+    setLocalSelectedScenarioIds((current) => current.slice(0, nextCount));
+  }
+
   function toggleLocalScenario(scenarioId: ScenarioCardId) {
     setLocalSelectedScenarioIds((current) => {
       if (current.includes(scenarioId)) {
         return current.filter((candidate) => candidate !== scenarioId);
       }
 
-      if (current.length >= 2) {
-        setNotice("Escolha no maximo 2 cenarios.");
+      if (current.length >= localScenarioCount) {
+        setNotice(`Escolha no maximo ${localScenarioCount} cenario(s).`);
         return current;
       }
 
@@ -3056,8 +3078,8 @@ export function App() {
     }
 
     const localScenarioIds = localEnabledMiniExpansions.includes("scenarios") ? localSelectedScenarioIds : [];
-    if (localEnabledMiniExpansions.includes("scenarios") && localScenarioIds.length !== 2) {
-      setError("Escolha exatamente 2 cenarios para usar a mini-expansao no teste local.");
+    if (localEnabledMiniExpansions.includes("scenarios") && localScenarioIds.length !== localScenarioCount) {
+      setError(`Escolha exatamente ${localScenarioCount} cenario(s) para usar a mini-expansao no teste local.`);
       return;
     }
 
@@ -3085,6 +3107,7 @@ export function App() {
       warnings: game.contentWarnings,
       botTurnDelayMs: localBotTurnDelayMs,
       scenarioSelectionMode: "host",
+      scenarioCount: localScenarioCount,
       hostSelectedScenarioIds: localScenarioIds
     });
     setNotice("Teste local iniciado.");
@@ -3993,13 +4016,29 @@ export function App() {
                     <div className="lobby-scenario-picker-head">
                       <div>
                         <strong>Cenarios</strong>
-                        <small>Escolha 2 cenarios para o teste local ({localSelectedScenarioIds.length}/2).</small>
+                        <small>Escolha {localScenarioCount} cenario(s) para o teste local ({localSelectedScenarioIds.length}/{localScenarioCount}).</small>
+                      </div>
+                      <div className="lobby-segmented" role="group" aria-label="Quantidade de cenarios no teste local">
+                        <button
+                          type="button"
+                          className={localScenarioCount === 1 ? "is-active" : ""}
+                          onClick={() => setLocalScenarioCountValue(1)}
+                        >
+                          1 carta
+                        </button>
+                        <button
+                          type="button"
+                          className={localScenarioCount === 2 ? "is-active" : ""}
+                          onClick={() => setLocalScenarioCountValue(2)}
+                        >
+                          2 cartas
+                        </button>
                       </div>
                     </div>
                     <ul className="lobby-scenario-card-list">
                       {scenarioCards.map((scenario) => {
                         const selected = localSelectedScenarioIds.includes(scenario.id);
-                        const disabled = !selected && localSelectedScenarioIds.length >= 2;
+                        const disabled = !selected && localSelectedScenarioIds.length >= localScenarioCount;
                         return (
                           <li key={scenario.id}>
                             <button
@@ -4469,9 +4508,27 @@ export function App() {
                               <strong>Cenários</strong>
                               <small>
                                 {scenarioSelectionMode === "vote"
-                                  ? "Jogadores votam em 2 cartas antes do setup."
-                                  : `Definido pelo host (${hostSelectedScenarioIds.length}/2).`}
+                                  ? `Jogadores votam em ${scenarioCount} carta${scenarioCount === 1 ? "" : "s"} antes do setup.`
+                                  : `Definido pelo host (${hostSelectedScenarioIds.length}/${scenarioCount}).`}
                               </small>
+                            </div>
+                            <div className="lobby-segmented" role="group" aria-label="Quantidade de cenarios">
+                              <button
+                                type="button"
+                                className={scenarioCount === 1 ? "is-active" : ""}
+                                disabled={!isHost || room.status !== "lobby"}
+                                onClick={() => setRoomScenarioCount(1)}
+                              >
+                                1 carta
+                              </button>
+                              <button
+                                type="button"
+                                className={scenarioCount === 2 ? "is-active" : ""}
+                                disabled={!isHost || room.status !== "lobby"}
+                                onClick={() => setRoomScenarioCount(2)}
+                              >
+                                2 cartas
+                              </button>
                             </div>
                             <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenários">
                               <button
@@ -4500,7 +4557,7 @@ export function App() {
                                 const disabled =
                                   !isHost ||
                                   room.status !== "lobby" ||
-                                  (!selected && hostSelectedScenarioIds.length >= 2);
+                                  (!selected && hostSelectedScenarioIds.length >= scenarioCount);
                                 return (
                                   <li key={scenario.id}>
                                     <button
@@ -4725,7 +4782,7 @@ export function App() {
                   className="flow-submit lobby-start-btn"
                   onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}
                   disabled={needsHostScenarioSelection}
-                  title={needsHostScenarioSelection ? "Escolha 2 cenários antes de iniciar." : undefined}
+                  title={needsHostScenarioSelection ? `Escolha ${scenarioCount} cenario(s) antes de iniciar.` : undefined}
                 >
                   <Play aria-hidden="true" />
                   Iniciar Partida
