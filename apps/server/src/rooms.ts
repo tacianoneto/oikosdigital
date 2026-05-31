@@ -25,7 +25,18 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "@oikos/rules";
-import type { ForestCardState, MiniExpansionId, PublicRoomState, Resource, RoomPlayer, RoomSummary, ScenarioCardId, ScenarioVotingState, SpeciesId } from "@oikos/shared";
+import type {
+  ForestCardState,
+  MiniExpansionId,
+  PublicRoomState,
+  Resource,
+  RoomPlayer,
+  RoomSummary,
+  ScenarioCardId,
+  ScenarioSelectionMode,
+  ScenarioVotingState,
+  SpeciesId
+} from "@oikos/shared";
 import { scenarioCards } from "@oikos/content";
 import { playBotStep, playRandomStep } from "@oikos/rules";
 import { loadRooms } from "./store";
@@ -40,6 +51,8 @@ interface ServerRoom {
   warnings: string[];
   botTurnDelayMs?: number;
   turnTimerMs?: number | null;
+  scenarioSelectionMode: ScenarioSelectionMode;
+  hostSelectedScenarioIds: ScenarioCardId[];
   scenarioVoting?: ScenarioVotingState | null;
   // Connected spectators (by playerId). They receive room broadcasts but never
   // occupy a player slot or affect game state. Not persisted: rebuilt as sockets
@@ -126,6 +139,8 @@ for (const persisted of loadRooms()) {
     warnings: persisted.warnings,
     botTurnDelayMs: persisted.botTurnDelayMs,
     turnTimerMs: persisted.turnTimerMs ?? null,
+    scenarioSelectionMode: persisted.scenarioSelectionMode ?? "vote",
+    hostSelectedScenarioIds: persisted.hostSelectedScenarioIds ?? [],
     spectators: new Set<string>(),
     password: null,
     scenarioVoting: persisted.scenarioVoting ?? null
@@ -156,6 +171,8 @@ export function createRoom(hostSocketId: string, hostName: string, password?: st
     game: null,
     warnings: [],
     turnTimerMs: null,
+    scenarioSelectionMode: "vote",
+    hostSelectedScenarioIds: [],
     spectators: new Set<string>(),
     password: normalizePassword(password),
     scenarioVoting: null
@@ -417,6 +434,54 @@ export function setTurnTimer(roomId: string, playerId: string, turnTimerMs: numb
   return toPublicRoom(room);
 }
 
+export function setScenarioSelectionMode(
+  roomId: string,
+  playerId: string,
+  mode: ScenarioSelectionMode
+): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (room.hostPlayerId !== playerId) {
+    throw new Error("Apenas o anfitriao pode alterar o modo dos cenarios.");
+  }
+
+  if (room.status !== "lobby") {
+    throw new Error("Modo de cenarios so pode ser alterado no lobby.");
+  }
+
+  if (mode !== "vote" && mode !== "host") {
+    throw new Error("Modo de cenarios invalido.");
+  }
+
+  room.scenarioSelectionMode = mode;
+  return toPublicRoom(room);
+}
+
+export function setHostSelectedScenarios(
+  roomId: string,
+  playerId: string,
+  scenarioIds: ScenarioCardId[]
+): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (room.hostPlayerId !== playerId) {
+    throw new Error("Apenas o anfitriao pode escolher cenarios.");
+  }
+
+  if (room.status !== "lobby") {
+    throw new Error("Cenarios so podem ser escolhidos no lobby.");
+  }
+
+  const validIds = new Set(scenarioCards.map((card) => card.id));
+  const unique = Array.from(new Set(scenarioIds)).filter((id) => validIds.has(id));
+  if (unique.length > 2) {
+    throw new Error("Escolha no maximo 2 cenarios.");
+  }
+
+  room.hostSelectedScenarioIds = unique;
+  return toPublicRoom(room);
+}
+
 export function getTurnTimerMs(roomId: string): number | null {
   return rooms.get(roomId.trim().toUpperCase())?.turnTimerMs ?? null;
 }
@@ -511,6 +576,21 @@ export function startGame(roomId: string, playerId: string): PublicRoomState {
     throw new Error(
       `Regra de mãos pendente: esta composição exige ${requiredCommonCards} cartas comuns, mas há ${commonForestCards.length} assets comuns validados.`
     );
+  }
+
+  if (room.enabledMiniExpansions.includes("scenarios") && room.scenarioSelectionMode === "host") {
+    if (room.hostSelectedScenarioIds.length !== 2) {
+      throw new Error("Escolha exatamente 2 cartas de cenario antes de iniciar.");
+    }
+
+    room.game = createInitialGameState(roomId, room.players, Math.random, undefined, {
+      enabledMiniExpansions: room.enabledMiniExpansions,
+      activeScenarioIds: room.hostSelectedScenarioIds
+    });
+    room.status = "setup";
+    room.warnings = room.game.contentWarnings;
+    room.scenarioVoting = null;
+    return toPublicRoom(room);
   }
 
   if (room.enabledMiniExpansions.includes("scenarios")) {
@@ -1057,6 +1137,8 @@ function toPublicRoom(room: ServerRoom): PublicRoomState {
     turnTimerMs: room.turnTimerMs ?? null,
     spectatorCount: room.spectators.size,
     isPrivate: Boolean(room.password),
+    scenarioSelectionMode: room.scenarioSelectionMode,
+    hostSelectedScenarioIds: [...room.hostSelectedScenarioIds],
     scenarioVoting: room.scenarioVoting
       ? {
           candidateIds: [...room.scenarioVoting.candidateIds],

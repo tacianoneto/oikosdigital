@@ -1065,6 +1065,13 @@ export function App() {
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
   const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? ["objectives"];
+  const scenarioSelectionMode = room?.scenarioSelectionMode ?? "vote";
+  const hostSelectedScenarioIds = room?.hostSelectedScenarioIds ?? [];
+  const needsHostScenarioSelection =
+    !isLocalRoom &&
+    enabledMiniExpansions.includes("scenarios") &&
+    scenarioSelectionMode === "host" &&
+    hostSelectedScenarioIds.length !== 2;
   const activeScenarioDefinitions = useMemo(
     () => (room?.game?.activeScenarioIds ?? []).map((id) => scenarioCardsById.get(id)).filter(Boolean) as ScenarioCardDefinition[],
     [room?.game?.activeScenarioIds]
@@ -2092,6 +2099,36 @@ export function App() {
       () => roomApi.setMiniExpansion(requireSocket(), room.roomId, expansionId, enabled),
       enabled ? "Mini-expansão ligada." : "Mini-expansão desligada."
     );
+  }
+
+  function setScenarioMode(mode: "vote" | "host") {
+    if (!room || !isHost || room.status !== "lobby" || scenarioSelectionMode === mode) {
+      return;
+    }
+
+    void run(
+      () => roomApi.setScenarioSelectionMode(requireSocket(), room.roomId, mode),
+      mode === "vote" ? "CenÃ¡rios serÃ£o votados." : "Host escolherÃ¡ os cenÃ¡rios."
+    );
+  }
+
+  function toggleHostScenario(scenarioId: ScenarioCardId) {
+    if (!room || !isHost || room.status !== "lobby") {
+      return;
+    }
+
+    const next = hostSelectedScenarioIds.includes(scenarioId)
+      ? hostSelectedScenarioIds.filter((id) => id !== scenarioId)
+      : hostSelectedScenarioIds.length >= 2
+        ? hostSelectedScenarioIds
+        : [...hostSelectedScenarioIds, scenarioId];
+
+    if (next === hostSelectedScenarioIds) {
+      setNotice("Escolha no mÃ¡ximo 2 cenÃ¡rios.");
+      return;
+    }
+
+    void run(() => roomApi.setHostSelectedScenarios(requireSocket(), room.roomId, next));
   }
 
   const handleCardClick = useCallback(
@@ -4212,6 +4249,68 @@ export function App() {
                           );
                         })}
                       </ul>
+                      {enabledMiniExpansions.includes("scenarios") && (
+                        <div className="lobby-scenario-picker">
+                          <div className="lobby-scenario-picker-head">
+                            <div>
+                              <strong>CenÃ¡rios</strong>
+                              <small>
+                                {scenarioSelectionMode === "vote"
+                                  ? "Jogadores votam em 2 cartas antes do setup."
+                                  : `Host define 2 cartas (${hostSelectedScenarioIds.length}/2).`}
+                              </small>
+                            </div>
+                            <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenÃ¡rios">
+                              <button
+                                type="button"
+                                className={scenarioSelectionMode === "vote" ? "is-active" : ""}
+                                disabled={!isHost || room.status !== "lobby"}
+                                onClick={() => setScenarioMode("vote")}
+                              >
+                                VotaÃ§Ã£o
+                              </button>
+                              <button
+                                type="button"
+                                className={scenarioSelectionMode === "host" ? "is-active" : ""}
+                                disabled={!isHost || room.status !== "lobby"}
+                                onClick={() => setScenarioMode("host")}
+                              >
+                                Host define
+                              </button>
+                            </div>
+                          </div>
+
+                          {scenarioSelectionMode === "host" && (
+                            <ul className="lobby-scenario-card-list">
+                              {scenarioCards.map((scenario) => {
+                                const selected = hostSelectedScenarioIds.includes(scenario.id);
+                                const disabled =
+                                  !isHost ||
+                                  room.status !== "lobby" ||
+                                  (!selected && hostSelectedScenarioIds.length >= 2);
+                                return (
+                                  <li key={scenario.id}>
+                                    <button
+                                      type="button"
+                                      className={`lobby-scenario-card ${selected ? "is-selected" : ""}`}
+                                      disabled={disabled}
+                                      onClick={() => toggleHostScenario(scenario.id)}
+                                      aria-pressed={selected}
+                                    >
+                                      <img src={encodeURI(scenario.imagePath)} alt="" />
+                                      <span>
+                                        <strong>{scenario.label}</strong>
+                                        <small>{scenario.description}</small>
+                                      </span>
+                                      {selected && <Check aria-hidden="true" />}
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="lobby-setting-row">
@@ -4412,6 +4511,8 @@ export function App() {
                   type="button"
                   className="flow-submit lobby-start-btn"
                   onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}
+                  disabled={needsHostScenarioSelection}
+                  title={needsHostScenarioSelection ? "Escolha 2 cenÃ¡rios antes de iniciar." : undefined}
                 >
                   <Play aria-hidden="true" />
                   Iniciar Partida

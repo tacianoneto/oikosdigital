@@ -25,6 +25,7 @@ export type ScenarioCardId =
   | "mata_atlantica"
   | "pampa"
   | "pantanal";
+export type ScenarioSelectionMode = "vote" | "host";
 
 export interface GridPosition {
   x: number;
@@ -279,6 +280,8 @@ export interface PublicRoomState {
   // True when the room was created with a password. The password itself is never
   // sent to clients. Private rooms are hidden from the public open-room list.
   isPrivate?: boolean;
+  scenarioSelectionMode?: ScenarioSelectionMode;
+  hostSelectedScenarioIds?: ScenarioCardId[];
   scenarioVoting?: ScenarioVotingState | null;
 }
 

@@ -45,6 +45,8 @@ import {
   selectSpecies,
   setBotTurnDelay,
   setMiniExpansion,
+  setScenarioSelectionMode,
+  setHostSelectedScenarios,
   setReady,
   spectateRoom,
   spendJaguarMeat,
@@ -440,6 +442,22 @@ io.on("connection", (socket) => {
   socket.on("mini-expansion:set", (payload: { roomId: string; expansionId: MiniExpansionId; enabled: boolean }, reply) => {
     withReply(reply, () => {
       const room = setMiniExpansion(payload.roomId, playerId, payload.expansionId, payload.enabled);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("scenario:selection-mode", (payload: { roomId: string; mode: "vote" | "host" }, reply) => {
+    withReply(reply, () => {
+      const room = setScenarioSelectionMode(payload.roomId, playerId, payload.mode);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("scenario:host-select", (payload: { roomId: string; scenarioIds: ScenarioCardId[] }, reply) => {
+    withReply(reply, () => {
+      const room = setHostSelectedScenarios(payload.roomId, playerId, payload.scenarioIds);
       broadcastRoom(room);
       return room;
     });

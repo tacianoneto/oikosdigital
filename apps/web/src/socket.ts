@@ -1,5 +1,14 @@
 import { io, type Socket } from "socket.io-client";
-import type { ForestCardState, MiniExpansionId, PublicRoomState, Resource, RoomSummary, ScenarioCardId, SpeciesId } from "@oikos/shared";
+import type {
+  ForestCardState,
+  MiniExpansionId,
+  PublicRoomState,
+  Resource,
+  RoomSummary,
+  ScenarioCardId,
+  ScenarioSelectionMode,
+  SpeciesId
+} from "@oikos/shared";
 
 export interface SocketReply<T> {
   ok: boolean;
@@ -101,6 +110,10 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "turn-timer:set", { roomId, turnTimerMs }),
   setMiniExpansion: (socket: OikosSocket, roomId: string, expansionId: MiniExpansionId, enabled: boolean) =>
     emitWithReply<PublicRoomState>(socket, "mini-expansion:set", { roomId, expansionId, enabled }),
+  setScenarioSelectionMode: (socket: OikosSocket, roomId: string, mode: ScenarioSelectionMode) =>
+    emitWithReply<PublicRoomState>(socket, "scenario:selection-mode", { roomId, mode }),
+  setHostSelectedScenarios: (socket: OikosSocket, roomId: string, scenarioIds: ScenarioCardId[]) =>
+    emitWithReply<PublicRoomState>(socket, "scenario:host-select", { roomId, scenarioIds }),
   selectSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>
     emitWithReply<PublicRoomState>(socket, "species:select", { roomId, speciesId }),
   ready: (socket: OikosSocket, roomId: string, ready: boolean) =>
