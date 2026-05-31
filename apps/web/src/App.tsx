@@ -4887,47 +4887,6 @@ export function App() {
               )}
             </div>
 
-            {room?.game?.caatingaPending &&
-              controlledPlayerId &&
-              room.game.caatingaPending.playerId === controlledPlayerId && (() => {
-                const pending = room.game.caatingaPending;
-                const owned = hudGamePlayer.resources[pending.resource] ?? 0;
-                const handle = (mode: "gain" | "lose") => {
-                  if (isLocalRoom) {
-                    try {
-                      const nextGame = collectCaatingaBonus(room.game!, controlledPlayerId, mode);
-                      setRoom((current) => (current ? { ...current, game: nextGame } : current));
-                    } catch (e) {
-                      setError(e instanceof Error ? e.message : "Falha ao resolver Caatinga.");
-                    }
-                  } else {
-                    const rid = room.roomId;
-                    run(() => roomApi.collectCaatinga(requireSocket(), rid, mode));
-                  }
-                };
-                return (
-                  <div className="caatinga-collect-row">
-                    <button
-                      type="button"
-                      className="caatinga-collect-btn"
-                      onClick={() => handle("gain")}
-                    >
-                      <img src={encodeURI(resourceAssets[pending.resource])} alt="" />
-                      +1 {resourceLabels[pending.resource]} (Caatinga)
-                    </button>
-                    <button
-                      type="button"
-                      className="caatinga-collect-btn caatinga-collect-btn--lose"
-                      onClick={() => handle("lose")}
-                      disabled={owned <= 0}
-                      title={owned <= 0 ? "Sem recurso para perder" : undefined}
-                    >
-                      <img src={encodeURI(resourceAssets[pending.resource])} alt="" />
-                      -1 {resourceLabels[pending.resource]} (Caatinga)
-                    </button>
-                  </div>
-                );
-              })()}
           </section>
         )}
 
@@ -5257,6 +5216,54 @@ export function App() {
                 )}
               </div>
             )}
+            {room?.game?.caatingaPending &&
+              controlledPlayerId &&
+              room.game.caatingaPending.playerId === controlledPlayerId && (() => {
+                const pending = room.game.caatingaPending;
+                const owned = currentGamePlayer?.resources[pending.resource] ?? 0;
+                const handle = (mode: "gain" | "lose") => {
+                  if (!room.game) return;
+                  if (isLocalRoom) {
+                    try {
+                      const nextGame = collectCaatingaBonus(room.game, controlledPlayerId, mode);
+                      setRoom((current) => (current ? { ...current, game: nextGame } : current));
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "Falha ao resolver Caatinga.");
+                    }
+                  } else {
+                    const rid = room.roomId;
+                    run(() => roomApi.collectCaatinga(requireSocket(), rid, mode));
+                  }
+                };
+                const triggerLabel = pending.trigger === "remove" ? "remoção" : "adição";
+                return (
+                  <div className="caatinga-collect-row">
+                    <span className="caatinga-collect-title">
+                      Caatinga ({triggerLabel}): {resourceLabels[pending.resource]}
+                    </span>
+                    <div className="caatinga-collect-buttons">
+                      <button
+                        type="button"
+                        className="caatinga-collect-btn"
+                        onClick={() => handle("gain")}
+                      >
+                        <img src={encodeURI(resourceAssets[pending.resource])} alt="" />
+                        +1
+                      </button>
+                      <button
+                        type="button"
+                        className="caatinga-collect-btn caatinga-collect-btn--lose"
+                        onClick={() => handle("lose")}
+                        disabled={owned <= 0}
+                        title={owned <= 0 ? "Sem recurso para perder" : undefined}
+                      >
+                        <img src={encodeURI(resourceAssets[pending.resource])} alt="" />
+                        -1
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
           </section>
         )}
         </div>

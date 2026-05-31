@@ -7023,14 +7023,33 @@ input:focus {
 }
 
 .caatinga-collect-row {
-  margin-top: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(242, 193, 78, 0.45);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+}
+
+.caatinga-collect-title {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(242, 193, 78, 0.95);
+}
+
+.caatinga-collect-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 .caatinga-collect-row .caatinga-collect-btn {
   margin-top: 0;
+  flex: 1;
 }
 
 .caatinga-collect-btn--lose {
