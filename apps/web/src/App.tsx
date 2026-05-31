@@ -227,6 +227,10 @@ const miniExpansionOptions: Array<{
   }
 ];
 
+function isExclusiveScenarioPair(a: ScenarioCardId, b: ScenarioCardId): boolean {
+  return (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
+}
+
 function formatTurnTimer(ms: number): string {
   const seconds = Math.round(ms / 1000);
   if (seconds < 60) {
@@ -502,6 +506,8 @@ export function App() {
   const [localSpeciesIds, setLocalSpeciesIds] = useState<SpeciesId[]>(["maned_wolf", "coati"]);
   const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
   const [localBotTurnDelayMs, setLocalBotTurnDelayMs] = useState(defaultBotTurnDelayMs);
+  const [localEnabledMiniExpansions, setLocalEnabledMiniExpansions] = useState<MiniExpansionId[]>(["objectives"]);
+  const [localSelectedScenarioIds, setLocalSelectedScenarioIds] = useState<ScenarioCardId[]>(["amazonia", "cerrado"]);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [selectedCardRotation, setSelectedCardRotation] = useState<0 | 90 | 180 | 270>(0);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
@@ -2189,12 +2195,9 @@ export function App() {
       return;
     }
 
-    const exclusive = (a: ScenarioCardId, b: ScenarioCardId) =>
-      (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
-
     if (
       !hostSelectedScenarioIds.includes(scenarioId) &&
-      hostSelectedScenarioIds.some((id) => exclusive(id, scenarioId))
+      hostSelectedScenarioIds.some((id) => isExclusiveScenarioPair(id, scenarioId))
     ) {
       setNotice("Pantanal e Mata Atlântica não podem ser jogados juntos.");
       return;
@@ -2212,6 +2215,34 @@ export function App() {
     }
 
     void run(() => roomApi.setHostSelectedScenarios(requireSocket(), room.roomId, next));
+  }
+
+  function toggleLocalMiniExpansion(expansionId: MiniExpansionId) {
+    setLocalEnabledMiniExpansions((current) =>
+      current.includes(expansionId)
+        ? current.filter((candidate) => candidate !== expansionId)
+        : [...current, expansionId]
+    );
+  }
+
+  function toggleLocalScenario(scenarioId: ScenarioCardId) {
+    setLocalSelectedScenarioIds((current) => {
+      if (current.includes(scenarioId)) {
+        return current.filter((candidate) => candidate !== scenarioId);
+      }
+
+      if (current.length >= 2) {
+        setNotice("Escolha no maximo 2 cenarios.");
+        return current;
+      }
+
+      if (current.some((id) => isExclusiveScenarioPair(id, scenarioId))) {
+        setNotice("Pantanal e Mata Atlantica nao podem ser jogados juntos.");
+        return current;
+      }
+
+      return [...current, scenarioId];
+    });
   }
 
   const handleCardClick = useCallback(
@@ -3024,6 +3055,12 @@ export function App() {
       return;
     }
 
+    const localScenarioIds = localEnabledMiniExpansions.includes("scenarios") ? localSelectedScenarioIds : [];
+    if (localEnabledMiniExpansions.includes("scenarios") && localScenarioIds.length !== 2) {
+      setError("Escolha exatamente 2 cenarios para usar a mini-expansao no teste local.");
+      return;
+    }
+
     const localPlayers: RoomPlayer[] = localSpeciesIds.map((speciesId) => ({
       playerId: `local_${speciesId}`,
       name: speciesDefinitions[speciesId].displayName,
@@ -3032,7 +3069,10 @@ export function App() {
       connected: true,
       isBot: localBotSpeciesIds.includes(speciesId)
     }));
-    const game = createInitialGameState(localRoomId, localPlayers);
+    const game = createInitialGameState(localRoomId, localPlayers, Math.random, undefined, {
+      enabledMiniExpansions: localEnabledMiniExpansions,
+      activeScenarioIds: localScenarioIds
+    });
 
     lastOnlineRoomSnapshotRef.current = "";
     setRoom({
@@ -3043,7 +3083,9 @@ export function App() {
       enabledMiniExpansions: game.enabledMiniExpansions,
       game,
       warnings: game.contentWarnings,
-      botTurnDelayMs: localBotTurnDelayMs
+      botTurnDelayMs: localBotTurnDelayMs,
+      scenarioSelectionMode: "host",
+      hostSelectedScenarioIds: localScenarioIds
     });
     setNotice("Teste local iniciado.");
   }
@@ -3909,6 +3951,77 @@ export function App() {
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="lobby-expansions-block">
+                <div className="lobby-expansions-head">
+                  <strong>Mini-expansoes</strong>
+                  <span className="lobby-expansions-count">
+                    {localEnabledMiniExpansions.filter((id) => miniExpansionOptions.some((opt) => opt.id === id)).length}/{miniExpansionOptions.length}
+                  </span>
+                </div>
+                <ul className="lobby-expansion-list">
+                  {miniExpansionOptions.map((expansion) => {
+                    const enabled = localEnabledMiniExpansions.includes(expansion.id);
+                    return (
+                      <li key={expansion.id}>
+                        <label className={`lobby-expansion-card ${enabled ? "is-on" : ""}`}>
+                          <span className="lobby-expansion-thumb" aria-hidden="true">
+                            <img src={encodeURI(expansion.iconPath)} alt="" />
+                          </span>
+                          <span className="lobby-expansion-text">
+                            <strong>{expansion.label}</strong>
+                            <small>{expansion.description}</small>
+                          </span>
+                          <span className="lobby-switch" aria-hidden="true">
+                            <span className="lobby-switch-knob" />
+                          </span>
+                          <input
+                            type="checkbox"
+                            className="lobby-expansion-input"
+                            checked={enabled}
+                            onChange={() => toggleLocalMiniExpansion(expansion.id)}
+                            aria-label={`${enabled ? "Desligar" : "Ligar"} ${expansion.label}. ${expansion.description}`}
+                          />
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {localEnabledMiniExpansions.includes("scenarios") && (
+                  <div className="lobby-scenario-picker">
+                    <div className="lobby-scenario-picker-head">
+                      <div>
+                        <strong>Cenarios</strong>
+                        <small>Escolha 2 cenarios para o teste local ({localSelectedScenarioIds.length}/2).</small>
+                      </div>
+                    </div>
+                    <ul className="lobby-scenario-card-list">
+                      {scenarioCards.map((scenario) => {
+                        const selected = localSelectedScenarioIds.includes(scenario.id);
+                        const disabled = !selected && localSelectedScenarioIds.length >= 2;
+                        return (
+                          <li key={scenario.id}>
+                            <button
+                              type="button"
+                              className={`lobby-scenario-card ${selected ? "is-selected" : ""}`}
+                              disabled={disabled}
+                              onClick={() => toggleLocalScenario(scenario.id)}
+                              aria-pressed={selected}
+                            >
+                              <img src={encodeURI(scenario.imagePath)} alt="" />
+                              <span>
+                                <strong>{scenario.label}</strong>
+                                <small>{scenario.description}</small>
+                              </span>
+                              {selected && <Check aria-hidden="true" />}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="flow-bot-speed" aria-label="Velocidade dos bots no teste local">
