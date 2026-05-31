@@ -265,11 +265,13 @@ export interface GameState {
     location: GridPosition;
     trigger: "add" | "remove";
   } | null;
-  // Mata Atlântica scenario: a single shared hand replaces per-player hands.
-  // When non-null, every card-using player draws from / sees this same list.
-  sharedHand: string[] | null;
+  // Mata Atlântica scenario: 3 shared piles of 6 cards. Each player's `hand`
+  // mirrors the top of each non-empty pile (1 card per pile). When the player
+  // picks a card, it's removed from the owning pile and the next card becomes
+  // the new top. Piles do not refill from the deck.
+  mataAtlanticaPiles: string[][] | null;
   // Tracks per-player turnsTaken when they last manually discarded a card from
-  // the shared hand (Mata Atlântica). Used to avoid double-discard at turn end.
+  // a Mata Atlântica pile. Used to avoid double-discard at turn end.
   mataAtlanticaDiscardByPlayer: Record<string, number>;
 }
 

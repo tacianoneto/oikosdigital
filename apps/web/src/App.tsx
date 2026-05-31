@@ -99,7 +99,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints,
   collectCaatingaBonus,
-  discardSharedHandCard
+  discardMataAtlanticaPileCard
 } from "@oikos/rules";
 import type {
   GameState,
@@ -2163,6 +2163,17 @@ export function App() {
 
   function toggleHostScenario(scenarioId: ScenarioCardId) {
     if (!room || !isHost || room.status !== "lobby") {
+      return;
+    }
+
+    const exclusive = (a: ScenarioCardId, b: ScenarioCardId) =>
+      (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
+
+    if (
+      !hostSelectedScenarioIds.includes(scenarioId) &&
+      hostSelectedScenarioIds.some((id) => exclusive(id, scenarioId))
+    ) {
+      setNotice("Pantanal e Mata Atlântica não podem ser jogados juntos.");
       return;
     }
 
@@ -5552,7 +5563,7 @@ export function App() {
                           </div>
                         )}
                         {(() => {
-                          if (!room?.game?.sharedHand) return null;
+                          if (!room?.game?.mataAtlanticaPiles) return null;
                           if (!currentGamePlayer?.speciesId) return null;
                           if (speciesDefinitions[currentGamePlayer.speciesId].usesForestCards) return null;
                           if (room.game.activePlayerId !== currentGamePlayer.playerId) return null;
@@ -5570,7 +5581,7 @@ export function App() {
                                 event.stopPropagation();
                                 if (isLocalRoom) {
                                   try {
-                                    const nextGame = discardSharedHandCard(room.game!, currentGamePlayer.playerId, card.id);
+                                    const nextGame = discardMataAtlanticaPileCard(room.game!, currentGamePlayer.playerId, card.id);
                                     setRoom((current) => (current ? { ...current, game: nextGame } : current));
                                   } catch (e) {
                                     setError(e instanceof Error ? e.message : "Falha ao descartar.");

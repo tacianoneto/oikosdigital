@@ -16,7 +16,7 @@ import {
   resolveCoatiPairBonus,
   selectObjectiveCard,
   collectCaatingaBonus,
-  discardSharedHandCard,
+  discardMataAtlanticaPileCard,
   requiredCommonCardsForPlayers,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
@@ -82,6 +82,16 @@ function shuffleArr<T>(items: T[], random: () => number): T[] {
   return out;
 }
 
+// Pantanal + Mata Atlântica are mutually exclusive: Pantanal needs personal
+// hands at the end of the last round, but Mata Atlântica replaces personal
+// hands with shared piles, so they can't coexist coherently.
+function isExclusivePair(a: ScenarioCardId, b: ScenarioCardId): boolean {
+  return (
+    (a === "pantanal" && b === "mata_atlantica") ||
+    (a === "mata_atlantica" && b === "pantanal")
+  );
+}
+
 function tallyScenarioVotes(voting: ScenarioVotingState, random: () => number): ScenarioCardId[] {
   const tally = new Map<ScenarioCardId, number>();
   for (const id of voting.candidateIds) tally.set(id, 0);
@@ -102,6 +112,9 @@ function tallyScenarioVotes(voting: ScenarioVotingState, random: () => number): 
     const tied = shuffleArr(byCount.get(count) ?? [], random);
     for (const id of tied) {
       if (selected.length >= 2) break;
+      // Skip ids that would form an exclusive pair with anything already
+      // picked. They fall through to the next-most-voted scenario.
+      if (selected.some((picked) => isExclusivePair(picked, id))) continue;
       selected.push(id);
     }
     if (selected.length >= 2) break;
@@ -477,6 +490,9 @@ export function setHostSelectedScenarios(
   if (unique.length > 2) {
     throw new Error("Escolha no maximo 2 cenarios.");
   }
+  if (unique.includes("pantanal") && unique.includes("mata_atlantica")) {
+    throw new Error("Pantanal e Mata Atlantica nao podem coexistir na mesma partida.");
+  }
 
   room.hostSelectedScenarioIds = unique;
   return toPublicRoom(room);
@@ -735,7 +751,7 @@ export function discardMataAtlanticaCard(roomId: string, playerId: string, cardI
   if (!room.game) {
     throw new Error("A partida ainda nao foi iniciada.");
   }
-  room.game = discardSharedHandCard(room.game, playerId, cardId);
+  room.game = discardMataAtlanticaPileCard(room.game, playerId, cardId);
   room.status = room.game.status === "active" ? "active" : room.status;
   room.warnings = room.game.contentWarnings;
   return toPublicRoom(room);

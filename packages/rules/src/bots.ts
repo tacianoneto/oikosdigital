@@ -7,7 +7,7 @@ import {
   addWolfForCurrentAction,
   collectCaatingaBonus,
   completeCurrentAction,
-  discardSharedHandCard,
+  discardMataAtlanticaPileCard,
   forceEndPlayerTurn,
   getArmadilloHidePieceIds,
   getArmadilloSeedPlacementPositions,
@@ -74,20 +74,19 @@ export function playBotStep(game: GameState, playerId: string): GameState {
     }
   }
 
-  // Mata Atlântica: non-card species must discard 1 from the shared hand.
-  // Pick a random card and discard manually so the deck cycles deterministically
-  // within the bot's turn rather than after.
+  // Mata Atlântica: non-card species must discard 1 top card from a pile.
   if (
-    game.sharedHand &&
-    game.sharedHand.length > 0 &&
+    game.mataAtlanticaPiles &&
     !speciesDefinitions[player.speciesId].usesForestCards &&
     (game.mataAtlanticaDiscardByPlayer ?? {})[playerId] !== player.turnsTaken
   ) {
-    const targetCardId = pickOne(game.sharedHand);
-    try {
-      return discardSharedHandCard(game, playerId, targetCardId);
-    } catch {
-      // fall through
+    const tops = game.mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
+    if (tops.length > 0) {
+      try {
+        return discardMataAtlanticaPileCard(game, playerId, pickOne(tops));
+      } catch {
+        // fall through
+      }
     }
   }
 
@@ -152,15 +151,17 @@ export function playRandomStep(game: GameState, playerId: string): GameState {
   }
 
   if (
-    game.sharedHand &&
-    game.sharedHand.length > 0 &&
+    game.mataAtlanticaPiles &&
     !speciesDefinitions[speciesId].usesForestCards &&
     (game.mataAtlanticaDiscardByPlayer ?? {})[playerId] !== player.turnsTaken
   ) {
-    try {
-      return discardSharedHandCard(game, playerId, pickOne(game.sharedHand));
-    } catch {
-      // fall through
+    const tops = game.mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
+    if (tops.length > 0) {
+      try {
+        return discardMataAtlanticaPileCard(game, playerId, pickOne(tops));
+      } catch {
+        // fall through
+      }
     }
   }
 

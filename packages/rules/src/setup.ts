@@ -604,23 +604,30 @@ export function createInitialGameState(
     dealObjectiveChoices(players, roomPlayers, random);
   }
 
-  // Mata Atlântica: replace per-player hands with a single shared 6-card hand
-  // drawn from what's left of the common deck. Each player's `hand` mirrors the
-  // shared list so existing UI/code paths keep working unchanged.
-  let sharedHand: string[] | null = null;
+  // Mata Atlântica: replace per-player hands with 3 shared piles of 6 cards.
+  // Each player's `hand` mirrors the top card of each non-empty pile (max 3
+  // cards visible at a time). Piles do not refill from the leftover deck.
+  let mataAtlanticaPiles: string[][] | null = null;
   let remainingForDeck = remainingCommonCardIds;
   if (activeScenarioIds.includes("mata_atlantica")) {
-    // Return all dealt cards back to the deck, then draw 6 for the shared hand.
+    // Return all dealt cards back to the deck, then split off 18 for piles.
     const returned: string[] = [];
     for (const player of players) {
       returned.push(...player.hand);
       player.hand = [];
     }
     const fullDeck = shuffle([...returned, ...remainingCommonCardIds], random);
-    sharedHand = fullDeck.splice(0, Math.min(6, fullDeck.length));
+    const totalForPiles = Math.min(18, fullDeck.length);
+    const pileSize = Math.floor(totalForPiles / 3);
+    mataAtlanticaPiles = [
+      fullDeck.splice(0, pileSize),
+      fullDeck.splice(0, pileSize),
+      fullDeck.splice(0, pileSize)
+    ];
     remainingForDeck = fullDeck;
+    const tops = mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
     for (const player of players) {
-      player.hand = [...sharedHand];
+      player.hand = [...tops];
     }
   }
 
@@ -666,7 +673,7 @@ export function createInitialGameState(
     cerradoTriggeredByPlayer: {},
     caatingaUsedByPlayer: {},
     caatingaPending: null,
-    sharedHand,
+    mataAtlanticaPiles,
     mataAtlanticaDiscardByPlayer: {}
   };
 }
@@ -919,8 +926,8 @@ export function placeForestCard(
   const nextPlayer = findPlayer(next, playerId);
   const cardIndex = nextPlayer.hand.indexOf(cardId);
   nextPlayer.hand = nextPlayer.hand.filter((candidate, index) => candidate !== cardId || index !== cardIndex);
-  if (next.sharedHand) {
-    syncSharedHandAfterPlay(next, cardId);
+  if (next.mataAtlanticaPiles) {
+    syncMataAtlanticaAfterPlay(next, cardId);
   }
   const newCardInstanceId = `played_${cardId}_${next.forest.cards.length + 1}`;
   next.forest.cards = [
@@ -2992,29 +2999,32 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
   awardObjectivePointsForTurn(game, player);
   applyEndTurnThreatPenalty(game, player);
   // Mata Atlântica: species that don't use cards must discard 1 from the
-  // shared hand on their turn. If they didn't pick one manually, auto-discard
-  // a random card so the deck still cycles.
+  // shared piles on their turn. If they didn't pick one manually, auto-discard
+  // a random top card so piles still drain.
   const alreadyDiscarded =
     (game.mataAtlanticaDiscardByPlayer ?? {})[player.playerId] === turnBeforeIncrement;
   if (
     !alreadyDiscarded &&
-    game.sharedHand &&
+    game.mataAtlanticaPiles &&
     player.speciesId &&
-    !speciesDefinitions[player.speciesId].usesForestCards &&
-    game.sharedHand.length > 0
+    !speciesDefinitions[player.speciesId].usesForestCards
   ) {
-    const idx = Math.floor(Math.random() * game.sharedHand.length);
-    const auto = game.sharedHand[idx];
-    syncSharedHandAfterPlay(game, auto);
-    const def = getCardDefinitionOrNull(auto);
-    game.log = [
-      ...game.log,
-      {
-        id: `mata_atlantica_auto_${player.playerId}_${player.turnsTaken}`,
-        message: `${player.name} descartou ${def?.label ?? "carta"} aberta (Mata Atlantica, auto).`,
-        createdAt: Date.now()
-      }
-    ];
+    const tops = game.mataAtlanticaPiles
+      .map((pile) => pile[0])
+      .filter((id): id is string => Boolean(id));
+    if (tops.length > 0) {
+      const auto = tops[Math.floor(Math.random() * tops.length)];
+      syncMataAtlanticaAfterPlay(game, auto);
+      const def = getCardDefinitionOrNull(auto);
+      game.log = [
+        ...game.log,
+        {
+          id: `mata_atlantica_auto_${player.playerId}_${player.turnsTaken}`,
+          message: `${player.name} descartou ${def?.label ?? "carta"} aberta (Mata Atlantica, auto).`,
+          createdAt: Date.now()
+        }
+      ];
+    }
   }
   const currentTurnIndex = game.turnOrder.indexOf(player.playerId);
   const nextTurnIndex = currentTurnIndex >= 0 ? (currentTurnIndex + 1) % game.turnOrder.length : 0;
@@ -3109,39 +3119,41 @@ function applyEndTurnThreatPenalty(game: GameState, player: PlayerState): void {
   ];
 }
 
-function syncSharedHandAfterPlay(game: GameState, playedCardId: string): void {
-  if (!game.sharedHand) return;
-  const idx = game.sharedHand.indexOf(playedCardId);
-  if (idx >= 0) {
-    game.sharedHand = [...game.sharedHand.slice(0, idx), ...game.sharedHand.slice(idx + 1)];
-  }
-  if (game.deck.commonCardIds.length > 0) {
-    const [drawn, ...rest] = game.deck.commonCardIds;
-    game.sharedHand = [...game.sharedHand, drawn];
-    game.deck.commonCardIds = rest;
-  }
-  mirrorSharedHandToPlayers(game);
+function syncMataAtlanticaAfterPlay(game: GameState, playedCardId: string): void {
+  if (!game.mataAtlanticaPiles) return;
+  // Remove the played/discarded card from whichever pile holds it. Spec says
+  // the card "do topo" is the one chosen, but tolerate any position for safety.
+  game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile) => {
+    const idx = pile.indexOf(playedCardId);
+    if (idx < 0) return [...pile];
+    return [...pile.slice(0, idx), ...pile.slice(idx + 1)];
+  });
+  mirrorMataAtlanticaToPlayers(game);
 }
 
-function mirrorSharedHandToPlayers(game: GameState): void {
-  if (!game.sharedHand) return;
+function mirrorMataAtlanticaToPlayers(game: GameState): void {
+  if (!game.mataAtlanticaPiles) return;
+  const tops = game.mataAtlanticaPiles
+    .map((pile) => pile[0])
+    .filter((id): id is string => Boolean(id));
   for (const player of game.players) {
-    player.hand = [...game.sharedHand];
+    player.hand = [...tops];
   }
 }
 
-export function discardSharedHandCard(game: GameState, playerId: string, cardId: string): GameState {
+export function discardMataAtlanticaPileCard(game: GameState, playerId: string, cardId: string): GameState {
   if (game.status !== "active") {
     throw new Error("Descarte da Mata Atlantica so pode acontecer durante a fase ativa.");
   }
   if (game.activePlayerId !== playerId) {
-    throw new Error("Apenas o jogador ativo pode descartar a carta compartilhada.");
+    throw new Error("Apenas o jogador ativo pode descartar uma carta.");
   }
-  if (!game.sharedHand) {
+  if (!game.mataAtlanticaPiles) {
     throw new Error("Mata Atlantica nao esta ativa.");
   }
-  if (!game.sharedHand.includes(cardId)) {
-    throw new Error("A carta nao esta na mao compartilhada.");
+  const pileTops = game.mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
+  if (!pileTops.includes(cardId)) {
+    throw new Error("Escolha o topo de uma das pilhas para descartar.");
   }
   const player = findPlayer(game, playerId);
   if (!player.speciesId) {
@@ -3155,7 +3167,7 @@ export function discardSharedHandCard(game: GameState, playerId: string, cardId:
   if ((next.mataAtlanticaDiscardByPlayer ?? {})[playerId] === nextPlayer.turnsTaken) {
     throw new Error("Voce ja descartou uma carta da Mata Atlantica neste turno.");
   }
-  syncSharedHandAfterPlay(next, cardId);
+  syncMataAtlanticaAfterPlay(next, cardId);
   next.mataAtlanticaDiscardByPlayer = {
     ...next.mataAtlanticaDiscardByPlayer,
     [playerId]: nextPlayer.turnsTaken
@@ -3240,12 +3252,15 @@ export function collectCaatingaBonus(
 function applyPantanalScenario(game: GameState): void {
   for (const player of game.players) {
     if (player.hand.length === 0) {
-      player.score += 1;
+      player.resources = {
+        ...player.resources,
+        seed: (player.resources.seed ?? 0) + 1
+      };
       game.log = [
         ...game.log,
         {
           id: `pantanal_no_card_${player.playerId}_${game.log.length + 1}`,
-          message: `${player.name} sem cartas na mão (Pantanal): +1 ponto.`,
+          message: `${player.name} sem cartas na mão (Pantanal): +1 pinha.`,
           createdAt: Date.now()
         }
       ];
@@ -3771,7 +3786,9 @@ function cloneGameState(game: GameState): GameState {
           location: { ...game.caatingaPending.location }
         }
       : null,
-    sharedHand: game.sharedHand ? [...game.sharedHand] : null,
+    mataAtlanticaPiles: game.mataAtlanticaPiles
+      ? game.mataAtlanticaPiles.map((pile) => [...pile])
+      : null,
     mataAtlanticaDiscardByPlayer: { ...(game.mataAtlanticaDiscardByPlayer ?? {}) },
     pendingCoatiPairBonus: game.pendingCoatiPairBonus
       ? {
