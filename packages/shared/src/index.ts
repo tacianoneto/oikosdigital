@@ -240,6 +240,12 @@ export interface GameState {
   cerradoTriggeredAtRound: number | null;
   caatingaUsedByPlayer: Record<string, number>;
   caatingaPending: { playerId: string; resource: Resource; location: GridPosition } | null;
+  // Mata Atlântica scenario: a single shared hand replaces per-player hands.
+  // When non-null, every card-using player draws from / sees this same list.
+  sharedHand: string[] | null;
+  // Tracks per-player turnsTaken when they last manually discarded a card from
+  // the shared hand (Mata Atlântica). Used to avoid double-discard at turn end.
+  mataAtlanticaDiscardByPlayer: Record<string, number>;
 }
 
 export interface RoomPlayer {

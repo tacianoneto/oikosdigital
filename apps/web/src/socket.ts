@@ -110,6 +110,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "scenario:vote", { roomId, votes }),
   collectCaatinga: (socket: OikosSocket, roomId: string) =>
     emitWithReply<PublicRoomState>(socket, "scenario:caatinga-collect", { roomId }),
+  discardMataAtlantica: (socket: OikosSocket, roomId: string, cardId: string) =>
+    emitWithReply<PublicRoomState>(socket, "scenario:mata-atlantica-discard", { roomId, cardId }),
   selectObjective: (socket: OikosSocket, roomId: string, objectiveCardId: string) =>
     emitWithReply<PublicRoomState>(socket, "objective:select", { roomId, objectiveCardId }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>

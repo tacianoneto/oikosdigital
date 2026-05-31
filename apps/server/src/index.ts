@@ -54,6 +54,7 @@ import {
   finalizeScenarioVoting,
   isScenarioVotingComplete,
   collectCaatinga,
+  discardMataAtlanticaCard,
   SCENARIO_VOTING_DURATION_MS
 } from "./rooms";
 
@@ -476,6 +477,14 @@ io.on("connection", (socket) => {
   socket.on("scenario:caatinga-collect", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
       const room = collectCaatinga(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("scenario:mata-atlantica-discard", (payload: { roomId: string; cardId: string }, reply) => {
+    withReply(reply, () => {
+      const room = discardMataAtlanticaCard(payload.roomId, playerId, payload.cardId);
       broadcastRoom(room);
       return room;
     });

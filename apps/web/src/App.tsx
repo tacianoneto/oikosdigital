@@ -96,7 +96,8 @@ import {
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints,
-  collectCaatingaBonus
+  collectCaatingaBonus,
+  discardSharedHandCard
 } from "@oikos/rules";
 import type {
   GameState,
@@ -5243,6 +5244,41 @@ export function App() {
                             </button>
                           </div>
                         )}
+                        {(() => {
+                          if (!room?.game?.sharedHand) return null;
+                          if (!currentGamePlayer?.speciesId) return null;
+                          if (speciesDefinitions[currentGamePlayer.speciesId].usesForestCards) return null;
+                          if (room.game.activePlayerId !== currentGamePlayer.playerId) return null;
+                          if (
+                            (room.game.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer.playerId] ===
+                            currentGamePlayer.turnsTaken
+                          )
+                            return null;
+                          return (
+                            <button
+                              type="button"
+                              className="mata-discard-btn"
+                              title="Descartar (Mata Atlântica)"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (isLocalRoom) {
+                                  try {
+                                    const nextGame = discardSharedHandCard(room.game!, currentGamePlayer.playerId, card.id);
+                                    setRoom((current) => (current ? { ...current, game: nextGame } : current));
+                                  } catch (e) {
+                                    setError(e instanceof Error ? e.message : "Falha ao descartar.");
+                                  }
+                                } else {
+                                  const rid = room.roomId;
+                                  run(() => roomApi.discardMataAtlantica(requireSocket(), rid, card.id));
+                                }
+                              }}
+                            >
+                              <X aria-hidden="true" />
+                              <span>Descartar</span>
+                            </button>
+                          );
+                        })()}
                       </div>
                     );
                   })}
