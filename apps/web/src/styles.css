@@ -7094,6 +7094,24 @@ input:focus {
   background: rgba(180, 40, 40, 0.95);
 }
 
+.pile-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 4;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(40, 90, 60, 0.92);
+  color: #e6ffd9;
+  border: 1px solid rgba(120, 220, 150, 0.7);
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
 /* =====================================================
    SCENARIO VOTING OVERLAY
    ===================================================== */

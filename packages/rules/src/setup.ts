@@ -604,9 +604,10 @@ export function createInitialGameState(
     dealObjectiveChoices(players, roomPlayers, random);
   }
 
-  // Mata Atlântica: replace per-player hands with 3 shared piles of 6 cards.
-  // Each player's `hand` mirrors the top card of each non-empty pile (max 3
-  // cards visible at a time). Piles do not refill from the leftover deck.
+  // Mata Atlântica: drop personal starting hands and create 3 shared piles of
+  // 6 cards. Piles live on game state, not on player.hand, so future species
+  // that put cards into player.hand don't collide with pile cards. Players
+  // play/discard the top card of any pile via dedicated flows.
   let mataAtlanticaPiles: string[][] | null = null;
   let remainingForDeck = remainingCommonCardIds;
   if (activeScenarioIds.includes("mata_atlantica")) {
@@ -625,10 +626,6 @@ export function createInitialGameState(
       fullDeck.splice(0, pileSize)
     ];
     remainingForDeck = fullDeck;
-    const tops = mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
-    for (const player of players) {
-      player.hand = [...tops];
-    }
   }
 
   return {
@@ -893,7 +890,12 @@ export function placeForestCard(
     throw new Error("A expansao de floresta esta implementada apenas para especies que usam cartas nesta etapa.");
   }
 
-  if (!player.hand.includes(cardId)) {
+  const pileTops = getMataAtlanticaPileTops(game);
+  const fromPile = pileTops.includes(cardId);
+  if (!player.hand.includes(cardId) && !fromPile) {
+    if (game.mataAtlanticaPiles) {
+      throw new Error("Escolha o topo de uma das pilhas (Mata Atlantica).");
+    }
     throw new Error("A carta escolhida nao esta na mao deste jogador.");
   }
 
@@ -924,10 +926,11 @@ export function placeForestCard(
 
   const next = cloneGameState(game);
   const nextPlayer = findPlayer(next, playerId);
-  const cardIndex = nextPlayer.hand.indexOf(cardId);
-  nextPlayer.hand = nextPlayer.hand.filter((candidate, index) => candidate !== cardId || index !== cardIndex);
-  if (next.mataAtlanticaPiles) {
-    syncMataAtlanticaAfterPlay(next, cardId);
+  if (fromPile) {
+    removeFromMataAtlanticaPile(next, cardId);
+  } else {
+    const cardIndex = nextPlayer.hand.indexOf(cardId);
+    nextPlayer.hand = nextPlayer.hand.filter((candidate, index) => candidate !== cardId || index !== cardIndex);
   }
   const newCardInstanceId = `played_${cardId}_${next.forest.cards.length + 1}`;
   next.forest.cards = [
@@ -3009,12 +3012,10 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
     player.speciesId &&
     !speciesDefinitions[player.speciesId].usesForestCards
   ) {
-    const tops = game.mataAtlanticaPiles
-      .map((pile) => pile[0])
-      .filter((id): id is string => Boolean(id));
+    const tops = getMataAtlanticaPileTops(game);
     if (tops.length > 0) {
       const auto = tops[Math.floor(Math.random() * tops.length)];
-      syncMataAtlanticaAfterPlay(game, auto);
+      removeFromMataAtlanticaPile(game, auto);
       const def = getCardDefinitionOrNull(auto);
       game.log = [
         ...game.log,
@@ -3119,26 +3120,24 @@ function applyEndTurnThreatPenalty(game: GameState, player: PlayerState): void {
   ];
 }
 
-function syncMataAtlanticaAfterPlay(game: GameState, playedCardId: string): void {
-  if (!game.mataAtlanticaPiles) return;
-  // Remove the played/discarded card from whichever pile holds it. Spec says
-  // the card "do topo" is the one chosen, but tolerate any position for safety.
-  game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile) => {
-    const idx = pile.indexOf(playedCardId);
-    if (idx < 0) return [...pile];
-    return [...pile.slice(0, idx), ...pile.slice(idx + 1)];
-  });
-  mirrorMataAtlanticaToPlayers(game);
-}
-
-function mirrorMataAtlanticaToPlayers(game: GameState): void {
-  if (!game.mataAtlanticaPiles) return;
-  const tops = game.mataAtlanticaPiles
+function getMataAtlanticaPileTops(game: GameState): string[] {
+  if (!game.mataAtlanticaPiles) return [];
+  return game.mataAtlanticaPiles
     .map((pile) => pile[0])
     .filter((id): id is string => Boolean(id));
-  for (const player of game.players) {
-    player.hand = [...tops];
-  }
+}
+
+function removeFromMataAtlanticaPile(game: GameState, cardId: string): boolean {
+  if (!game.mataAtlanticaPiles) return false;
+  let removed = false;
+  game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile) => {
+    if (removed) return [...pile];
+    const idx = pile.indexOf(cardId);
+    if (idx < 0) return [...pile];
+    removed = true;
+    return [...pile.slice(0, idx), ...pile.slice(idx + 1)];
+  });
+  return removed;
 }
 
 export function discardMataAtlanticaPileCard(game: GameState, playerId: string, cardId: string): GameState {
@@ -3151,7 +3150,7 @@ export function discardMataAtlanticaPileCard(game: GameState, playerId: string, 
   if (!game.mataAtlanticaPiles) {
     throw new Error("Mata Atlantica nao esta ativa.");
   }
-  const pileTops = game.mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
+  const pileTops = getMataAtlanticaPileTops(game);
   if (!pileTops.includes(cardId)) {
     throw new Error("Escolha o topo de uma das pilhas para descartar.");
   }
@@ -3167,7 +3166,7 @@ export function discardMataAtlanticaPileCard(game: GameState, playerId: string, 
   if ((next.mataAtlanticaDiscardByPlayer ?? {})[playerId] === nextPlayer.turnsTaken) {
     throw new Error("Voce ja descartou uma carta da Mata Atlantica neste turno.");
   }
-  syncMataAtlanticaAfterPlay(next, cardId);
+  removeFromMataAtlanticaPile(next, cardId);
   next.mataAtlanticaDiscardByPlayer = {
     ...next.mataAtlanticaDiscardByPlayer,
     [playerId]: nextPlayer.turnsTaken

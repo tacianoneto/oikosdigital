@@ -1603,9 +1603,25 @@ export function App() {
     room?.game && room.game.activePlayerId ? getWolfSpendableResourceTypes(room.game, room.game.activePlayerId) : [];
   const availableWolfPointSpendCount =
     room?.game && room.game.activePlayerId ? getAvailableWolfPointSpendCount(room.game, room.game.activePlayerId) : 0;
+  const mataAtlanticaPileTopIds = useMemo(() => {
+    const piles = room?.game?.mataAtlanticaPiles;
+    if (!piles) return [] as string[];
+    return piles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
+  }, [room?.game?.mataAtlanticaPiles]);
+  const mataAtlanticaPileIndexByCardId = useMemo(() => {
+    const map = new Map<string, number>();
+    mataAtlanticaPileTopIds.forEach((id, index) => {
+      if (id) map.set(id, index);
+    });
+    return map;
+  }, [mataAtlanticaPileTopIds]);
   const handCards = useMemo(
-    () => (currentGamePlayer?.hand ?? []).map((cardId) => getForestCardDefinition(cardId)),
-    [currentGamePlayer?.hand]
+    () => {
+      const personal = (currentGamePlayer?.hand ?? []).map((cardId) => getForestCardDefinition(cardId));
+      const piles = mataAtlanticaPileTopIds.map((cardId) => getForestCardDefinition(cardId));
+      return [...personal, ...piles];
+    },
+    [currentGamePlayer?.hand, mataAtlanticaPileTopIds]
   );
   const objectiveChoices = useMemo(
     () =>
@@ -5539,6 +5555,11 @@ export function App() {
                           alt={card.label}
                           style={isSelected ? { transform: `rotate(${selectedCardRotation}deg)` } : undefined}
                         />
+                        {mataAtlanticaPileIndexByCardId.has(card.id) && (
+                          <span className="pile-badge" aria-label={`Topo da pilha ${(mataAtlanticaPileIndexByCardId.get(card.id) ?? 0) + 1}`}>
+                            P{(mataAtlanticaPileIndexByCardId.get(card.id) ?? 0) + 1}
+                          </span>
+                        )}
                         {showRotate && (
                           <div className="card-rotate" onClick={(event) => event.stopPropagation()}>
                             <button
@@ -5567,6 +5588,7 @@ export function App() {
                           if (!currentGamePlayer?.speciesId) return null;
                           if (speciesDefinitions[currentGamePlayer.speciesId].usesForestCards) return null;
                           if (room.game.activePlayerId !== currentGamePlayer.playerId) return null;
+                          if (!mataAtlanticaPileIndexByCardId.has(card.id)) return null;
                           if (
                             (room.game.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer.playerId] ===
                             currentGamePlayer.turnsTaken

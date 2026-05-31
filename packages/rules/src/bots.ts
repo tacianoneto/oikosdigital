@@ -224,8 +224,12 @@ function playRandomForestCard(game: GameState, playerId: string): GameState {
     return game;
   }
 
+  const pileTops = game.mataAtlanticaPiles
+    ? game.mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id))
+    : [];
+  const candidateIds = [...player.hand, ...pileTops];
   const options = shuffle(
-    player.hand.flatMap((cardId) =>
+    candidateIds.flatMap((cardId) =>
       rotations.flatMap((rotation) =>
         getAvailableForestExpansionPositionsForCard(game, cardId, rotation).map((position) => ({ cardId, rotation, position }))
       )
@@ -499,7 +503,11 @@ function playForestCard(game: GameState, playerId: string, speciesId: SpeciesId)
     return game;
   }
 
-  const options = player.hand.flatMap((cardId) =>
+  const pileTops = game.mataAtlanticaPiles
+    ? game.mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id))
+    : [];
+  const candidateIds = [...player.hand, ...pileTops];
+  const options = candidateIds.flatMap((cardId) =>
     rotations.flatMap((rotation) =>
       getAvailableForestExpansionPositionsForCard(game, cardId, rotation).map((position) => ({ cardId, rotation, position }))
     )
