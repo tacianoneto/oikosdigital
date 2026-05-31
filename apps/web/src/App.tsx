@@ -1140,6 +1140,12 @@ export function App() {
       !activeIsLocalBot &&
       (isLocalRoom || room.game.setupActivePlayerId === playerId)
   );
+  const playableCardIds = useMemo(() => {
+    const pile = room?.game?.mataAtlanticaPiles
+      ? room.game.mataAtlanticaPiles.map((p) => p[0]).filter((id): id is string => Boolean(id))
+      : [];
+    return new Set<string>([...(currentGamePlayer?.hand ?? []), ...pile]);
+  }, [currentGamePlayer?.hand, room?.game?.mataAtlanticaPiles]);
   const canPlaceSelectedForestCard = Boolean(
     room?.game?.status === "active" &&
       selectedHandCardId &&
@@ -1152,7 +1158,8 @@ export function App() {
         activeSpecies?.speciesId === "armadillo" ||
         activeSpecies?.speciesId === "maned_wolf") &&
       activeActionId === "A" &&
-      currentGamePlayer?.hand.includes(selectedHandCardId)
+      selectedHandCardId &&
+      playableCardIds.has(selectedHandCardId)
   );
   const handPlayableThisAction = Boolean(
     room?.game?.status === "active" &&
