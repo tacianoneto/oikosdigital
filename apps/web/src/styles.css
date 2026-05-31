@@ -7287,8 +7287,7 @@ input:focus {
   border-radius: 12px;
 }
 
-.scenario-vote-card-wrap:hover .scenario-vote-card-zoom,
-.scenario-vote-card-wrap:focus-within .scenario-vote-card-zoom {
+.scenario-vote-card-wrap:hover .scenario-vote-card-zoom {
   opacity: 1;
   transform: translate(-50%, 0) scale(1);
 }
@@ -7514,7 +7513,6 @@ input:focus {
 }
 
 .scenario-vote-card-wrap:hover .scenario-vote-card-zoom,
-.scenario-vote-card-wrap:focus-within .scenario-vote-card-zoom,
 .scenario-vote-card-wrap:first-child:hover .scenario-vote-card-zoom,
 .scenario-vote-card-wrap:nth-child(4n + 1):hover .scenario-vote-card-zoom,
 .scenario-vote-card-wrap:nth-child(4n):hover .scenario-vote-card-zoom {
