@@ -16,6 +16,7 @@ const groups = [
   },
   { from: join(root, "cartas objetivos"), to: join(publicAssets, "objective-cards") },
   { from: join(root, "cartas cenário"), to: join(publicAssets, "scenario-cards") },
+  { from: join(root, "cartas ameaça"), to: join(publicAssets, "threat-cards") },
   { from: join(root, "meeples"), to: join(publicAssets, "meeples") },
   { from: join(root, "portraits"), to: join(publicAssets, "portraits") },
   { from: join(root, "movimentos"), to: join(publicAssets, "movimentos") },

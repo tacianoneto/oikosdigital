@@ -5,7 +5,8 @@ import {
   objectiveResourceByCard,
   speciesDefinitions,
   speciesOrderBySetup,
-  speciesOrderByTurn
+  speciesOrderByTurn,
+  threatCards
 } from "@oikos/content";
 import type {
   ActionId,
@@ -580,6 +581,12 @@ export function createInitialGameState(
 ): GameState {
   const enabledMiniExpansions = options?.enabledMiniExpansions ?? ["objectives"];
   const activeScenarioIds = options?.activeScenarioIds ?? [];
+  const threatDeckIds = enabledMiniExpansions.includes("threats")
+    ? shuffle(
+        threatCards.map((card) => card.id),
+        random
+      )
+    : [];
   const selectedSpecies = roomPlayers.map((player) => player.speciesId).filter((speciesId): speciesId is SpeciesId => Boolean(speciesId));
   const setupSpeciesOrder = getSetupOrder(selectedSpecies);
   const turnSpeciesOrder = getTurnOrder(selectedSpecies);
@@ -653,6 +660,9 @@ export function createInitialGameState(
     finalScoreBreakdown: null,
     winnerPlayerIds: [],
     activeScenarioIds: [...activeScenarioIds],
+    activeThreatCardId: null,
+    threatDeckIds,
+    threatDiscardIds: [],
     cerradoTriggeredAtRound: null,
     caatingaUsedByPlayer: {},
     caatingaPending: null,
@@ -2645,7 +2655,12 @@ export function getValidJaguarMovementDestinations(game: GameState, playerId: st
   }
 
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
-  const movementKind = action === "A" ? "adjacent" : getJaguarMovementKindFromCurrentLocation(game, jaguarPiece.location);
+  const movementKind =
+    game.activeThreatCardId === "threat_6"
+      ? "knight_jump"
+      : action === "A"
+        ? "adjacent"
+        : getJaguarMovementKindFromCurrentLocation(game, jaguarPiece.location);
   if (!movementKind) {
     return [];
   }
@@ -2898,6 +2913,7 @@ function advanceSetupTurn(game: GameState): void {
       createdAt: Date.now()
     }
   ];
+  revealThreatForActiveTurn(game);
   skipAutomaticActionIfNeeded(game);
 }
 
@@ -2935,6 +2951,7 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
   const turnBeforeIncrement = player.turnsTaken;
   player.turnsTaken += 1;
   awardObjectivePointsForTurn(game, player);
+  applyEndTurnThreatPenalty(game, player);
   // Mata Atlântica: species that don't use cards must discard 1 from the
   // shared hand on their turn. If they didn't pick one manually, auto-discard
   // a random card so the deck still cycles.
@@ -2990,7 +3007,65 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
     return;
   }
 
+  revealThreatForActiveTurn(game);
   skipAutomaticActionIfNeeded(game);
+}
+
+function revealThreatForActiveTurn(game: GameState): void {
+  if (!(game.enabledMiniExpansions ?? []).includes("threats") || game.status !== "active" || !game.activePlayerId) {
+    return;
+  }
+
+  if (game.activeThreatCardId) {
+    game.threatDiscardIds = [...(game.threatDiscardIds ?? []), game.activeThreatCardId];
+  }
+
+  const [nextThreatId, ...remainingThreatIds] = game.threatDeckIds ?? [];
+  game.threatDeckIds = remainingThreatIds;
+  game.activeThreatCardId = nextThreatId ?? null;
+
+  const player = findPlayer(game, game.activePlayerId);
+  if (nextThreatId) {
+    const threat = threatCards.find((card) => card.id === nextThreatId);
+    game.log = [
+      ...game.log,
+      {
+        id: `threat_reveal_${nextThreatId}_${player.playerId}_${player.turnsTaken}`,
+        message: `${threat?.label ?? "Ameaca"} revelada para o turno de ${player.name}.`,
+        createdAt: Date.now()
+      }
+    ];
+    return;
+  }
+
+  game.log = [
+    ...game.log,
+    {
+      id: `threat_deck_empty_${player.playerId}_${player.turnsTaken}`,
+      message: "Pilha de ameacas esgotada. Nenhuma ameaca sera repetida nesta partida.",
+      createdAt: Date.now()
+    }
+  ];
+}
+
+function applyEndTurnThreatPenalty(game: GameState, player: PlayerState): void {
+  if (game.activeThreatCardId !== "threat_8") {
+    return;
+  }
+
+  const previousScore = player.score;
+  player.score = Math.max(0, player.score - 1);
+  game.log = [
+    ...game.log,
+    {
+      id: `threat_infestacao_${player.playerId}_${player.turnsTaken}`,
+      message:
+        previousScore > player.score
+          ? `${player.name} perdeu 1 ponto por Infestacao.`
+          : `${player.name} nao tinha pontos para perder por Infestacao.`,
+      createdAt: Date.now()
+    }
+  ];
 }
 
 function syncSharedHandAfterPlay(game: GameState, playedCardId: string): void {
@@ -3622,6 +3697,9 @@ function cloneGameState(game: GameState): GameState {
     ...game,
     enabledMiniExpansions: [...(game.enabledMiniExpansions ?? ["objectives"])],
     activeScenarioIds: [...(game.activeScenarioIds ?? [])],
+    activeThreatCardId: game.activeThreatCardId ?? null,
+    threatDeckIds: [...(game.threatDeckIds ?? [])],
+    threatDiscardIds: [...(game.threatDiscardIds ?? [])],
     cerradoTriggeredAtRound: game.cerradoTriggeredAtRound ?? null,
     caatingaUsedByPlayer: { ...(game.caatingaUsedByPlayer ?? {}) },
     caatingaPending: game.caatingaPending
@@ -3698,8 +3776,23 @@ function getCardDefinitionOrNull(definitionId: string): ForestCardDefinition | n
 
 function collectMovementDestinationResource(game: GameState, playerId: string, destination: GridPosition): Resource | null {
   const targetCard = getForestCardAtPosition(game, destination);
-  const resource = targetCard ? getCardDefinitionOrNull(targetCard.definitionId)?.resource : null;
+  const targetDefinition = targetCard ? getCardDefinitionOrNull(targetCard.definitionId) : null;
+  const resource = targetDefinition?.resource ?? null;
   if (!resource) {
+    return null;
+  }
+
+  const threatBlockReason = getThreatCollectionBlockReason(game, resource, targetDefinition?.habitat ?? null);
+  if (threatBlockReason) {
+    const player = findPlayer(game, playerId);
+    game.log = [
+      ...game.log,
+      {
+        id: `threat_collect_block_${playerId}_${game.log.length + 1}`,
+        message: `${player.name} nao coletou ${resource}: ${threatBlockReason}.`,
+        createdAt: Date.now()
+      }
+    ];
     return null;
   }
 
@@ -3729,6 +3822,22 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
   }
 
   return resource;
+}
+
+function getThreatCollectionBlockReason(game: GameState, resource: Resource, habitat: Habitat | null): string | null {
+  if (game.activeThreatCardId === "threat_1" && habitat === "river") {
+    return "Seca bloqueia coletas em rio";
+  }
+  if (game.activeThreatCardId === "threat_3" && resource === "egg") {
+    return "Queimada bloqueia ovos";
+  }
+  if (game.activeThreatCardId === "threat_5" && resource === "seed") {
+    return "Poluicao bloqueia pinhas";
+  }
+  if (game.activeThreatCardId === "threat_7" && resource === "fruit") {
+    return "Erosao bloqueia frutas";
+  }
+  return null;
 }
 
 function isForestCardRiverConnectionValid(
@@ -3907,6 +4016,12 @@ function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, orig
   }
 
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
+  if (game.activeThreatCardId === "threat_6") {
+    return getPotentialDestinations(origin, "knight_jump")
+      .filter((position) => forestPositions.has(positionKey(position)))
+      .sort((a, b) => a.y - b.y || a.x - b.x);
+  }
+
   const pampaActive = (game.activeScenarioIds ?? []).includes("pampa");
   const allHabitats: Habitat[] = ["forest", "field", "river"];
   const habitatPool = pampaActive

@@ -16,7 +16,7 @@ export type CardKind = "common" | "initial";
 export type ContentStatus = "complete" | "needs_review";
 export type ActionId = "A" | "B" | "C" | "D";
 export type ObjectiveRuleTier = "red" | "yellow" | "blue";
-export type MiniExpansionId = "objectives" | "scenarios";
+export type MiniExpansionId = "objectives" | "scenarios" | "threats";
 
 export type ScenarioCardId =
   | "amazonia"
@@ -26,6 +26,15 @@ export type ScenarioCardId =
   | "pampa"
   | "pantanal";
 export type ScenarioSelectionMode = "vote" | "host";
+export type ThreatCardId =
+  | "threat_1"
+  | "threat_2"
+  | "threat_3"
+  | "threat_4"
+  | "threat_5"
+  | "threat_6"
+  | "threat_7"
+  | "threat_8";
 
 export interface GridPosition {
   x: number;
@@ -75,6 +84,13 @@ export interface ScenarioCardDefinition {
   id: ScenarioCardId;
   label: string;
   imagePath: string;
+  description: string;
+}
+
+export interface ThreatCardDefinition {
+  id: ThreatCardId;
+  label: string;
+  imagePath?: string;
   description: string;
 }
 
@@ -237,6 +253,9 @@ export interface GameState {
   finalScoreBreakdown: FinalScoreBreakdown | null;
   winnerPlayerIds: string[];
   activeScenarioIds: ScenarioCardId[];
+  activeThreatCardId: ThreatCardId | null;
+  threatDeckIds: ThreatCardId[];
+  threatDiscardIds: ThreatCardId[];
   // Tracks per-round/per-turn scenario usage. Reset by round/turn boundaries.
   cerradoTriggeredAtRound: number | null;
   caatingaUsedByPlayer: Record<string, number>;

@@ -42,6 +42,8 @@ import {
   scenarioCardBackPath,
   scenarioCards,
   scenarioCardsById,
+  threatCardBackPath,
+  threatCardsById,
   objectiveCardsById,
   resourceAssets,
   resourceLabels,
@@ -111,7 +113,8 @@ import type {
   RoomSummary,
   ScenarioCardDefinition,
   ScenarioCardId,
-  SpeciesId
+  SpeciesId,
+  ThreatCardDefinition
 } from "@oikos/shared";
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
@@ -215,6 +218,12 @@ const miniExpansionOptions: Array<{
     description:
       "Antes da partida, jogadores votam 2 cenários (bioma do Brasil) que alteram regras durante todo o jogo.",
     iconPath: scenarioCardBackPath
+  },
+  {
+    id: "threats",
+    label: "Cartas de ameaca",
+    description: "Revela 1 ameaca aleatoria no inicio de cada turno, sem repetir cartas na partida.",
+    iconPath: threatCardBackPath
   }
 ];
 
@@ -452,6 +461,22 @@ function ActiveScenariosDock({
           </div>
         </div>
       )}
+    </aside>
+  );
+}
+
+function ActiveThreatDock({ threat }: { threat: ThreatCardDefinition }) {
+  return (
+    <aside className="threat-dock" aria-label="Ameaca ativa">
+      {threat.imagePath && <img className="threat-dock-img" src={encodeURI(threat.imagePath)} alt="" />}
+      <div>
+        <div className="threat-dock-badge">
+          <AlertTriangle aria-hidden="true" />
+          <span>Ameaca do turno</span>
+        </div>
+        <strong>{threat.label}</strong>
+        <p>{threat.description}</p>
+      </div>
     </aside>
   );
 }
@@ -1077,6 +1102,9 @@ export function App() {
     () => (room?.game?.activeScenarioIds ?? []).map((id) => scenarioCardsById.get(id)).filter(Boolean) as ScenarioCardDefinition[],
     [room?.game?.activeScenarioIds]
   );
+  const activeThreatDefinition = room?.game?.activeThreatCardId
+    ? threatCardsById.get(room.game.activeThreatCardId) ?? null
+    : null;
   const activeScenarioKey = activeScenarioDefinitions.map((scenario) => scenario.id).join("|");
   useEffect(() => {
     if (activeScenarioKey) {
@@ -4600,6 +4628,10 @@ export function App() {
         />
       )}
 
+      {hasStartedGame && !cleanBoardMode && activeThreatDefinition && (
+        <ActiveThreatDock threat={activeThreatDefinition} />
+      )}
+
       {hasStartedGame && !cleanBoardMode && isSpectator && (
         <div className="spectator-banner" role="status">
           <Eye aria-hidden="true" />
@@ -4718,6 +4750,24 @@ export function App() {
                     </div>
                   </article>
                 ))}
+              </div>
+            )}
+            {activeThreatDefinition && (
+              <div className="config-scenarios">
+                <strong>Ameaca ativa</strong>
+                <article className="config-scenario-card">
+                  {activeThreatDefinition.imagePath ? (
+                    <img src={encodeURI(activeThreatDefinition.imagePath)} alt="" />
+                  ) : (
+                    <span className="config-threat-icon" aria-hidden="true">
+                      <AlertTriangle />
+                    </span>
+                  )}
+                  <div>
+                    <span>{activeThreatDefinition.label}</span>
+                    <p>{activeThreatDefinition.description}</p>
+                  </div>
+                </article>
               </div>
             )}
             <button className="secondary-button exit-button" onClick={leaveTable}>

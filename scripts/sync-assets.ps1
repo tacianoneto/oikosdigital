@@ -9,6 +9,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "forest-cards
 New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "forest-cards\initial") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "objective-cards") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "scenario-cards") | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "threat-cards") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "meeples") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "portraits") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $publicAssets "movimentos") | Out-Null
@@ -19,6 +20,7 @@ Copy-Item -Path (Join-Path $root "cartas floresta\*.png") -Destination (Join-Pat
 Copy-Item -Path (Join-Path $root "cartas floresta\cartas iniciais floresta\*.png") -Destination (Join-Path $publicAssets "forest-cards\initial") -Force
 Copy-Item -Path (Join-Path $root "cartas objetivos\*.png") -Destination (Join-Path $publicAssets "objective-cards") -Force
 Copy-Item -Path (Join-Path $root "cartas cenário\*.png") -Destination (Join-Path $publicAssets "scenario-cards") -Force
+Copy-Item -Path (Join-Path $root "cartas ameaça\*.png") -Destination (Join-Path $publicAssets "threat-cards") -Force
 Copy-Item -Path (Join-Path $root "meeples\*.png") -Destination (Join-Path $publicAssets "meeples") -Force
 Copy-Item -Path (Join-Path $root "portraits\*.png") -Destination (Join-Path $publicAssets "portraits") -Force
 Copy-Item -Path (Join-Path $root "movimentos\*.png") -Destination (Join-Path $publicAssets "movimentos") -Force

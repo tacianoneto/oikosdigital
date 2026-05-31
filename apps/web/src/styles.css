@@ -7689,6 +7689,83 @@ input:focus {
   line-height: 1.35;
 }
 
+.threat-dock {
+  position: fixed;
+  z-index: 12;
+  top: 76px;
+  left: 50%;
+  width: min(460px, calc(100vw - 220px));
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  align-items: center;
+  gap: 12px;
+  transform: translateX(-50%);
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: var(--bw) solid rgba(224, 106, 90, 0.5);
+  background: linear-gradient(180deg, rgba(44, 24, 18, 0.94), rgba(15, 12, 9, 0.96));
+  color: var(--paper);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.42), 0 18px 34px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+}
+
+.threat-dock-img {
+  width: 76px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 8px;
+  border: 1px solid rgba(224, 106, 90, 0.38);
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.35);
+}
+
+.threat-dock-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+  color: var(--coral);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.threat-dock-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.threat-dock strong {
+  display: block;
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.threat-dock p {
+  margin: 3px 0 0;
+  color: rgba(241, 235, 214, 0.78);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.config-threat-icon {
+  width: 58px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(224, 106, 90, 0.38);
+  color: var(--coral);
+  background: rgba(224, 106, 90, 0.12);
+}
+
+.config-threat-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
 .config-scenarios {
   display: grid;
   gap: 10px;
@@ -7860,6 +7937,14 @@ input:focus {
     transform: none;
   }
 
+  .threat-dock {
+    top: 76px;
+    left: 16px;
+    right: 128px;
+    width: auto;
+    transform: none;
+  }
+
   .lobby-scenario-picker-head {
     flex-direction: column;
   }
@@ -7899,6 +7984,15 @@ input:focus {
     left: 12px;
     right: 12px;
     bottom: 70px;
+    width: auto;
+    transform: none;
+  }
+
+  .threat-dock {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 128px;
     width: auto;
     transform: none;
   }

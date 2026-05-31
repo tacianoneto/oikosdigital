@@ -10,6 +10,7 @@ import {
   completeCurrentAction,
   createInitialGameState,
   createPreviewInitialForest,
+  forceEndPlayerTurn,
   getAvailableJaguarPointSpendCount,
   getAvailableWolfPointSpendCount,
   getAvailableForestExpansionPositionsForCard,
@@ -1520,6 +1521,53 @@ describe("setup placement", () => {
 
     expect(game.activePlayerId).toBe("coati");
     expect(game.log.some((entry) => entry.message.includes("pulou automaticamente a acao D do Lobo-guara"))).toBe(true);
+  });
+});
+
+describe("threat mini expansion", () => {
+  it("reveals one threat when setup ends", () => {
+    let game = createInitialGameState(
+      "threats",
+      [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
+      () => 0,
+      createPreviewInitialForest(),
+      { enabledMiniExpansions: ["threats"] }
+    );
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+
+    expect(game.status).toBe("active");
+    expect(game.activeThreatCardId).not.toBeNull();
+    expect(game.threatDeckIds).toHaveLength(7);
+    expect(game.threatDiscardIds).toHaveLength(0);
+  });
+
+  it("draws a fresh threat each turn without repeating cards", () => {
+    let game = createInitialGameState(
+      "threats",
+      [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
+      () => 0,
+      createPreviewInitialForest(),
+      { enabledMiniExpansions: ["threats"] }
+    );
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+
+    const seen = new Set<string>();
+    for (let index = 0; index < 8; index += 1) {
+      expect(game.activeThreatCardId).not.toBeNull();
+      seen.add(game.activeThreatCardId!);
+      game = forceEndPlayerTurn(game, game.activePlayerId!, "teste");
+    }
+
+    expect(seen.size).toBe(8);
+    expect(game.activeThreatCardId).toBeNull();
+    expect(game.threatDeckIds).toHaveLength(0);
+    expect(game.threatDiscardIds).toHaveLength(8);
   });
 });
 

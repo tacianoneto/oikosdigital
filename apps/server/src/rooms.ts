@@ -672,7 +672,7 @@ export function setMiniExpansion(roomId: string, playerId: string, expansionId: 
     throw new Error("Mini-expansões só podem ser alteradas no lobby.");
   }
 
-  if (expansionId !== "objectives" && expansionId !== "scenarios") {
+  if (expansionId !== "objectives" && expansionId !== "scenarios" && expansionId !== "threats") {
     throw new Error("Mini-expansão indisponível.");
   }
 
