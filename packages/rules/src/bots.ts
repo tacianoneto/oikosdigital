@@ -5,7 +5,9 @@ import {
   addCoatiForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
+  collectCaatingaBonus,
   completeCurrentAction,
+  discardSharedHandCard,
   forceEndPlayerTurn,
   getArmadilloHidePieceIds,
   getArmadilloSeedPlacementPositions,
@@ -63,6 +65,32 @@ export function playBotStep(game: GameState, playerId: string): GameState {
     return game;
   }
 
+  // Scenario bots: collect Caatinga bonus the moment it shows up.
+  if (game.caatingaPending?.playerId === playerId) {
+    try {
+      return collectCaatingaBonus(game, playerId);
+    } catch {
+      // fall through and keep playing
+    }
+  }
+
+  // Mata Atlântica: non-card species must discard 1 from the shared hand.
+  // Pick a random card and discard manually so the deck cycles deterministically
+  // within the bot's turn rather than after.
+  if (
+    game.sharedHand &&
+    game.sharedHand.length > 0 &&
+    !speciesDefinitions[player.speciesId].usesForestCards &&
+    (game.mataAtlanticaDiscardByPlayer ?? {})[playerId] !== player.turnsTaken
+  ) {
+    const targetCardId = pickOne(game.sharedHand);
+    try {
+      return discardSharedHandCard(game, playerId, targetCardId);
+    } catch {
+      // fall through
+    }
+  }
+
   if (game.pendingCoatiPairBonus?.playerId === playerId) {
     return resolveCoatiPairBonus(game, playerId, pickPosition(game, player.speciesId, getCoatiPairBonusTargets(game, playerId)));
   }
@@ -114,6 +142,27 @@ export function playRandomStep(game: GameState, playerId: string): GameState {
   }
 
   const speciesId = player.speciesId;
+
+  if (game.caatingaPending?.playerId === playerId) {
+    try {
+      return collectCaatingaBonus(game, playerId);
+    } catch {
+      // fall through
+    }
+  }
+
+  if (
+    game.sharedHand &&
+    game.sharedHand.length > 0 &&
+    !speciesDefinitions[speciesId].usesForestCards &&
+    (game.mataAtlanticaDiscardByPlayer ?? {})[playerId] !== player.turnsTaken
+  ) {
+    try {
+      return discardSharedHandCard(game, playerId, pickOne(game.sharedHand));
+    } catch {
+      // fall through
+    }
+  }
 
   if (game.pendingCoatiPairBonus?.playerId === playerId) {
     const targets = getCoatiPairBonusTargets(game, playerId);
