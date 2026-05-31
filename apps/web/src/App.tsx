@@ -2108,7 +2108,7 @@ export function App() {
 
     void run(
       () => roomApi.setScenarioSelectionMode(requireSocket(), room.roomId, mode),
-      mode === "vote" ? "CenÃ¡rios serÃ£o votados." : "Host escolherÃ¡ os cenÃ¡rios."
+      mode === "vote" ? "Cenários serão votados." : "Host escolherá os cenários."
     );
   }
 
@@ -2124,7 +2124,7 @@ export function App() {
         : [...hostSelectedScenarioIds, scenarioId];
 
     if (next === hostSelectedScenarioIds) {
-      setNotice("Escolha no mÃ¡ximo 2 cenÃ¡rios.");
+      setNotice("Escolha no máximo 2 cenários.");
       return;
     }
 
@@ -4253,21 +4253,21 @@ export function App() {
                         <div className="lobby-scenario-picker">
                           <div className="lobby-scenario-picker-head">
                             <div>
-                              <strong>CenÃ¡rios</strong>
+                              <strong>Cenários</strong>
                               <small>
                                 {scenarioSelectionMode === "vote"
                                   ? "Jogadores votam em 2 cartas antes do setup."
-                                  : `Host define 2 cartas (${hostSelectedScenarioIds.length}/2).`}
+                                  : `Definido pelo host (${hostSelectedScenarioIds.length}/2).`}
                               </small>
                             </div>
-                            <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenÃ¡rios">
+                            <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenários">
                               <button
                                 type="button"
                                 className={scenarioSelectionMode === "vote" ? "is-active" : ""}
                                 disabled={!isHost || room.status !== "lobby"}
                                 onClick={() => setScenarioMode("vote")}
                               >
-                                VotaÃ§Ã£o
+                                Votação
                               </button>
                               <button
                                 type="button"
@@ -4275,7 +4275,7 @@ export function App() {
                                 disabled={!isHost || room.status !== "lobby"}
                                 onClick={() => setScenarioMode("host")}
                               >
-                                Host define
+                                Definido
                               </button>
                             </div>
                           </div>
@@ -4512,7 +4512,7 @@ export function App() {
                   className="flow-submit lobby-start-btn"
                   onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}
                   disabled={needsHostScenarioSelection}
-                  title={needsHostScenarioSelection ? "Escolha 2 cenÃ¡rios antes de iniciar." : undefined}
+                  title={needsHostScenarioSelection ? "Escolha 2 cenários antes de iniciar." : undefined}
                 >
                   <Play aria-hidden="true" />
                   Iniciar Partida
