@@ -9292,51 +9292,54 @@ input:focus {
   justify-content: center;
   align-items: stretch;
   text-align: center;
-  gap: clamp(8px, 0.8vw, 14px);
-  padding: clamp(6px, 0.6vw, 12px) clamp(8px, 0.8vw, 14px);
+  gap: clamp(1px, 0.2vw, 5px);
+  padding: clamp(2px, 0.25vw, 6px) clamp(5px, 0.55vw, 10px);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .capuchin-action-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(10px, 0.9vw, 16px);
-  padding-bottom: clamp(6px, 0.55vw, 10px);
-  border-bottom: 1px solid rgba(255, 183, 77, 0.3);
+  gap: clamp(5px, 0.55vw, 10px);
+  padding-bottom: clamp(2px, 0.25vw, 5px);
+  border-bottom: 1px solid rgba(255, 183, 77, 0.28);
 }
 
 .capuchin-action-badge {
   background: linear-gradient(180deg, #66BB6A, #1B5E20);
   color: #fff;
   font-family: "Edo SZ", Outfit, sans-serif;
-  font-size: clamp(22px, 1.9vw, 34px);
-  width: clamp(36px, 3vw, 52px);
-  height: clamp(36px, 3vw, 52px);
+  font-size: clamp(11px, 1.05vw, 18px);
+  width: clamp(18px, 1.65vw, 28px);
+  height: clamp(18px, 1.65vw, 28px);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 2px rgba(255,183,77,0.2);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.35);
   line-height: 1;
-  padding-top: 4px;
-  text-shadow: 0 2px 3px rgba(0,0,0,0.6);
+  padding-top: 2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   flex-shrink: 0;
 }
 
 .capuchin-action-titles {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.1;
+  flex-direction: row;
+  align-items: baseline;
+  gap: clamp(4px, 0.4vw, 8px);
   min-width: 0;
+  line-height: 1;
 }
 
 .capuchin-action-eyebrow {
-  color: rgba(255, 224, 178, 0.85);
+  color: rgba(255, 224, 178, 0.75);
   font-family: Outfit, sans-serif;
   font-weight: 700;
-  font-size: clamp(10px, 0.9vw, 14px);
-  letter-spacing: 0.22em;
+  font-size: clamp(7px, 0.65vw, 11px);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   text-shadow: 0 1px 2px rgba(0,0,0,0.7);
 }
@@ -9345,35 +9348,34 @@ input:focus {
   color: #FFB74D;
   font-family: "Edo SZ", Outfit, sans-serif;
   font-weight: 900;
-  font-size: clamp(18px, 1.7vw, 28px);
+  font-size: clamp(12px, 1.1vw, 20px);
   letter-spacing: 0.03em;
-  text-shadow: 0 2px 5px rgba(0,0,0,0.8), 0 0 12px rgba(255,152,0,0.25);
-  margin-top: 4px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,152,0,0.22);
   line-height: 1;
 }
 
 .capuchin-action-desc {
   color: var(--paper);
   font-family: Outfit, sans-serif;
-  font-size: clamp(12px, 1.05vw, 17px);
+  font-size: clamp(8px, 0.74vw, 13px);
   font-weight: 500;
-  line-height: 1.45;
+  line-height: 1.2;
   margin: 0;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
   letter-spacing: 0.01em;
 }
 
 .capuchin-action-hint {
-  background: linear-gradient(180deg, rgba(46, 125, 50, 0.65), rgba(27, 94, 32, 0.5));
-  border: 1px solid rgba(129, 199, 132, 0.45);
+  background: linear-gradient(180deg, rgba(46, 125, 50, 0.6), rgba(27, 94, 32, 0.48));
+  border: 1px solid rgba(129, 199, 132, 0.42);
   color: color-mix(in srgb, var(--paper) 96%, transparent);
-  padding: clamp(7px, 0.6vw, 12px) clamp(12px, 1vw, 18px);
-  border-radius: 12px;
+  padding: clamp(2px, 0.3vw, 6px) clamp(6px, 0.65vw, 12px);
+  border-radius: 8px;
   font-family: Outfit, sans-serif;
-  font-size: clamp(11px, 0.95vw, 15px);
+  font-size: clamp(7px, 0.64vw, 11px);
   font-weight: 600;
-  line-height: 1.4;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  line-height: 1.2;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
   margin: 0 auto;
   max-width: 100%;
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
@@ -9428,13 +9430,13 @@ input:focus {
 }
 
 .capuchin-waiting-text {
-  color: rgba(255, 224, 178, 0.75);
+  color: rgba(255, 224, 178, 0.7);
   font-family: Outfit, sans-serif;
-  font-size: clamp(14px, 1.2vw, 20px);
+  font-size: clamp(10px, 0.9vw, 14px);
   font-style: italic;
   font-weight: 600;
   letter-spacing: 0.04em;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
 }
 
 .hud-bottom-capuchin {
@@ -9454,10 +9456,11 @@ input:focus {
 
 .hud-bottom-capuchin-action-text {
   position: absolute;
-  bottom: 40%;
+  bottom: 43%;
   left: 1.5%;
-  width: 21%;
-  height: 50%;
+  width: 16%;
+  height: 42%;
+  overflow: hidden;
   color: var(--paper);
   display: flex;
   flex-direction: column;
