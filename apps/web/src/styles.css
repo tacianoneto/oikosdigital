@@ -9257,10 +9257,11 @@ input:focus {
 
 .hud-top-capuchin-meeples {
   position: absolute;
-  top: 73%;
+  top: 80%;
   left: 39%;
   display: grid;
-  grid-template-columns: repeat(7, auto);
+  grid-template-columns: repeat(4, auto);
+  grid-auto-rows: auto;
   gap: 0.2vw 1vw;
   pointer-events: auto;
   align-items: center;
