@@ -5925,7 +5925,9 @@ export function App() {
                 }
               >
                 {species ? (
-                  <img src={encodeURI(species.portraitAsset)} alt="" />
+                  <span className="opponent-portrait-frame">
+                    <img src={encodeURI(species.portraitAsset)} alt="" />
+                  </span>
                 ) : (
                   <span>{displayIndex + 1}</span>
                 )}

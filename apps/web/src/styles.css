@@ -2205,14 +2205,14 @@ input:focus {
 
 .opponent-rail {
   display: grid;
-  gap: 12px;
+  gap: 18px;
   pointer-events: auto;
 }
 
 .opponent-portrait-btn {
   position: relative;
-  width: 66px;
-  height: 66px;
+  width: 74px;
+  height: 74px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -2252,9 +2252,18 @@ input:focus {
     0 0 14px color-mix(in srgb, var(--species, var(--amber)) 42%, transparent);
 }
 
-.opponent-portrait-btn img {
-  width: 70px;
-  height: 70px;
+.opponent-portrait-frame {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+}
+
+.opponent-portrait-frame img {
+  max-width: 64px;
+  max-height: 64px;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 0;
   display: block;
@@ -3467,17 +3476,22 @@ input:focus {
   }
 
   .opponent-rail {
-    gap: 9px;
+    gap: 14px;
   }
 
   .opponent-portrait-btn {
+    width: 66px;
+    height: 66px;
+  }
+
+  .opponent-portrait-frame {
     width: 58px;
     height: 58px;
   }
 
-  .opponent-portrait-btn img {
-    width: 62px;
-    height: 62px;
+  .opponent-portrait-frame img {
+    max-width: 58px;
+    max-height: 58px;
   }
 
   .opponent-popover {
@@ -3552,13 +3566,18 @@ input:focus {
   }
 
   .opponent-portrait-btn {
-    width: 54px;
-    height: 54px;
+    width: 60px;
+    height: 60px;
   }
 
-  .opponent-portrait-btn img {
-    width: 58px;
-    height: 58px;
+  .opponent-portrait-frame {
+    width: 52px;
+    height: 52px;
+  }
+
+  .opponent-portrait-frame img {
+    max-width: 52px;
+    max-height: 52px;
   }
 
   .opponent-popover {
