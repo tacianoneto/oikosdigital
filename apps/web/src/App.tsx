@@ -3504,28 +3504,6 @@ export function App() {
           </div>
         </div>
       )}
-      {hasStartedGame && !cleanBoardMode && (
-        <button
-          type="button"
-          className={`hud-collapse-tab hud-collapse-left ${hudLeftCollapsed ? "is-collapsed" : ""}`}
-          title={hudLeftCollapsed ? "Mostrar painel" : "Ocultar painel"}
-          aria-label={hudLeftCollapsed ? "Mostrar painel" : "Ocultar painel"}
-          onClick={() => setHudLeftCollapsed((value) => !value)}
-        >
-          {hudLeftCollapsed ? <ChevronRight aria-hidden="true" /> : <ChevronLeft aria-hidden="true" />}
-        </button>
-      )}
-      {hasStartedGame && !cleanBoardMode && (
-        <button
-          type="button"
-          className={`hud-collapse-tab hud-collapse-right ${hudRightCollapsed ? "is-collapsed" : ""}`}
-          title={hudRightCollapsed ? "Mostrar jogadores" : "Ocultar jogadores"}
-          aria-label={hudRightCollapsed ? "Mostrar jogadores" : "Ocultar jogadores"}
-          onClick={() => setHudRightCollapsed((value) => !value)}
-        >
-          {hudRightCollapsed ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
-        </button>
-      )}
       {!hasStartedGame && !room && landingMode === "idle" && (
         <div className="landing-screen" role="main">
           <div className="landing-bg-orbs" aria-hidden="true">
