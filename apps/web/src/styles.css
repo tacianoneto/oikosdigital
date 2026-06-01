@@ -2189,6 +2189,9 @@ input:focus {
 }
 
 .opponent-inspector {
+  --opponent-button-size: 74px;
+  --opponent-button-gap: 18px;
+  --opponent-arrow-offset: 31px;
   position: fixed;
   z-index: 10;
   top: clamp(82px, 15vh, 132px);
@@ -2324,7 +2327,16 @@ input:focus {
   position: relative;
   order: -1;
   width: min(318px, calc(100vw - 104px));
+  min-height: max(
+    0px,
+    calc(
+      (var(--opponent-arrow-index, 0) * (var(--opponent-button-size) + var(--opponent-button-gap))) +
+      var(--opponent-button-size) +
+      10px
+    )
+  );
   display: grid;
+  align-content: start;
   gap: 12px;
   padding: 13px;
   border: 1px solid color-mix(in srgb, var(--species, var(--line)) 50%, var(--line-soft));
@@ -2343,7 +2355,10 @@ input:focus {
 .opponent-popover::after {
   content: "";
   position: absolute;
-  top: 28px;
+  top: calc(
+    (var(--opponent-arrow-index, 0) * (var(--opponent-button-size) + var(--opponent-button-gap))) +
+    var(--opponent-arrow-offset)
+  );
   right: -7px;
   width: 12px;
   height: 12px;
@@ -2433,23 +2448,30 @@ input:focus {
 }
 
 .opponent-score-row span {
-  min-height: 64px;
+  min-height: 74px;
   display: grid;
-  grid-template-columns: 32px 1fr auto;
+  grid-template-columns: 44px 1fr;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  column-gap: 12px;
+  row-gap: 2px;
+  padding: 12px 14px;
+  background:
+    linear-gradient(135deg, rgba(242, 193, 78, 0.16), transparent 58%),
+    rgba(0, 0, 0, 0.24);
 }
 
 .opponent-score-row img {
-  width: 30px;
-  height: 30px;
+  grid-row: 1 / span 2;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.42));
 }
 
 .opponent-score-row strong {
   color: var(--paper);
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 900;
   line-height: 1;
   text-align: left;
@@ -2465,8 +2487,9 @@ input:focus {
 }
 
 .opponent-points-card small {
-  justify-self: end;
+  justify-self: start;
   color: var(--amber);
+  font-size: 11px;
 }
 
 .opponent-piece-track {
@@ -2726,7 +2749,7 @@ input:focus {
 
 .movement-guide-floating {
   position: fixed;
-  z-index: 80;
+  z-index: 1200;
   width: min(220px, 34vw);
   padding: 8px;
   border: var(--bw) solid color-mix(in srgb, var(--species, var(--line)) 58%, var(--line));
@@ -3475,6 +3498,9 @@ input:focus {
   }
 
   .opponent-inspector {
+    --opponent-button-size: 66px;
+    --opponent-button-gap: 14px;
+    --opponent-arrow-offset: 27px;
     top: 82px;
     right: 8px;
     gap: 9px;
@@ -3566,6 +3592,9 @@ input:focus {
   }
 
   .opponent-inspector {
+    --opponent-button-size: 60px;
+    --opponent-button-gap: 14px;
+    --opponent-arrow-offset: 24px;
     top: 72px;
     right: 8px;
   }
@@ -3591,6 +3620,7 @@ input:focus {
     right: 8px;
     bottom: 76px;
     width: calc(100vw - 16px);
+    min-height: 0;
     max-height: min(58dvh, 420px);
     overflow-y: auto;
   }
