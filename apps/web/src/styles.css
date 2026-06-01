@@ -9537,7 +9537,7 @@ input:focus {
 
 .hud-top-coati-meeples {
   position: absolute;
-  top: 88%;
+  top: 80%;
   left: 39%;
   display: grid;
   grid-template-columns: repeat(4, auto);
