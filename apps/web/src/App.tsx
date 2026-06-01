@@ -107,6 +107,7 @@ import type {
   Habitat,
   MiniExpansionId,
   ObjectiveCardDefinition,
+  PlayerState,
   PublicRoomState,
   Resource,
   RoomPlayer,
@@ -200,6 +201,17 @@ const DEFAULT_TURN_TIMER_MS = 60000;
 const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
 const handHabitatOrder: Habitat[] = ["forest", "field", "river"];
 type HandSortMode = "habitat" | "resource";
+
+function renderReserveMeeples(player: Pick<PlayerState, "playerId" | "reservePieces">, meepleAsset: string) {
+  return player.reservePieces.map((pieceId, index) => (
+    <img
+      key={`${player.playerId}_reserve_${pieceId}_${index}`}
+      className="is-in-reserve"
+      src={encodeURI(meepleAsset)}
+      alt="Na reserva"
+    />
+  ));
+}
 
 const miniExpansionOptions: Array<{
   id: MiniExpansionId;
@@ -5097,20 +5109,10 @@ export function App() {
               <div
                 className="hud-piece-track"
                 ref={(node) => setEffectTarget("hud:reserve", node)}
-                title={`${hudGamePlayer.reservePieces.length} na reserva · ${hudGamePlayer.piecesInForest.length} na floresta`}
-                aria-label={`${hudGamePlayer.reservePieces.length} peças na reserva, ${hudGamePlayer.piecesInForest.length} peças na floresta`}
+                title={`${hudGamePlayer.reservePieces.length} na reserva`}
+                aria-label={`${hudGamePlayer.reservePieces.length} peças na reserva`}
               >
-                {Array.from({ length: hudSpecies.totalPieces }, (_, pieceIndex) => {
-                  const isInForest = pieceIndex >= hudGamePlayer.reservePieces.length;
-                  return (
-                    <img
-                      key={`${hudGamePlayer.playerId}_hud_piece_${pieceIndex}`}
-                      src={encodeURI(hudSpecies.meepleAsset)}
-                      alt=""
-                      className={isInForest ? "is-in-forest" : "is-in-reserve"}
-                    />
-                  );
-                })}
+                {renderReserveMeeples(hudGamePlayer, hudSpecies.meepleAsset)}
               </div>
             </div>
 
@@ -5995,19 +5997,9 @@ export function App() {
               <div
                 className="opponent-piece-track"
                 ref={(node) => setEffectTarget(`${selectedOpponentEntry.gamePlayer!.playerId}:reserve`, node)}
-                title={`${selectedOpponentEntry.gamePlayer.reservePieces.length} na reserva · ${selectedOpponentEntry.gamePlayer.piecesInForest.length} na floresta`}
+                title={`${selectedOpponentEntry.gamePlayer.reservePieces.length} na reserva`}
               >
-                {Array.from({ length: selectedOpponentEntry.species.totalPieces }, (_, pieceIndex) => {
-                  const isInForest = pieceIndex >= selectedOpponentEntry.gamePlayer!.reservePieces.length;
-                  return (
-                    <img
-                      key={`${selectedOpponentEntry.gamePlayer!.playerId}_opponent_piece_${pieceIndex}`}
-                      src={encodeURI(selectedOpponentEntry.species!.meepleAsset)}
-                      alt=""
-                      className={isInForest ? "is-in-forest" : "is-in-reserve"}
-                    />
-                  );
-                })}
+                {renderReserveMeeples(selectedOpponentEntry.gamePlayer!, selectedOpponentEntry.species!.meepleAsset)}
               </div>
 
               <div className="opponent-resource-grid">
@@ -6123,19 +6115,9 @@ export function App() {
                         <div
                           className="player-piece-track"
                           ref={(node) => setEffectTarget(`${gamePlayer.playerId}:reserve`, node)}
-                          title={`${gamePlayer.reservePieces.length} na reserva · ${gamePlayer.piecesInForest.length} na floresta`}
+                          title={`${gamePlayer.reservePieces.length} na reserva`}
                         >
-                          {Array.from({ length: species.totalPieces }, (_, pieceIndex) => {
-                            const isInForest = pieceIndex >= gamePlayer.reservePieces.length;
-                            return (
-                              <img
-                                key={`${gamePlayer.playerId}_piece_track_${pieceIndex}`}
-                                src={encodeURI(species.meepleAsset)}
-                                alt=""
-                                className={isInForest ? "is-in-forest" : "is-in-reserve"}
-                              />
-                            );
-                          })}
+                          {renderReserveMeeples(gamePlayer, species.meepleAsset)}
                         </div>
                       )}
                     </div>
@@ -6625,12 +6607,7 @@ export function App() {
             <img src="/assets/interface/onça/UI_oncaTOP.png" alt="" className="hud-top-jaguar-bg" />
             <div className="hud-top-jaguar-score">{currentGamePlayer.score}</div>
             <div className="hud-top-jaguar-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.jaguar.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.jaguar.meepleAsset)} alt="Na floresta" />
-              ))}
+              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.jaguar.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-jaguar">
@@ -6713,12 +6690,7 @@ export function App() {
             <img src="/assets/interface/lobo/UI_loboTOP.png" alt="" className="hud-top-wolf-bg" />
             <div className="hud-top-wolf-score">{currentGamePlayer.score}</div>
             <div className="hud-top-wolf-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.maned_wolf.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.maned_wolf.meepleAsset)} alt="Na floresta" />
-              ))}
+              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.maned_wolf.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-wolf">
@@ -6828,12 +6800,7 @@ export function App() {
               {currentGamePlayer.score ?? 0}
             </div>
             <div className="hud-top-tatu-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.armadillo.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.armadillo.meepleAsset)} alt="Na floresta" />
-              ))}
+              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.armadillo.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-tatu">
@@ -6942,12 +6909,7 @@ export function App() {
               {currentGamePlayer.score ?? 0}
             </div>
             <div className="hud-top-macaw-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="Na floresta" />
-              ))}
+              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.macaw.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-macaw">
@@ -7048,12 +7010,7 @@ export function App() {
               {currentGamePlayer.score ?? 0}
             </div>
             <div className="hud-top-capuchin-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="Na floresta" />
-              ))}
+              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.capuchin.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-capuchin">
@@ -7156,12 +7113,7 @@ export function App() {
               {currentGamePlayer.score ?? 0}
             </div>
             <div className="hud-top-coati-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.coati.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.coati.meepleAsset)} alt="Na floresta" />
-              ))}
+              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.coati.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-coati">

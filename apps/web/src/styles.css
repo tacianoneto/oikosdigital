@@ -10122,6 +10122,73 @@ input:focus {
   filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
+.hud-top-jaguar-meeples,
+.hud-top-wolf-meeples,
+.hud-top-tatu-meeples,
+.hud-top-macaw-meeples,
+.hud-top-capuchin-meeples,
+.hud-top-coati-meeples {
+  position: fixed;
+  top: clamp(8px, 1.1vh, 14px);
+  left: 44.2vw;
+  width: 40.4vw;
+  height: clamp(50px, 6.3vh, 70px);
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 0.85vw, 18px);
+  transform: none;
+  pointer-events: none;
+  z-index: 104;
+}
+
+.hud-top-jaguar-meeples img,
+.hud-top-wolf-meeples img,
+.hud-top-tatu-meeples img,
+.hud-top-macaw-meeples img,
+.hud-top-capuchin-meeples img,
+.hud-top-coati-meeples img {
+  width: clamp(30px, 2.75vw, 54px);
+  max-width: 12.5%;
+  height: 100%;
+  max-height: clamp(44px, 5.8vh, 62px);
+  object-fit: contain;
+  flex: 0 1 auto;
+  opacity: 1;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
+}
+
+.hud-top-capuchin-meeples img:nth-child(8) {
+  grid-column: auto;
+}
+
+@media (max-width: 820px) {
+  .hud-top-jaguar-meeples,
+  .hud-top-wolf-meeples,
+  .hud-top-tatu-meeples,
+  .hud-top-macaw-meeples,
+  .hud-top-capuchin-meeples,
+  .hud-top-coati-meeples {
+    left: 50%;
+    width: min(72vw, 360px);
+    height: 42px;
+    gap: 6px;
+    transform: translateX(-50%);
+  }
+
+  .hud-top-jaguar-meeples img,
+  .hud-top-wolf-meeples img,
+  .hud-top-tatu-meeples img,
+  .hud-top-macaw-meeples img,
+  .hud-top-capuchin-meeples img,
+  .hud-top-coati-meeples img {
+    width: 24px;
+    max-width: 11%;
+    max-height: 38px;
+  }
+}
+
 /* COATI ACTION CONTENT */
 .coati-action-content {
   width: 100%;
