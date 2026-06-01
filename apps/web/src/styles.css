@@ -2380,12 +2380,16 @@ input:focus {
 }
 
 .expansion-preview.is-objective {
-  top: 62%;
+  top: auto;
+  bottom: 22%;
+  transform: none;
   width: clamp(220px, 18%, 320px);
 }
 
 .expansion-preview.is-threat {
-  top: 62%;
+  top: auto;
+  bottom: 22%;
+  transform: none;
 }
 
 .expansion-preview > img,
