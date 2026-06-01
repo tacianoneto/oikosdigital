@@ -6030,6 +6030,22 @@ export function App() {
                     {gamePlayer.score}
                   </em>
                 )}
+                {gamePlayer && (
+                  <span className="opponent-portrait-leaders" aria-hidden="true">
+                    {(["meat", "egg", "fruit"] as const)
+                      .filter((resource) => resourceLeaders[resource]?.has(gamePlayer.playerId))
+                      .map((resource) => (
+                        <span
+                          key={resource}
+                          className="opponent-portrait-leader"
+                          title={`Maioria de ${resourceLabels[resource]}: ${gamePlayer.resources[resource]}`}
+                        >
+                          <img src={encodeURI(resourceAssets[resource])} alt="" />
+                          <b>{gamePlayer.resources[resource]}</b>
+                        </span>
+                      ))}
+                  </span>
+                )}
               </button>
             ))}
           </div>
