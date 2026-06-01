@@ -521,6 +521,7 @@ export function App() {
   const [selectedWolfTargetPieceId, setSelectedWolfTargetPieceId] = useState<string | null>(null);
   const [selectedWolfResources, setSelectedWolfResources] = useState<Resource[]>([]);
   const [selectedRemovalPieceIds, setSelectedRemovalPieceIds] = useState<string[]>([]);
+  const [selectedOpponentPlayerId, setSelectedOpponentPlayerId] = useState<string | null>(null);
   const [expandedObjectiveCardId, setExpandedObjectiveCardId] = useState<string | null>(null);
   const [pendingObjectiveCardId, setPendingObjectiveCardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1104,6 +1105,50 @@ export function App() {
 
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
+  const playerInspectorEntries = useMemo(() => {
+    const players = room?.players ?? [];
+    if (!room?.game) {
+      return players.map((player, displayIndex) => ({
+        player,
+        gamePlayer: null,
+        species: player.speciesId ? speciesDefinitions[player.speciesId] : null,
+        displayIndex,
+        isActivePlayer: false
+      }));
+    }
+
+    const order = room.game.status === "setup" ? room.game.setupOrder : room.game.turnOrder;
+    const indexByPlayerId = new Map(order.map((id, index) => [id, index]));
+    return [...players]
+      .sort((a, b) => {
+        const ai = indexByPlayerId.get(a.playerId);
+        const bi = indexByPlayerId.get(b.playerId);
+        if (ai === undefined && bi === undefined) return 0;
+        if (ai === undefined) return 1;
+        if (bi === undefined) return -1;
+        return ai - bi;
+      })
+      .map((player, displayIndex) => ({
+        player,
+        gamePlayer: room.game?.players.find((candidate) => candidate.playerId === player.playerId) ?? null,
+        species: player.speciesId ? speciesDefinitions[player.speciesId] : null,
+        displayIndex,
+        isActivePlayer:
+          player.playerId === room.game?.activePlayerId ||
+          player.playerId === room.game?.setupActivePlayerId
+      }));
+  }, [room?.players, room?.game]);
+  const opponentInspectorEntries = useMemo(
+    () =>
+      playerInspectorEntries.filter(
+        (entry) => !currentGamePlayer || entry.player.playerId !== currentGamePlayer.playerId
+      ),
+    [currentGamePlayer?.playerId, playerInspectorEntries]
+  );
+  const selectedOpponentEntry = useMemo(
+    () => opponentInspectorEntries.find((entry) => entry.player.playerId === selectedOpponentPlayerId) ?? null,
+    [opponentInspectorEntries, selectedOpponentPlayerId]
+  );
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
@@ -1131,6 +1176,14 @@ export function App() {
       setScenarioDockOpen(false);
     }
   }, [activeScenarioKey]);
+  useEffect(() => {
+    if (!selectedOpponentPlayerId) {
+      return;
+    }
+    if (!hasStartedGame || cleanBoardMode || !opponentInspectorEntries.some((entry) => entry.player.playerId === selectedOpponentPlayerId)) {
+      setSelectedOpponentPlayerId(null);
+    }
+  }, [cleanBoardMode, hasStartedGame, opponentInspectorEntries, selectedOpponentPlayerId]);
   const botTurnDelayMs = isLocalRoom
     ? room?.botTurnDelayMs ?? localBotTurnDelayMs
     : room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
@@ -5852,16 +5905,157 @@ export function App() {
         </div>
       )}
 
-      {!cleanBoardMode && (
+      {hasStartedGame && !cleanBoardMode && opponentInspectorEntries.length > 0 && (
+        <aside className="opponent-inspector" aria-label="Consultar outros jogadores">
+          <div className="opponent-rail" role="list">
+            {opponentInspectorEntries.map(({ player, gamePlayer, species, displayIndex, isActivePlayer }) => (
+              <button
+                type="button"
+                role="listitem"
+                className={`opponent-portrait-btn ${selectedOpponentPlayerId === player.playerId ? "is-selected" : ""} ${
+                  isActivePlayer ? "is-active-turn" : ""
+                }`}
+                key={player.playerId}
+                style={speciesVar(player.speciesId)}
+                title={species ? `Ver ${species.displayName}` : player.name}
+                aria-label={species ? `Ver informações de ${species.displayName}` : `Ver informações de ${player.name}`}
+                aria-pressed={selectedOpponentPlayerId === player.playerId}
+                onClick={() =>
+                  setSelectedOpponentPlayerId((current) => (current === player.playerId ? null : player.playerId))
+                }
+              >
+                {species ? (
+                  <img src={encodeURI(species.portraitAsset)} alt="" />
+                ) : (
+                  <span>{displayIndex + 1}</span>
+                )}
+                {isActivePlayer && <i aria-hidden="true" />}
+                {gamePlayer && (
+                  <em aria-label={`${gamePlayer.score} pontos`}>
+                    <img src={encodeURI(resourceAssets.point)} alt="" />
+                    {gamePlayer.score}
+                  </em>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {selectedOpponentEntry?.gamePlayer && selectedOpponentEntry.species && (
+            <section
+              className="opponent-popover"
+              style={speciesVar(selectedOpponentEntry.gamePlayer.speciesId)}
+              aria-label={`Resumo de ${selectedOpponentEntry.species.displayName}`}
+            >
+              <header className="opponent-popover-head">
+                <img src={encodeURI(selectedOpponentEntry.species.portraitAsset)} alt="" />
+                <div>
+                  <span>
+                    {selectedOpponentEntry.isActivePlayer
+                      ? "Vez atual"
+                      : selectedOpponentEntry.player.isBot
+                        ? "Bot"
+                        : selectedOpponentEntry.player.connected
+                          ? "Online"
+                          : "Offline"}
+                  </span>
+                  <strong>{selectedOpponentEntry.species.displayName}</strong>
+                  <small>{selectedOpponentEntry.gamePlayer.name}</small>
+                </div>
+                <button
+                  type="button"
+                  className="opponent-close"
+                  aria-label="Fechar resumo"
+                  onClick={() => setSelectedOpponentPlayerId(null)}
+                >
+                  <X aria-hidden="true" />
+                </button>
+              </header>
+
+              <div className="opponent-score-row">
+                <span>
+                  <img src={encodeURI(resourceAssets.point)} alt="" />
+                  <strong><AnimatedNumber value={selectedOpponentEntry.gamePlayer.score} /></strong>
+                  <small>Pontos</small>
+                </span>
+                <span>
+                  <strong>{selectedOpponentEntry.gamePlayer.piecesInForest.length}</strong>
+                  <small>Na floresta</small>
+                </span>
+                <span>
+                  <strong>{selectedOpponentEntry.gamePlayer.reservePieces.length}</strong>
+                  <small>Reserva</small>
+                </span>
+              </div>
+
+              <div
+                className="opponent-piece-track"
+                ref={(node) => setEffectTarget(`${selectedOpponentEntry.gamePlayer!.playerId}:reserve`, node)}
+                title={`${selectedOpponentEntry.gamePlayer.reservePieces.length} na reserva · ${selectedOpponentEntry.gamePlayer.piecesInForest.length} na floresta`}
+              >
+                {Array.from({ length: selectedOpponentEntry.species.totalPieces }, (_, pieceIndex) => {
+                  const isInForest = pieceIndex >= selectedOpponentEntry.gamePlayer!.reservePieces.length;
+                  return (
+                    <img
+                      key={`${selectedOpponentEntry.gamePlayer!.playerId}_opponent_piece_${pieceIndex}`}
+                      src={encodeURI(selectedOpponentEntry.species!.meepleAsset)}
+                      alt=""
+                      className={isInForest ? "is-in-forest" : "is-in-reserve"}
+                    />
+                  );
+                })}
+              </div>
+
+              <div className="opponent-resource-grid">
+                {resourceOrder.map((resource) => {
+                  const isLeader = resourceLeaders[resource]?.has(selectedOpponentEntry.gamePlayer!.playerId) ?? false;
+                  return (
+                    <span
+                      className={`opponent-resource ${isLeader ? "is-leader" : ""}`}
+                      key={resource}
+                      title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
+                      ref={(node) => setEffectTarget(`${selectedOpponentEntry.gamePlayer!.playerId}:${resource}`, node)}
+                    >
+                      <img src={encodeURI(resourceAssets[resource])} alt="" />
+                      <small>{resourceLabels[resource]}</small>
+                      <strong><AnimatedNumber value={selectedOpponentEntry.gamePlayer!.resources[resource] ?? 0} /></strong>
+                    </span>
+                  );
+                })}
+              </div>
+
+              <footer className="opponent-popover-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onMouseEnter={(event) =>
+                    showMovementPreview(
+                      selectedOpponentEntry.species!.speciesId,
+                      event.currentTarget.getBoundingClientRect()
+                    )
+                  }
+                  onMouseLeave={() => setMovementPreview(null)}
+                  onClick={() => setBoardSpecies(selectedOpponentEntry.species!.speciesId)}
+                >
+                  <MapPin aria-hidden="true" />
+                  Movimentos
+                </button>
+              </footer>
+            </section>
+          )}
+        </aside>
+      )}
+
+      {false && !cleanBoardMode && (
       <aside className={`right-panel hud-dock hud-right ${hudRightCollapsed ? "is-collapsed" : ""}`}>
         <section className="panel-block">
           <h2>Jogadores</h2>
           <div className="player-list" onScroll={() => setMovementPreview(null)}>
             {(() => {
               const players = room?.players ?? [];
-              if (!room?.game) return players;
+              const game = room?.game;
+              if (!game) return players;
               const order =
-                room.game.status === "setup" ? room.game.setupOrder : room.game.turnOrder;
+                game!.status === "setup" ? game!.setupOrder : game!.turnOrder;
               const indexBy = new Map(order.map((id, i) => [id, i]));
               return [...players].sort((a, b) => {
                 const ai = indexBy.get(a.playerId);
@@ -6405,7 +6599,10 @@ export function App() {
                   const next = current === id ? null : id;
                   if (next === "acao") setHudLeftCollapsed(false);
                   if (next === "mao") setHandCollapsed(false);
-                  if (next === "jogadores") setHudRightCollapsed(false);
+                  if (next === "jogadores") {
+                    setHudRightCollapsed(false);
+                    setSelectedOpponentPlayerId((currentId) => currentId ?? opponentInspectorEntries[0]?.player.playerId ?? null);
+                  }
                   if (next === "resumo") setRecapCollapsed(false);
                   return next;
                 })

@@ -2188,6 +2188,345 @@ input:focus {
   padding: 10px;
 }
 
+.opponent-inspector {
+  position: fixed;
+  z-index: 10;
+  top: clamp(82px, 15vh, 132px);
+  right: 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.right-panel.hud-right {
+  display: none;
+}
+
+.opponent-rail {
+  display: grid;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.opponent-portrait-btn {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 3px solid color-mix(in srgb, var(--species, var(--line)) 54%, rgba(255, 255, 255, 0.72));
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 42% 30%, rgba(255, 255, 255, 0.22), transparent 38%),
+    color-mix(in srgb, var(--species, var(--panel)) 24%, rgba(8, 16, 13, 0.92));
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.48),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.08);
+  overflow: visible;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.opponent-portrait-btn::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.opponent-portrait-btn:hover,
+.opponent-portrait-btn.is-selected {
+  transform: translateX(-4px) scale(1.04);
+  border-color: color-mix(in srgb, var(--species, var(--amber)) 76%, #fff);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.56),
+    0 0 20px color-mix(in srgb, var(--species, var(--amber)) 42%, transparent),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
+.opponent-portrait-btn.is-selected::before {
+  border-color: color-mix(in srgb, var(--species, var(--amber)) 68%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--species, var(--amber)) 50%, transparent);
+}
+
+.opponent-portrait-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.opponent-portrait-btn > span {
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.opponent-portrait-btn i {
+  position: absolute;
+  right: -1px;
+  top: -1px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #07110d;
+  border-radius: 50%;
+  background: #78f0a1;
+  box-shadow: 0 0 10px rgba(120, 240, 161, 0.75);
+}
+
+.opponent-portrait-btn em {
+  position: absolute;
+  right: -6px;
+  bottom: -7px;
+  min-width: 28px;
+  height: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 5px;
+  border: 1px solid rgba(14, 27, 21, 0.92);
+  border-radius: 999px;
+  background: #f2c14e;
+  color: #1a1207;
+  font-family: Outfit, sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.opponent-portrait-btn em img {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+}
+
+.opponent-popover {
+  position: relative;
+  order: -1;
+  width: min(318px, calc(100vw - 104px));
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--species, var(--line)) 50%, var(--line-soft));
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(22, 39, 31, 0.96), rgba(8, 16, 13, 0.97)),
+    color-mix(in srgb, var(--species, var(--panel)) 10%, transparent);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px) saturate(1.12);
+  pointer-events: auto;
+  animation: opponent-pop 150ms ease;
+}
+
+.opponent-popover::after {
+  content: "";
+  position: absolute;
+  top: 28px;
+  right: -7px;
+  width: 12px;
+  height: 12px;
+  border-right: 1px solid color-mix(in srgb, var(--species, var(--line)) 50%, var(--line-soft));
+  border-bottom: 1px solid color-mix(in srgb, var(--species, var(--line)) 50%, var(--line-soft));
+  background: rgba(18, 32, 25, 0.96);
+  transform: rotate(-45deg);
+}
+
+.opponent-popover-head {
+  display: grid;
+  grid-template-columns: 54px 1fr 32px;
+  gap: 10px;
+  align-items: center;
+}
+
+.opponent-popover-head > img {
+  width: 54px;
+  height: 54px;
+  border: 2px solid color-mix(in srgb, var(--species, var(--line)) 62%, transparent);
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--species, var(--amber)) 32%, transparent);
+}
+
+.opponent-popover-head div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.opponent-popover-head span {
+  color: var(--amber);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.opponent-popover-head strong {
+  color: var(--paper);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.opponent-popover-head small {
+  color: color-mix(in srgb, var(--paper) 68%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opponent-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--paper);
+}
+
+.opponent-close:hover {
+  border-color: var(--amber);
+}
+
+.opponent-close svg {
+  width: 17px;
+  height: 17px;
+}
+
+.opponent-score-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  gap: 7px;
+}
+
+.opponent-score-row span,
+.opponent-resource,
+.opponent-piece-track {
+  border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 32%, rgba(255, 255, 255, 0.06));
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.opponent-score-row span {
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  padding: 7px;
+}
+
+.opponent-score-row img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.opponent-score-row strong {
+  color: var(--paper);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.opponent-score-row small,
+.opponent-resource small {
+  color: color-mix(in srgb, var(--paper) 62%, transparent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.opponent-piece-track {
+  min-height: 38px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 8px;
+}
+
+.opponent-piece-track img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.opponent-piece-track img.is-in-forest {
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.75) brightness(0.95);
+}
+
+.opponent-piece-track img.is-in-reserve {
+  opacity: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.opponent-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.opponent-resource {
+  min-height: 62px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 7px 5px;
+}
+
+.opponent-resource.is-leader {
+  border-color: var(--amber);
+  background: rgba(242, 193, 78, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(242, 193, 78, 0.18);
+}
+
+.opponent-resource img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.opponent-resource strong {
+  color: var(--paper);
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.opponent-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.opponent-popover-actions .secondary-button {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+@keyframes opponent-pop {
+  from {
+    opacity: 0;
+    transform: translateX(10px) scale(0.98);
+  }
+}
+
 .player-row {
   position: relative;
   display: grid;
@@ -3117,6 +3456,25 @@ input:focus {
   .species-grid {
     grid-template-columns: 1fr;
   }
+
+  .opponent-inspector {
+    top: 82px;
+    right: 8px;
+    gap: 9px;
+  }
+
+  .opponent-rail {
+    gap: 9px;
+  }
+
+  .opponent-portrait-btn {
+    width: 50px;
+    height: 50px;
+  }
+
+  .opponent-popover {
+    width: min(300px, calc(100vw - 76px));
+  }
 }
 
 /* ---- phones: board owns the screen, docks become edge drawers ---- */
@@ -3178,6 +3536,44 @@ input:focus {
 
   .hud-dock.hud-right .panel-block {
     max-height: calc(100dvh - 20px);
+  }
+
+  .opponent-inspector {
+    top: 72px;
+    right: 8px;
+  }
+
+  .opponent-portrait-btn {
+    width: 46px;
+    height: 46px;
+    border-width: 2px;
+  }
+
+  .opponent-popover {
+    position: fixed;
+    top: auto;
+    right: 8px;
+    bottom: 76px;
+    width: calc(100vw - 16px);
+    max-height: min(58dvh, 420px);
+    overflow-y: auto;
+  }
+
+  .opponent-popover::after {
+    display: none;
+  }
+
+  .opponent-popover-head {
+    grid-template-columns: 48px 1fr 32px;
+  }
+
+  .opponent-popover-head > img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .opponent-resource-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   /* fatter edge tabs = easier thumb targets */
