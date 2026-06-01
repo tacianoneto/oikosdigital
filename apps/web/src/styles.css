@@ -2621,10 +2621,9 @@ input:focus {
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1;
-  padding: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.28);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .opponent-movement-art {
