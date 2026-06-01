@@ -10130,14 +10130,14 @@ input:focus {
 .hud-top-coati-meeples {
   position: fixed;
   top: clamp(8px, 1.1vh, 14px);
-  left: 44.2vw;
-  width: 40.4vw;
-  height: clamp(50px, 6.3vh, 70px);
+  left: 38vw;
+  width: 44vw;
+  height: clamp(68px, 8.2vh, 92px);
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: center;
-  gap: clamp(8px, 0.85vw, 18px);
+  justify-content: flex-start;
+  gap: clamp(2px, 0.25vw, 6px);
   transform: none;
   pointer-events: none;
   z-index: 104;
@@ -10149,10 +10149,10 @@ input:focus {
 .hud-top-macaw-meeples img,
 .hud-top-capuchin-meeples img,
 .hud-top-coati-meeples img {
-  width: clamp(30px, 2.75vw, 54px);
-  max-width: 12.5%;
+  width: clamp(78px, 5.2vw, 104px);
+  max-width: 12%;
   height: 100%;
-  max-height: clamp(44px, 5.8vh, 62px);
+  max-height: clamp(62px, 7.6vh, 86px);
   object-fit: contain;
   flex: 0 1 auto;
   opacity: 1;
@@ -10172,8 +10172,8 @@ input:focus {
   .hud-top-coati-meeples {
     left: 50%;
     width: min(72vw, 360px);
-    height: 42px;
-    gap: 6px;
+    height: 54px;
+    gap: 2px;
     transform: translateX(-50%);
   }
 
@@ -10183,9 +10183,9 @@ input:focus {
   .hud-top-macaw-meeples img,
   .hud-top-capuchin-meeples img,
   .hud-top-coati-meeples img {
-    width: 24px;
-    max-width: 11%;
-    max-height: 38px;
+    width: 48px;
+    max-width: 12%;
+    max-height: 50px;
   }
 }
 
