@@ -341,6 +341,36 @@ label {
 }
 
 /* gear button — opens Mesa / config modal */
+.hud-round-indicator {
+  position: fixed;
+  z-index: 10;
+  top: 16px;
+  right: 128px;
+  height: 46px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-weight: 900;
+  font-size: clamp(18px, 1.5vw, 26px);
+  letter-spacing: 0.04em;
+  color: #fff5e0;
+  background: linear-gradient(160deg, rgba(20, 32, 26, 0.95), rgba(8, 14, 10, 0.96));
+  border: 1px solid rgba(232, 163, 61, 0.45);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.4),
+    0 0 24px rgba(232, 163, 61, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  padding-top: 4px;
+  line-height: 1;
+}
+
 .clean-board-toggle {
   position: fixed;
   z-index: 10;

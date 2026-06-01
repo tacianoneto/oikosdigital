@@ -4789,6 +4789,12 @@ export function App() {
         />
       )}
 
+      {hasStartedGame && !cleanBoardMode && room?.game && (
+        <div className="hud-round-indicator" aria-label={`Rodada ${room.game.round} de ${room.game.maxRounds}`}>
+          Rodada {room.game.round}/{room.game.maxRounds}
+        </div>
+      )}
+
       {hasStartedGame && (
         <button
           type="button"
