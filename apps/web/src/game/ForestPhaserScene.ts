@@ -63,7 +63,7 @@ const RADIUS = 14;
 
 const SELECT = 0x5fd08a;
 const HIDDEN_TINT = 0x7f8780;
-const MEEPLE_ASSET_VERSION = "2026-06-01-new-meeples";
+const MEEPLE_ASSET_VERSION = "2026-06-01-new-meeples-v3";
 const MEEPLE_ALPHA_PADDING = 8;
 
 function key(p: GridPosition): string {
