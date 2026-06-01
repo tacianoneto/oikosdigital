@@ -3410,12 +3410,6 @@ export function App() {
     <main
       className={`app-shell ${hasStartedGame ? "game-active" : "menu-active"} ${
         isMobile && hasStartedGame && !cleanBoardMode ? "mobile-hud" : ""
-      } ${currentGamePlayer?.speciesId === "jaguar" ? "is-jaguar-active" : ""} ${
-        currentGamePlayer?.speciesId === "maned_wolf" ? "is-wolf-active" : ""
-      } ${currentGamePlayer?.speciesId === "armadillo" ? "is-armadillo-active" : ""} ${
-        currentGamePlayer?.speciesId === "macaw" ? "is-macaw-active" : ""
-      } ${currentGamePlayer?.speciesId === "capuchin" ? "is-capuchin-active" : ""} ${
-        currentGamePlayer?.speciesId === "coati" ? "is-coati-active" : ""
       }`}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
     >
@@ -5563,13 +5557,12 @@ export function App() {
             onMovementTargetClick={handleMovementTargetClick}
           />
         </div>
-      </section>
 
         {!cleanBoardMode && showHandDuringGame && currentGamePlayer && (
           <section className={`table-hand ${handCollapsed ? "collapsed" : ""}`} aria-label="Mão de cartas">
             <div className="hand-header">
               <div>
-                <span>Mão · {handCards.length} cartas</span>
+                <span>Mão · {handCards.length + (selectedObjectiveCard ? 1 : 0)} cartas</span>
                 <strong>{currentGamePlayer.speciesId ? speciesDefinitions[currentGamePlayer.speciesId].displayName : "Espécie"}</strong>
               </div>
               <div className="hand-header-side">
@@ -5603,13 +5596,13 @@ export function App() {
                 </button>
               </div>
             </div>
-            {(!handCollapsed || currentGamePlayer?.speciesId === "maned_wolf" || currentGamePlayer?.speciesId === "armadillo") &&
-              (handCards.length > 0 ? (
+            {!handCollapsed &&
+              (handCards.length > 0 || selectedObjectiveCard ? (
                 <div
                   className={`hand-rail ${selectedHandCardId ? "has-selection" : ""} ${
                     handPlayableThisAction ? "hand-playable" : "hand-idle"
                   }`}
-                  style={{ ["--hand-count" as string]: sortedHandCards.length }}
+                  style={{ ["--hand-count" as string]: sortedHandCards.length + (selectedObjectiveCard ? 1 : 0) }}
                 >
                   {sortedHandCards.map(({ card }, handIndex) => {
                     const isSelected = selectedHandCardId === card.id;
@@ -5806,7 +5799,25 @@ export function App() {
                       </div>
                     );
                   })}
-
+                  {selectedObjectiveCard && (
+                    <div
+                      key={selectedObjectiveCard.id}
+                      role="button"
+                      tabIndex={0}
+                      className="hand-card objective-card-in-hand"
+                      style={{ ["--hand-index" as string]: sortedHandCards.length }}
+                      onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setExpandedObjectiveCardId(selectedObjectiveCard.id);
+                        }
+                      }}
+                      aria-label={`Ampliar ${selectedObjectiveCard.label}`}
+                    >
+                      <img src={encodeURI(selectedObjectiveCard.imagePath)} alt={selectedObjectiveCard.label} />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="empty-state">
@@ -5817,6 +5828,7 @@ export function App() {
               ))}
           </section>
         )}
+      </section>
 
       {!cleanBoardMode && needsObjectiveChoice && (
         <div className="choice-modal-backdrop objective-choice-backdrop" role="presentation">
@@ -6432,632 +6444,6 @@ export function App() {
             </button>
           ))}
         </nav>
-      )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "jaguar" && (
-        <div className="hud-overlay-jaguar">
-          <div className="hud-top-jaguar">
-            <img src="/assets/interface/onça/UI_oncaTOP.png" alt="" className="hud-top-jaguar-bg" />
-            <div className="hud-top-jaguar-score">{currentGamePlayer.score}</div>
-            <div className="hud-top-jaguar-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.jaguar.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.jaguar.meepleAsset)} alt="Na floresta" />
-              ))}
-            </div>
-          </div>
-          <div className="hud-bottom-jaguar">
-            <img src="/assets/interface/onça/UI_oncaDOWN.png" alt="" className="hud-bottom-jaguar-bg" />
-            <div className="hud-bottom-jaguar-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="jaguar-action-content">
-                  <div className="jaguar-action-header">
-                    <span className="jaguar-action-badge">{activeActionId ?? "A"}</span>
-                    <span className="jaguar-action-title">Ação Atual</span>
-                  </div>
-                  <p className="jaguar-action-desc">
-                    {activeActionId ? getActionDescription("jaguar", activeActionId) : ""}
-                  </p>
-                  
-                  {(activeActionId === "A" || activeActionId === "B") && (
-                    <div className="jaguar-action-hint">
-                      {canSkipJaguarMove
-                        ? "Não há destino válido para mover."
-                        : selectedJaguarDestination
-                          ? "Escolha qual meeple remover."
-                          : "Mova a Onça para um destino destacado."}
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <div className="jaguar-action-hint">
-                      Escolha quantas carnes gastar na janela central.
-                    </div>
-                  )}
-                  
-                  {canSkipJaguarMove && (activeActionId === "A" || activeActionId === "B") && (
-                    <button 
-                      type="button" 
-                      className="jaguar-action-btn" 
-                      onClick={handleCompleteAction}
-                    >
-                      Concluir
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="jaguar-action-content is-waiting">
-                  <div className="jaguar-waiting-text">Aguardando a sua vez...</div>
-                </div>
-              )}
-            </div>
-            <div className="hud-bottom-jaguar-resources">
-              <div className="hud-bottom-jaguar-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
-            </div>
-            <div className="hud-bottom-jaguar-movements">
-              <img src="/assets/interface/onça/Movimentos_onca.png" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-jaguar-expansions">
-              {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "maned_wolf" && (
-        <div className="hud-overlay-wolf">
-          <div className="hud-top-wolf">
-            <img src="/assets/interface/lobo/UI_loboTOP.png" alt="" className="hud-top-wolf-bg" />
-            <div className="hud-top-wolf-score">{currentGamePlayer.score}</div>
-            <div className="hud-top-wolf-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.maned_wolf.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.maned_wolf.meepleAsset)} alt="Na floresta" />
-              ))}
-            </div>
-          </div>
-          <div className="hud-bottom-wolf">
-            <img src="/assets/interface/lobo/UI_lobo.png" alt="" className="hud-bottom-wolf-bg" />
-            <div className="hud-bottom-wolf-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="wolf-action-content">
-                  <div className="wolf-action-header">
-                    <span className="wolf-action-badge">{activeActionId ?? "A"}</span>
-                    <span className="wolf-action-title">Ação Atual</span>
-                  </div>
-                  <p className="wolf-action-desc">
-                    {activeActionId ? getActionDescription("maned_wolf", activeActionId) : ""}
-                  </p>
-                  
-                  {activeActionId === "A" && (
-                    <div className="wolf-action-hint">
-                      {room.game.activePlayedForestCardId
-                        ? `Mova os lobos destacados. Pendentes: ${room.game.pendingWolfMoves?.pieceIds.length ?? 0}.`
-                        : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
-                    </div>
-                  )}
-                  {activeActionId === "B" && (
-                    <>
-                      <div className="wolf-action-hint">
-                        {wolfRemovableBasePieceIds.length > 0
-                          ? selectedWolfTargetPieceId
-                            ? "Peça de base selecionada. Remova ou cancele a ação."
-                            : "Clique em uma peça de base que esteja no mesmo local de um lobo."
-                          : "Nenhuma peça de base divide local com lobo."}
-                      </div>
-                      <div className="wolf-action-actions">
-                        <button
-                          className="wolf-action-btn variant-remove"
-                          disabled={!selectedWolfTargetPieceId}
-                          onClick={handleRemoveWolfBasePiece}
-                        >
-                          Remover peça
-                        </button>
-                        <button className="wolf-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {activeActionId === "C" && (
-                    <div className="wolf-action-hint">
-                      Escolha os recursos na janela central para pontuar.
-                    </div>
-                  )}
-                  {activeActionId === "D" && (
-                    <>
-                      <div className="wolf-action-hint">
-                        Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais válidos: {wolfMeatTargets.length}.
-                      </div>
-                      <button className="wolf-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                        Concluir sem adicionar
-                      </button>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="wolf-action-content is-waiting">
-                  <div className="wolf-waiting-text">Aguardando a sua vez...</div>
-                </div>
-              )}
-            </div>
-            <div className="hud-bottom-wolf-resources">
-              <div className="hud-bottom-wolf-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
-            </div>
-            <div className="hud-bottom-wolf-movements">
-              <img src="/assets/interface/lobo/Movimentos_lobo.png" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-wolf-expansions">
-              {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "armadillo" && (
-        <div className="hud-overlay-tatu">
-          <div className="hud-top-tatu">
-            <img src="/assets/interface/tatu/UI_tatuTOP.png" alt="" className="hud-top-tatu-bg" />
-            <div className="hud-top-tatu-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-tatu-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.armadillo.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.armadillo.meepleAsset)} alt="Na floresta" />
-              ))}
-            </div>
-          </div>
-          <div className="hud-bottom-tatu">
-            <img src="/assets/interface/tatu/UI_tatu.png" alt="" className="hud-bottom-tatu-bg" />
-            <div className="hud-bottom-tatu-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="tatu-action-content">
-                  <div className="tatu-action-header">
-                    <span className="tatu-action-badge">{activeActionId ?? "A"}</span>
-                    <span className="tatu-action-title">Ação Atual</span>
-                  </div>
-                  <p className="tatu-action-desc">
-                    {activeActionId ? getActionDescription("armadillo", activeActionId) : ""}
-                  </p>
-                  
-                  {activeActionId === "A" && (
-                    <>
-                      <div className="tatu-action-hint">
-                        {room.game.activePlayedForestCardId
-                          ? "Clique em uma carta com pinha destacada para adicionar 1 tatu, ou conclua sem adicionar."
-                          : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
-                      </div>
-                      {room.game.activePlayedForestCardId && (
-                        <button className="tatu-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir sem adicionar
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "B" && (
-                    <div className="tatu-action-hint">
-                      Selecione um Tatu-bola e clique em um destino destacado conforme a carta jogada.
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <>
-                      <div className="tatu-action-hint">
-                        Selecione um Tatu-bola visível próprio para esconder.
-                      </div>
-                      {selectedPieceId ? (
-                        <button className="tatu-action-btn variant-hide" onClick={handleHideArmadillo}>
-                          Esconder Tatu-bola
-                        </button>
-                      ) : getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length === 0 ? (
-                        <button className="tatu-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir ação
-                        </button>
-                      ) : null}
-                    </>
-                  )}
-                  {activeActionId === "D" && (
-                    <div className="tatu-action-hint">
-                      Pontuação automática: +{armadilloShareScore} ponto(s) por compartilhamento.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="tatu-action-content is-waiting">
-                  <div className="tatu-waiting-text">Aguardando a sua vez...</div>
-                </div>
-              )}
-            </div>
-            <div className="hud-bottom-tatu-resources">
-              <div className="hud-bottom-tatu-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
-            </div>
-            <div className="hud-bottom-tatu-movements">
-              <img src="/assets/interface/tatu/Movimentos_tatu.png" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-tatu-expansions">
-              {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "macaw" && (
-        <div className="hud-overlay-macaw">
-          <div className="hud-top-macaw">
-            <img src="/assets/interface/arara/UI_araraTOP.png" alt="" className="hud-top-macaw-bg" />
-            <div className="hud-top-macaw-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-macaw-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="Na floresta" />
-              ))}
-            </div>
-          </div>
-          <div className="hud-bottom-macaw">
-            <img src="/assets/interface/arara/UI_arara.png" alt="" className="hud-bottom-macaw-bg" />
-            <div className="hud-bottom-macaw-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="macaw-action-content">
-                  <div className="macaw-action-header">
-                    <span className="macaw-action-badge">{activeActionId ?? "A"}</span>
-                    <span className="macaw-action-title">Ação Atual</span>
-                  </div>
-                  <p className="macaw-action-desc">
-                    {activeActionId ? getActionDescription("macaw", activeActionId) : ""}
-                  </p>
-                  
-                  {activeActionId === "A" && (
-                    <>
-                      <div className="macaw-action-hint">
-                        {room.game.activePlayedForestCardId
-                          ? "Clique em uma carta com ovo destacado para adicionar 1 arara, ou conclua sem adicionar."
-                          : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
-                      </div>
-                      {room.game.activePlayedForestCardId && (
-                        <button className="macaw-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir sem adicionar
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "B" && (
-                    <div className="macaw-action-hint">
-                      Selecione uma Arara-azul e clique em um destino destacado conforme a carta jogada.
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <>
-                      <div className="macaw-action-hint">
-                        Adicione 1 arara da reserva ou realoque uma da floresta ao redor da arara recém movida.
-                      </div>
-                      {macawActionCTargets.length === 0 && !selectedPieceId ? (
-                        <button className="macaw-action-btn variant-alt" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir ação (Sem espaço válido)
-                        </button>
-                      ) : (
-                        <button className="macaw-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Pular adição / realocação
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "D" && (
-                    <div className="macaw-action-hint">
-                      Pontuação automática: +{macawLineScore} ponto(s) por linha reta de 3 araras.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="macaw-action-content is-waiting">
-                  <div className="macaw-waiting-text">Aguardando a sua vez...</div>
-                </div>
-              )}
-            </div>
-            <div className="hud-bottom-macaw-resources">
-              <div className="hud-bottom-macaw-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
-            </div>
-            <div className="hud-bottom-macaw-movements">
-              <img src="/assets/interface/arara/Movimentos_arara.png" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-macaw-expansions">
-              {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "capuchin" && (
-        <div className="hud-overlay-capuchin">
-          <div className="hud-top-capuchin">
-            <img src="/assets/interface/macaco/UI_macacoTOP.png" alt="" className="hud-top-capuchin-bg" />
-            <div className="hud-top-capuchin-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-capuchin-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="Na floresta" />
-              ))}
-            </div>
-          </div>
-          <div className="hud-bottom-capuchin">
-            <img src="/assets/interface/macaco/UI_macaco.png" alt="" className="hud-bottom-capuchin-bg" />
-            <div className="hud-bottom-capuchin-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="capuchin-action-content">
-                  <div className="capuchin-action-header">
-                    <span className="capuchin-action-badge">{activeActionId ?? "A"}</span>
-                    <span className="capuchin-action-title">Ação Atual</span>
-                  </div>
-                  <p className="capuchin-action-desc">
-                    {activeActionId ? getActionDescription("capuchin", activeActionId) : ""}
-                  </p>
-                  
-                  {activeActionId === "A" && (
-                    <>
-                      <div className="capuchin-action-hint">
-                        {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
-                          : `Clique na carta jogada destacada para adicionar 1 macaco, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
-                      </div>
-                      {room.game.activePlayedForestCardId && (
-                        <button className="capuchin-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir sem adicionar
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "B" && (
-                    <div className="capuchin-action-hint">
-                      Selecione um Macaco-prego e clique em um destino destacado conforme a carta jogada.
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <>
-                      <div className="capuchin-action-hint">
-                        {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Não é possível adicionar: Reserva vazia ou sem locais válidos."
-                          : `Clique em um local destacado que já tenha outro Macaco-prego, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
-                      </div>
-                      {capuchinPlacementTargets.length === 0 ? (
-                        <button className="capuchin-action-btn variant-alt" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir ação
-                        </button>
-                      ) : (
-                        <button className="capuchin-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Pular adição
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "D" && (
-                    <div className="capuchin-action-hint">
-                      Pontuação automática: +{capuchinHabitatScore} ponto(s) por tipo de habitat com macacos.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="capuchin-action-content is-waiting">
-                  <div className="capuchin-waiting-text">Aguardando a sua vez...</div>
-                </div>
-              )}
-            </div>
-            <div className="hud-bottom-capuchin-resources">
-              <div className="hud-bottom-capuchin-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
-            </div>
-            <div className="hud-bottom-capuchin-movements">
-              <img src="/assets/interface/macaco/Movimentos_macaco.png" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-capuchin-expansions">
-              {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "coati" && (
-        <div className="hud-overlay-coati">
-          <div className="hud-top-coati">
-            <img src="/assets/interface/quati/UI_quatiTOP.png" alt="" className="hud-top-coati-bg" />
-            <div className="hud-top-coati-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-coati-meeples">
-              {currentGamePlayer.reservePieces.map((p, i) => (
-                <img key={`reserve-${i}`} className="is-in-reserve" src={encodeURI(speciesDefinitions.coati.meepleAsset)} alt="Na reserva" />
-              ))}
-              {currentGamePlayer.piecesInForest.map((p, i) => (
-                <img key={`forest-${i}`} className="is-in-forest" src={encodeURI(speciesDefinitions.coati.meepleAsset)} alt="Na floresta" />
-              ))}
-            </div>
-          </div>
-          <div className="hud-bottom-coati">
-            <img src="/assets/interface/quati/UI_quati.png" alt="" className="hud-bottom-coati-bg" />
-            <div className="hud-bottom-coati-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="coati-action-content">
-                  <div className="coati-action-header">
-                    <span className="coati-action-badge">{activeActionId ?? "A"}</span>
-                    <span className="coati-action-title">Ação Atual</span>
-                  </div>
-                  <p className="coati-action-desc">
-                    {activeActionId ? getActionDescription("coati", activeActionId) : ""}
-                  </p>
-                  
-                  {hasPendingCoatiPairBonus ? (
-                    <div className="coati-action-hint">
-                      Dupla formada: escolha carta adjacente para adicionar 1 quati e marcar 1 ponto.
-                    </div>
-                  ) : (
-                    <>
-                      {activeActionId === "A" && (
-                        <>
-                          <div className="coati-action-hint">
-                            {room.game.activePlayedForestCardId
-                              ? "Escolha uma carta com fruta para adicionar 1 quati, ou conclua sem adicionar."
-                              : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
-                          </div>
-                          {room.game.activePlayedForestCardId && !tutorialActive && (
-                            <button className="coati-action-btn" onClick={handleCompleteAction}>
-                              Concluir sem adicionar
-                            </button>
-                          )}
-                        </>
-                      )}
-                      {activeActionId === "B" && (
-                        <div className="coati-action-hint">
-                          Selecione um meeple do Quati no tabuleiro e clique em um destino destacado.
-                        </div>
-                      )}
-                      {activeActionId === "C" && (
-                        <>
-                          {requiredCoatiRemovalCount === 0 ? (
-                            <button className="coati-action-btn variant-alt" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Concluir ação C
-                            </button>
-                          ) : (
-                            <>
-                              <div className="coati-action-hint">
-                                Selecione {requiredCoatiRemovalCount} quatis. Selecionados: {selectedRemovalPieceIds.length}/{requiredCoatiRemovalCount}.
-                              </div>
-                              <button
-                                className="coati-action-btn"
-                                disabled={selectedRemovalPieceIds.length !== requiredCoatiRemovalCount}
-                                onClick={handleRemoveSelectedPieces}
-                              >
-                                Remover quatis
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="coati-action-content is-waiting">
-                  <div className="coati-waiting-text">Aguardando a sua vez...</div>
-                </div>
-              )}
-            </div>
-            <div className="hud-bottom-coati-resources">
-              <div className="hud-bottom-coati-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
-            </div>
-            <div className="hud-bottom-coati-movements">
-              <img src="/assets/interface/quati/Movimentos_quati.png" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-coati-expansions">
-              {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={() => setExpandedObjectiveCardId(selectedObjectiveCard.id)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={() => setScenarioDockOpen(prev => !prev)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
       )}
     </main>
   );
