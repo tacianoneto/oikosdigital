@@ -2379,6 +2379,15 @@ input:focus {
   pointer-events: auto;
 }
 
+.expansion-preview.is-objective {
+  top: 62%;
+  width: clamp(220px, 18%, 320px);
+}
+
+.expansion-preview.is-threat {
+  top: 62%;
+}
+
 .expansion-preview > img,
 .expansion-preview-stack > img {
   width: 100%;

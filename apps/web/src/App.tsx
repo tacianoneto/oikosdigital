@@ -4975,7 +4975,7 @@ export function App() {
       )}
 
       {hasStartedGame && !cleanBoardMode && expansionPreview && (
-        <div className="expansion-preview" role="dialog" aria-label="Carta da partida">
+        <div className={`expansion-preview is-${expansionPreview}`} role="dialog" aria-label="Carta da partida">
           <button
             type="button"
             className="expansion-preview-close"
