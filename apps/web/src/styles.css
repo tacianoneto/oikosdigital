@@ -2205,7 +2205,7 @@ input:focus {
   --opponent-arrow-offset: 46px;
   position: fixed;
   z-index: 105;
-  top: clamp(82px, 15vh, 132px);
+  top: clamp(40px, 8vh, 90px);
   right: 40px;
   display: flex;
   align-items: flex-start;
@@ -8939,7 +8939,7 @@ input:focus {
 .hud-bottom-jaguar-movements {
   position: absolute;
   bottom: 3%;
-  right: 7.5%; 
+  right: 2.5%;
   width: 10%; 
   pointer-events: auto;
 }
@@ -8952,7 +8952,7 @@ input:focus {
 .hud-bottom-jaguar-expansions {
   position: absolute;
   bottom: 3%;
-  right: 2.5%; 
+  right: 13.5%;
   display: flex;
   flex-direction: column;
   gap: 0.5vw;
@@ -9213,7 +9213,7 @@ input:focus {
 .hud-bottom-wolf-movements {
   position: absolute;
   bottom: 3%;
-  right: 7.5%;
+  right: 2.5%;
   width: 10%; 
   pointer-events: auto;
 }
@@ -9226,7 +9226,7 @@ input:focus {
 .hud-bottom-wolf-expansions {
   position: absolute;
   bottom: 3%;
-  right: 2.5%; 
+  right: 13.5%;
   display: flex;
   flex-direction: column;
   gap: 0.5vw;
@@ -9540,7 +9540,7 @@ input:focus {
 .hud-bottom-tatu-movements {
   position: absolute;
   bottom: 3%;
-  right: 7.5%;
+  right: 2.5%;
   width: 10%; 
   pointer-events: auto;
 }
@@ -9553,7 +9553,7 @@ input:focus {
 .hud-bottom-tatu-expansions {
   position: absolute;
   bottom: 3%;
-  right: 2.5%; 
+  right: 13.5%;
   display: flex;
   flex-direction: column;
   gap: 0.5vw;
@@ -9810,7 +9810,7 @@ input:focus {
 .hud-bottom-macaw-movements {
   position: absolute;
   bottom: 3%;
-  right: 7.5%;
+  right: 2.5%;
   width: 10%; 
   pointer-events: auto;
 }
@@ -9827,7 +9827,7 @@ input:focus {
 .hud-bottom-macaw-expansions {
   position: absolute;
   bottom: 3%;
-  right: 2.5%; 
+  right: 13.5%;
   display: flex;
   flex-direction: column;
   gap: 0.5vw;
@@ -10133,7 +10133,7 @@ input:focus {
 .hud-bottom-capuchin-movements {
   position: absolute;
   bottom: 3%;
-  right: 7.5%;
+  right: 2.5%;
   width: 10%; 
   pointer-events: auto;
 }
@@ -10146,7 +10146,7 @@ input:focus {
 .hud-bottom-capuchin-expansions {
   position: absolute;
   bottom: 3%;
-  right: 2.5%; 
+  right: 13.5%;
   display: flex;
   flex-direction: column;
   gap: 0.5vw;
@@ -10495,7 +10495,7 @@ input:focus {
 .hud-bottom-coati-movements {
   position: absolute;
   bottom: 3%;
-  right: 7.5%;
+  right: 2.5%;
   width: 10%; 
   pointer-events: auto;
 }
@@ -10508,7 +10508,7 @@ input:focus {
 .hud-bottom-coati-expansions {
   position: absolute;
   bottom: 3%;
-  right: 2.5%; 
+  right: 13.5%;
   display: flex;
   flex-direction: column;
   gap: 0.5vw;
