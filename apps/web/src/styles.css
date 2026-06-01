@@ -2368,28 +2368,15 @@ input:focus {
 
 .expansion-preview {
   position: fixed;
-  right: 10%;
+  right: 6%;
   top: 50%;
   transform: translateY(-50%);
-  width: clamp(180px, 14%, 260px);
+  width: clamp(220px, 19%, 340px);
   z-index: 110;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: auto;
-}
-
-.expansion-preview.is-objective {
-  top: auto;
-  bottom: 22%;
-  transform: none;
-  width: clamp(220px, 18%, 320px);
-}
-
-.expansion-preview.is-threat {
-  top: auto;
-  bottom: 22%;
-  transform: none;
 }
 
 .expansion-preview > img,
