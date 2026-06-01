@@ -13,8 +13,8 @@ export const SPECIES_HEX: Record<SpeciesId, string> = {
   maned_wolf: "#c8553d",
   armadillo: "#b98a4b",
   macaw: "#3a7fc4",
-  capuchin: "#6b8a76",
-  coati: "#b6815f"
+  capuchin: "#6e4a2c",
+  coati: "#8b9094"
 };
 
 export const HABITAT_SCORE_COLORS = {

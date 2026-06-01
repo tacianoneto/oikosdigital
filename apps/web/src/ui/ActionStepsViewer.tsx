@@ -37,7 +37,6 @@ export function ActionStepsViewer({
   }, [activeActionId, speciesId, actions]);
 
   const style = accent ? ({ "--action-accent": accent } as CSSProperties) : undefined;
-  const isViewingActive = selected === activeActionId;
 
   return (
     <div className={`action-steps action-steps--${variant}`} style={style}>
@@ -71,19 +70,9 @@ export function ActionStepsViewer({
       <div className="action-steps-body">
         <span className="action-steps-eyebrow">
           Ação {selected}
-          {isViewingActive ? " · em andamento" : " · consulta"}
+          {selected === activeActionId ? " · em andamento" : " · consulta"}
         </span>
         <p className="action-steps-desc">{getActionDescription(speciesId, selected)}</p>
-        {!isViewingActive && activeActionId && (
-          <button
-            type="button"
-            className="action-steps-jump"
-            onClick={() => setSelected(activeActionId)}
-            title={`Voltar para a ação em andamento (${activeActionId})`}
-          >
-            Voltar para a ação atual ({activeActionId})
-          </button>
-        )}
       </div>
     </div>
   );
