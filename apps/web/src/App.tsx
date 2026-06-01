@@ -6082,12 +6082,18 @@ export function App() {
                       className={`opponent-movement is-${habitat}`}
                       title={`${habitatLabels[habitat]} · ${movementKindLabels[kind]}`}
                     >
-                      <img
-                        src={movementArtPath(habitat, kind)}
-                        alt={`${habitatLabels[habitat]}: ${movementKindLabels[kind]}`}
-                        className="opponent-movement-art"
-                        draggable={false}
-                      />
+                      <span className="opponent-movement-art-wrap">
+                        <img
+                          src={movementArtPath(habitat, kind)}
+                          alt={`${habitatLabels[habitat]}: ${movementKindLabels[kind]}`}
+                          className="opponent-movement-art"
+                          draggable={false}
+                        />
+                      </span>
+                      <span className="opponent-movement-caption">
+                        <span className="opponent-movement-habitat">{habitatLabels[habitat]}</span>
+                        <span className="opponent-movement-kind">{movementKindLabels[kind]}</span>
+                      </span>
                     </span>
                   );
                 })}
