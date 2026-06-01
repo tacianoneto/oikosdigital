@@ -1149,6 +1149,12 @@ export function App() {
     () => opponentInspectorEntries.find((entry) => entry.player.playerId === selectedOpponentPlayerId) ?? null,
     [opponentInspectorEntries, selectedOpponentPlayerId]
   );
+  const selectedOpponentRailIndex = selectedOpponentEntry
+    ? Math.max(
+        0,
+        opponentInspectorEntries.findIndex((entry) => entry.player.playerId === selectedOpponentEntry.player.playerId)
+      )
+    : 0;
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
@@ -5945,7 +5951,12 @@ export function App() {
           {selectedOpponentEntry?.gamePlayer && selectedOpponentEntry.species && (
             <section
               className="opponent-popover"
-              style={speciesVar(selectedOpponentEntry.gamePlayer.speciesId)}
+              style={
+                {
+                  ...speciesVar(selectedOpponentEntry.gamePlayer.speciesId),
+                  "--opponent-arrow-index": selectedOpponentRailIndex
+                } as CSSProperties
+              }
               aria-label={`Resumo de ${selectedOpponentEntry.species.displayName}`}
             >
               <header className="opponent-popover-head">
@@ -5977,7 +5988,7 @@ export function App() {
                 <span className="opponent-points-card">
                   <img src={encodeURI(resourceAssets.point)} alt="" />
                   <strong><AnimatedNumber value={selectedOpponentEntry.gamePlayer.score} /></strong>
-                  <small>Pontos</small>
+                  <small>Pontuação</small>
                 </span>
               </div>
 
