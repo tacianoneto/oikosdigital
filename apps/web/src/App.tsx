@@ -128,7 +128,7 @@ import {
   setAudioSettings,
   type AudioSettings
 } from "./ui/audio";
-import { getActionDescription } from "./ui/actionDescriptions";
+import { getActionDescription, getActionTitle } from "./ui/actionDescriptions";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -6861,58 +6861,63 @@ export function App() {
                 <div className="capuchin-action-content">
                   <div className="capuchin-action-header">
                     <span className="capuchin-action-badge">{activeActionId ?? "A"}</span>
-                    <span className="capuchin-action-title">Ação Atual</span>
+                    <div className="capuchin-action-titles">
+                      <span className="capuchin-action-eyebrow">Fase {activeActionId ?? "A"}</span>
+                      <strong className="capuchin-action-title">
+                        {getActionTitle("capuchin", activeActionId)}
+                      </strong>
+                    </div>
                   </div>
                   <p className="capuchin-action-desc">
                     {activeActionId ? getActionDescription("capuchin", activeActionId) : ""}
                   </p>
-                  
+
                   {activeActionId === "A" && (
                     <>
                       <div className="capuchin-action-hint">
                         {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
-                          : `Clique na carta jogada destacada para adicionar 1 macaco, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
+                          ? "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
+                          : `Clique na carta recém-revelada para abrigar 1 macaco. Reserva disponível: ${capuchinReserveCount}.`}
                       </div>
                       {room.game.activePlayedForestCardId && (
-                        <button className="capuchin-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir sem adicionar
+                        <button className="capuchin-action-btn variant-alt" disabled={tutorialActive} onClick={handleCompleteAction}>
+                          Avançar sem instalar
                         </button>
                       )}
                     </>
                   )}
                   {activeActionId === "B" && (
                     <div className="capuchin-action-hint">
-                      Selecione um Macaco-prego e clique em um destino destacado conforme a carta jogada.
+                      Selecione um Macaco-prego e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
                     </div>
                   )}
                   {activeActionId === "C" && (
                     <>
                       <div className="capuchin-action-hint">
                         {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Não é possível adicionar: Reserva vazia ou sem locais válidos."
-                          : `Clique em um local destacado que já tenha outro Macaco-prego, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
+                          ? "Sem locais elegíveis ou reserva esgotada — conclua a ação para seguir."
+                          : `Clique em um local com macaco já estabelecido para reforçar o bando. Reserva: ${capuchinReserveCount}.`}
                       </div>
                       {capuchinPlacementTargets.length === 0 ? (
                         <button className="capuchin-action-btn variant-alt" disabled={tutorialActive} onClick={handleCompleteAction}>
                           Concluir ação
                         </button>
                       ) : (
-                        <button className="capuchin-action-btn" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Pular adição
+                        <button className="capuchin-action-btn variant-alt" disabled={tutorialActive} onClick={handleCompleteAction}>
+                          Avançar sem reforçar
                         </button>
                       )}
                     </>
                   )}
                   {activeActionId === "D" && (
                     <div className="capuchin-action-hint">
-                      Pontuação automática: +{capuchinHabitatScore} ponto(s) por tipo de habitat com macacos.
+                      Pontuação automática: <strong>+{capuchinHabitatScore}</strong> {capuchinHabitatScore === 1 ? "ponto" : "pontos"} pelos habitats dominados.
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="capuchin-action-content is-waiting">
-                  <div className="capuchin-waiting-text">Aguardando a sua vez...</div>
+                  <div className="capuchin-waiting-text">Aguardando a vez dos demais jogadores…</div>
                 </div>
               )}
             </div>
