@@ -9540,8 +9540,7 @@ input:focus {
   top: 73%;
   left: 39%;
   display: grid;
-  grid-template-columns: repeat(4, auto);
-  grid-auto-rows: auto;
+  grid-template-columns: repeat(7, auto);
   gap: 0.2vw 1vw;
   pointer-events: auto;
   align-items: center;
