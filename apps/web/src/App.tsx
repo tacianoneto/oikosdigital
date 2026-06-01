@@ -106,6 +106,7 @@ import type {
   GridPosition,
   Habitat,
   MiniExpansionId,
+  MovementKind,
   ObjectiveCardDefinition,
   PlayerState,
   PublicRoomState,
@@ -239,6 +240,70 @@ const miniExpansionOptions: Array<{
     iconPath: threatCardBackPath
   }
 ];
+
+const movementKindLabels: Record<MovementKind, string> = {
+  adjacent: "Adjacente",
+  diagonal: "Diagonal",
+  straight_jump: "Salto reto",
+  knight_jump: "Salto em curva"
+};
+
+const movementGlyphOffsets: Record<MovementKind, Array<[number, number]>> = {
+  adjacent: [
+    [0, -1],
+    [-1, 0],
+    [1, 0],
+    [0, 1]
+  ],
+  diagonal: [
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+    [1, 1]
+  ],
+  straight_jump: [
+    [0, -2],
+    [2, 0],
+    [0, 2],
+    [-2, 0]
+  ],
+  knight_jump: [
+    [-1, -2],
+    [1, -2],
+    [2, -1],
+    [2, 1],
+    [1, 2],
+    [-1, 2],
+    [-2, 1],
+    [-2, -1]
+  ]
+};
+
+function MovementGlyph({ kind }: { kind: MovementKind }) {
+  const offsets = movementGlyphOffsets[kind];
+  const cell = 6;
+  const center = 0;
+  return (
+    <svg
+      className="movement-glyph"
+      viewBox="-15 -15 30 30"
+      width="22"
+      height="22"
+      aria-hidden="true"
+    >
+      <circle cx={center} cy={center} r={2.2} className="movement-glyph-origin" />
+      {offsets.map(([dx, dy], i) => (
+        <circle
+          key={i}
+          cx={dx * cell}
+          cy={dy * cell}
+          r={1.8}
+          className="movement-glyph-target"
+        />
+      ))}
+    </svg>
+  );
+}
 
 function isExclusiveScenarioPair(a: ScenarioCardId, b: ScenarioCardId): boolean {
   return (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
@@ -5963,46 +6028,14 @@ export function App() {
               }
               aria-label={`Resumo de ${selectedOpponentEntry.species.displayName}`}
             >
-              <header className="opponent-popover-head">
-                <img src={encodeURI(selectedOpponentEntry.species.portraitAsset)} alt="" />
-                <div>
-                  <span>
-                    {selectedOpponentEntry.isActivePlayer
-                      ? "Vez atual"
-                      : selectedOpponentEntry.player.isBot
-                        ? "Bot"
-                        : selectedOpponentEntry.player.connected
-                          ? "Online"
-                          : "Offline"}
-                  </span>
-                  <strong>{selectedOpponentEntry.species.displayName}</strong>
-                  <small>{selectedOpponentEntry.gamePlayer.name}</small>
-                </div>
-                <button
-                  type="button"
-                  className="opponent-close"
-                  aria-label="Fechar resumo"
-                  onClick={() => setSelectedOpponentPlayerId(null)}
-                >
-                  <X aria-hidden="true" />
-                </button>
-              </header>
-
-              <div className="opponent-score-row">
-                <span className="opponent-points-card">
-                  <img src={encodeURI(resourceAssets.point)} alt="" />
-                  <strong><AnimatedNumber value={selectedOpponentEntry.gamePlayer.score} /></strong>
-                  <small>Pontuação</small>
-                </span>
-              </div>
-
-              <div
-                className="opponent-piece-track"
-                ref={(node) => setEffectTarget(`${selectedOpponentEntry.gamePlayer!.playerId}:reserve`, node)}
-                title={`${selectedOpponentEntry.gamePlayer.reservePieces.length} na reserva`}
+              <button
+                type="button"
+                className="opponent-close opponent-close-floating"
+                aria-label="Fechar resumo"
+                onClick={() => setSelectedOpponentPlayerId(null)}
               >
-                {renderReserveMeeples(selectedOpponentEntry.gamePlayer!, selectedOpponentEntry.species!.meepleAsset)}
-              </div>
+                <X aria-hidden="true" />
+              </button>
 
               <div className="opponent-resource-grid">
                 {resourceOrder.map((resource) => {
@@ -6022,23 +6055,22 @@ export function App() {
                 })}
               </div>
 
-              <footer className="opponent-popover-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onMouseEnter={(event) =>
-                    showMovementPreview(
-                      selectedOpponentEntry.species!.speciesId,
-                      event.currentTarget.getBoundingClientRect()
-                    )
-                  }
-                  onMouseLeave={() => setMovementPreview(null)}
-                  onClick={() => setBoardSpecies(selectedOpponentEntry.species!.speciesId)}
-                >
-                  <MapPin aria-hidden="true" />
-                  Movimentos
-                </button>
-              </footer>
+              <div className="opponent-movement-grid" role="list" aria-label="Movimentos por habitat">
+                {(["forest", "field", "river"] as const).map((habitat) => {
+                  const kind = selectedOpponentEntry.species!.movementPatternsByHabitat[habitat];
+                  return (
+                    <span
+                      key={habitat}
+                      role="listitem"
+                      className={`opponent-movement is-${habitat}`}
+                      title={`${habitatLabels[habitat]} · ${movementKindLabels[kind]}`}
+                    >
+                      <span className={`habitat-dot is-${habitat}`} aria-hidden="true" />
+                      <MovementGlyph kind={kind} />
+                    </span>
+                  );
+                })}
+              </div>
             </section>
           )}
         </aside>
