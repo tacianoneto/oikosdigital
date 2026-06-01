@@ -2617,95 +2617,24 @@ input:focus {
 }
 
 .opponent-movement {
-  --habitat-color: rgba(255, 255, 255, 0.4);
-  --habitat-glow: rgba(255, 255, 255, 0.15);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  gap: 6px;
-  padding: 8px 6px 7px;
-  border: 1px solid color-mix(in srgb, var(--habitat-color) 55%, rgba(255, 255, 255, 0.08));
-  border-radius: 10px;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--habitat-color) 14%, transparent) 0%, rgba(0, 0, 0, 0.28) 78%),
-    rgba(0, 0, 0, 0.32);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--habitat-color) 30%, rgba(255, 255, 255, 0.06)),
-    0 6px 14px -10px var(--habitat-glow);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.opponent-movement:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--habitat-color) 45%, rgba(255, 255, 255, 0.1)),
-    0 8px 18px -10px var(--habitat-glow);
-}
-
-.opponent-movement.is-forest {
-  --habitat-color: #6fae5a;
-  --habitat-glow: rgba(111, 174, 90, 0.55);
-}
-
-.opponent-movement.is-field {
-  --habitat-color: #f0c869;
-  --habitat-glow: rgba(240, 200, 105, 0.5);
-}
-
-.opponent-movement.is-river {
-  --habitat-color: #6fb8e8;
-  --habitat-glow: rgba(111, 184, 232, 0.55);
-}
-
-.opponent-movement-art-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   aspect-ratio: 1 / 1;
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--habitat-color) 22%, transparent) 0%, transparent 65%),
-    rgba(0, 0, 0, 0.38);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--habitat-color) 25%, rgba(255, 255, 255, 0.04));
-  overflow: hidden;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
 }
 
 .opponent-movement-art {
   width: 100%;
   height: 100%;
-  max-height: none;
   object-fit: contain;
   display: block;
-  padding: 6px;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
   -webkit-user-drag: none;
   user-select: none;
   pointer-events: none;
-}
-
-.opponent-movement-caption {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  text-align: center;
-  line-height: 1.1;
-}
-
-.opponent-movement-habitat {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--habitat-color) 85%, #fff);
-}
-
-.opponent-movement-kind {
-  font-size: 10px;
-  font-weight: 500;
-  color: color-mix(in srgb, var(--paper) 78%, transparent);
 }
 
 .habitat-dot {
