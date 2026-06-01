@@ -2421,9 +2421,7 @@ input:focus {
 }
 
 .opponent-score-row {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr 1fr;
-  gap: 7px;
+  display: block;
 }
 
 .opponent-score-row span,
@@ -2435,24 +2433,26 @@ input:focus {
 }
 
 .opponent-score-row span {
-  min-height: 54px;
+  min-height: 64px;
   display: grid;
-  place-items: center;
-  gap: 2px;
-  padding: 7px;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
 }
 
 .opponent-score-row img {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 }
 
 .opponent-score-row strong {
   color: var(--paper);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 900;
   line-height: 1;
+  text-align: left;
 }
 
 .opponent-score-row small,
@@ -2462,6 +2462,11 @@ input:focus {
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.opponent-points-card small {
+  justify-self: end;
+  color: var(--amber);
 }
 
 .opponent-piece-track {

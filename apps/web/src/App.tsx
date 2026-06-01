@@ -5974,18 +5974,10 @@ export function App() {
               </header>
 
               <div className="opponent-score-row">
-                <span>
+                <span className="opponent-points-card">
                   <img src={encodeURI(resourceAssets.point)} alt="" />
                   <strong><AnimatedNumber value={selectedOpponentEntry.gamePlayer.score} /></strong>
                   <small>Pontos</small>
-                </span>
-                <span>
-                  <strong>{selectedOpponentEntry.gamePlayer.piecesInForest.length}</strong>
-                  <small>Na floresta</small>
-                </span>
-                <span>
-                  <strong>{selectedOpponentEntry.gamePlayer.reservePieces.length}</strong>
-                  <small>Reserva</small>
                 </span>
               </div>
 
