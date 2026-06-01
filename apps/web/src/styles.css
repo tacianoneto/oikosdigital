@@ -1364,8 +1364,8 @@ input:focus {
 }
 
 .hud-piece-track img.is-in-forest {
-  opacity: 0.34;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 .hud-piece-track img.is-in-reserve {
@@ -2484,8 +2484,8 @@ input:focus {
 }
 
 .player-piece-track img.is-in-forest {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 .player-piece-track img.is-in-reserve {
@@ -8162,8 +8162,8 @@ input:focus {
 }
 
 .hud-top-jaguar-meeples img.is-in-forest {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 .jaguar-action-content {
@@ -8427,8 +8427,8 @@ input:focus {
 }
 
 .hud-top-wolf-meeples img.is-in-forest {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 /* WOLF ACTION CONTENT */
@@ -8761,8 +8761,8 @@ input:focus {
 }
 
 .hud-top-tatu-meeples img.is-in-forest {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 /* TATU ACTION CONTENT */
@@ -9030,8 +9030,8 @@ input:focus {
 }
 
 .hud-top-macaw-meeples img.is-in-forest {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 /* MACAW ACTION CONTENT */
@@ -9309,8 +9309,8 @@ input:focus {
 }
 
 .hud-top-capuchin-meeples img.is-in-forest {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 /* CAPUCHIN ACTION CONTENT */
@@ -9624,8 +9624,8 @@ input:focus {
 }
 
 .hud-top-coati-meeples img.is-in-forest {
-  opacity: 0.36;
-  filter: grayscale(1) saturate(0.3) brightness(0.75);
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
 
 /* COATI ACTION CONTENT */
