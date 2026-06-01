@@ -2204,7 +2204,7 @@ input:focus {
   --opponent-button-gap: 22px;
   --opponent-arrow-offset: 46px;
   position: fixed;
-  z-index: 10;
+  z-index: 105;
   top: clamp(82px, 15vh, 132px);
   right: 40px;
   display: flex;
