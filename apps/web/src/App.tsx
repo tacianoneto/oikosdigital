@@ -6615,42 +6615,40 @@ export function App() {
           <div className="hud-bottom-jaguar">
             <img src="/assets/interface/onça/UI_oncaDOWN.png" alt="" className="hud-bottom-jaguar-bg" />
             <div className="hud-bottom-jaguar-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.jaguar } as CSSProperties}>
-                  <ActionStepsViewer
-                    speciesId="jaguar"
-                    activeActionId={activeActionId}
-                    accent={SPECIES_HEX.jaguar}
-                  />
+              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.jaguar } as CSSProperties}>
+                <ActionStepsViewer
+                  speciesId="jaguar"
+                  activeActionId={activeActionId}
+                  accent={SPECIES_HEX.jaguar}
+                />
 
-                  {(activeActionId === "A" || activeActionId === "B") && (
-                    <div className="action-box-hint">
-                      {canSkipJaguarMove
-                        ? "Nenhum destino válido — conclua a ação para seguir."
-                        : selectedJaguarDestination
-                          ? "Escolha qual meeple remover no destino selecionado."
-                          : "Selecione a Onça e clique em um destino destacado."}
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <div className="action-box-hint">
-                      Defina quantas carnes converter em pontos na janela central.
-                    </div>
-                  )}
+                {room?.game?.activePlayerId === currentGamePlayer.playerId && (
+                  <>
+                    {(activeActionId === "A" || activeActionId === "B") && (
+                      <div className="action-box-hint">
+                        {canSkipJaguarMove
+                          ? "Nenhum destino válido — conclua a ação para seguir."
+                          : selectedJaguarDestination
+                            ? "Escolha qual meeple remover no destino selecionado."
+                            : "Selecione a Onça e clique em um destino destacado."}
+                      </div>
+                    )}
+                    {activeActionId === "C" && (
+                      <div className="action-box-hint">
+                        Defina quantas carnes converter em pontos na janela central.
+                      </div>
+                    )}
 
-                  {canSkipJaguarMove && (activeActionId === "A" || activeActionId === "B") && (
-                    <div className="action-box-actions">
-                      <button type="button" className="action-box-btn is-secondary" onClick={handleCompleteAction}>
-                        Concluir
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.jaguar } as CSSProperties}>
-                  <div className="action-box-waiting">Aguardando a vez dos demais jogadores…</div>
-                </div>
-              )}
+                    {canSkipJaguarMove && (activeActionId === "A" || activeActionId === "B") && (
+                      <div className="action-box-actions">
+                        <button type="button" className="action-box-btn is-secondary" onClick={handleCompleteAction}>
+                          Concluir
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             <div className="hud-bottom-jaguar-resources">
               <div className="hud-bottom-jaguar-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
@@ -6693,67 +6691,65 @@ export function App() {
           <div className="hud-bottom-wolf">
             <img src="/assets/interface/lobo/UI_lobo.png" alt="" className="hud-bottom-wolf-bg" />
             <div className="hud-bottom-wolf-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.maned_wolf } as CSSProperties}>
-                  <ActionStepsViewer
-                    speciesId="maned_wolf"
-                    activeActionId={activeActionId}
-                    accent={SPECIES_HEX.maned_wolf}
-                  />
+              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.maned_wolf } as CSSProperties}>
+                <ActionStepsViewer
+                  speciesId="maned_wolf"
+                  activeActionId={activeActionId}
+                  accent={SPECIES_HEX.maned_wolf}
+                />
 
-                  {activeActionId === "A" && (
-                    <div className="action-box-hint">
-                      {room.game.activePlayedForestCardId
-                        ? <>Conduza os lobos destacados pelo padrão da carta. Pendentes: <strong>{room.game.pendingWolfMoves?.pieceIds.length ?? 0}</strong>.</>
-                        : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
-                    </div>
-                  )}
-                  {activeActionId === "B" && (
-                    <>
+                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+                  <>
+                    {activeActionId === "A" && (
                       <div className="action-box-hint">
-                        {wolfRemovableBasePieceIds.length > 0
-                          ? selectedWolfTargetPieceId
-                            ? "Peça de base selecionada — confirme a remoção ou cancele a ação."
-                            : "Clique em uma peça de base que divida local com um lobo."
-                          : "Nenhuma peça de base partilha local com lobo."}
+                        {room.game.activePlayedForestCardId
+                          ? <>Conduza os lobos destacados pelo padrão da carta. Pendentes: <strong>{room.game.pendingWolfMoves?.pieceIds.length ?? 0}</strong>.</>
+                          : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
                       </div>
-                      <div className="action-box-actions">
-                        <button
-                          className="action-box-btn"
-                          disabled={!selectedWolfTargetPieceId}
-                          onClick={handleRemoveWolfBasePiece}
-                        >
-                          Remover peça
-                        </button>
-                        <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {activeActionId === "C" && (
-                    <div className="action-box-hint">
-                      Escolha na janela central os recursos a converter em pontos.
-                    </div>
-                  )}
-                  {activeActionId === "D" && (
-                    <>
+                    )}
+                    {activeActionId === "B" && (
+                      <>
+                        <div className="action-box-hint">
+                          {wolfRemovableBasePieceIds.length > 0
+                            ? selectedWolfTargetPieceId
+                              ? "Peça de base selecionada — confirme a remoção ou cancele a ação."
+                              : "Clique em uma peça de base que divida local com um lobo."
+                            : "Nenhuma peça de base partilha local com lobo."}
+                        </div>
+                        <div className="action-box-actions">
+                          <button
+                            className="action-box-btn"
+                            disabled={!selectedWolfTargetPieceId}
+                            onClick={handleRemoveWolfBasePiece}
+                          >
+                            Remover peça
+                          </button>
+                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                            Concluir
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {activeActionId === "C" && (
                       <div className="action-box-hint">
-                        Clique em uma carta de carne para abrigar 1 lobo. Locais válidos: <strong>{wolfMeatTargets.length}</strong>.
+                        Escolha na janela central os recursos a converter em pontos.
                       </div>
-                      <div className="action-box-actions">
-                        <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          Concluir sem adicionar
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.maned_wolf } as CSSProperties}>
-                  <div className="action-box-waiting">Aguardando a vez dos demais jogadores…</div>
-                </div>
-              )}
+                    )}
+                    {activeActionId === "D" && (
+                      <>
+                        <div className="action-box-hint">
+                          Clique em uma carta de carne para abrigar 1 lobo. Locais válidos: <strong>{wolfMeatTargets.length}</strong>.
+                        </div>
+                        <div className="action-box-actions">
+                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                            Concluir sem adicionar
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             <div className="hud-bottom-wolf-resources">
               <div className="hud-bottom-wolf-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
@@ -6798,66 +6794,64 @@ export function App() {
           <div className="hud-bottom-tatu">
             <img src="/assets/interface/tatu/UI_tatu.png" alt="" className="hud-bottom-tatu-bg" />
             <div className="hud-bottom-tatu-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.armadillo } as CSSProperties}>
-                  <ActionStepsViewer
-                    speciesId="armadillo"
-                    activeActionId={activeActionId}
-                    accent={SPECIES_HEX.armadillo}
-                  />
+              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.armadillo } as CSSProperties}>
+                <ActionStepsViewer
+                  speciesId="armadillo"
+                  activeActionId={activeActionId}
+                  accent={SPECIES_HEX.armadillo}
+                />
 
-                  {activeActionId === "A" && (
-                    <>
+                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+                  <>
+                    {activeActionId === "A" && (
+                      <>
+                        <div className="action-box-hint">
+                          {room.game.activePlayedForestCardId
+                            ? "Clique em uma carta com pinha destacada para abrigar 1 tatu."
+                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                        </div>
+                        {room.game.activePlayedForestCardId && (
+                          <div className="action-box-actions">
+                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                              Avançar sem instalar
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {activeActionId === "B" && (
                       <div className="action-box-hint">
-                        {room.game.activePlayedForestCardId
-                          ? "Clique em uma carta com pinha destacada para abrigar 1 tatu."
-                          : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                        Selecione um Tatu-bola e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
                       </div>
-                      {room.game.activePlayedForestCardId && (
-                        <div className="action-box-actions">
-                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            Avançar sem instalar
-                          </button>
+                    )}
+                    {activeActionId === "C" && (
+                      <>
+                        <div className="action-box-hint">
+                          Selecione um Tatu-bola visível para recolhê-lo em sua carapaça.
                         </div>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "B" && (
-                    <div className="action-box-hint">
-                      Selecione um Tatu-bola e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <>
+                        {selectedPieceId ? (
+                          <div className="action-box-actions">
+                            <button className="action-box-btn" onClick={handleHideArmadillo}>
+                              Esconder Tatu-bola
+                            </button>
+                          </div>
+                        ) : getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length === 0 ? (
+                          <div className="action-box-actions">
+                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                              Concluir ação
+                            </button>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                    {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Selecione um Tatu-bola visível para recolhê-lo em sua carapaça.
+                        Pontuação automática: <strong>+{armadilloShareScore}</strong> {armadilloShareScore === 1 ? "ponto" : "pontos"} pela presença adversária.
                       </div>
-                      {selectedPieceId ? (
-                        <div className="action-box-actions">
-                          <button className="action-box-btn" onClick={handleHideArmadillo}>
-                            Esconder Tatu-bola
-                          </button>
-                        </div>
-                      ) : getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length === 0 ? (
-                        <div className="action-box-actions">
-                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            Concluir ação
-                          </button>
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                  {activeActionId === "D" && (
-                    <div className="action-box-hint">
-                      Pontuação automática: <strong>+{armadilloShareScore}</strong> {armadilloShareScore === 1 ? "ponto" : "pontos"} pela presença adversária.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.armadillo } as CSSProperties}>
-                  <div className="action-box-waiting">Aguardando a vez dos demais jogadores…</div>
-                </div>
-              )}
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             <div className="hud-bottom-tatu-resources">
               <div className="hud-bottom-tatu-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
@@ -6902,58 +6896,56 @@ export function App() {
           <div className="hud-bottom-macaw">
             <img src="/assets/interface/arara/UI_arara.png" alt="" className="hud-bottom-macaw-bg" />
             <div className="hud-bottom-macaw-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.macaw } as CSSProperties}>
-                  <ActionStepsViewer
-                    speciesId="macaw"
-                    activeActionId={activeActionId}
-                    accent={SPECIES_HEX.macaw}
-                  />
+              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.macaw } as CSSProperties}>
+                <ActionStepsViewer
+                  speciesId="macaw"
+                  activeActionId={activeActionId}
+                  accent={SPECIES_HEX.macaw}
+                />
 
-                  {activeActionId === "A" && (
-                    <>
+                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+                  <>
+                    {activeActionId === "A" && (
+                      <>
+                        <div className="action-box-hint">
+                          {room.game.activePlayedForestCardId
+                            ? "Clique em uma carta com ovo destacada para abrigar 1 arara."
+                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                        </div>
+                        {room.game.activePlayedForestCardId && (
+                          <div className="action-box-actions">
+                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                              Avançar sem instalar
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {activeActionId === "B" && (
                       <div className="action-box-hint">
-                        {room.game.activePlayedForestCardId
-                          ? "Clique em uma carta com ovo destacada para abrigar 1 arara."
-                          : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                        Selecione uma Arara-azul e clique em um destino destacado para conduzi-la pelo padrão da carta jogada.
                       </div>
-                      {room.game.activePlayedForestCardId && (
+                    )}
+                    {activeActionId === "C" && (
+                      <>
+                        <div className="action-box-hint">
+                          Adicione uma arara da reserva ou realoque outra ao redor da que acabou de se mover.
+                        </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            Avançar sem instalar
+                            {macawActionCTargets.length === 0 && !selectedPieceId ? "Concluir (sem espaço válido)" : "Avançar sem adicionar"}
                           </button>
                         </div>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "B" && (
-                    <div className="action-box-hint">
-                      Selecione uma Arara-azul e clique em um destino destacado para conduzi-la pelo padrão da carta jogada.
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <>
+                      </>
+                    )}
+                    {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Adicione uma arara da reserva ou realoque outra ao redor da que acabou de se mover.
+                        Pontuação automática: <strong>+{macawLineScore}</strong> {macawLineScore === 1 ? "ponto" : "pontos"} pelas formações lineares.
                       </div>
-                      <div className="action-box-actions">
-                        <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          {macawActionCTargets.length === 0 && !selectedPieceId ? "Concluir (sem espaço válido)" : "Avançar sem adicionar"}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {activeActionId === "D" && (
-                    <div className="action-box-hint">
-                      Pontuação automática: <strong>+{macawLineScore}</strong> {macawLineScore === 1 ? "ponto" : "pontos"} pelas formações lineares.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.macaw } as CSSProperties}>
-                  <div className="action-box-waiting">Aguardando a vez dos demais jogadores…</div>
-                </div>
-              )}
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             <div className="hud-bottom-macaw-resources">
               <div className="hud-bottom-macaw-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
@@ -6998,60 +6990,58 @@ export function App() {
           <div className="hud-bottom-capuchin">
             <img src="/assets/interface/macaco/UI_macaco.png" alt="" className="hud-bottom-capuchin-bg" />
             <div className="hud-bottom-capuchin-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.capuchin } as CSSProperties}>
-                  <ActionStepsViewer
-                    speciesId="capuchin"
-                    activeActionId={activeActionId}
-                    accent={SPECIES_HEX.capuchin}
-                  />
+              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.capuchin } as CSSProperties}>
+                <ActionStepsViewer
+                  speciesId="capuchin"
+                  activeActionId={activeActionId}
+                  accent={SPECIES_HEX.capuchin}
+                />
 
-                  {activeActionId === "A" && (
-                    <>
+                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+                  <>
+                    {activeActionId === "A" && (
+                      <>
+                        <div className="action-box-hint">
+                          {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
+                            ? "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
+                            : <>Clique na carta recém-revelada para abrigar 1 macaco. Reserva disponível: <strong>{capuchinReserveCount}</strong>.</>}
+                        </div>
+                        {room.game.activePlayedForestCardId && (
+                          <div className="action-box-actions">
+                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                              Avançar sem instalar
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {activeActionId === "B" && (
                       <div className="action-box-hint">
-                        {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
-                          : <>Clique na carta recém-revelada para abrigar 1 macaco. Reserva disponível: <strong>{capuchinReserveCount}</strong>.</>}
+                        Selecione um Macaco-prego e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
                       </div>
-                      {room.game.activePlayedForestCardId && (
+                    )}
+                    {activeActionId === "C" && (
+                      <>
+                        <div className="action-box-hint">
+                          {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
+                            ? "Sem locais elegíveis ou reserva esgotada — conclua a ação para seguir."
+                            : <>Clique em um local com macaco já estabelecido para reforçar o bando. Reserva: <strong>{capuchinReserveCount}</strong>.</>}
+                        </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            Avançar sem instalar
+                            {capuchinPlacementTargets.length === 0 ? "Concluir ação" : "Avançar sem reforçar"}
                           </button>
                         </div>
-                      )}
-                    </>
-                  )}
-                  {activeActionId === "B" && (
-                    <div className="action-box-hint">
-                      Selecione um Macaco-prego e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
-                    </div>
-                  )}
-                  {activeActionId === "C" && (
-                    <>
+                      </>
+                    )}
+                    {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Sem locais elegíveis ou reserva esgotada — conclua a ação para seguir."
-                          : <>Clique em um local com macaco já estabelecido para reforçar o bando. Reserva: <strong>{capuchinReserveCount}</strong>.</>}
+                        Pontuação automática: <strong>+{capuchinHabitatScore}</strong> {capuchinHabitatScore === 1 ? "ponto" : "pontos"} pelos habitats dominados.
                       </div>
-                      <div className="action-box-actions">
-                        <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                          {capuchinPlacementTargets.length === 0 ? "Concluir ação" : "Avançar sem reforçar"}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {activeActionId === "D" && (
-                    <div className="action-box-hint">
-                      Pontuação automática: <strong>+{capuchinHabitatScore}</strong> {capuchinHabitatScore === 1 ? "ponto" : "pontos"} pelos habitats dominados.
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.capuchin } as CSSProperties}>
-                  <div className="action-box-waiting">Aguardando a vez dos demais jogadores…</div>
-                </div>
-              )}
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             <div className="hud-bottom-capuchin-resources">
               <div className="hud-bottom-capuchin-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
@@ -7096,15 +7086,15 @@ export function App() {
           <div className="hud-bottom-coati">
             <img src="/assets/interface/quati/UI_quati.png" alt="" className="hud-bottom-coati-bg" />
             <div className="hud-bottom-coati-action-text">
-              {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.coati } as CSSProperties}>
-                  <ActionStepsViewer
-                    speciesId="coati"
-                    activeActionId={activeActionId}
-                    accent={SPECIES_HEX.coati}
-                  />
+              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.coati } as CSSProperties}>
+                <ActionStepsViewer
+                  speciesId="coati"
+                  activeActionId={activeActionId}
+                  accent={SPECIES_HEX.coati}
+                />
 
-                  {hasPendingCoatiPairBonus ? (
+                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+                  hasPendingCoatiPairBonus ? (
                     <div className="action-box-hint">
                       Dupla formada! Escolha uma carta adjacente para abrigar 1 quati e marcar 1 ponto.
                     </div>
@@ -7158,13 +7148,9 @@ export function App() {
                         </>
                       )}
                     </>
-                  )}
-                </div>
-              ) : (
-                <div className="action-box" style={{ "--action-accent": SPECIES_HEX.coati } as CSSProperties}>
-                  <div className="action-box-waiting">Aguardando a vez dos demais jogadores…</div>
-                </div>
-              )}
+                  )
+                )}
+              </div>
             </div>
             <div className="hud-bottom-coati-resources">
               <div className="hud-bottom-coati-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>

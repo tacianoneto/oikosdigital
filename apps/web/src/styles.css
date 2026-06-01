@@ -10753,6 +10753,10 @@ input:focus {
   display: flex;
   flex-direction: column;
   gap: clamp(3px, 0.3vw, 6px);
+  /* Reserve room for ~3 lines of body copy so every step's preview lands at
+     the same vertical size — the panel no longer grows when one action has
+     a longer board text than another. */
+  min-height: calc(clamp(11px, 0.95vw, 16px) * 1.45 * 3 + clamp(8px, 0.7vw, 12px));
 }
 
 .action-steps-eyebrow {
@@ -10773,6 +10777,8 @@ input:focus {
   line-height: 1.45;
   color: rgba(245, 240, 230, 0.92);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  /* Match the reserved body height so short steps still fill the slot. */
+  min-height: calc(clamp(11px, 0.95vw, 16px) * 1.45 * 3);
 }
 
 .action-steps-jump {
