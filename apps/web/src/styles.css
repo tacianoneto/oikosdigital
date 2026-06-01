@@ -2211,19 +2211,17 @@ input:focus {
 
 .opponent-portrait-btn {
   position: relative;
-  width: 58px;
-  height: 58px;
+  width: 66px;
+  height: 66px;
   display: grid;
   place-items: center;
   padding: 0;
-  border: 3px solid color-mix(in srgb, var(--species, var(--line)) 54%, rgba(255, 255, 255, 0.72));
+  border: 0;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 42% 30%, rgba(255, 255, 255, 0.22), transparent 38%),
-    color-mix(in srgb, var(--species, var(--panel)) 24%, rgba(8, 16, 13, 0.92));
+    radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--species, var(--panel)) 28%, rgba(8, 16, 13, 0.34)) 0 48%, transparent 68%);
   box-shadow:
-    0 8px 18px rgba(0, 0, 0, 0.48),
-    inset 0 0 0 3px rgba(255, 255, 255, 0.08);
+    0 8px 16px rgba(0, 0, 0, 0.42);
   overflow: visible;
   transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
@@ -2231,33 +2229,37 @@ input:focus {
 .opponent-portrait-btn::before {
   content: "";
   position: absolute;
-  inset: -7px;
+  inset: 5px;
   border-radius: 50%;
   border: 1px solid transparent;
-  transition: border-color 140ms ease, box-shadow 140ms ease;
+  background: color-mix(in srgb, var(--species, var(--panel)) 16%, rgba(0, 0, 0, 0.2));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: box-shadow 140ms ease, opacity 140ms ease;
+  z-index: -1;
 }
 
 .opponent-portrait-btn:hover,
 .opponent-portrait-btn.is-selected {
   transform: translateX(-4px) scale(1.04);
-  border-color: color-mix(in srgb, var(--species, var(--amber)) 76%, #fff);
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.56),
-    0 0 20px color-mix(in srgb, var(--species, var(--amber)) 42%, transparent),
-    inset 0 0 0 3px rgba(255, 255, 255, 0.12);
+    0 0 18px color-mix(in srgb, var(--species, var(--amber)) 34%, transparent);
 }
 
 .opponent-portrait-btn.is-selected::before {
-  border-color: color-mix(in srgb, var(--species, var(--amber)) 68%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--species, var(--amber)) 50%, transparent);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--species, var(--amber)) 44%, transparent),
+    0 0 14px color-mix(in srgb, var(--species, var(--amber)) 42%, transparent);
 }
 
 .opponent-portrait-btn img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 0;
   display: block;
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.42));
+  pointer-events: none;
 }
 
 .opponent-portrait-btn > span {
@@ -2300,6 +2302,7 @@ input:focus {
   font-weight: 900;
   line-height: 1;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  z-index: 2;
 }
 
 .opponent-portrait-btn em img {
@@ -2349,12 +2352,12 @@ input:focus {
 }
 
 .opponent-popover-head > img {
-  width: 54px;
-  height: 54px;
-  border: 2px solid color-mix(in srgb, var(--species, var(--line)) 62%, transparent);
-  border-radius: 50%;
-  object-fit: cover;
-  box-shadow: 0 0 18px color-mix(in srgb, var(--species, var(--amber)) 32%, transparent);
+  width: 60px;
+  height: 60px;
+  border: 0;
+  border-radius: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 7px rgba(0, 0, 0, 0.45));
 }
 
 .opponent-popover-head div {
@@ -3468,8 +3471,13 @@ input:focus {
   }
 
   .opponent-portrait-btn {
-    width: 50px;
-    height: 50px;
+    width: 58px;
+    height: 58px;
+  }
+
+  .opponent-portrait-btn img {
+    width: 62px;
+    height: 62px;
   }
 
   .opponent-popover {
@@ -3544,9 +3552,13 @@ input:focus {
   }
 
   .opponent-portrait-btn {
-    width: 46px;
-    height: 46px;
-    border-width: 2px;
+    width: 54px;
+    height: 54px;
+  }
+
+  .opponent-portrait-btn img {
+    width: 58px;
+    height: 58px;
   }
 
   .opponent-popover {
@@ -3564,12 +3576,12 @@ input:focus {
   }
 
   .opponent-popover-head {
-    grid-template-columns: 48px 1fr 32px;
+    grid-template-columns: 54px 1fr 32px;
   }
 
   .opponent-popover-head > img {
-    width: 48px;
-    height: 48px;
+    width: 54px;
+    height: 54px;
   }
 
   .opponent-resource-grid {
