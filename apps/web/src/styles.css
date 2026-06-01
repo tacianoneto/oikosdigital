@@ -2621,11 +2621,22 @@ input:focus {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 48px;
-  padding: 7px 6px;
+  min-height: 64px;
+  padding: 6px;
   border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 32%, rgba(255, 255, 255, 0.06));
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.24);
+}
+
+.opponent-movement-art {
+  width: 100%;
+  height: auto;
+  max-height: 72px;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
 }
 
 .habitat-dot {

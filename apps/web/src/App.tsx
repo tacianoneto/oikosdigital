@@ -248,6 +248,23 @@ const movementKindLabels: Record<MovementKind, string> = {
   knight_jump: "Salto em curva"
 };
 
+const movementKindAssetSuffix: Record<MovementKind, string> = {
+  adjacent: "ortogonal",
+  diagonal: "diagonal",
+  straight_jump: "salto",
+  knight_jump: "cavalo"
+};
+
+const habitatAssetPrefix: Record<Habitat, string> = {
+  forest: "bosque",
+  field: "campo",
+  river: "rios"
+};
+
+function movementArtPath(habitat: Habitat, kind: MovementKind): string {
+  return `/assets/movimentos/separados/${habitatAssetPrefix[habitat]}_${movementKindAssetSuffix[kind]}.png`;
+}
+
 const movementGlyphOffsets: Record<MovementKind, Array<[number, number]>> = {
   adjacent: [
     [0, -1],
@@ -6065,8 +6082,12 @@ export function App() {
                       className={`opponent-movement is-${habitat}`}
                       title={`${habitatLabels[habitat]} · ${movementKindLabels[kind]}`}
                     >
-                      <span className={`habitat-dot is-${habitat}`} aria-hidden="true" />
-                      <MovementGlyph kind={kind} />
+                      <img
+                        src={movementArtPath(habitat, kind)}
+                        alt={`${habitatLabels[habitat]}: ${movementKindLabels[kind]}`}
+                        className="opponent-movement-art"
+                        draggable={false}
+                      />
                     </span>
                   );
                 })}

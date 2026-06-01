@@ -20,6 +20,7 @@ const groups = [
   { from: join(root, "meeples"), to: join(publicAssets, "meeples") },
   { from: join(root, "portraits"), to: join(publicAssets, "portraits") },
   { from: join(root, "movimentos"), to: join(publicAssets, "movimentos") },
+  { from: join(root, "movimentos", "Separados"), to: join(publicAssets, "movimentos", "separados") },
   { from: join(root, "recursos"), to: join(publicAssets, "resources") },
   { from: join(root, "logo"), to: join(publicAssets, "logo") },
   { from: join(root, "interface", "onça"), to: join(publicAssets, "interface", "onça") },
