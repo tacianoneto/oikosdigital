@@ -3224,11 +3224,16 @@ input:focus {
   border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 22%, transparent);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.18);
-  padding: 8px;
-  display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 9px;
-  align-items: start;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+  --action-accent: var(--species, var(--amber));
+}
+
+.current-action-card > .action-steps {
+  width: 100%;
 }
 
 .current-action-card > span {
@@ -10640,4 +10645,178 @@ input:focus {
   height: auto;
   display: block;
   pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------------- */
+/* ActionStepsViewer: tabs for every action of the active species. Active    */
+/* step is strongly highlighted; other steps stay browsable for reference    */
+/* without changing turn state.                                              */
+/* ------------------------------------------------------------------------- */
+.action-steps {
+  --action-accent: #e8a33d;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.55vw, 11px);
+}
+
+.action-steps-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(5px, 0.45vw, 9px);
+  padding-bottom: clamp(6px, 0.5vw, 10px);
+  border-bottom: 1px solid color-mix(in srgb, var(--action-accent) 26%, transparent);
+}
+
+.action-steps-tab {
+  position: relative;
+  appearance: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: clamp(30px, 2.35vw, 42px);
+  height: clamp(30px, 2.35vw, 42px);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-weight: 900;
+  font-size: clamp(14px, 1.15vw, 20px);
+  color: rgba(245, 240, 230, 0.7);
+  background: linear-gradient(180deg, rgba(38, 48, 42, 0.85), rgba(16, 24, 20, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  padding: 0;
+  line-height: 1;
+}
+
+.action-steps-tab:hover {
+  transform: translateY(-1px);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--action-accent) 55%, transparent);
+}
+
+.action-steps-tab.is-selected {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--action-accent) 70%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--action-accent) 38%, rgba(0, 0, 0, 0.6)),
+    color-mix(in srgb, var(--action-accent) 16%, rgba(0, 0, 0, 0.85))
+  );
+}
+
+.action-steps-tab.is-active {
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--action-accent) 92%, white),
+    color-mix(in srgb, var(--action-accent) 55%, #1a0e05)
+  );
+  border-color: color-mix(in srgb, var(--action-accent) 70%, white);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.action-steps-tab.is-active.is-selected {
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 0 0 2px color-mix(in srgb, var(--action-accent) 55%, transparent),
+    0 0 14px color-mix(in srgb, var(--action-accent) 45%, transparent);
+}
+
+.action-steps-tab-letter {
+  padding-top: 2px;
+}
+
+.action-steps-tab-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ffeb70;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.55),
+    0 0 10px rgba(255, 235, 112, 0.85);
+  animation: action-steps-dot-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes action-steps-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+
+.action-steps-body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.3vw, 6px);
+}
+
+.action-steps-eyebrow {
+  font-family: Outfit, sans-serif;
+  font-weight: 700;
+  font-size: clamp(8px, 0.7vw, 12px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--action-accent) 70%, #fff6e0);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.action-steps-desc {
+  margin: 0;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(11px, 0.95vw, 16px);
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(245, 240, 230, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.action-steps-jump {
+  align-self: flex-start;
+  appearance: none;
+  cursor: pointer;
+  margin-top: clamp(3px, 0.3vw, 6px);
+  padding: clamp(4px, 0.4vw, 7px) clamp(8px, 0.75vw, 13px);
+  border-radius: 999px;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(9px, 0.75vw, 12px);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--action-accent) 70%, #fff6e0);
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid color-mix(in srgb, var(--action-accent) 45%, transparent);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.action-steps-jump:hover {
+  background: color-mix(in srgb, var(--action-accent) 30%, rgba(0, 0, 0, 0.5));
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Card variant tucks into the side panel; uses panel typography. */
+.action-steps--card {
+  margin-top: 6px;
+}
+
+.action-steps--card .action-steps-tab {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.action-steps--card .action-steps-desc {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--paper) 88%, transparent);
+  text-shadow: none;
+}
+
+.action-steps--card .action-steps-eyebrow {
+  font-size: 10px;
 }

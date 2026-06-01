@@ -129,7 +129,7 @@ import {
   setAudioSettings,
   type AudioSettings
 } from "./ui/audio";
-import { getActionDescription, getActionTitle } from "./ui/actionDescriptions";
+import { ActionStepsViewer } from "./ui/ActionStepsViewer";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -5233,9 +5233,11 @@ export function App() {
             </div>
             {activeSpecies && activeActionId && (
               <div className="current-action-card">
-                <span>Ação atual</span>
-                <strong>{activeActionId}</strong>
-                <p>{getActionDescription(activeSpecies.speciesId, activeActionId)}</p>
+                <ActionStepsViewer
+                  speciesId={activeSpecies.speciesId}
+                  activeActionId={activeActionId}
+                  variant="card"
+                />
                 {activeSpecies.speciesId === "coati" && hasPendingCoatiPairBonus && canControlActivePlayer && (
                   <small>Dupla de quatis formada: escolha uma carta adjacente para adicionar 1 quati e marcar 1 ponto.</small>
                 )}
@@ -6615,16 +6617,11 @@ export function App() {
             <div className="hud-bottom-jaguar-action-text">
               {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
                 <div className="action-box" style={{ "--action-accent": SPECIES_HEX.jaguar } as CSSProperties}>
-                  <div className="action-box-header">
-                    <span className="action-box-badge">{activeActionId ?? "A"}</span>
-                    <div className="action-box-titles">
-                      <span className="action-box-eyebrow">Fase {activeActionId ?? "A"}</span>
-                      <strong className="action-box-title">{getActionTitle("jaguar", activeActionId)}</strong>
-                    </div>
-                  </div>
-                  <p className="action-box-desc">
-                    {activeActionId ? getActionDescription("jaguar", activeActionId) : ""}
-                  </p>
+                  <ActionStepsViewer
+                    speciesId="jaguar"
+                    activeActionId={activeActionId}
+                    accent={SPECIES_HEX.jaguar}
+                  />
 
                   {(activeActionId === "A" || activeActionId === "B") && (
                     <div className="action-box-hint">
@@ -6698,16 +6695,11 @@ export function App() {
             <div className="hud-bottom-wolf-action-text">
               {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
                 <div className="action-box" style={{ "--action-accent": SPECIES_HEX.maned_wolf } as CSSProperties}>
-                  <div className="action-box-header">
-                    <span className="action-box-badge">{activeActionId ?? "A"}</span>
-                    <div className="action-box-titles">
-                      <span className="action-box-eyebrow">Fase {activeActionId ?? "A"}</span>
-                      <strong className="action-box-title">{getActionTitle("maned_wolf", activeActionId)}</strong>
-                    </div>
-                  </div>
-                  <p className="action-box-desc">
-                    {activeActionId ? getActionDescription("maned_wolf", activeActionId) : ""}
-                  </p>
+                  <ActionStepsViewer
+                    speciesId="maned_wolf"
+                    activeActionId={activeActionId}
+                    accent={SPECIES_HEX.maned_wolf}
+                  />
 
                   {activeActionId === "A" && (
                     <div className="action-box-hint">
@@ -6808,16 +6800,11 @@ export function App() {
             <div className="hud-bottom-tatu-action-text">
               {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
                 <div className="action-box" style={{ "--action-accent": SPECIES_HEX.armadillo } as CSSProperties}>
-                  <div className="action-box-header">
-                    <span className="action-box-badge">{activeActionId ?? "A"}</span>
-                    <div className="action-box-titles">
-                      <span className="action-box-eyebrow">Fase {activeActionId ?? "A"}</span>
-                      <strong className="action-box-title">{getActionTitle("armadillo", activeActionId)}</strong>
-                    </div>
-                  </div>
-                  <p className="action-box-desc">
-                    {activeActionId ? getActionDescription("armadillo", activeActionId) : ""}
-                  </p>
+                  <ActionStepsViewer
+                    speciesId="armadillo"
+                    activeActionId={activeActionId}
+                    accent={SPECIES_HEX.armadillo}
+                  />
 
                   {activeActionId === "A" && (
                     <>
@@ -6917,16 +6904,11 @@ export function App() {
             <div className="hud-bottom-macaw-action-text">
               {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
                 <div className="action-box" style={{ "--action-accent": SPECIES_HEX.macaw } as CSSProperties}>
-                  <div className="action-box-header">
-                    <span className="action-box-badge">{activeActionId ?? "A"}</span>
-                    <div className="action-box-titles">
-                      <span className="action-box-eyebrow">Fase {activeActionId ?? "A"}</span>
-                      <strong className="action-box-title">{getActionTitle("macaw", activeActionId)}</strong>
-                    </div>
-                  </div>
-                  <p className="action-box-desc">
-                    {activeActionId ? getActionDescription("macaw", activeActionId) : ""}
-                  </p>
+                  <ActionStepsViewer
+                    speciesId="macaw"
+                    activeActionId={activeActionId}
+                    accent={SPECIES_HEX.macaw}
+                  />
 
                   {activeActionId === "A" && (
                     <>
@@ -7018,16 +7000,11 @@ export function App() {
             <div className="hud-bottom-capuchin-action-text">
               {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
                 <div className="action-box" style={{ "--action-accent": SPECIES_HEX.capuchin } as CSSProperties}>
-                  <div className="action-box-header">
-                    <span className="action-box-badge">{activeActionId ?? "A"}</span>
-                    <div className="action-box-titles">
-                      <span className="action-box-eyebrow">Fase {activeActionId ?? "A"}</span>
-                      <strong className="action-box-title">{getActionTitle("capuchin", activeActionId)}</strong>
-                    </div>
-                  </div>
-                  <p className="action-box-desc">
-                    {activeActionId ? getActionDescription("capuchin", activeActionId) : ""}
-                  </p>
+                  <ActionStepsViewer
+                    speciesId="capuchin"
+                    activeActionId={activeActionId}
+                    accent={SPECIES_HEX.capuchin}
+                  />
 
                   {activeActionId === "A" && (
                     <>
@@ -7121,16 +7098,11 @@ export function App() {
             <div className="hud-bottom-coati-action-text">
               {room?.game?.activePlayerId === currentGamePlayer.playerId ? (
                 <div className="action-box" style={{ "--action-accent": SPECIES_HEX.coati } as CSSProperties}>
-                  <div className="action-box-header">
-                    <span className="action-box-badge">{activeActionId ?? "A"}</span>
-                    <div className="action-box-titles">
-                      <span className="action-box-eyebrow">Fase {activeActionId ?? "A"}</span>
-                      <strong className="action-box-title">{getActionTitle("coati", activeActionId)}</strong>
-                    </div>
-                  </div>
-                  <p className="action-box-desc">
-                    {activeActionId ? getActionDescription("coati", activeActionId) : ""}
-                  </p>
+                  <ActionStepsViewer
+                    speciesId="coati"
+                    activeActionId={activeActionId}
+                    accent={SPECIES_HEX.coati}
+                  />
 
                   {hasPendingCoatiPairBonus ? (
                     <div className="action-box-hint">

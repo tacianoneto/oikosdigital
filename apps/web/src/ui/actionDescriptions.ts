@@ -1,83 +1,47 @@
 import type { ActionId, SpeciesId } from "@oikos/shared";
 
-const coatiActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Revele uma carta da floresta e instale um quati em local de fruta.",
-  B: "Mova um quati pelo padrão da carta jogada e colete o recurso do destino.",
-  C: "Se restarem menos de dois quatis na reserva, recolha dois da floresta."
-};
+// Action descriptions transcribed verbatim from the printed species boards in
+// `/boards/*.png`. Do not paraphrase — these texts come straight from the
+// physical board layout and must match the GDD wording.
 
-const coatiActionTitles: Partial<Record<ActionId, string>> = {
-  A: "Surgimento",
-  B: "Investigação",
-  C: "Retirada"
+const coatiActionDescriptions: Partial<Record<ActionId, string>> = {
+  A: "Expanda a floresta. Adicione 1 quati em um local de fruta.",
+  B: "Mova 1 quati conforme a carta jogada.",
+  C: "Se você tiver menos de 2 quatis em sua reserva, remova 2 quatis da floresta."
 };
 
 const jaguarActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Avance a Onça para um local adjacente e colete o recurso. Ao alcançar presa, remova uma peça e leve 1 carne.",
-  B: "Avance a Onça pelo padrão do habitat atual e colete o recurso. Ao alcançar presa, remova uma peça e leve 1 carne.",
-  C: "Converta 1 carne em 1 ponto. Pode repetir até três vezes."
-};
-
-const jaguarActionTitles: Partial<Record<ActionId, string>> = {
-  A: "Investida",
-  B: "Caçada",
-  C: "Troféu"
+  A: "Mova a onça para um local adjacente. Remova 1 peça no local que entrou.",
+  B: "Mova a onça conforme o local onde ela está. Remova 1 peça no local que entrou.",
+  C: "Gaste 1 carne para marcar 1 ponto (até 3 vezes)."
 };
 
 const capuchinActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Revele uma carta da floresta e instale um macaco no local descoberto.",
-  B: "Mova um macaco pelo padrão da carta jogada e colete o recurso do destino.",
-  C: "Reforce o bando: posicione um macaco em local onde já houver outro.",
-  D: "Marque 1 ponto por habitat que abrigue macacos em duas ou mais cartas distintas."
-};
-
-const capuchinActionTitles: Partial<Record<ActionId, string>> = {
-  A: "Descoberta",
-  B: "Travessia",
-  C: "Bando",
-  D: "Domínio"
+  A: "Expanda a floresta. Adicione 1 macaco na carta jogada.",
+  B: "Mova 1 macaco conforme a carta jogada.",
+  C: "Adicione 1 macaco em um local com outro macaco.",
+  D: "Marque 1 ponto por cada tipo de habitat com macacos em 2 ou mais cartas diferentes."
 };
 
 const macawActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Revele uma carta da floresta e instale uma arara em local de ovo.",
-  B: "Mova uma arara pelo padrão da carta jogada e colete o recurso do destino.",
-  C: "Adicione ou realoque outra arara ao redor da que acabou de se mover. Se realocar, colete o recurso do novo destino.",
-  D: "Marque 1 ponto por linha reta formada por três araras."
-};
-
-const macawActionTitles: Partial<Record<ActionId, string>> = {
-  A: "Ninho",
-  B: "Voo",
-  C: "Bando",
-  D: "Formação"
+  A: "Expanda a floresta. Adicione 1 arara em um local de ovo.",
+  B: "Mova 1 arara conforme a carta jogada.",
+  C: "Adicione ou realoque outra arara para um local ao redor daquela que foi movida.",
+  D: "Marque 1 ponto por linha reta de 3 ou + araras na floresta (ortogonal ou diagonal)."
 };
 
 const armadilloActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Revele uma carta da floresta e instale um tatu em local de pinha.",
-  B: "Mova um tatu pelo padrão da carta jogada e colete o recurso do destino.",
-  C: "Recolha um tatu próprio em sua carapaça, escondendo-o dos demais.",
-  D: "Marque 3 pontos, menos 1 por espécie adversária ausente do local de um tatu. Mínimo 1."
-};
-
-const armadilloActionTitles: Partial<Record<ActionId, string>> = {
-  A: "Toca",
-  B: "Travessia",
-  C: "Esconderijo",
-  D: "Defesa"
+  A: "Expanda a floresta. Adicione 1 tatu em um local de pinha.",
+  B: "Mova 1 tatu conforme a carta jogada.",
+  C: "Esconda qualquer um de seus tatus na floresta.",
+  D: "Marque 3 pontos, -1 ponto por espécie que não divide local com nenhum tatu. (Mínimo 1 ponto.)"
 };
 
 const wolfActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Revele uma carta e mova cada lobo pelo padrão do habitat exposto. Cada lobo movido colhe o recurso do seu destino.",
-  B: "Em local partilhado com um lobo, capture uma peça de espécie de base. Lobo e presa colhem o recurso do local.",
-  C: "Para cada lobo na floresta, gaste 1 recurso distinto e marque 1 ponto.",
-  D: "Posicione um novo lobo em local de carne."
-};
-
-const wolfActionTitles: Partial<Record<ActionId, string>> = {
-  A: "Matilha",
-  B: "Emboscada",
-  C: "Festim",
-  D: "Reforço"
+  A: "Expanda a floresta. Mova cada lobo conforme a carta jogada.",
+  B: "Remova 1 peça de base com algum lobo. Ambos coletam o recurso do local.",
+  C: "Para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto.",
+  D: "Adicione 1 lobo em um local de carne."
 };
 
 export function getActionDescription(speciesId: SpeciesId | null | undefined, actionId: ActionId | null): string {
@@ -114,17 +78,7 @@ export function getActionDescription(speciesId: SpeciesId | null | undefined, ac
 
 export function getActionTitle(speciesId: SpeciesId | null | undefined, actionId: ActionId | null): string {
   if (!speciesId || !actionId) {
-    return "Ação Atual";
+    return "Ação atual";
   }
-
-  const map: Partial<Record<SpeciesId, Partial<Record<ActionId, string>>>> = {
-    coati: coatiActionTitles,
-    jaguar: jaguarActionTitles,
-    capuchin: capuchinActionTitles,
-    macaw: macawActionTitles,
-    armadillo: armadilloActionTitles,
-    maned_wolf: wolfActionTitles
-  };
-
-  return map[speciesId]?.[actionId] ?? `Ação ${actionId}`;
+  return `Ação ${actionId}`;
 }
