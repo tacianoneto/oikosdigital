@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { forestCardsById, getForestCardDefinition, resourceAssets, speciesDefinitions } from "@oikos/content";
-import type { ForestCardState, GridPosition, PieceState, Resource } from "@oikos/shared";
+import type { ForestCardState, GridPosition, PieceState, Resource, SpeciesId } from "@oikos/shared";
 
 export interface RotateFitTarget {
   position: GridPosition;
@@ -63,6 +63,8 @@ const RADIUS = 14;
 
 const SELECT = 0x5fd08a;
 const HIDDEN_TINT = 0x7f8780;
+const MEEPLE_ASSET_VERSION = "2026-06-01-new-meeples";
+const MEEPLE_ALPHA_PADDING = 8;
 
 function key(p: GridPosition): string {
   return `${p.x}:${p.y}`;
@@ -86,6 +88,11 @@ interface PieceObj {
   root: Phaser.GameObjects.Container;
   worldX: number;
   worldY: number;
+}
+
+function versionedAsset(path: string): string {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${encodeURI(path)}${separator}v=${MEEPLE_ASSET_VERSION}`;
 }
 
 export class ForestPhaserScene extends Phaser.Scene {
@@ -123,7 +130,7 @@ export class ForestPhaserScene extends Phaser.Scene {
       this.load.image(`card:${def.id}`, encodeURI(def.imagePath));
     }
     for (const sp of Object.values(speciesDefinitions)) {
-      this.load.image(`meeple:${sp.speciesId}`, encodeURI(sp.meepleAsset));
+      this.load.image(`meeple:${sp.speciesId}`, versionedAsset(sp.meepleAsset));
     }
     (Object.keys(resourceAssets) as Array<Resource | "point">).forEach((r) => {
       this.load.image(`res:${r}`, encodeURI(resourceAssets[r]));
@@ -132,6 +139,9 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor("rgba(0,0,0,0)");
+    for (const sp of Object.values(speciesDefinitions)) {
+      this.createTrimmedMeepleTexture(sp.speciesId);
+    }
 
     this.surfaceLayer = this.add.container(0, 0);
     this.gridLayer = this.add.container(0, 0);
@@ -1122,24 +1132,72 @@ export class ForestPhaserScene extends Phaser.Scene {
     });
   }
 
+  private createTrimmedMeepleTexture(speciesId: SpeciesId): string {
+    const sourceKey = `meeple:${speciesId}`;
+    const trimmedKey = `meeple-trimmed:${speciesId}`;
+    if (this.textures.exists(trimmedKey)) return trimmedKey;
+
+    const texture = this.textures.get(sourceKey);
+    const image = texture.getSourceImage() as CanvasImageSource & { width?: number; height?: number };
+    const width = Math.max(1, Math.floor(image.width ?? 1));
+    const height = Math.max(1, Math.floor(image.height ?? 1));
+    const scan = document.createElement("canvas");
+    scan.width = width;
+    scan.height = height;
+    const scanCtx = scan.getContext("2d");
+    if (!scanCtx) return sourceKey;
+
+    scanCtx.drawImage(image, 0, 0, width, height);
+    const pixels = scanCtx.getImageData(0, 0, width, height).data;
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (pixels[(y * width + x) * 4 + 3] > 8) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (maxX < minX || maxY < minY) return sourceKey;
+
+    const sx = Math.max(0, minX - MEEPLE_ALPHA_PADDING);
+    const sy = Math.max(0, minY - MEEPLE_ALPHA_PADDING);
+    const sw = Math.min(width, maxX + MEEPLE_ALPHA_PADDING + 1) - sx;
+    const sh = Math.min(height, maxY + MEEPLE_ALPHA_PADDING + 1) - sy;
+    const trimmed = document.createElement("canvas");
+    trimmed.width = sw;
+    trimmed.height = sh;
+    trimmed.getContext("2d")?.drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+    this.textures.addCanvas(trimmedKey, trimmed);
+    return trimmedKey;
+  }
+
   private buildPiece(piece: PieceState): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0);
 
-    const shadow = this.add.ellipse(3, 15, 28, 8, 0x000000, 0.18);
+    const shadow = this.add.ellipse(3, 17, 34, 10, 0x000000, 0.18);
     const glow = this.add.graphics();
 
-    const tex = this.textures.get(`meeple:${piece.speciesId}`).getSourceImage();
-    const targetH = 34;
+    const textureKey = this.createTrimmedMeepleTexture(piece.speciesId);
+    const tex = this.textures.get(textureKey).getSourceImage();
+    const targetH = 44;
     const ww = tex.width || 1;
     const hh = tex.height || 1;
     const img = this.add
-      .image(0, -6, `meeple:${piece.speciesId}`)
+      .image(0, -8, textureKey)
       .setDisplaySize((targetH * ww) / hh, targetH)
       .setOrigin(0.5, 0.6);
 
     c.add([shadow, glow, img]);
 
-    const hit = this.add.circle(0, -4, 17, 0xffffff, 0);
+    const hit = this.add.circle(0, -5, 22, 0xffffff, 0);
     c.add(hit);
     c.setData("shadow", shadow);
     c.setData("glow", glow);
