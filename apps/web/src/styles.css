@@ -2370,13 +2370,8 @@ input:focus {
   position: relative;
   order: -1;
   width: min(318px, calc(100vw - 104px));
-  min-height: max(
-    0px,
-    calc(
-      (var(--opponent-arrow-index, 0) * (var(--opponent-button-size) + var(--opponent-button-gap))) +
-      var(--opponent-button-size) +
-      10px
-    )
+  margin-top: calc(
+    var(--opponent-arrow-index, 0) * (var(--opponent-button-size) + var(--opponent-button-gap))
   );
   display: grid;
   align-content: start;
@@ -2398,10 +2393,7 @@ input:focus {
 .opponent-popover::after {
   content: "";
   position: absolute;
-  top: calc(
-    (var(--opponent-arrow-index, 0) * (var(--opponent-button-size) + var(--opponent-button-gap))) +
-    var(--opponent-arrow-offset)
-  );
+  top: var(--opponent-arrow-offset);
   right: -7px;
   width: 12px;
   height: 12px;
