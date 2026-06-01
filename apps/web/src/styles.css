@@ -2368,9 +2368,10 @@ input:focus {
 
 .expansion-preview {
   position: fixed;
-  right: 2.5%;
-  bottom: 22%;
-  width: clamp(180px, 15%, 280px);
+  right: 10%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(180px, 14%, 260px);
   z-index: 110;
   display: flex;
   align-items: center;
