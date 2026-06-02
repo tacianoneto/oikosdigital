@@ -2257,6 +2257,10 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     throw new Error("Acoes so podem ser concluidas durante a fase ativa.");
   }
 
+  if (game.caatingaPending) {
+    throw new Error("Resolva o efeito da Caatinga antes de continuar.");
+  }
+
   if (game.pendingCoatiPairBonus) {
     throw new Error("Resolva o bonus da dupla de quatis antes de concluir a acao.");
   }
@@ -2955,6 +2959,10 @@ function advanceSetupTurn(game: GameState): void {
 }
 
 function advanceActiveAction(game: GameState): void {
+  if (game.caatingaPending) {
+    return;
+  }
+
   if (!game.activePlayerId) {
     return;
   }
@@ -3219,6 +3227,7 @@ export function collectCaatingaBonus(
         createdAt: Date.now()
       }
     ];
+    advanceActiveAction(next);
     return next;
   }
   const current = player.resources[pending.resource] ?? 0;
@@ -3243,6 +3252,7 @@ export function collectCaatingaBonus(
       createdAt: Date.now()
     }
   ];
+  advanceActiveAction(next);
   return next;
 }
 

@@ -1584,11 +1584,15 @@ describe("caatinga scenario", () => {
       trigger: "remove",
       round: 1
     });
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(0);
 
     game = collectCaatingaBonus(game, "jaguar", "skip");
 
     expect(game.caatingaPending).toBeNull();
     expect(game.caatingaUsedByPlayer.jaguar).toBeUndefined();
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(1);
 
     const nextTarget = getValidPieceMovementDestinations(game, "jaguar", jaguarPieceId)[0]!;
     game = {
@@ -1639,7 +1643,8 @@ describe("caatinga scenario", () => {
     const target = getWolfMeatPlacementPositions(game, "wolf")[0]!;
     game = addWolfForCurrentAction(game, "wolf", target);
 
-    expect(game.activePlayerId).toBe("coati");
+    expect(game.activePlayerId).toBe("wolf");
+    expect(game.activeActionIndex).toBe(3);
     expect(game.caatingaPending).toMatchObject({
       playerId: "wolf",
       trigger: "add",
@@ -1661,6 +1666,7 @@ describe("caatinga scenario", () => {
     expect(game.players.find((candidate) => candidate.playerId === "wolf")!.resources[pendingResource]).toBe(before - 1);
     expect(game.caatingaPending).toBeNull();
     expect(game.caatingaUsedByPlayer.wolf).toBe(1);
+    expect(game.activePlayerId).toBe("coati");
   });
 });
 

@@ -1007,7 +1007,10 @@ export function App() {
   const activeSpecies = activeGamePlayer?.speciesId ? speciesDefinitions[activeGamePlayer.speciesId] : null;
   const activeActionId = activeSpecies && room?.game ? activeSpecies.actions[room.game.activeActionIndex] ?? null : null;
   const canControlActivePlayer = Boolean(
-    room?.game?.activePlayerId && currentGamePlayer?.playerId === room.game.activePlayerId && !activeIsLocalBot
+    room?.game?.activePlayerId &&
+      currentGamePlayer?.playerId === room.game.activePlayerId &&
+      !activeIsLocalBot &&
+      !room.game.caatingaPending
   );
   // Action step viewer should only flag a step as "em andamento" when the
   // controlled player is the active player. Otherwise the opponent's progress
