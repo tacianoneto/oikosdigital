@@ -7136,7 +7136,7 @@ export function App() {
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem instalar
+                              Avançar sem adicionar
                             </button>
                           </div>
                         )}
@@ -7238,7 +7238,7 @@ export function App() {
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem instalar
+                              Avançar sem adicionar
                             </button>
                           </div>
                         )}
@@ -7332,7 +7332,7 @@ export function App() {
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem instalar
+                              Avançar sem adicionar
                             </button>
                           </div>
                         )}
@@ -7433,7 +7433,7 @@ export function App() {
                           {room.game.activePlayedForestCardId && !tutorialActive && (
                             <div className="action-box-actions">
                               <button className="action-box-btn is-secondary" onClick={handleCompleteAction}>
-                                Avançar sem instalar
+                                Avançar sem adicionar
                               </button>
                             </div>
                           )}
