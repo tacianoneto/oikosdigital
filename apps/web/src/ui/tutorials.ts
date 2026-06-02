@@ -108,7 +108,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Mova um meeple",
-    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada, veja o tabuleiro dele à direita. Sempre que você move um meeple, ganha o recurso do local de destino.",
+    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada; consulte o guia de movimentos no seu HUD. Sempre que você move um meeple, ganha o recurso do local de destino.",
     gate: "move",
     autoAdvance: true,
     openBoard: "armadillo"
@@ -192,7 +192,7 @@ const JAGUAR_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação B: mover pelo habitat",
-    body: "Na ação B, a Onça usa o movimento indicado pelo habitat onde está. Antes de mover, passe o mouse sobre o ícone de movimento da Onça na lista de jogadores para abrir a imagem de referência. Ela está em campo, então vai mover na diagonal para o local destacado com carne e outra peça.",
+    body: "Na ação B, a Onça usa o movimento indicado pelo habitat onde está. Consulte o guia de movimentos no HUD da Onça. Ela está em campo, então vai mover na diagonal para o local destacado com carne e outra peça.",
     gate: "move",
     autoAdvance: true,
     markedMoveTarget: { x: 1, y: 1 },
@@ -250,7 +250,7 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação A: jogar carta",
-    body: "Na ação A, o Lobo expande a floresta com uma carta. Jogue a carta de campo destacada no espaço destacado à direita. O habitat da carta jogada define como todos os lobos pendentes vão se mover.",
+    body: "Na ação A, o Lobo expande a floresta com uma carta. Clique na carta de campo destacada e depois no espaço destacado no tabuleiro. O habitat da carta jogada define como todos os lobos pendentes vão se mover.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: WOLF_TUTORIAL_CARD,
@@ -258,7 +258,7 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação A: mover primeiro lobo",
-    body: "Campo dá ao Lobo movimento adjacente. Passe o mouse sobre o ícone de movimento do Lobo na lista de jogadores para abrir a imagem de referência. Agora clique no lobo destacado e mova para o Quati destacado; ele coleta o ovo do local.",
+    body: "Campo dá ao Lobo movimento adjacente. Consulte o guia de movimentos no HUD do Lobo. Agora clique no lobo destacado e mova para o Quati destacado; ele coleta o ovo do local.",
     gate: "move",
     autoAdvance: true,
     markedMoveTarget: { x: 1, y: 0 },
@@ -335,7 +335,7 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação A: jogar carta",
-    body: "Na ação A, o Tatu-bola expande a floresta com uma carta da mão. Jogue a carta de bosque destacada no espaço destacado à direita. O habitat dessa carta vai definir o movimento da ação B.",
+    body: "Na ação A, o Tatu-bola expande a floresta com uma carta da mão. Clique na carta de bosque destacada e depois no espaço destacado no tabuleiro. O habitat dessa carta vai definir o movimento da ação B.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: ARMADILLO_TUTORIAL_CARD,
@@ -418,7 +418,7 @@ const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação A: jogar carta",
-    body: "Na ação A, a Arara expande a floresta com uma carta. Jogue a carta de campo destacada no espaço à direita. O habitat da carta jogada define o movimento da ação B.",
+    body: "Na ação A, a Arara expande a floresta com uma carta. Clique na carta de campo destacada e depois no espaço destacado no tabuleiro. O habitat da carta jogada define o movimento da ação B.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: MACAW_TUTORIAL_CARD,
@@ -490,7 +490,7 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Jogue a carta",
-    body: "Arraste a carta de bosque destacada para o espaço à direita.",
+    body: "Ação A: clique na carta de bosque destacada e depois no espaço destacado no tabuleiro.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: CAPUCHIN_TUTORIAL_CARD,
@@ -498,7 +498,7 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Adicione um macaco",
-    body: "Clique na carta que acabou de jogar para pôr 1 macaco nela.",
+    body: "Depois de jogar a carta, clique no local destacado para pôr 1 macaco nela.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: 2, y: 0 },
@@ -506,7 +506,7 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Salte para o campo",
-    body: "Bosque = salto reto. Mova o macaco destacado para o campo destacado.",
+    body: "A carta jogada foi um bosque. Para o Macaco-prego, bosque permite salto reto. Mova o macaco destacado para o campo destacado.",
     gate: "move",
     autoAdvance: true,
     markedPieceId: CAPUCHIN_TUTORIAL_MOVE_ID,
@@ -516,7 +516,7 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Reforce",
-    body: "Clique no local destacado para empilhar mais 1 macaco.",
+    body: "Na ação C, clique no local destacado para adicionar mais 1 macaco e reforçar o par de bosque.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: 2, y: 0 },
@@ -568,7 +568,7 @@ const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Jogue a carta",
-    body: "Ação A: arraste a carta de campo destacada para o espaço à direita.",
+    body: "Ação A: clique na carta de campo destacada e depois no espaço destacado no tabuleiro.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: COATI_TUTORIAL_CARD,
@@ -725,7 +725,9 @@ export function createJaguarTutorialRoom(): PublicRoomState {
       connected: true
     }
   ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, JAGUAR_TUTORIAL_FOREST);
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, JAGUAR_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
 
   for (const player of game.players) {
     player.score = 0;
@@ -792,7 +794,9 @@ export function createWolfTutorialRoom(): PublicRoomState {
       connected: true
     }
   ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, WOLF_TUTORIAL_FOREST);
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, WOLF_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
 
   for (const player of game.players) {
     player.score = 0;
@@ -869,7 +873,9 @@ export function createArmadilloTutorialRoom(): PublicRoomState {
       connected: true
     }
   ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, ARMADILLO_TUTORIAL_FOREST);
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, ARMADILLO_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
 
   for (const player of game.players) {
     player.score = 0;
@@ -959,7 +965,9 @@ export function createMacawTutorialRoom(): PublicRoomState {
       connected: true
     }
   ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, MACAW_TUTORIAL_FOREST);
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, MACAW_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
 
   const player = game.players.find((candidate) => candidate.playerId === MACAW_TUTORIAL_PLAYER_ID);
   if (player) {
@@ -1013,7 +1021,9 @@ export function createCapuchinTutorialRoom(): PublicRoomState {
       connected: true
     }
   ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, CAPUCHIN_TUTORIAL_FOREST);
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, CAPUCHIN_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
 
   const player = game.players.find((candidate) => candidate.playerId === CAPUCHIN_TUTORIAL_PLAYER_ID);
   if (player) {
@@ -1070,7 +1080,9 @@ export function createCoatiTutorialRoom(): PublicRoomState {
       connected: true
     }
   ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, COATI_TUTORIAL_FOREST);
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, COATI_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
 
   const player = game.players.find((candidate) => candidate.playerId === COATI_TUTORIAL_PLAYER_ID);
   if (player) {
@@ -1147,7 +1159,9 @@ export function createInitialTutorialRoom(): PublicRoomState {
       connected: true
     }
   ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, TUTORIAL_FOREST);
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
   if (game.players[0]) {
     game.players[0].hand = [TUTORIAL_NONRIVER_CARD, TUTORIAL_RIVER_CARD];
   }
