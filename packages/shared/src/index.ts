@@ -262,6 +262,12 @@ export interface GameState {
   threatDiscardIds: ThreatCardId[];
   // Tracks per-round/per-turn scenario usage. Reset by round/turn boundaries.
   cerradoTriggeredByPlayer: Record<string, number>;
+  cerradoPending: {
+    playerId: string;
+    resource: Resource;
+    location: GridPosition;
+    round: number;
+  } | null;
   caatingaUsedByPlayer: Record<string, number>;
   caatingaPending: {
     playerId: string;

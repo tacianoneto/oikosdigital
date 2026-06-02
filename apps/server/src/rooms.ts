@@ -16,6 +16,7 @@ import {
   resolveCoatiPairBonus,
   selectObjectiveCard,
   collectCaatingaBonus,
+  collectCerradoBonus,
   discardMataAtlanticaPileCard,
   requiredCommonCardsForPlayers,
   hideArmadilloForCurrentAction,
@@ -833,6 +834,21 @@ export function collectCaatinga(
     throw new Error("A partida ainda nao foi iniciada.");
   }
   room.game = collectCaatingaBonus(room.game, playerId, mode);
+  room.status = room.game.status === "active" ? "active" : room.status;
+  room.warnings = room.game.contentWarnings;
+  return toPublicRoom(room);
+}
+
+export function collectCerrado(
+  roomId: string,
+  playerId: string,
+  mode: "collect" | "skip" = "collect"
+): PublicRoomState {
+  const room = getRoom(roomId);
+  if (!room.game) {
+    throw new Error("A partida ainda nao foi iniciada.");
+  }
+  room.game = collectCerradoBonus(room.game, playerId, mode);
   room.status = room.game.status === "active" ? "active" : room.status;
   room.warnings = room.game.contentWarnings;
   return toPublicRoom(room);

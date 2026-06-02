@@ -668,6 +668,7 @@ export function createInitialGameState(
     threatDeckIds,
     threatDiscardIds: [],
     cerradoTriggeredByPlayer: {},
+    cerradoPending: null,
     caatingaUsedByPlayer: {},
     caatingaPending: null,
     mataAtlanticaPiles,
@@ -2261,6 +2262,10 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     throw new Error("Resolva o efeito da Caatinga antes de continuar.");
   }
 
+  if (game.cerradoPending) {
+    throw new Error("Resolva o efeito do Cerrado antes de continuar.");
+  }
+
   if (game.pendingCoatiPairBonus) {
     throw new Error("Resolva o bonus da dupla de quatis antes de concluir a acao.");
   }
@@ -2959,7 +2964,7 @@ function advanceSetupTurn(game: GameState): void {
 }
 
 function advanceActiveAction(game: GameState): void {
-  if (game.caatingaPending) {
+  if (game.caatingaPending || game.cerradoPending) {
     return;
   }
 
@@ -3032,6 +3037,7 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
   game.pendingCoatiPairBonus = null;
   game.pendingMacawMovedPiece = null;
   game.pendingWolfMoves = null;
+  game.cerradoPending = null;
   const startedNewRound = nextTurnIndex === 0;
   if (startedNewRound) {
     game.round += 1;
@@ -3225,7 +3231,7 @@ export function collectCaatingaBonus(
         createdAt: Date.now()
       }
     ];
-    if (!next.pendingCoatiPairBonus) {
+    if (shouldAdvanceAfterScenarioChoice(next, playerId)) {
       advanceActiveAction(next);
     }
     return next;
@@ -3252,10 +3258,64 @@ export function collectCaatingaBonus(
       createdAt: Date.now()
     }
   ];
-  if (!next.pendingCoatiPairBonus) {
+  if (shouldAdvanceAfterScenarioChoice(next, playerId)) {
     advanceActiveAction(next);
   }
   return next;
+}
+
+export function collectCerradoBonus(
+  game: GameState,
+  playerId: string,
+  mode: "collect" | "skip" = "collect"
+): GameState {
+  if (game.status !== "active") {
+    throw new Error("Bonus de Cerrado so pode ser resolvido durante a fase ativa.");
+  }
+  if (!game.cerradoPending || game.cerradoPending.playerId !== playerId) {
+    throw new Error("Nenhum efeito de Cerrado disponivel.");
+  }
+
+  const next = cloneGameState(game);
+  const player = findPlayer(next, playerId);
+  const pending = next.cerradoPending!;
+  const gain = mode === "collect" ? 2 : 1;
+  player.resources = {
+    ...player.resources,
+    [pending.resource]: (player.resources[pending.resource] ?? 0) + gain
+  };
+
+  if (mode === "collect") {
+    next.cerradoTriggeredByPlayer = {
+      ...(next.cerradoTriggeredByPlayer ?? {}),
+      [playerId]: pending.round
+    };
+  }
+
+  next.cerradoPending = null;
+  next.log = [
+    ...next.log,
+    {
+      id: `cerrado_${mode}_${playerId}_${next.log.length + 1}`,
+      message:
+        mode === "collect"
+          ? `${player.name} coletou +2 ${pending.resource} (Cerrado).`
+          : `${player.name} guardou o Cerrado para depois e coletou +1 ${pending.resource}.`,
+      createdAt: Date.now()
+    }
+  ];
+
+  if (shouldAdvanceAfterScenarioChoice(next, playerId)) {
+    advanceActiveAction(next);
+  }
+  return next;
+}
+
+function shouldAdvanceAfterScenarioChoice(game: GameState, playerId: string): boolean {
+  if (game.caatingaPending || game.cerradoPending || game.pendingCoatiPairBonus) {
+    return false;
+  }
+  return !(game.pendingWolfMoves?.playerId === playerId && game.pendingWolfMoves.pieceIds.length > 0);
 }
 
 function applyPantanalScenario(game: GameState): void {
@@ -3613,6 +3673,7 @@ function applyFinalScoring(game: GameState): void {
   game.pendingCoatiPairBonus = null;
   game.pendingMacawMovedPiece = null;
   game.pendingWolfMoves = null;
+  game.cerradoPending = null;
   game.status = "finished";
 
   const winnerNames = game.players
@@ -3775,6 +3836,12 @@ function cloneGameState(game: GameState): GameState {
     threatDeckIds: [...(game.threatDeckIds ?? [])],
     threatDiscardIds: [...(game.threatDiscardIds ?? [])],
     cerradoTriggeredByPlayer: { ...(game.cerradoTriggeredByPlayer ?? {}) },
+    cerradoPending: game.cerradoPending
+      ? {
+          ...game.cerradoPending,
+          location: { ...game.cerradoPending.location }
+        }
+      : null,
     caatingaUsedByPlayer: { ...(game.caatingaUsedByPlayer ?? {}) },
     caatingaPending: game.caatingaPending
       ? {
@@ -3878,27 +3945,20 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
     cerradoActive &&
     (game.cerradoTriggeredByPlayer ?? {})[playerId] !== game.round &&
     (player.resources[resource] ?? 0) === 0;
-  const gain = cerradoTriggered ? 2 : 1;
+  if (cerradoTriggered) {
+    game.cerradoPending = {
+      playerId,
+      resource,
+      location: { x: destination.x, y: destination.y },
+      round: game.round
+    };
+    return resource;
+  }
 
   player.resources = {
     ...player.resources,
-    [resource]: (player.resources[resource] ?? 0) + gain
+    [resource]: (player.resources[resource] ?? 0) + 1
   };
-
-  if (cerradoTriggered) {
-    game.cerradoTriggeredByPlayer = {
-      ...(game.cerradoTriggeredByPlayer ?? {}),
-      [playerId]: game.round
-    };
-    game.log = [
-      ...game.log,
-      {
-        id: `cerrado_bonus_${player.playerId}_${game.round}_${game.log.length + 1}`,
-        message: `${player.name} ganhou +2 ${resource} (Cerrado, primeiro novo recurso da rodada).`,
-        createdAt: Date.now()
-      }
-    ];
-  }
 
   return resource;
 }

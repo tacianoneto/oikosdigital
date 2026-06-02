@@ -9,6 +9,7 @@ import {
   addWolfForCurrentAction,
   completeCurrentAction,
   collectCaatingaBonus,
+  collectCerradoBonus,
   createInitialGameState,
   createPreviewInitialForest,
   forceEndPlayerTurn,
@@ -1558,6 +1559,69 @@ describe("setup placement", () => {
 
     expect(game.activePlayerId).toBe("coati");
     expect(game.log.some((entry) => entry.message.includes("pulou automaticamente a acao D do Lobo-guara"))).toBe(true);
+  });
+});
+
+describe("cerrado scenario", () => {
+  function createCerradoMovementGame() {
+    let game = createTestGameState("room", [player("capuchin", "capuchin"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: 1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 1 });
+    game = {
+      ...setActiveAction(game, "capuchin", 0),
+      activeScenarioIds: ["cerrado"],
+      players: game.players.map((candidate) =>
+        candidate.playerId === "capuchin"
+          ? { ...candidate, resources: { meat: 0, egg: 0, fruit: 0, seed: 0 } }
+          : candidate
+      )
+    };
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "capuchin")?.hand[0];
+    game = placeForestCard(game, "capuchin", cardId!, { x: 2, y: 0 });
+    game = addCapuchinForCurrentAction(game, "capuchin", { x: 2, y: 0 });
+
+    const movedPieceId = game.players.find((candidate) => candidate.playerId === "capuchin")?.piecesInForest[0]!;
+    const destination = getValidPieceMovementDestinations(game, "capuchin", movedPieceId)[0]!;
+    return { game, movedPieceId, destination };
+  }
+
+  it("lets the player collect 2 with Cerrado instead of auto-triggering it", () => {
+    const setup = createCerradoMovementGame();
+    let game = movePieceForCurrentAction(setup.game, "capuchin", setup.movedPieceId, setup.destination);
+
+    expect(game.cerradoPending).toMatchObject({
+      playerId: "capuchin",
+      round: 1
+    });
+    expect(game.activePlayerId).toBe("capuchin");
+    expect(game.activeActionIndex).toBe(1);
+
+    const resource = game.cerradoPending!.resource;
+    expect(game.players.find((candidate) => candidate.playerId === "capuchin")!.resources[resource]).toBe(0);
+
+    game = collectCerradoBonus(game, "capuchin", "collect");
+
+    expect(game.players.find((candidate) => candidate.playerId === "capuchin")!.resources[resource]).toBe(2);
+    expect(game.cerradoPending).toBeNull();
+    expect(game.cerradoTriggeredByPlayer.capuchin).toBe(1);
+    expect(game.activeActionIndex).toBe(2);
+  });
+
+  it("lets the player skip Cerrado now and keep it available this round", () => {
+    const setup = createCerradoMovementGame();
+    let game = movePieceForCurrentAction(setup.game, "capuchin", setup.movedPieceId, setup.destination);
+    const resource = game.cerradoPending!.resource;
+
+    game = collectCerradoBonus(game, "capuchin", "skip");
+
+    expect(game.players.find((candidate) => candidate.playerId === "capuchin")!.resources[resource]).toBe(1);
+    expect(game.cerradoPending).toBeNull();
+    expect(game.cerradoTriggeredByPlayer.capuchin).toBeUndefined();
+    expect(game.activeActionIndex).toBe(2);
   });
 });
 

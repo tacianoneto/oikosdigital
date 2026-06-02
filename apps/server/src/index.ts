@@ -60,6 +60,7 @@ import {
   finalizeScenarioVoting,
   isScenarioVotingComplete,
   collectCaatinga,
+  collectCerrado,
   discardMataAtlanticaCard,
   SCENARIO_VOTING_DURATION_MS
 } from "./rooms";
@@ -545,6 +546,14 @@ io.on("connection", (socket) => {
   socket.on("scenario:caatinga-collect", (payload: { roomId: string; mode?: "gain" | "lose" | "skip" }, reply) => {
     withReply(reply, () => {
       const room = collectCaatinga(payload.roomId, playerId, payload.mode ?? "gain");
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("scenario:cerrado-collect", (payload: { roomId: string; mode?: "collect" | "skip" }, reply) => {
+    withReply(reply, () => {
+      const room = collectCerrado(payload.roomId, playerId, payload.mode ?? "collect");
       broadcastRoom(room);
       return room;
     });

@@ -6,6 +6,7 @@ import {
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   collectCaatingaBonus,
+  collectCerradoBonus,
   completeCurrentAction,
   discardMataAtlanticaPileCard,
   forceEndPlayerTurn,
@@ -69,6 +70,14 @@ export function playBotStep(game: GameState, playerId: string): GameState {
   if (game.caatingaPending?.playerId === playerId) {
     try {
       return collectCaatingaBonus(game, playerId);
+    } catch {
+      // fall through and keep playing
+    }
+  }
+
+  if (game.cerradoPending?.playerId === playerId) {
+    try {
+      return collectCerradoBonus(game, playerId);
     } catch {
       // fall through and keep playing
     }
@@ -145,6 +154,14 @@ export function playRandomStep(game: GameState, playerId: string): GameState {
   if (game.caatingaPending?.playerId === playerId) {
     try {
       return collectCaatingaBonus(game, playerId);
+    } catch {
+      // fall through
+    }
+  }
+
+  if (game.cerradoPending?.playerId === playerId) {
+    try {
+      return collectCerradoBonus(game, playerId);
     } catch {
       // fall through
     }

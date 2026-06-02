@@ -99,6 +99,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints,
   collectCaatingaBonus,
+  collectCerradoBonus,
   discardMataAtlanticaPileCard
 } from "@oikos/rules";
 import type {
@@ -993,7 +994,7 @@ export function App() {
 
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom
-    ? room?.game?.caatingaPending?.playerId ?? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null
+    ? room?.game?.caatingaPending?.playerId ?? room?.game?.cerradoPending?.playerId ?? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null
     : isSpectator
       ? null
       : playerId;
@@ -1010,7 +1011,8 @@ export function App() {
     room?.game?.activePlayerId &&
       currentGamePlayer?.playerId === room.game.activePlayerId &&
       !activeIsLocalBot &&
-      !room.game.caatingaPending
+      !room.game.caatingaPending &&
+      !room.game.cerradoPending
   );
   // Action step viewer should only flag a step as "em andamento" when the
   // controlled player is the active player. Otherwise the opponent's progress
@@ -3620,7 +3622,12 @@ export function App() {
   const caatingaGamePlayer = caatingaPending
     ? room?.game?.players.find((candidate) => candidate.playerId === caatingaPending.playerId) ?? null
     : null;
+  const cerradoPending = room?.game?.cerradoPending ?? null;
+  const cerradoGamePlayer = cerradoPending
+    ? room?.game?.players.find((candidate) => candidate.playerId === cerradoPending.playerId) ?? null
+    : null;
   const canResolveCaatinga = Boolean(caatingaPending && controlledPlayerId === caatingaPending.playerId);
+  const canResolveCerrado = Boolean(!caatingaPending && cerradoPending && controlledPlayerId === cerradoPending.playerId);
   const resolveCaatingaChoice = (mode: "gain" | "lose" | "skip") => {
     if (!room?.game || !caatingaPending || !canResolveCaatinga) return;
     if (isLocalRoom) {
@@ -3633,6 +3640,20 @@ export function App() {
     } else {
       const rid = room.roomId;
       run(() => roomApi.collectCaatinga(requireSocket(), rid, mode));
+    }
+  };
+  const resolveCerradoChoice = (mode: "collect" | "skip") => {
+    if (!room?.game || !cerradoPending || !canResolveCerrado) return;
+    if (isLocalRoom) {
+      try {
+        const nextGame = collectCerradoBonus(room.game, cerradoPending.playerId, mode);
+        setRoom((current) => (current ? { ...current, game: nextGame } : current));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao resolver Cerrado.");
+      }
+    } else {
+      const rid = room.roomId;
+      run(() => roomApi.collectCerrado(requireSocket(), rid, mode));
     }
   };
 
@@ -3703,6 +3724,39 @@ export function App() {
                 type="button"
                 className="caatinga-collect-btn caatinga-collect-btn--skip"
                 onClick={() => resolveCaatingaChoice("skip")}
+              >
+                Agora não
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {cerradoPending && canResolveCerrado && (
+        <div className="caatinga-choice-backdrop" role="presentation">
+          <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="cerrado-choice-title">
+            <div className="caatinga-choice-head">
+              <Leaf aria-hidden="true" />
+              <span>Cenário Cerrado</span>
+            </div>
+            <h2 id="cerrado-choice-title">Você encontrou um novo recurso</h2>
+            <p>
+              {cerradoGamePlayer?.name ?? "Jogador"}, você ainda não possui{" "}
+              <strong>{resourceLabels[cerradoPending.resource]}</strong>. Ative o Cerrado agora para coletar 2,
+              ou deixe para tentar em outro momento desta rodada.
+            </p>
+            <div className="caatinga-choice-resource">
+              <img src={encodeURI(resourceAssets[cerradoPending.resource])} alt="" />
+              <span>{resourceLabels[cerradoPending.resource]}</span>
+            </div>
+            <div className="caatinga-choice-actions">
+              <button type="button" className="caatinga-collect-btn" onClick={() => resolveCerradoChoice("collect")}>
+                <img src={encodeURI(resourceAssets[cerradoPending.resource])} alt="" />
+                Coletar 2
+              </button>
+              <button
+                type="button"
+                className="caatinga-collect-btn caatinga-collect-btn--skip"
+                onClick={() => resolveCerradoChoice("skip")}
               >
                 Agora não
               </button>
