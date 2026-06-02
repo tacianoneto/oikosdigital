@@ -4691,6 +4691,20 @@ export function App() {
                     {isHost ? <span className="lobby-count">Host</span> : <span className="lobby-count">Leitura</span>}
                   </header>
 
+                  <details className="lobby-settings-details">
+                    <summary>
+                      <span>
+                        <strong>Regras da partida</strong>
+                        <small>
+                          {enabledMiniExpansions.length} mini-expansão
+                          {enabledMiniExpansions.length === 1 ? "" : "es"} ativa
+                          {enabledMiniExpansions.length === 1 ? "" : "s"} ·{" "}
+                          {turnTimerMs ? formatTurnTimer(turnTimerMs) : "sem cronômetro"}
+                        </small>
+                      </span>
+                      <ChevronDown aria-hidden="true" />
+                    </summary>
+
                   <div className="lobby-setting-list">
                     <div className="lobby-expansions-block">
                       <div className="lobby-expansions-head">
@@ -4894,6 +4908,7 @@ export function App() {
                       </div>
                     </div>
                   </div>
+                  </details>
                 </section>
               )}
               </div>
