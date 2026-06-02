@@ -99,6 +99,12 @@ export const roomApi = {
   spectate: (socket: OikosSocket, roomId: string, password?: string | null) =>
     emitWithReply<PublicRoomState>(socket, "room:spectate", { roomId, password }),
   leave: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "room:leave", { roomId }),
+  quit: (socket: OikosSocket, roomId: string) =>
+    emitWithReply<PublicRoomState | { roomId: string; status: "closed" }>(socket, "room:quit", { roomId }),
+  kick: (socket: OikosSocket, roomId: string, targetPlayerId: string) =>
+    emitWithReply<PublicRoomState>(socket, "room:kick", { roomId, targetPlayerId }),
+  rename: (socket: OikosSocket, roomId: string, name: string) =>
+    emitWithReply<PublicRoomState>(socket, "player:rename", { roomId, name }),
   addBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:add", { roomId }),
   removeBots: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "bots:remove", { roomId }),
   addBotSpecies: (socket: OikosSocket, roomId: string, speciesId: SpeciesId) =>

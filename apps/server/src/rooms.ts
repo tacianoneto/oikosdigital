@@ -319,6 +319,68 @@ export function leaveRoom(roomId: string, playerId: string): PublicRoomState {
   return toPublicRoom(room);
 }
 
+function removePlayerFromRoom(room: ServerRoom, targetPlayerId: string): void {
+  const index = room.players.findIndex((candidate) => candidate.playerId === targetPlayerId);
+  if (index === -1) {
+    throw new Error("Jogador não está nesta sala.");
+  }
+  room.players.splice(index, 1);
+  if (room.hostPlayerId === targetPlayerId) {
+    const nextHost = room.players.find((candidate) => !candidate.isBot);
+    if (nextHost) {
+      room.hostPlayerId = nextHost.playerId;
+    }
+  }
+}
+
+export function quitRoom(roomId: string, playerId: string): PublicRoomState | null {
+  const room = getRoom(roomId);
+  if (room.status !== "lobby") {
+    throw new Error("Só é possível sair definitivamente no lobby.");
+  }
+
+  const isPlayer = room.players.some((candidate) => candidate.playerId === playerId);
+  if (isPlayer) {
+    removePlayerFromRoom(room, playerId);
+  } else {
+    room.spectators.delete(playerId);
+  }
+
+  if (room.players.filter((candidate) => !candidate.isBot).length === 0) {
+    rooms.delete(roomId);
+    return null;
+  }
+
+  return toPublicRoom(room);
+}
+
+export function kickPlayer(roomId: string, hostPlayerId: string, targetPlayerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+  if (room.hostPlayerId !== hostPlayerId) {
+    throw new Error("Apenas o anfitrião pode remover jogadores.");
+  }
+  if (room.status !== "lobby") {
+    throw new Error("Jogadores só podem ser removidos no lobby.");
+  }
+  if (targetPlayerId === hostPlayerId) {
+    throw new Error("O anfitrião não pode remover a si mesmo.");
+  }
+
+  removePlayerFromRoom(room, targetPlayerId);
+  return toPublicRoom(room);
+}
+
+export function renamePlayer(roomId: string, playerId: string, rawName: string): PublicRoomState {
+  const room = getRoom(roomId);
+  const player = getPlayer(room, playerId);
+  const trimmed = rawName.trim().slice(0, 24);
+  if (!trimmed) {
+    throw new Error("Nome inválido.");
+  }
+  player.name = trimmed;
+  return toPublicRoom(room);
+}
+
 export function selectSpecies(roomId: string, playerId: string, speciesId: SpeciesId): PublicRoomState {
   const room = getRoom(roomId);
   const player = getPlayer(room, playerId);

@@ -6380,6 +6380,34 @@ input:focus {
   stroke-width: 3;
 }
 
+.lobby-player-action {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.32);
+  color: var(--paper);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.lobby-player-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.lobby-player-action.is-danger:hover {
+  background: rgba(224, 106, 90, 0.22);
+  border-color: rgba(224, 106, 90, 0.6);
+  color: #ffd9d0;
+}
+
 .lobby-host-controls {
   display: flex;
   flex-wrap: wrap;

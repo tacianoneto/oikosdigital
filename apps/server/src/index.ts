@@ -32,6 +32,9 @@ import {
   joinRoom,
   leaveRoom,
   leaveRooms,
+  quitRoom,
+  kickPlayer,
+  renamePlayer,
   movePiece,
   placeCardInForest,
   placeSetupPiece,
@@ -381,6 +384,44 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = leaveRoom(payload.roomId, playerId);
       socket.leave(room.roomId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("room:quit", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = quitRoom(payload.roomId, playerId);
+      socket.leave(payload.roomId);
+      if (room) {
+        broadcastRoom(room);
+        return room;
+      }
+      return { roomId: payload.roomId, status: "closed" as const };
+    });
+  });
+
+  socket.on("room:kick", (payload: { roomId: string; targetPlayerId: string }, reply) => {
+    withReply(reply, () => {
+      const room = kickPlayer(payload.roomId, playerId, payload.targetPlayerId);
+      const targetSockets = socketsByPlayerId.get(payload.targetPlayerId);
+      if (targetSockets) {
+        for (const socketId of targetSockets) {
+          const s = io.sockets.sockets.get(socketId);
+          if (s) {
+            s.leave(payload.roomId);
+            s.emit("room:kicked", { roomId: payload.roomId });
+          }
+        }
+      }
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("player:rename", (payload: { roomId: string; name: string }, reply) => {
+    withReply(reply, () => {
+      const room = renamePlayer(payload.roomId, playerId, payload.name);
       broadcastRoom(room);
       return room;
     });

@@ -881,6 +881,15 @@ export function App() {
       applyOnlineRoomState(nextRoom);
     });
 
+    nextSocket.on("room:kicked", (payload: { roomId: string }) => {
+      ignoredOnlineRoomIdsRef.current.add(payload.roomId);
+      clearOnlineSession();
+      setLandingMode("idle");
+      autoScoredRef.current = null;
+      clearRoomState();
+      setError("Você foi removido da sala pelo anfitrião.");
+    });
+
     nextSocket.on("connect_error", () => {
       if (showServerWarningRef.current) {
         setError(SERVER_UNAVAILABLE_MESSAGE);
@@ -3497,12 +3506,14 @@ export function App() {
 
   function leaveTable() {
     const leavingRoomId = room?.roomId ?? null;
+    const inLobby = room?.status === "lobby";
 
     if (leavingRoomId && leavingRoomId !== localRoomId) {
       ignoredOnlineRoomIdsRef.current.add(leavingRoomId);
       clearOnlineSession();
       if (socket?.connected) {
-        void roomApi.leave(socket, leavingRoomId).catch(() => {
+        const call = inLobby ? roomApi.quit(socket, leavingRoomId) : roomApi.leave(socket, leavingRoomId);
+        void call.catch(() => {
           // Local UI already left; stale updates are ignored by room id.
         });
       }
@@ -3515,6 +3526,22 @@ export function App() {
     clearRoomState();
     setError(null);
     setNotice(isLocalRoom ? "Teste local encerrado." : "Voce saiu da mesa.");
+  }
+
+  function handleKickPlayer(targetPlayerId: string, targetName: string) {
+    if (!socket || !room) return;
+    if (!window.confirm(`Remover ${targetName || "este jogador"} da sala?`)) return;
+    roomApi.kick(socket, room.roomId, targetPlayerId).catch((err: Error) => setError(err.message));
+  }
+
+  function handleRenameSelf() {
+    if (!socket || !room) return;
+    const currentName = room.players.find((p) => p.playerId === playerId)?.name ?? "";
+    const next = window.prompt("Novo nome:", currentName);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === currentName) return;
+    roomApi.rename(socket, room.roomId, trimmed).then(() => setName(trimmed)).catch((err: Error) => setError(err.message));
   }
 
   useEffect(() => {
@@ -4590,6 +4617,28 @@ export function App() {
                           <span className="lobby-player-check" aria-hidden="true">
                             <Check />
                           </span>
+                        )}
+                        {!isLocalRoom && isYou && !player.isBot && (
+                          <button
+                            type="button"
+                            className="lobby-player-action"
+                            onClick={handleRenameSelf}
+                            title="Renomear"
+                            aria-label="Renomear"
+                          >
+                            ✎
+                          </button>
+                        )}
+                        {!isLocalRoom && isHost && !isYou && !player.isBot && (
+                          <button
+                            type="button"
+                            className="lobby-player-action is-danger"
+                            onClick={() => handleKickPlayer(player.playerId, player.name)}
+                            title="Remover jogador"
+                            aria-label="Remover jogador"
+                          >
+                            ✕
+                          </button>
                         )}
                       </li>
                     );
