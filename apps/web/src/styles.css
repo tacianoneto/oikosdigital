@@ -7592,21 +7592,14 @@ input:focus {
   }
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 760px) {
   .tutorial-coach {
     top: auto;
     right: auto;
     left: 50%;
-    bottom: 112px;
+    bottom: 96px;
     transform: translateX(-50%);
     width: min(440px, calc(100vw - 24px));
-  }
-}
-
-@media (max-width: 540px) {
-  .tutorial-coach {
-    top: auto;
-    bottom: 96px;
   }
 }
 
