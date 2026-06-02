@@ -2702,18 +2702,6 @@ export function getValidJaguarMovementDestinations(game: GameState, playerId: st
     }
   }
 
-  // Pampa fallback: if no destination via alternate habitats, allow the
-  // jaguar's current-card habitat so the player isn't stuck.
-  if (pampaActive && collected.size === 0) {
-    const kind = getMovementKindForSpecies("jaguar", currentHabitat);
-    for (const position of getPotentialDestinations(jaguarPiece.location, kind)) {
-      const key = positionKey(position);
-      if (forestPositions.has(key)) {
-        collected.set(key, position);
-      }
-    }
-  }
-
   return Array.from(collected.values()).sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
@@ -4102,18 +4090,6 @@ function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, orig
     for (const position of getPotentialDestinations(origin, kind)) {
       const key = positionKey(position);
       if (forestPositions.has(key) && !collected.has(key)) {
-        collected.set(key, position);
-      }
-    }
-  }
-
-  // Pampa fallback: if no movement of any other suit is reachable, allow the
-  // original played-card habitat so the player isn't stuck.
-  if (pampaActive && collected.size === 0) {
-    const kind = getMovementKindForSpecies(speciesId, playedCard.habitat);
-    for (const position of getPotentialDestinations(origin, kind)) {
-      const key = positionKey(position);
-      if (forestPositions.has(key)) {
         collected.set(key, position);
       }
     }

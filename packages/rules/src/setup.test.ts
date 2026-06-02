@@ -711,6 +711,41 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(2);
   });
 
+  it("does not fall back to the activated card habitat during Pampa movement", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    const pieceId = game.players.find((candidate) => candidate.playerId === "coati")?.piecesInForest[0];
+    game = {
+      ...setActiveAction(game, "coati", 1),
+      activeScenarioIds: ["pampa"],
+      activePlayedForestCardId: "rio_1",
+      forest: {
+        cards: [
+          {
+            instanceId: "origin",
+            definitionId: "bosque_1",
+            x: 0,
+            y: 0,
+            rotation: 0,
+            isInitial: true
+          },
+          {
+            instanceId: "adjacent_only",
+            definitionId: "campo_1",
+            x: 1,
+            y: 0,
+            rotation: 0,
+            isInitial: true
+          }
+        ]
+      }
+    };
+
+    expect(getValidPieceMovementDestinations(game, "coati", pieceId!)).toEqual([]);
+  });
+
   it("moves Onca in action B to an empty destination without removing a piece", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
 
