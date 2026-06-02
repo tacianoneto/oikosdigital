@@ -981,6 +981,13 @@ export function App() {
   const canControlActivePlayer = Boolean(
     room?.game?.activePlayerId && currentGamePlayer?.playerId === room.game.activePlayerId && !activeIsLocalBot
   );
+  // Action step viewer should only flag a step as "em andamento" when the
+  // controlled player is the active player. Otherwise the opponent's progress
+  // would steal focus on the local HUD.
+  const ownActiveActionId =
+    room?.game?.activePlayerId && currentGamePlayer?.playerId === room.game.activePlayerId
+      ? activeActionId
+      : null;
   const hasPendingCoatiPairBonus = Boolean(room?.game?.pendingCoatiPairBonus);
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
@@ -6718,7 +6725,7 @@ export function App() {
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.jaguar } as CSSProperties}>
                 <ActionStepsViewer
                   speciesId="jaguar"
-                  activeActionId={activeActionId}
+                  activeActionId={ownActiveActionId}
                   accent={SPECIES_HEX.jaguar}
                 />
 
@@ -6794,7 +6801,7 @@ export function App() {
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.maned_wolf } as CSSProperties}>
                 <ActionStepsViewer
                   speciesId="maned_wolf"
-                  activeActionId={activeActionId}
+                  activeActionId={ownActiveActionId}
                   accent={SPECIES_HEX.maned_wolf}
                 />
 
@@ -6897,7 +6904,7 @@ export function App() {
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.armadillo } as CSSProperties}>
                 <ActionStepsViewer
                   speciesId="armadillo"
-                  activeActionId={activeActionId}
+                  activeActionId={ownActiveActionId}
                   accent={SPECIES_HEX.armadillo}
                 />
 
@@ -6999,7 +7006,7 @@ export function App() {
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.macaw } as CSSProperties}>
                 <ActionStepsViewer
                   speciesId="macaw"
-                  activeActionId={activeActionId}
+                  activeActionId={ownActiveActionId}
                   accent={SPECIES_HEX.macaw}
                 />
 
@@ -7093,7 +7100,7 @@ export function App() {
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.capuchin } as CSSProperties}>
                 <ActionStepsViewer
                   speciesId="capuchin"
-                  activeActionId={activeActionId}
+                  activeActionId={ownActiveActionId}
                   accent={SPECIES_HEX.capuchin}
                 />
 
@@ -7189,7 +7196,7 @@ export function App() {
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.coati } as CSSProperties}>
                 <ActionStepsViewer
                   speciesId="coati"
-                  activeActionId={activeActionId}
+                  activeActionId={ownActiveActionId}
                   accent={SPECIES_HEX.coati}
                 />
 
