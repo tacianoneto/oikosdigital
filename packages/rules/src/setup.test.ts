@@ -1668,6 +1668,95 @@ describe("caatinga scenario", () => {
     expect(game.caatingaUsedByPlayer.wolf).toBe(1);
     expect(game.activePlayerId).toBe("coati");
   });
+
+  it("triggers Caatinga when a base species adds a piece", () => {
+    let game = createTestGameState("room", [player("capuchin", "capuchin"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: 1 });
+    game = {
+      ...setActiveAction(game, "capuchin", 0),
+      activeScenarioIds: ["caatinga"]
+    };
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "capuchin")?.hand[0];
+    game = placeForestCard(game, "capuchin", cardId!, { x: 2, y: 0 });
+    game = addCapuchinForCurrentAction(game, "capuchin", { x: 2, y: 0 });
+
+    expect(game.caatingaPending).toMatchObject({
+      playerId: "capuchin",
+      trigger: "add",
+      round: 1
+    });
+    expect(game.activePlayerId).toBe("capuchin");
+    expect(game.activeActionIndex).toBe(0);
+
+    game = collectCaatingaBonus(game, "capuchin", "skip");
+
+    expect(game.caatingaPending).toBeNull();
+    expect(game.activePlayerId).toBe("capuchin");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
+  it("triggers Caatinga when a base species removes a piece", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+
+    const coati = game.players.find((candidate) => candidate.playerId === "coati");
+    const extraPieceIds = coati!.reservePieces.slice(0, 5);
+    const nextCards = [
+      { x: -2, y: -1 },
+      { x: -2, y: 0 },
+      { x: -2, y: 1 },
+      { x: -1, y: -2 },
+      { x: 0, y: -2 }
+    ];
+
+    game = {
+      ...game,
+      players: game.players.map((candidate) =>
+        candidate.playerId === "coati"
+          ? {
+              ...candidate,
+              reservePieces: candidate.reservePieces.filter((pieceId) => !extraPieceIds.includes(pieceId)),
+              piecesInForest: [...candidate.piecesInForest, ...extraPieceIds]
+            }
+          : candidate
+      ),
+      pieces: game.pieces.map((piece) => {
+        const extraIndex = extraPieceIds.indexOf(piece.pieceId);
+        return extraIndex >= 0 ? { ...piece, location: { ...nextCards[extraIndex], siteId: "main" as const } } : piece;
+      })
+    };
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "coati")?.hand[0];
+    const movedPieceId = game.players.find((candidate) => candidate.playerId === "coati")?.piecesInForest[0];
+    game = placeForestCard(game, "coati", cardId!, { x: 2, y: 0 });
+    game = addCoatiForCurrentAction(game, "coati", { x: 2, y: 0 });
+    game = movePieceForCurrentAction(game, "coati", movedPieceId!, { x: 2, y: 0 });
+    game = {
+      ...game,
+      activeScenarioIds: ["caatinga"]
+    };
+
+    const removalIds = game.players.find((candidate) => candidate.playerId === "coati")!.piecesInForest.slice(0, 2);
+    game = removePiecesForCurrentAction(game, "coati", removalIds);
+
+    expect(game.caatingaPending).toMatchObject({
+      playerId: "coati",
+      trigger: "remove",
+      round: 1
+    });
+    expect(game.activePlayerId).toBe("coati");
+    expect(game.activeActionIndex).toBe(2);
+
+    game = collectCaatingaBonus(game, "coati", "skip");
+
+    expect(game.caatingaPending).toBeNull();
+    expect(game.activePlayerId).toBe("jaguar");
+  });
 });
 
 describe("threat mini expansion", () => {

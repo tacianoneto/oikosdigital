@@ -3186,8 +3186,6 @@ function applyCaatingaTrigger(
   if (game.activePlayerId !== playerId) return;
   const player = findPlayer(game, playerId);
   if (!player.speciesId) return;
-  const category = speciesDefinitions[player.speciesId].category;
-  if (category !== "predator" && category !== "subpredator") return;
   if ((game.caatingaUsedByPlayer ?? {})[playerId] === game.round) return;
   const card = getForestCardAtPosition(game, location);
   const def = card ? getCardDefinitionOrNull(card.definitionId) : null;
