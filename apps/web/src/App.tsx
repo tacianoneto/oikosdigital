@@ -3551,7 +3551,7 @@ export function App() {
       !canControlActivePlayer ||
       activeActionId !== "D" ||
       !room.game.activePlayerId ||
-      (tutorialActive && typeof tutorialDef?.completeWhenScoreAtLeast !== "number")
+      (tutorialActive && tutorialGate !== "score" && typeof tutorialDef?.completeWhenScoreAtLeast !== "number")
     ) {
       return;
     }
@@ -3587,7 +3587,8 @@ export function App() {
     room?.game?.round,
     room?.game?.status,
     tutorialActive,
-    tutorialDef?.completeWhenScoreAtLeast
+    tutorialDef?.completeWhenScoreAtLeast,
+    tutorialGate
   ]);
 
   const setupSpecies = currentGamePlayer?.speciesId ? speciesDefinitions[currentGamePlayer.speciesId] : null;

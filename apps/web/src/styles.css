@@ -7486,8 +7486,8 @@ input:focus {
 .tutorial-coach {
   position: fixed;
   z-index: 60;
-  top: clamp(260px, 31vh, 336px);
-  left: 18px;
+  top: clamp(92px, 13vh, 150px);
+  right: 18px;
   transform: none;
   width: min(420px, calc(100vw - 36px));
   display: grid;
@@ -7595,6 +7595,7 @@ input:focus {
 @media (max-width: 1180px) {
   .tutorial-coach {
     top: auto;
+    right: auto;
     left: 50%;
     bottom: 112px;
     transform: translateX(-50%);

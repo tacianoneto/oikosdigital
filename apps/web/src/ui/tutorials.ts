@@ -50,6 +50,8 @@ export interface TutorialStepDef {
 // Fixed cards dealt to the tutorial hand so the scenario is deterministic.
 export const TUTORIAL_NONRIVER_CARD = "bosque_1"; // bosque (forest), no river
 const TUTORIAL_RIVER_CARD = "rio_3"; // rio bend, must be rotated to connect
+const INITIAL_TUTORIAL_PLAYER_ID = "local_armadillo";
+const INITIAL_TUTORIAL_HIDE_ID = `${INITIAL_TUTORIAL_PLAYER_ID}_piece_1`;
 
 // Deterministic 3x3 starting forest (coords -1..1). The river card at (1,0) has
 // a single mouth facing east into the empty cell (2,0). The player extends the
@@ -84,6 +86,12 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     autoAdvance: false
   },
   {
+    title: "Entenda sua HUD",
+    body: "O topo mostra sua espécie, pontuação e meeples na reserva. Embaixo à esquerda ficam as ações A/B/C/D e seus recursos. À direita ficam os guias de movimento: bosque, campo e rio. Não precisa abrir nada; eles já ficam visíveis durante o turno.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
     title: "Posicione seus meeples",
     body: "Cada espécie tem um total de meeples e uma quantidade inicial para o setup. Clique numa carta para posicionar cada meeple inicial e você ganha o recurso daquele local. Atenção: ganhar recurso ao adicionar só acontece no setup.",
     gate: "setup",
@@ -108,14 +116,29 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Mova um meeple",
-    body: "Clique em um meeple seu e escolha um destino destacado. Cada espécie se move de um jeito para cada habitat. O Tatu se move conforme a carta jogada; consulte o guia de movimentos no seu HUD. Sempre que você move um meeple, ganha o recurso do local de destino.",
+    body: "A ação B usa o habitat da carta jogada. Como jogamos bosque, olhe o primeiro guia de movimento à direita. Clique em um tatu e escolha um destino destacado. Sempre que você move um meeple, ganha o recurso do local de destino.",
     gate: "move",
     autoAdvance: true,
     openBoard: "armadillo"
   },
   {
+    title: "Ação C: esconder",
+    body: "Agora a HUD mostra a ação C do Tatu-bola. Selecione o tatu destacado e clique em Esconder Tatu-bola. Peças escondidas continuam no local, mas ficam protegidas da Onça até se moverem de novo.",
+    gate: "score",
+    autoAdvance: true,
+    markedPieceId: INITIAL_TUTORIAL_HIDE_ID,
+    completeWhenActionIndex: 3
+  },
+  {
+    title: "Ação D: pontuação automática",
+    body: "Na ação D, algumas espécies pontuam automaticamente. O Tatu-bola marca por compartilhar locais com outras espécies; neste treino pode não haver ponto, mas observe como a HUD avança sozinha quando a ação resolve.",
+    gate: "score",
+    autoAdvance: true,
+    completeWhenRoundAtLeast: 2
+  },
+  {
     title: "Você aprendeu o básico!",
-    body: "As ações de cada espécie acontecem em ordem. O jogo dura 5 rodadas e vence quem fizer mais pontos. Você pode aprender a jogar com cada espécie nos tutoriais dela. Bom jogo!",
+    body: "As ações de cada espécie acontecem em ordem na HUD. O jogo dura 5 rodadas e vence quem fizer mais pontos. Agora os tutoriais de espécie mostram combos e pontuações específicas. Bom jogo!",
     gate: "none",
     autoAdvance: false
   }
@@ -1152,7 +1175,7 @@ export function getTutorialPlayerId(tutorialId: TutorialId | null, fallback: str
 export function createInitialTutorialRoom(): PublicRoomState {
   const tutorialPlayers: RoomPlayer[] = [
     {
-      playerId: "local_armadillo",
+      playerId: INITIAL_TUTORIAL_PLAYER_ID,
       name: "Tutorial",
       speciesId: "armadillo",
       ready: true,
