@@ -609,7 +609,7 @@ export function App() {
   const [localSpeciesIds, setLocalSpeciesIds] = useState<SpeciesId[]>(["maned_wolf", "coati"]);
   const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
   const [localBotTurnDelayMs, setLocalBotTurnDelayMs] = useState(defaultBotTurnDelayMs);
-  const [localEnabledMiniExpansions, setLocalEnabledMiniExpansions] = useState<MiniExpansionId[]>(["objectives"]);
+  const [localEnabledMiniExpansions, setLocalEnabledMiniExpansions] = useState<MiniExpansionId[]>([]);
   const [localScenarioCount, setLocalScenarioCount] = useState<ScenarioCount>(2);
   const [localSelectedScenarioIds, setLocalSelectedScenarioIds] = useState<ScenarioCardId[]>(["amazonia", "cerrado"]);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
@@ -1288,7 +1288,7 @@ export function App() {
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
-  const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? ["objectives"];
+  const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? [];
   const scenarioSelectionMode = room?.scenarioSelectionMode ?? "vote";
   const scenarioCount = room?.scenarioCount ?? 2;
   const hostSelectedScenarioIds = room?.hostSelectedScenarioIds ?? [];

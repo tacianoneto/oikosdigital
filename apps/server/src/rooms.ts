@@ -68,7 +68,7 @@ interface ServerRoom {
 
 const MIN_TURN_TIMER_MS = 15000;
 const MAX_TURN_TIMER_MS = 300000;
-const defaultMiniExpansions: MiniExpansionId[] = ["objectives"];
+const defaultMiniExpansions: MiniExpansionId[] = [];
 const defaultScenarioCount: ScenarioCount = 2;
 export const SCENARIO_VOTING_DURATION_MS = 50000;
 

@@ -579,7 +579,7 @@ export function createInitialGameState(
   initialForest?: ForestCardState[],
   options?: { enabledMiniExpansions?: MiniExpansionId[]; activeScenarioIds?: ScenarioCardId[] }
 ): GameState {
-  const enabledMiniExpansions = options?.enabledMiniExpansions ?? ["objectives"];
+  const enabledMiniExpansions = options?.enabledMiniExpansions ?? [];
   const activeScenarioIds = options?.activeScenarioIds ?? [];
   const threatDeckIds = enabledMiniExpansions.includes("threats")
     ? shuffle(
@@ -3746,7 +3746,7 @@ function findPlayer(game: GameState, playerId: string): PlayerState {
 function cloneGameState(game: GameState): GameState {
   return {
     ...game,
-    enabledMiniExpansions: [...(game.enabledMiniExpansions ?? ["objectives"])],
+    enabledMiniExpansions: [...(game.enabledMiniExpansions ?? [])],
     activeScenarioIds: [...(game.activeScenarioIds ?? [])],
     activeThreatCardId: game.activeThreatCardId ?? null,
     threatDeckIds: [...(game.threatDeckIds ?? [])],

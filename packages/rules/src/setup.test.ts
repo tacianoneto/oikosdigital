@@ -165,7 +165,8 @@ describe("setup placement", () => {
       "objectives",
       [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
       () => 0.999999,
-      createPreviewInitialForest()
+      createPreviewInitialForest(),
+      { enabledMiniExpansions: ["objectives"] }
     );
     const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
 
