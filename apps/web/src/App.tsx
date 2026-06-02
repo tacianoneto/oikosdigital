@@ -194,6 +194,11 @@ function isMobileWidth(): boolean {
   return typeof window !== "undefined" && window.matchMedia(MOBILE_HUD_QUERY).matches;
 }
 
+const DESKTOP_ONLY_QUERY = "(max-width: 1023px)";
+function isBelowDesktopWidth(): boolean {
+  return typeof window !== "undefined" && window.matchMedia(DESKTOP_ONLY_QUERY).matches;
+}
+
 type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 
 // Selectable turn-timer durations for online rooms (ms).
@@ -630,6 +635,7 @@ export function App() {
   // Mobile-only HUD: below this width the floating docks become bottom sheets
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
   const [isMobile, setIsMobile] = useState(isMobileWidth);
+  const [isBelowDesktop, setIsBelowDesktop] = useState(isBelowDesktopWidth);
   const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
   const seenLogIdRef = useRef<Set<string>>(new Set());
@@ -722,6 +728,19 @@ export function App() {
     onChange();
     mql.addEventListener("change", onChange);
     // Fallback: some environments don't dispatch matchMedia "change" reliably.
+    window.addEventListener("resize", onChange);
+    return () => {
+      mql.removeEventListener("change", onChange);
+      window.removeEventListener("resize", onChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mql = window.matchMedia(DESKTOP_ONLY_QUERY);
+    const onChange = () => setIsBelowDesktop(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
     window.addEventListener("resize", onChange);
     return () => {
       mql.removeEventListener("change", onChange);
@@ -3594,6 +3613,22 @@ export function App() {
   const setupSpecies = currentGamePlayer?.speciesId ? speciesDefinitions[currentGamePlayer.speciesId] : null;
   const setupPlaced = currentGamePlayer?.piecesInForest.length ?? 0;
   const setupNeeded = setupSpecies?.initialPieces ?? 0;
+
+  if (isBelowDesktop) {
+    return (
+      <main className="desktop-only-shell">
+        <div className="desktop-only-card" role="status" aria-live="polite">
+          <img className="desktop-only-logo" src="/oikos-logo.png" alt="Oikos Digital" />
+          <AlertTriangle aria-hidden="true" />
+          <h1>Oikos Digital é apenas para desktop</h1>
+          <p>
+            A HUD atual foi desenhada para telas grandes. Use um computador ou aumente a janela para pelo menos
+            1024px de largura.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main

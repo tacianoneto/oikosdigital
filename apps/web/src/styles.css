@@ -129,6 +129,50 @@ label {
   display: none;
 }
 
+.desktop-only-shell {
+  min-height: 100vh;
+  width: 100vw;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(180deg, #13241d, #07110d);
+}
+
+.desktop-only-card {
+  width: min(520px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 32px;
+  border: 2px solid rgba(201, 184, 138, 0.38);
+  border-radius: 10px;
+  background: rgba(14, 27, 21, 0.88);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+  text-align: center;
+}
+
+.desktop-only-logo {
+  width: min(180px, 64vw);
+  height: auto;
+}
+
+.desktop-only-card > svg {
+  width: 34px;
+  height: 34px;
+  color: var(--amber);
+}
+
+.desktop-only-card h1 {
+  font-size: 24px;
+  line-height: 1.08;
+}
+
+.desktop-only-card p {
+  max-width: 420px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
 /* full-bleed forest background layer */
 .stage-layer {
   position: absolute;
