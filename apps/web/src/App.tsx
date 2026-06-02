@@ -5680,7 +5680,7 @@ export function App() {
               role="status"
             >
               {turnBanner.speciesId && (
-                <img src={encodeURI(speciesDefinitions[turnBanner.speciesId].meepleAsset)} alt="" />
+                <img src={encodeURI(speciesDefinitions[turnBanner.speciesId].portraitAsset)} alt="" />
               )}
               <span className="turn-banner-label">Vez:</span>
               <strong>{turnBanner.label}</strong>
