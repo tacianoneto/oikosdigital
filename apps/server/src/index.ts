@@ -542,7 +542,7 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("scenario:caatinga-collect", (payload: { roomId: string; mode?: "gain" | "lose" }, reply) => {
+  socket.on("scenario:caatinga-collect", (payload: { roomId: string; mode?: "gain" | "lose" | "skip" }, reply) => {
     withReply(reply, () => {
       const room = collectCaatinga(payload.roomId, playerId, payload.mode ?? "gain");
       broadcastRoom(room);

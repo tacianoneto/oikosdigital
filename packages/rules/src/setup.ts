@@ -3024,8 +3024,6 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
   game.pendingCoatiPairBonus = null;
   game.pendingMacawMovedPiece = null;
   game.pendingWolfMoves = null;
-  game.caatingaPending = null;
-
   const startedNewRound = nextTurnIndex === 0;
   if (startedNewRound) {
     game.round += 1;
@@ -3179,7 +3177,10 @@ function applyCaatingaTrigger(
   if (!(game.activeScenarioIds ?? []).includes("caatinga")) return;
   if (game.activePlayerId !== playerId) return;
   const player = findPlayer(game, playerId);
-  if ((game.caatingaUsedByPlayer ?? {})[playerId] === player.turnsTaken) return;
+  if (!player.speciesId) return;
+  const category = speciesDefinitions[player.speciesId].category;
+  if (category !== "predator" && category !== "subpredator") return;
+  if ((game.caatingaUsedByPlayer ?? {})[playerId] === game.round) return;
   const card = getForestCardAtPosition(game, location);
   const def = card ? getCardDefinitionOrNull(card.definitionId) : null;
   const resource = def?.resource ?? null;
@@ -3188,20 +3189,18 @@ function applyCaatingaTrigger(
     playerId,
     resource,
     location: { x: location.x, y: location.y },
-    trigger
+    trigger,
+    round: game.round
   };
 }
 
 export function collectCaatingaBonus(
   game: GameState,
   playerId: string,
-  mode: "gain" | "lose" = "gain"
+  mode: "gain" | "lose" | "skip" = "gain"
 ): GameState {
   if (game.status !== "active") {
     throw new Error("Bonus de Caatinga so pode ser coletado durante a fase ativa.");
-  }
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Apenas o jogador ativo pode resolver Caatinga.");
   }
   if (!game.caatingaPending || game.caatingaPending.playerId !== playerId) {
     throw new Error("Nenhum efeito de Caatinga disponivel.");
@@ -3210,6 +3209,18 @@ export function collectCaatingaBonus(
   const next = cloneGameState(game);
   const player = findPlayer(next, playerId);
   const pending = next.caatingaPending!;
+  if (mode === "skip") {
+    next.caatingaPending = null;
+    next.log = [
+      ...next.log,
+      {
+        id: `caatinga_skip_${playerId}_${next.log.length + 1}`,
+        message: `${player.name} adiou o efeito da Caatinga.`,
+        createdAt: Date.now()
+      }
+    ];
+    return next;
+  }
   const current = player.resources[pending.resource] ?? 0;
   if (mode === "lose" && current <= 0) {
     throw new Error("Sem recurso suficiente para perder em Caatinga.");
@@ -3219,7 +3230,7 @@ export function collectCaatingaBonus(
     ...player.resources,
     [pending.resource]: current + delta
   };
-  next.caatingaUsedByPlayer = { ...next.caatingaUsedByPlayer, [playerId]: player.turnsTaken };
+  next.caatingaUsedByPlayer = { ...next.caatingaUsedByPlayer, [playerId]: pending.round };
   next.caatingaPending = null;
   next.log = [
     ...next.log,

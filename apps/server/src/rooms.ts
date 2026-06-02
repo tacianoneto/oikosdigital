@@ -826,7 +826,7 @@ export function chooseObjective(roomId: string, playerId: string, objectiveCardI
 export function collectCaatinga(
   roomId: string,
   playerId: string,
-  mode: "gain" | "lose" = "gain"
+  mode: "gain" | "lose" | "skip" = "gain"
 ): PublicRoomState {
   const room = getRoom(roomId);
   if (!room.game) {

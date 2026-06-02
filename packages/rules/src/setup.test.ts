@@ -8,6 +8,7 @@ import {
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   completeCurrentAction,
+  collectCaatingaBonus,
   createInitialGameState,
   createPreviewInitialForest,
   forceEndPlayerTurn,
@@ -1557,6 +1558,109 @@ describe("setup placement", () => {
 
     expect(game.activePlayerId).toBe("coati");
     expect(game.log.some((entry) => entry.message.includes("pulou automaticamente a acao D do Lobo-guara"))).toBe(true);
+  });
+});
+
+describe("caatinga scenario", () => {
+  it("lets a predator skip Caatinga and trigger it again later in the same round", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = {
+      ...setActiveAction(game, "jaguar", 0),
+      activeScenarioIds: ["caatinga"]
+    };
+
+    const jaguarPieceId = game.players.find((candidate) => candidate.playerId === "jaguar")!.piecesInForest[0]!;
+    const firstRemovedPieceId = game.pieces.find(
+      (piece) => piece.ownerId === "coati" && piece.location?.x === 1 && piece.location.y === 0
+    )!.pieceId;
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, firstRemovedPieceId);
+
+    expect(game.caatingaPending).toMatchObject({
+      playerId: "jaguar",
+      trigger: "remove",
+      round: 1
+    });
+
+    game = collectCaatingaBonus(game, "jaguar", "skip");
+
+    expect(game.caatingaPending).toBeNull();
+    expect(game.caatingaUsedByPlayer.jaguar).toBeUndefined();
+
+    const nextTarget = getValidPieceMovementDestinations(game, "jaguar", jaguarPieceId)[0]!;
+    game = {
+      ...game,
+      pieces: game.pieces.map((piece) =>
+        piece.pieceId === firstRemovedPieceId
+          ? { ...piece, location: { ...nextTarget, siteId: "main" as const } }
+          : piece
+      ),
+      players: game.players.map((candidate) =>
+        candidate.playerId === "coati"
+          ? {
+              ...candidate,
+              piecesInForest: [...candidate.piecesInForest, firstRemovedPieceId],
+              reservePieces: candidate.reservePieces.filter((pieceId) => pieceId !== firstRemovedPieceId)
+            }
+          : candidate
+      )
+    };
+
+    game = movePieceForCurrentAction(game, "jaguar", jaguarPieceId, nextTarget, firstRemovedPieceId);
+
+    expect(game.caatingaPending).toMatchObject({
+      playerId: "jaguar",
+      trigger: "remove",
+      round: 1
+    });
+
+    const pendingResource = game.caatingaPending!.resource;
+    const before = game.players.find((candidate) => candidate.playerId === "jaguar")!.resources[pendingResource];
+    game = collectCaatingaBonus(game, "jaguar", "gain");
+
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")!.resources[pendingResource]).toBe(before + 1);
+    expect(game.caatingaUsedByPlayer.jaguar).toBe(1);
+  });
+
+  it("keeps Caatinga available after Lobo-guara adds on action D", () => {
+    let game = createTestGameState("room", [player("wolf", "maned_wolf"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: -1 });
+    game = {
+      ...setActiveAction(game, "wolf", 3),
+      activeScenarioIds: ["caatinga"]
+    };
+
+    const target = getWolfMeatPlacementPositions(game, "wolf")[0]!;
+    game = addWolfForCurrentAction(game, "wolf", target);
+
+    expect(game.activePlayerId).toBe("coati");
+    expect(game.caatingaPending).toMatchObject({
+      playerId: "wolf",
+      trigger: "add",
+      round: 1
+    });
+
+    const pendingResource = game.caatingaPending!.resource;
+    game = {
+      ...game,
+      players: game.players.map((candidate) =>
+        candidate.playerId === "wolf"
+          ? { ...candidate, resources: { ...candidate.resources, [pendingResource]: Math.max(candidate.resources[pendingResource], 1) } }
+          : candidate
+      )
+    };
+    const before = game.players.find((candidate) => candidate.playerId === "wolf")!.resources[pendingResource];
+    game = collectCaatingaBonus(game, "wolf", "lose");
+
+    expect(game.players.find((candidate) => candidate.playerId === "wolf")!.resources[pendingResource]).toBe(before - 1);
+    expect(game.caatingaPending).toBeNull();
+    expect(game.caatingaUsedByPlayer.wolf).toBe(1);
   });
 });
 

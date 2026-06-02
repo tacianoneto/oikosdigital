@@ -7913,6 +7913,7 @@ input:focus {
 
 .caatinga-collect-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -7931,6 +7932,13 @@ input:focus {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+.caatinga-collect-btn--skip {
+  flex-basis: 100%;
+  background: rgba(28, 51, 41, 0.78);
+  border-color: var(--line-soft);
+  color: var(--paper);
 }
 
 .mata-discard-btn {

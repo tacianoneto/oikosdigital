@@ -137,7 +137,7 @@ export const roomApi = {
   start: (socket: OikosSocket, roomId: string) => emitWithReply<PublicRoomState>(socket, "game:start", { roomId }),
   voteScenarios: (socket: OikosSocket, roomId: string, votes: ScenarioCardId[]) =>
     emitWithReply<PublicRoomState>(socket, "scenario:vote", { roomId, votes }),
-  collectCaatinga: (socket: OikosSocket, roomId: string, mode: "gain" | "lose" = "gain") =>
+  collectCaatinga: (socket: OikosSocket, roomId: string, mode: "gain" | "lose" | "skip" = "gain") =>
     emitWithReply<PublicRoomState>(socket, "scenario:caatinga-collect", { roomId, mode }),
   discardMataAtlantica: (socket: OikosSocket, roomId: string, cardId: string) =>
     emitWithReply<PublicRoomState>(socket, "scenario:mata-atlantica-discard", { roomId, cardId }),

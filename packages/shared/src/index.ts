@@ -268,6 +268,7 @@ export interface GameState {
     resource: Resource;
     location: GridPosition;
     trigger: "add" | "remove";
+    round: number;
   } | null;
   // Mata Atlântica scenario: 3 shared piles of 6 cards. Each player's `hand`
   // mirrors the top of each non-empty pile (1 card per pile). When the player

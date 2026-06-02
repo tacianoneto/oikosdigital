@@ -993,7 +993,7 @@ export function App() {
 
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom
-    ? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null
+    ? room?.game?.caatingaPending?.playerId ?? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null
     : isSpectator
       ? null
       : playerId;
@@ -5671,7 +5671,7 @@ export function App() {
               room.game.caatingaPending.playerId === controlledPlayerId && (() => {
                 const pending = room.game.caatingaPending;
                 const owned = currentGamePlayer?.resources[pending.resource] ?? 0;
-                const handle = (mode: "gain" | "lose") => {
+                const handle = (mode: "gain" | "lose" | "skip") => {
                   if (!room.game) return;
                   if (isLocalRoom) {
                     try {
@@ -5709,6 +5709,13 @@ export function App() {
                       >
                         <img src={encodeURI(resourceAssets[pending.resource])} alt="" />
                         -1
+                      </button>
+                      <button
+                        type="button"
+                        className="caatinga-collect-btn caatinga-collect-btn--skip"
+                        onClick={() => handle("skip")}
+                      >
+                        Agora não
                       </button>
                     </div>
                   </div>
