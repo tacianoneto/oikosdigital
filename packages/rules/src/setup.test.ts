@@ -1698,6 +1698,84 @@ describe("caatinga scenario", () => {
     expect(game.activeActionIndex).toBe(1);
   });
 
+  it("triggers Caatinga when Quati adds a piece", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+    game = {
+      ...game,
+      activeScenarioIds: ["caatinga"]
+    };
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "coati")?.hand[0];
+    game = placeForestCard(game, "coati", cardId!, { x: 2, y: 0 });
+    const target = getCoatiFruitPlacementPositions(game, "coati").find(
+      (position) =>
+        !game.pieces.some(
+          (piece) => piece.ownerId === "coati" && piece.location?.x === position.x && piece.location.y === position.y
+        )
+    );
+    expect(target).toBeTruthy();
+
+    game = addCoatiForCurrentAction(game, "coati", target!);
+
+    expect(game.caatingaPending).toMatchObject({
+      playerId: "coati",
+      trigger: "add",
+      round: 1
+    });
+    expect(game.activePlayerId).toBe("coati");
+    expect(game.activeActionIndex).toBe(0);
+
+    game = collectCaatingaBonus(game, "coati", "skip");
+
+    expect(game.caatingaPending).toBeNull();
+    expect(game.activePlayerId).toBe("coati");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
+  it("keeps Quati pair bonus pending after resolving Caatinga from an add", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    const fruitTarget = getForestPositionsWithResource(game, "fruit")[0]!;
+    const secondCoatiTarget = getForestPositionsWithResource(game, "fruit").find(
+      (position) => position.x !== fruitTarget.x || position.y !== fruitTarget.y
+    )!;
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", fruitTarget);
+    game = placeInitialPiece(game, "coati", secondCoatiTarget);
+    game = {
+      ...game,
+      activeScenarioIds: ["caatinga"]
+    };
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "coati")?.hand[0];
+    game = placeForestCard(game, "coati", cardId!, { x: 2, y: 0 });
+    expect(getCoatiFruitPlacementPositions(game, "coati")).toContainEqual(fruitTarget);
+
+    game = addCoatiForCurrentAction(game, "coati", fruitTarget);
+
+    expect(game.caatingaPending).toMatchObject({
+      playerId: "coati",
+      trigger: "add",
+      round: 1
+    });
+    expect(game.pendingCoatiPairBonus).toMatchObject({
+      playerId: "coati"
+    });
+    expect(game.activeActionIndex).toBe(0);
+
+    game = collectCaatingaBonus(game, "coati", "gain");
+
+    expect(game.caatingaPending).toBeNull();
+    expect(game.pendingCoatiPairBonus).toMatchObject({
+      playerId: "coati"
+    });
+    expect(game.activePlayerId).toBe("coati");
+    expect(game.activeActionIndex).toBe(0);
+  });
+
   it("triggers Caatinga when a base species removes a piece", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
     game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });

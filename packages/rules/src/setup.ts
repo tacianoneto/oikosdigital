@@ -3225,7 +3225,9 @@ export function collectCaatingaBonus(
         createdAt: Date.now()
       }
     ];
-    advanceActiveAction(next);
+    if (!next.pendingCoatiPairBonus) {
+      advanceActiveAction(next);
+    }
     return next;
   }
   const current = player.resources[pending.resource] ?? 0;
@@ -3250,7 +3252,9 @@ export function collectCaatingaBonus(
       createdAt: Date.now()
     }
   ];
-  advanceActiveAction(next);
+  if (!next.pendingCoatiPairBonus) {
+    advanceActiveAction(next);
+  }
   return next;
 }
 
