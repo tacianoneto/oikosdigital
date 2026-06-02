@@ -8035,6 +8035,61 @@ input:focus {
   grid-column: 1 / -1;
 }
 
+.caatinga-choice-actions--stack {
+  grid-template-columns: 1fr;
+}
+
+.caatinga-choice-actions--stack .caatinga-collect-btn--skip {
+  grid-column: auto;
+}
+
+.mata-discard-modal {
+  width: min(560px, 100%);
+}
+
+.mata-discard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mata-discard-option {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(242, 193, 78, 0.45);
+  background: rgba(28, 51, 41, 0.6);
+  color: var(--paper);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.mata-discard-option:hover {
+  transform: translateY(-2px);
+  border-color: rgba(242, 193, 78, 0.85);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.5);
+}
+
+.mata-discard-option img {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.mata-discard-pile-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.mata-discard-card-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .mata-discard-btn {
   position: absolute;
   top: 6px;

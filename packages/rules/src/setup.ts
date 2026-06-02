@@ -2278,6 +2278,8 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     throw new Error("Ainda nao e a vez deste jogador.");
   }
 
+  assertMataAtlanticaDiscarded(game, playerId);
+
   const player = findPlayer(game, playerId);
   if (player.speciesId !== "coati") {
     if (player.speciesId === "jaguar") {
@@ -2480,6 +2482,8 @@ export function spendJaguarMeatForPoints(game: GameState, playerId: string, coun
   if (game.activePlayerId !== playerId) {
     throw new Error("Ainda nao e a vez deste jogador.");
   }
+
+  assertMataAtlanticaDiscarded(game, playerId);
 
   const player = findPlayer(game, playerId);
   if (player.speciesId !== "jaguar") {
@@ -2849,6 +2853,8 @@ export function moveJaguarForCurrentAction(
     throw new Error("Ainda nao e a vez deste jogador.");
   }
 
+  assertMataAtlanticaDiscarded(game, playerId);
+
   const player = findPlayer(game, playerId);
   if (player.speciesId !== "jaguar") {
     throw new Error("Movimento de acao implementado apenas para a Onca nesta etapa.");
@@ -2998,35 +3004,8 @@ function advanceActiveAction(game: GameState): void {
 }
 
 function finishPlayerTurn(game: GameState, player: PlayerState): void {
-  const turnBeforeIncrement = player.turnsTaken;
   player.turnsTaken += 1;
   applyEndTurnThreatPenalty(game, player);
-  // Mata Atlântica: species that don't use cards must discard 1 from the
-  // shared piles on their turn. If they didn't pick one manually, auto-discard
-  // a random top card so piles still drain.
-  const alreadyDiscarded =
-    (game.mataAtlanticaDiscardByPlayer ?? {})[player.playerId] === turnBeforeIncrement;
-  if (
-    !alreadyDiscarded &&
-    game.mataAtlanticaPiles &&
-    player.speciesId &&
-    !speciesDefinitions[player.speciesId].usesForestCards
-  ) {
-    const tops = getMataAtlanticaPileTops(game);
-    if (tops.length > 0) {
-      const auto = tops[Math.floor(Math.random() * tops.length)];
-      removeFromMataAtlanticaPile(game, auto);
-      const def = getCardDefinitionOrNull(auto);
-      game.log = [
-        ...game.log,
-        {
-          id: `mata_atlantica_auto_${player.playerId}_${player.turnsTaken}`,
-          message: `${player.name} descartou ${def?.label ?? "carta"} aberta (Mata Atlantica, auto).`,
-          createdAt: Date.now()
-        }
-      ];
-    }
-  }
   const currentTurnIndex = game.turnOrder.indexOf(player.playerId);
   const nextTurnIndex = currentTurnIndex >= 0 ? (currentTurnIndex + 1) % game.turnOrder.length : 0;
   const nextPlayerId = game.turnOrder[nextTurnIndex] ?? null;
@@ -3128,15 +3107,22 @@ function getMataAtlanticaPileTops(game: GameState): string[] {
 
 function removeFromMataAtlanticaPile(game: GameState, cardId: string): boolean {
   if (!game.mataAtlanticaPiles) return false;
-  let removed = false;
-  game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile) => {
-    if (removed) return [...pile];
+  let removedPileIndex = -1;
+  game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile, index) => {
+    if (removedPileIndex >= 0) return [...pile];
     const idx = pile.indexOf(cardId);
     if (idx < 0) return [...pile];
-    removed = true;
+    removedPileIndex = index;
     return [...pile.slice(0, idx), ...pile.slice(idx + 1)];
   });
-  return removed;
+  if (removedPileIndex >= 0 && game.deck.commonCardIds.length > 0) {
+    const [refillId, ...rest] = game.deck.commonCardIds;
+    game.deck = { ...game.deck, commonCardIds: rest };
+    game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile, index) =>
+      index === removedPileIndex ? [...pile, refillId] : pile
+    );
+  }
+  return removedPileIndex >= 0;
 }
 
 export function discardMataAtlanticaPileCard(game: GameState, playerId: string, cardId: string): GameState {
@@ -3180,6 +3166,21 @@ export function discardMataAtlanticaPileCard(game: GameState, playerId: string, 
     }
   ];
   return next;
+}
+
+export function mataAtlanticaRequiresDiscard(game: GameState, playerId: string): boolean {
+  if (!game.mataAtlanticaPiles) return false;
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player?.speciesId) return false;
+  if (speciesDefinitions[player.speciesId].usesForestCards) return false;
+  if ((game.mataAtlanticaDiscardByPlayer ?? {})[playerId] === player.turnsTaken) return false;
+  return getMataAtlanticaPileTops(game).length > 0;
+}
+
+function assertMataAtlanticaDiscarded(game: GameState, playerId: string): void {
+  if (mataAtlanticaRequiresDiscard(game, playerId)) {
+    throw new Error("Descarte 1 carta de uma das pilhas (Mata Atlantica) antes de agir.");
+  }
 }
 
 function applyCaatingaTrigger(

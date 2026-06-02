@@ -1007,12 +1007,22 @@ export function App() {
   const activeGamePlayer = room?.game?.players.find((player) => player.playerId === room.game?.activePlayerId) ?? null;
   const activeSpecies = activeGamePlayer?.speciesId ? speciesDefinitions[activeGamePlayer.speciesId] : null;
   const activeActionId = activeSpecies && room?.game ? activeSpecies.actions[room.game.activeActionIndex] ?? null : null;
+  const mataAtlanticaBlocksTurn = Boolean(
+    room?.game?.mataAtlanticaPiles &&
+      currentGamePlayer?.speciesId &&
+      !speciesDefinitions[currentGamePlayer.speciesId].usesForestCards &&
+      room?.game?.activePlayerId === currentGamePlayer?.playerId &&
+      (room?.game?.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer?.playerId ?? ""] !==
+        currentGamePlayer?.turnsTaken &&
+      (room?.game?.mataAtlanticaPiles ?? []).some((pile) => pile.length > 0)
+  );
   const canControlActivePlayer = Boolean(
     room?.game?.activePlayerId &&
       currentGamePlayer?.playerId === room.game.activePlayerId &&
       !activeIsLocalBot &&
       !room.game.caatingaPending &&
-      !room.game.cerradoPending
+      !room.game.cerradoPending &&
+      !mataAtlanticaBlocksTurn
   );
   // Action step viewer should only flag a step as "em andamento" when the
   // controlled player is the active player. Otherwise the opponent's progress
@@ -3656,6 +3666,33 @@ export function App() {
       run(() => roomApi.collectCerrado(requireSocket(), rid, mode));
     }
   };
+  const mataAtlanticaForcedDiscard = Boolean(
+    room?.game &&
+      room.game.status === "active" &&
+      room.game.mataAtlanticaPiles &&
+      currentGamePlayer?.speciesId &&
+      !speciesDefinitions[currentGamePlayer.speciesId].usesForestCards &&
+      room.game.activePlayerId === currentGamePlayer.playerId &&
+      controlledPlayerId === currentGamePlayer.playerId &&
+      (room.game.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer.playerId] !== currentGamePlayer.turnsTaken &&
+      mataAtlanticaPileTopIds.length > 0 &&
+      !caatingaPending &&
+      !cerradoPending
+  );
+  const resolveMataAtlanticaDiscard = (cardId: string) => {
+    if (!room?.game || !currentGamePlayer) return;
+    if (isLocalRoom) {
+      try {
+        const nextGame = discardMataAtlanticaPileCard(room.game, currentGamePlayer.playerId, cardId);
+        setRoom((current) => (current ? { ...current, game: nextGame } : current));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao descartar (Mata Atlantica).");
+      }
+    } else {
+      const rid = room.roomId;
+      run(() => roomApi.discardMataAtlantica(requireSocket(), rid, cardId));
+    }
+  };
 
   if (isBelowDesktop) {
     return (
@@ -3748,7 +3785,7 @@ export function App() {
               <img src={encodeURI(resourceAssets[cerradoPending.resource])} alt="" />
               <span>{resourceLabels[cerradoPending.resource]}</span>
             </div>
-            <div className="caatinga-choice-actions">
+            <div className="caatinga-choice-actions caatinga-choice-actions--stack">
               <button type="button" className="caatinga-collect-btn" onClick={() => resolveCerradoChoice("collect")}>
                 <img src={encodeURI(resourceAssets[cerradoPending.resource])} alt="" />
                 Coletar 2
@@ -3760,6 +3797,39 @@ export function App() {
               >
                 Agora não
               </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {mataAtlanticaForcedDiscard && (
+        <div className="caatinga-choice-backdrop" role="presentation">
+          <section className="caatinga-choice-modal mata-discard-modal" role="dialog" aria-modal="true" aria-labelledby="mata-discard-title">
+            <div className="caatinga-choice-head">
+              <Leaf aria-hidden="true" />
+              <span>Cenário Mata Atlântica</span>
+            </div>
+            <h2 id="mata-discard-title">Escolha 1 carta para descartar</h2>
+            <p>
+              {currentGamePlayer?.name ?? "Jogador"}, sua espécie não usa cartas. No início do turno você deve
+              descartar 1 carta aberta de uma das 3 pilhas.
+            </p>
+            <div className="mata-discard-grid">
+              {mataAtlanticaPileTopIds.map((cardId, index) => {
+                const def = getForestCardDefinition(cardId);
+                return (
+                  <button
+                    key={cardId}
+                    type="button"
+                    className="mata-discard-option"
+                    onClick={() => resolveMataAtlanticaDiscard(cardId)}
+                    title={`Descartar ${def.label}`}
+                  >
+                    <span className="mata-discard-pile-label">Pilha {index + 1}</span>
+                    <img src={encodeURI(def.imagePath)} alt={def.label} />
+                    <span className="mata-discard-card-label">{def.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </section>
         </div>

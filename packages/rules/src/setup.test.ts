@@ -10,6 +10,7 @@ import {
   completeCurrentAction,
   collectCaatingaBonus,
   collectCerradoBonus,
+  discardMataAtlanticaPileCard,
   createInitialGameState,
   createPreviewInitialForest,
   forceEndPlayerTurn,
@@ -1559,6 +1560,26 @@ describe("setup placement", () => {
 
     expect(game.activePlayerId).toBe("coati");
     expect(game.log.some((entry) => entry.message.includes("pulou automaticamente a acao D do Lobo-guara"))).toBe(true);
+  });
+});
+
+describe("mata atlantica scenario", () => {
+  it("refills the drained pile from the deck so the 3 piles keep top cards", () => {
+    const base = createInitialGameState(
+      "ma-room",
+      [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
+      () => 0.42,
+      createPreviewInitialForest(),
+      { activeScenarioIds: ["mata_atlantica"] }
+    );
+    const game = { ...base, status: "active" as const, activePlayerId: "jaguar", activeActionIndex: 0 };
+    expect(game.mataAtlanticaPiles!.map((pile) => pile.length)).toEqual([6, 6, 6]);
+    const deckBefore = game.deck.commonCardIds.length;
+    expect(deckBefore).toBeGreaterThan(0);
+
+    const next = discardMataAtlanticaPileCard(game, "jaguar", game.mataAtlanticaPiles![0][0]);
+    expect(next.mataAtlanticaPiles!.map((pile) => pile.length)).toEqual([6, 6, 6]);
+    expect(next.deck.commonCardIds.length).toBe(deckBefore - 1);
   });
 });
 
