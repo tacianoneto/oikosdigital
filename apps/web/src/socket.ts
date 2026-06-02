@@ -21,6 +21,8 @@ export type OikosSocket = Socket;
 
 const playerIdStorageKey = "oikos:player-id";
 const serverUrlStorageKey = "oikos:server-url";
+const productionHostnames = new Set(["oikosdigital.com.br", "www.oikosdigital.com.br"]);
+const productionServerUrl = "https://api.oikosdigital.com.br";
 
 export function createSocket(): OikosSocket {
   return io(getServerUrl(), {
@@ -48,6 +50,11 @@ function getServerUrl(): string {
     const normalized = queryServerUrl.replace(/\/$/, "");
     window.localStorage.setItem(serverUrlStorageKey, normalized);
     return normalized;
+  }
+
+  if (productionHostnames.has(window.location.hostname)) {
+    window.localStorage.removeItem(serverUrlStorageKey);
+    return productionServerUrl;
   }
 
   return window.localStorage.getItem(serverUrlStorageKey) ?? import.meta.env.VITE_SERVER_URL ?? "http://localhost:4173";
