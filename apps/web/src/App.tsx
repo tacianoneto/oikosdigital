@@ -624,6 +624,7 @@ export function App() {
   const [selectedWolfTargetPieceId, setSelectedWolfTargetPieceId] = useState<string | null>(null);
   const [selectedWolfResources, setSelectedWolfResources] = useState<Resource[]>([]);
   const [selectedRemovalPieceIds, setSelectedRemovalPieceIds] = useState<string[]>([]);
+  const [cacaIlegalRemovalMode, setCacaIlegalRemovalMode] = useState(false);
   const [selectedOpponentPlayerId, setSelectedOpponentPlayerId] = useState<string | null>(null);
   const [expandedObjectiveCardId, setExpandedObjectiveCardId] = useState<string | null>(null);
   const [pendingObjectiveCardId, setPendingObjectiveCardId] = useState<string | null>(null);
@@ -1529,9 +1530,14 @@ export function App() {
     const alive = new Set(room.game.forest.cards.map((card) => card.instanceId));
     return hoveredSummaryCardIds.filter((id) => alive.has(id));
   }, [hoveredSummaryCardIds, recapCollapsed, room?.game, turnSummary?.key]);
+  const cacaIlegalPending = room?.game?.cacaIlegalPending ?? null;
   const selectablePieceIds = useMemo(() => {
     if (!room?.game || hasPendingCoatiPairBonus || !canControlActivePlayer) {
       return [];
+    }
+
+    if (cacaIlegalRemovalMode && room.game.cacaIlegalPending?.playerId === controlledPlayerId) {
+      return getCacaIlegalRemovablePieceIds(room.game, room.game.cacaIlegalPending.playerId);
     }
 
     if (activeSpecies?.speciesId === "jaguar" && (activeActionId === "A" || activeActionId === "B")) {
@@ -1578,7 +1584,7 @@ export function App() {
     return room.game.pieces
       .filter((piece) => piece.ownerId === room.game?.activePlayerId && piece.speciesId === activeSpecies.speciesId && piece.location)
       .map((piece) => piece.pieceId);
-  }, [activeActionId, activeSpecies?.speciesId, canControlActivePlayer, hasPendingCoatiPairBonus, room?.game]);
+  }, [activeActionId, activeSpecies?.speciesId, cacaIlegalRemovalMode, canControlActivePlayer, controlledPlayerId, hasPendingCoatiPairBonus, room?.game]);
   const requiredCoatiRemovalCount =
     room?.game && room.game.activePlayerId ? getRequiredCoatiRemovalCount(room.game, room.game.activePlayerId) : 0;
   const availableJaguarPointSpendCount =
@@ -2002,6 +2008,11 @@ export function App() {
       setSelectedRemovalPieceIds(nextSelected);
     }
   }, [selectablePieceIds, selectedRemovalPieceIds]);
+  useEffect(() => {
+    if (!cacaIlegalPending || cacaIlegalPending.playerId !== controlledPlayerId) {
+      setCacaIlegalRemovalMode(false);
+    }
+  }, [cacaIlegalPending, controlledPlayerId]);
 
   useEffect(() => {
     if (!shouldShowJaguarScoreModal) {
@@ -2673,6 +2684,11 @@ export function App() {
         return;
       }
 
+      if (cacaIlegalRemovalMode && cacaIlegalPending?.playerId === controlledPlayerId) {
+        setSelectedRemovalPieceIds((current) => (current.includes(pieceId) ? [] : [pieceId]));
+        return;
+      }
+
       if (jaguarTargetPieceIds.includes(pieceId)) {
         if (selectedJaguarDestination) {
           executeSelectedPieceMove(selectedJaguarDestination, pieceId);
@@ -2713,6 +2729,9 @@ export function App() {
       activeActionId,
       activeSpecies?.speciesId,
       boardSelectablePieceIds,
+      cacaIlegalPending?.playerId,
+      cacaIlegalRemovalMode,
+      controlledPlayerId,
       executeSelectedPieceMove,
       jaguarTargetPieceIds,
       requiredCoatiRemovalCount,
@@ -3635,7 +3654,6 @@ export function App() {
   const caatingaGamePlayer = caatingaPending
     ? room?.game?.players.find((candidate) => candidate.playerId === caatingaPending.playerId) ?? null
     : null;
-  const cacaIlegalPending = room?.game?.cacaIlegalPending ?? null;
   const cacaIlegalGamePlayer = cacaIlegalPending
     ? room?.game?.players.find((candidate) => candidate.playerId === cacaIlegalPending.playerId) ?? null
     : null;
@@ -3669,13 +3687,23 @@ export function App() {
       try {
         const nextGame = resolveCacaIlegal(room.game, cacaIlegalPending.playerId, choice);
         setRoom((current) => (current ? { ...current, game: nextGame } : current));
+        setCacaIlegalRemovalMode(false);
+        setSelectedRemovalPieceIds([]);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Falha ao resolver Caca ilegal.");
       }
     } else {
       const rid = room.roomId;
-      run(() => roomApi.resolveCacaIlegal(requireSocket(), rid, choice));
+      run(() => roomApi.resolveCacaIlegal(requireSocket(), rid, choice)).then(() => {
+        setCacaIlegalRemovalMode(false);
+        setSelectedRemovalPieceIds([]);
+      });
     }
+  };
+  const resolveSelectedCacaIlegalPiece = () => {
+    const pieceId = selectedRemovalPieceIds[0];
+    if (!pieceId) return;
+    resolveCacaIlegalChoice({ kind: "remove_piece", pieceId });
   };
   const resolveCaatingaChoice = (mode: "gain" | "lose" | "skip") => {
     if (!room?.game || !caatingaPending || !canResolveCaatinga) return;
@@ -3763,7 +3791,7 @@ export function App() {
       }`}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
     >
-      {cacaIlegalPending && canResolveCacaIlegal && (
+      {cacaIlegalPending && canResolveCacaIlegal && !cacaIlegalRemovalMode && (
         <div className="caatinga-choice-backdrop" role="presentation">
           <section className="caatinga-choice-modal caca-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caca-choice-title">
             <div className="caatinga-choice-head caca-choice-head">
@@ -3796,27 +3824,16 @@ export function App() {
             {cacaIlegalRemovablePieces.length > 0 && (
               <div className="caca-choice-section">
                 <strong>Remover peca</strong>
-                <div className="caca-piece-grid">
-                  {cacaIlegalRemovablePieces.map((piece, index) => {
-                    const species = speciesDefinitions[piece.speciesId];
-                    return (
-                      <button
-                        key={piece.pieceId}
-                        type="button"
-                        className="caca-piece-btn"
-                        onClick={() => resolveCacaIlegalChoice({ kind: "remove_piece", pieceId: piece.pieceId })}
-                      >
-                        <img src={encodeURI(species.meepleAsset)} alt="" />
-                        <span>
-                          {species.displayName} {index + 1}
-                        </span>
-                        <small>
-                          ({piece.location?.x}, {piece.location?.y})
-                        </small>
-                      </button>
-                    );
-                  })}
-                </div>
+                <button
+                  type="button"
+                  className="caatinga-collect-btn caca-remove-mode-btn"
+                  onClick={() => {
+                    setSelectedRemovalPieceIds([]);
+                    setCacaIlegalRemovalMode(true);
+                  }}
+                >
+                  Voltar para a floresta e escolher peca
+                </button>
               </div>
             )}
           </section>
@@ -5714,6 +5731,32 @@ export function App() {
                 </span>
               ))}
             </div>
+            {cacaIlegalPending && canResolveCacaIlegal && cacaIlegalRemovalMode && (
+              <div className="caca-board-removal-panel">
+                <small>
+                  Selecione uma peca sua na floresta e confirme a remocao. Selecionada:{" "}
+                  {selectedRemovalPieceIds.length}/1.
+                </small>
+                <div className="caca-board-removal-actions">
+                  <button
+                    className="secondary-button"
+                    disabled={selectedRemovalPieceIds.length !== 1}
+                    onClick={resolveSelectedCacaIlegalPiece}
+                  >
+                    Remover peca
+                  </button>
+                  <button
+                    className="secondary-button"
+                    onClick={() => {
+                      setCacaIlegalRemovalMode(false);
+                      setSelectedRemovalPieceIds([]);
+                    }}
+                  >
+                    Voltar
+                  </button>
+                </div>
+              </div>
+            )}
             {activeSpecies && activeActionId && (
               <div className="current-action-card">
                 <ActionStepsViewer

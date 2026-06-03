@@ -2075,6 +2075,35 @@ describe("threat mini expansion", () => {
     expect(game.activePlayerId).toBe("jaguar");
   });
 
+  it("does not let the Jaguar remove its only piece for Caca ilegal", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("wolf", "maned_wolf")]);
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+    game = {
+      ...setActiveAction(game, "jaguar", 1),
+      activeThreatCardId: "threat_4",
+      players: game.players.map((candidate) =>
+        candidate.playerId === "jaguar"
+          ? { ...candidate, resources: { meat: 1, egg: 0, fruit: 0, seed: 0 } }
+          : candidate
+      )
+    };
+
+    game = forceEndPlayerTurn(game, "jaguar", "teste");
+
+    expect(game.cacaIlegalPending).toEqual({ playerId: "jaguar" });
+    expect(getCacaIlegalRemovablePieceIds(game, "jaguar")).toEqual([]);
+    expect(() =>
+      resolveCacaIlegal(game, "jaguar", { kind: "remove_piece", pieceId: "jaguar_piece_1" })
+    ).toThrow("Onca");
+
+    game = resolveCacaIlegal(game, "jaguar", { kind: "spend_resource", resource: "meat" });
+
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(0);
+    expect(game.activePlayerId).toBe("wolf");
+  });
+
   it("makes Desmatamento replace an existing forest card instead of expanding", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
     game = placeInitialPiece(game, "jaguar", { x: -1, y: -1 });

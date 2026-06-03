@@ -3134,7 +3134,7 @@ function applyEndTurnThreatPenalty(game: GameState, player: PlayerState): void {
 
 function queueCacaIlegalIfNeeded(game: GameState, player: PlayerState): boolean {
   if (game.activeThreatCardId !== "threat_4") return false;
-  const hasPieces = player.piecesInForest.length > 0;
+  const hasPieces = player.speciesId !== "jaguar" && player.piecesInForest.length > 0;
   const totalResources = ALL_RESOURCES.reduce(
     (sum, resource) => sum + (player.resources[resource] ?? 0),
     0
@@ -3165,6 +3165,8 @@ export function getCacaIlegalTopResources(game: GameState, playerId: string): Re
 }
 
 export function getCacaIlegalRemovablePieceIds(game: GameState, playerId: string): string[] {
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId === "jaguar") return [];
   return game.pieces
     .filter((piece) => piece.ownerId === playerId && piece.location)
     .map((piece) => piece.pieceId);
@@ -3185,6 +3187,9 @@ export function resolveCacaIlegal(
   const player = findPlayer(next, playerId);
 
   if (choice.kind === "remove_piece") {
+    if (player.speciesId === "jaguar") {
+      throw new Error("A Onca nao pode remover peca por Caca ilegal; gaste um recurso.");
+    }
     const piece = next.pieces.find(
       (candidate) => candidate.pieceId === choice.pieceId && candidate.ownerId === playerId && candidate.location
     );

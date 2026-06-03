@@ -8089,6 +8089,33 @@ input:focus {
   border-color: rgba(214, 96, 96, 0.78);
 }
 
+.caca-remove-mode-btn {
+  margin-top: 0;
+  background: rgba(28, 51, 41, 0.86);
+  border-color: rgba(242, 193, 78, 0.62);
+  color: var(--paper);
+}
+
+.caca-board-removal-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(214, 96, 96, 0.52);
+  background: rgba(55, 20, 18, 0.42);
+}
+
+.caca-board-removal-panel small {
+  color: var(--paper);
+  line-height: 1.35;
+}
+
+.caca-board-removal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .caca-piece-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
