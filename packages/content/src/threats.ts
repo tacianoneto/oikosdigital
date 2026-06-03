@@ -38,7 +38,7 @@ export const threatCards: ThreatCardDefinition[] = [
     id: "threat_6",
     label: "Enchente",
     imagePath: `${threatBasePath}/INF 6.png`,
-    description: "Neste turno, todos os movimentos sao transformados em salto em curva."
+    description: "Neste turno, todos os movimentos sao transformados em movimento ortogonal."
   },
   {
     id: "threat_7",

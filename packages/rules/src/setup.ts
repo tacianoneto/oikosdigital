@@ -2707,7 +2707,7 @@ export function getValidJaguarMovementDestinations(game: GameState, playerId: st
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
 
   if (game.activeThreatCardId === "threat_6") {
-    return getPotentialDestinations(jaguarPiece.location, "knight_jump")
+    return getPotentialDestinations(jaguarPiece.location, "adjacent")
       .filter((position) => forestPositions.has(positionKey(position)))
       .sort((a, b) => a.y - b.y || a.x - b.x);
   }
@@ -4294,7 +4294,7 @@ function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, orig
 
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
   if (game.activeThreatCardId === "threat_6") {
-    return getPotentialDestinations(origin, "knight_jump")
+    return getPotentialDestinations(origin, "adjacent")
       .filter((position) => forestPositions.has(positionKey(position)))
       .sort((a, b) => a.y - b.y || a.x - b.x);
   }

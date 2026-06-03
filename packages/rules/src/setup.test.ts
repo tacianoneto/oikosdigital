@@ -753,6 +753,93 @@ describe("setup placement", () => {
     expect(getValidPieceMovementDestinations(game, "coati", pieceId!)).toEqual([]);
   });
 
+  it("forces orthogonal movement for card-based animals during Enchente", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+
+    game = placeInitialPiece(game, "jaguar", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+    const pieceId = game.players.find((candidate) => candidate.playerId === "coati")?.piecesInForest[0];
+    game = {
+      ...setActiveAction(game, "coati", 1),
+      activeThreatCardId: "threat_6",
+      activePlayedForestCardId: "bosque_1",
+      forest: {
+        cards: [
+          {
+            instanceId: "origin",
+            definitionId: "bosque_1",
+            x: 0,
+            y: 0,
+            rotation: 0,
+            isInitial: true
+          },
+          {
+            instanceId: "orthogonal",
+            definitionId: "campo_1",
+            x: 1,
+            y: 0,
+            rotation: 0,
+            isInitial: true
+          },
+          {
+            instanceId: "straight_jump",
+            definitionId: "campo_2",
+            x: 0,
+            y: -2,
+            rotation: 0,
+            isInitial: true
+          }
+        ]
+      }
+    };
+
+    expect(getValidPieceMovementDestinations(game, "coati", pieceId!)).toEqual([{ x: 1, y: 0 }]);
+  });
+
+  it("forces orthogonal movement for Onca during Enchente", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 0 });
+    const pieceId = game.players.find((candidate) => candidate.playerId === "jaguar")?.piecesInForest[0];
+    game = {
+      ...setActiveAction(game, "jaguar", 1),
+      activeThreatCardId: "threat_6",
+      forest: {
+        cards: [
+          {
+            instanceId: "origin",
+            definitionId: "bosque_1",
+            x: 0,
+            y: 0,
+            rotation: 0,
+            isInitial: true
+          },
+          {
+            instanceId: "orthogonal",
+            definitionId: "campo_1",
+            x: 1,
+            y: 0,
+            rotation: 0,
+            isInitial: true
+          },
+          {
+            instanceId: "knight",
+            definitionId: "campo_2",
+            x: 1,
+            y: -2,
+            rotation: 0,
+            isInitial: true
+          }
+        ]
+      }
+    };
+
+    expect(getValidPieceMovementDestinations(game, "jaguar", pieceId!)).toEqual([{ x: 1, y: 0 }]);
+  });
+
   it("moves Onca in action B to an empty destination without removing a piece", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
 
