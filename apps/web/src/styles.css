@@ -5062,17 +5062,17 @@ input:focus {
   }
 }
 
-/* Current category banner — large, tinted to the category color */
+/* Current player banner — large, tinted to that player's species color */
 .ceremony-stage {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--cat, #5fd08a) 50%, transparent);
+  border: 1px solid color-mix(in srgb, var(--species, #5fd08a) 50%, transparent);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--cat, #5fd08a) 22%, transparent), color-mix(in srgb, var(--cat, #5fd08a) 7%, transparent));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cat, #5fd08a) 18%, transparent), 0 8px 22px rgba(0, 0, 0, 0.3);
+    linear-gradient(90deg, color-mix(in srgb, var(--species, #5fd08a) 24%, transparent), color-mix(in srgb, var(--species, #5fd08a) 7%, transparent));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--species, #5fd08a) 18%, transparent), 0 8px 22px rgba(0, 0, 0, 0.3);
   animation: ceremony-stage-pop 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -5090,35 +5090,43 @@ input:focus {
   }
 }
 
-.ceremony-stage-leaf {
+.ceremony-stage-portrait {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 15px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--cat, #5fd08a) 90%, #000), color-mix(in srgb, var(--cat, #5fd08a) 60%, #000));
-  color: #0c160f;
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--cat, #5fd08a) 40%, rgba(0, 0, 0, 0.4));
-  animation: ceremony-leaf-sway 2s ease-in-out infinite;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--species, #5fd08a);
+  background: color-mix(in srgb, var(--species, #5fd08a) 20%, #14271c);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  animation: ceremony-stage-portrait-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.ceremony-stage-leaf svg {
-  width: 28px;
-  height: 28px;
-  stroke-width: 2.4;
+.ceremony-stage-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-@keyframes ceremony-leaf-sway {
-  50% {
-    transform: scale(1.08) rotate(-5deg);
+.ceremony-stage-portrait svg {
+  width: 26px;
+  height: 26px;
+  color: rgba(244, 239, 226, 0.7);
+}
+
+@keyframes ceremony-stage-portrait-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
   }
 }
 
 .ceremony-stage-text {
   flex: 1 1 auto;
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
@@ -5127,20 +5135,48 @@ input:focus {
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: color-mix(in srgb, var(--cat, #5fd08a) 70%, #fff);
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--species, #5fd08a) 60%, #fff);
 }
 
 .ceremony-stage-text strong {
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 900;
-  line-height: 1.1;
+  line-height: 1.05;
   color: var(--paper, #f4efe2);
 }
 
-.ceremony-stage-text small {
-  font-size: 12.5px;
-  color: rgba(244, 239, 226, 0.7);
+/* Category line under the player name — colored to the category */
+.ceremony-stage-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cat, #5fd08a);
+  animation: ceremony-stage-cat-in 320ms ease;
+}
+
+.ceremony-stage-cat svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ceremony-stage-cat b {
+  margin-left: 2px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  color: #0c160f;
+  background: var(--cat, #5fd08a);
+}
+
+@keyframes ceremony-stage-cat-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
 }
 
 .ceremony-stage-step {
@@ -5245,6 +5281,17 @@ input:focus {
       0 0 0 1px rgba(255, 215, 115, 0.7),
       0 0 34px rgba(255, 215, 115, 0.45);
   }
+}
+
+/* Card of the player being scored right now */
+.ceremony-card.is-current {
+  border-color: color-mix(in srgb, var(--species, #f2c14e) 70%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--species, #f2c14e) 16%, rgba(46, 36, 26, 0.92)), rgba(32, 26, 19, 0.95));
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.45),
+    0 0 0 2px color-mix(in srgb, var(--species, #f2c14e) 55%, transparent),
+    0 0 24px color-mix(in srgb, var(--species, #f2c14e) 36%, transparent);
 }
 
 .ceremony-rank {
@@ -5599,7 +5646,7 @@ input:focus {
   .ceremony-leaf,
   .ceremony-firefly,
   .ceremony-crown,
-  .ceremony-stage-leaf,
+  .ceremony-stage-portrait,
   .ceremony-seg.is-active,
   .ceremony-card.is-winner {
     animation: none !important;

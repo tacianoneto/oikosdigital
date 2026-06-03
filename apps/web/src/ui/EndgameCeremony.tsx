@@ -74,8 +74,20 @@ export function EndgameCeremony({
     return list;
   }, [entries]);
 
-  // revealCount = how many categories are currently revealed (1 = only base).
-  const [revealCount, setRevealCount] = useState(1);
+  // Reveal order: one player at a time, starting with whoever scored most in
+  // the normal game (base score), tiebroken by final total then name.
+  const revealSeq = useMemo(
+    () =>
+      [...entries]
+        .sort((a, b) => b.baseScore - a.baseScore || b.totalScore - a.totalScore || a.name.localeCompare(b.name))
+        .map((e) => e.playerId),
+    [entries]
+  );
+
+  // playerStep = index of the player currently being scored; catStep = how many
+  // of that player's categories are revealed (1 = only base).
+  const [playerStep, setPlayerStep] = useState(0);
+  const [catStep, setCatStep] = useState(1);
   const [done, setDone] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const reduceMotion = useRef(false);
@@ -84,29 +96,47 @@ export function EndgameCeremony({
     reduceMotion.current =
       typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion.current) {
-      setRevealCount(categories.length);
       setDone(true);
     }
-  }, [categories.length]);
+  }, []);
 
-  // Auto-advance the reveal one category at a time.
+  // Auto-advance: walk each player's categories, then move to the next player.
   useEffect(() => {
     if (done) return;
-    if (revealCount >= categories.length) {
-      const t = window.setTimeout(() => setDone(true), 1100);
+    if (catStep < categories.length) {
+      const t = window.setTimeout(() => setCatStep((n) => n + 1), STAGE_INTERVAL_MS);
       return () => window.clearTimeout(t);
     }
-    const t = window.setTimeout(() => setRevealCount((n) => n + 1), STAGE_INTERVAL_MS);
+    if (playerStep < revealSeq.length - 1) {
+      // Slightly longer pause when handing off to the next player.
+      const t = window.setTimeout(() => {
+        setPlayerStep((p) => p + 1);
+        setCatStep(1);
+      }, STAGE_INTERVAL_MS + 500);
+      return () => window.clearTimeout(t);
+    }
+    const t = window.setTimeout(() => setDone(true), 1100);
     return () => window.clearTimeout(t);
-  }, [revealCount, categories.length, done]);
+  }, [catStep, playerStep, categories.length, revealSeq.length, done]);
 
   const skip = () => {
-    setRevealCount(categories.length);
+    setPlayerStep(revealSeq.length - 1);
+    setCatStep(categories.length);
     setDone(true);
   };
 
-  // Displayed (capped) score per player, summing only revealed categories.
-  const scoreFor = (entry: FinalScoreEntry, upTo: number) => {
+  // How many categories are revealed for a given player given the current step.
+  const catsRevealedFor = (playerId: string) => {
+    if (done) return categories.length;
+    const pos = revealSeq.indexOf(playerId);
+    if (pos < playerStep) return categories.length;
+    if (pos > playerStep) return 0;
+    return catStep;
+  };
+
+  // Displayed (capped) score per player, summing only its revealed categories.
+  const scoreFor = (entry: FinalScoreEntry) => {
+    const upTo = catsRevealedFor(entry.playerId);
     let sum = 0;
     for (let i = 0; i < upTo && i < categories.length; i++) sum += categories[i].points(entry);
     return Math.min(pointCap, sum);
@@ -115,6 +145,8 @@ export function EndgameCeremony({
   // Stacked bar segments per player. Each category is a colored slice whose
   // width is its share of the point cap, clamped so the bar never overflows.
   const segmentsFor = (entry: FinalScoreEntry) => {
+    const upTo = catsRevealedFor(entry.playerId);
+    const isCurrent = !done && revealSeq[playerStep] === entry.playerId;
     let used = 0;
     return categories.map((c, i) => {
       const raw = c.points(entry);
@@ -126,21 +158,23 @@ export function EndgameCeremony({
         color: c.color,
         widthPct: (val / pointCap) * 100,
         points: val,
-        revealed: i < revealCount,
-        active: !done && i === revealCount - 1
+        revealed: i < upTo,
+        active: isCurrent && i === catStep - 1
       };
     });
   };
 
   const ranking = useMemo(() => {
-    const rows = entries.map((entry) => ({ entry, score: scoreFor(entry, revealCount) }));
+    const rows = entries.map((entry) => ({ entry, score: scoreFor(entry) }));
     rows.sort(rankSort);
     return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, revealCount, categories, pointCap]);
+  }, [entries, playerStep, catStep, done, categories, revealSeq, pointCap]);
 
-  const currentCategory = categories[Math.min(revealCount, categories.length) - 1];
-  const isBaseStage = revealCount <= 1;
+  const currentPlayerId = revealSeq[playerStep];
+  const currentEntry = entries.find((e) => e.playerId === currentPlayerId) ?? null;
+  const currentCategory = categories[Math.min(catStep, categories.length) - 1];
+  const isBaseStage = catStep <= 1;
 
   const winnerText =
     winnerPlayerIds.length === 0
@@ -198,26 +232,34 @@ export function EndgameCeremony({
           {done && <p className={`ceremony-winner ${winnerPlayerIds.length ? "is-win" : ""}`}>{winnerText}</p>}
         </header>
 
-        {/* Category being calculated right now — large, colored, prominent */}
-        {!done && currentCategory && (
-          <div
-            className={`ceremony-stage ${isBaseStage ? "is-base" : ""}`}
-            key={currentCategory.key}
-            style={{ ["--cat" as string]: currentCategory.color } as CSSProperties}
-          >
-            <span className="ceremony-stage-leaf">
-              <currentCategory.icon aria-hidden="true" />
-            </span>
-            <div className="ceremony-stage-text">
-              <em>{isBaseStage ? "Revelando" : "Somando agora"}</em>
-              <strong>{isBaseStage ? "Placar da partida" : currentCategory.label}</strong>
-              <small>{currentCategory.hint}</small>
+        {/* Who is being scored right now — one player at a time */}
+        {!done && currentEntry && currentCategory && (() => {
+          const species = currentEntry.speciesId ? speciesDefinitions[currentEntry.speciesId] : null;
+          const catPoints = currentCategory.points(currentEntry);
+          return (
+            <div
+              className="ceremony-stage"
+              key={currentPlayerId}
+              style={{ ...speciesVar(currentEntry.speciesId), ["--cat" as string]: currentCategory.color } as CSSProperties}
+            >
+              <span className="ceremony-stage-portrait">
+                {species ? <img src={encodeURI(species.portraitAsset)} alt="" /> : <Users aria-hidden="true" />}
+              </span>
+              <div className="ceremony-stage-text">
+                <em>Pontuando · jogador {playerStep + 1} de {revealSeq.length}</em>
+                <strong>{currentEntry.name}</strong>
+                <small key={currentCategory.key} className="ceremony-stage-cat">
+                  <currentCategory.icon aria-hidden="true" />
+                  {isBaseStage ? "Placar da partida" : currentCategory.label}
+                  <b>{catPoints > 0 ? `+${catPoints}` : "—"}</b>
+                </small>
+              </div>
+              <div className="ceremony-stage-step">
+                {catStep}<span>/{categories.length}</span>
+              </div>
             </div>
-            <div className="ceremony-stage-step">
-              {revealCount}<span>/{categories.length}</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Color legend so players can map bar colors to categories */}
         {!done && (
@@ -225,9 +267,7 @@ export function EndgameCeremony({
             {categories.map((c, i) => (
               <span
                 key={c.key}
-                className={`ceremony-legend-item ${i < revealCount ? "on" : ""} ${
-                  i === revealCount - 1 ? "current" : ""
-                }`}
+                className={`ceremony-legend-item ${i < catStep ? "on" : ""} ${i === catStep - 1 ? "current" : ""}`}
                 style={{ ["--cat" as string]: c.color } as CSSProperties}
               >
                 <i />
@@ -243,12 +283,15 @@ export function EndgameCeremony({
             const entry = row.entry;
             const species = entry.speciesId ? speciesDefinitions[entry.speciesId] : null;
             const isWinner = done && winnerPlayerIds.includes(entry.playerId);
-            const gain = !isBaseStage && currentCategory ? currentCategory.points(entry) : 0;
+            const isCurrent = !done && entry.playerId === currentPlayerId;
+            const gain = isCurrent && !isBaseStage && currentCategory ? currentCategory.points(entry) : 0;
             const segments = segmentsFor(entry);
             return (
               <div
                 key={entry.playerId}
-                className={`ceremony-card rank-${rank + 1} ${isWinner ? "is-winner" : ""}`}
+                className={`ceremony-card rank-${rank + 1} ${isWinner ? "is-winner" : ""} ${
+                  isCurrent ? "is-current" : ""
+                }`}
                 style={{ ...speciesVar(entry.speciesId), transform: `translateY(${rank * rowH}px)` } as CSSProperties}
               >
                 <span className="ceremony-rank">{rank + 1}</span>
@@ -275,10 +318,10 @@ export function EndgameCeremony({
                   </div>
                 </div>
                 <span className="ceremony-points">
-                  {!done && gain > 0 && (
+                  {gain > 0 && (
                     <span
                       className="ceremony-gain"
-                      key={revealCount}
+                      key={`${playerStep}-${catStep}`}
                       style={{ color: currentCategory?.color } as CSSProperties}
                     >
                       +{gain}
