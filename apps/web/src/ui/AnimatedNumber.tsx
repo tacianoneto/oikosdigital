@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 export function AnimatedNumber({ value }: { value: number }) {
   const [shown, setShown] = useState(value);
-  const fromRef = useRef(value);
+  // Tracks the value currently on screen so an interrupted animation always
+  // resumes from what the user sees and lands exactly on the latest value.
+  const shownRef = useRef(value);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const from = fromRef.current;
+    const from = shownRef.current;
     if (from === value) {
       return;
     }
@@ -15,17 +17,19 @@ export function AnimatedNumber({ value }: { value: number }) {
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);
-      setShown(Math.round(from + (value - from) * eased));
+      const next = Math.round(from + (value - from) * eased);
+      shownRef.current = next;
+      setShown(next);
       if (t < 1) {
         rafRef.current = requestAnimationFrame(tick);
       } else {
-        fromRef.current = value;
+        shownRef.current = value;
+        setShown(value);
       }
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      fromRef.current = value;
     };
   }, [value]);
 

@@ -173,9 +173,6 @@ export function EndgameCeremony({
 
       <div className="ceremony-panel" role="dialog" aria-modal="true" aria-label="Pontuação final">
         <header className="ceremony-head">
-          <span className="ceremony-eyebrow">
-            <Leaf aria-hidden="true" /> Clareira de celebração
-          </span>
           <h2 className="ceremony-title">Pontuação Final</h2>
           {done && <p className={`ceremony-winner ${winnerPlayerIds.length ? "is-win" : ""}`}>{winnerText}</p>}
         </header>
@@ -247,52 +244,48 @@ export function EndgameCeremony({
           <>
             {showDetails && (
               <div className="ceremony-details">
+                {ranking.map((row, index) => {
+                  const entry = row.entry;
+                  const species = entry.speciesId ? speciesDefinitions[entry.speciesId] : null;
+                  const isWinner = winnerPlayerIds.includes(entry.playerId);
+                  const chips = categories
+                    .map((c) => ({ key: c.key, label: c.label, icon: c.icon, value: c.points(entry) }))
+                    .filter((c) => c.key === "base" || c.value !== 0);
+                  return (
+                    <div
+                      key={entry.playerId}
+                      className={`ceremony-detail-card ${isWinner ? "is-winner" : ""}`}
+                      style={speciesVar(entry.speciesId)}
+                    >
+                      <span className="cd-rank">{index + 1}</span>
+                      <span className="cd-portrait">
+                        {species ? <img src={encodeURI(species.portraitAsset)} alt="" /> : <Users aria-hidden="true" />}
+                      </span>
+                      <div className="cd-body">
+                        <div className="cd-head">
+                          <strong>{entry.name}</strong>
+                          {species && <small>{species.displayName}</small>}
+                        </div>
+                        <div className="cd-chips">
+                          {chips.map((c) => (
+                            <span key={c.key} className="cd-chip">
+                              <c.icon aria-hidden="true" />
+                              <em>{c.label}</em>
+                              <b>{c.key === "base" ? c.value : `+${c.value}`}</b>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <span className="cd-total">
+                        <strong>{entry.totalScore}</strong>
+                        <small>pts</small>
+                      </span>
+                    </div>
+                  );
+                })}
                 <p className="ceremony-note">
-                  Total = pontos da partida + objetivo + cenário + maioria (carne/ovo/fruta, +1 cada) + 1 ponto por 2 sementes.
                   Limite {pointCap} pts. Desempate: recursos restantes, depois maior população.
                 </p>
-                <table className="final-score-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Jogador</th>
-                      <th>Partida</th>
-                      {categories.some((c) => c.key === "objective") && <th>Objetivo</th>}
-                      {categories.some((c) => c.key === "scenario") && <th>Cenário</th>}
-                      <th>Maioria</th>
-                      <th>Pinhas</th>
-                      <th>Total</th>
-                      <th>Recursos</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ranking.map((row, index) => {
-                      const entry = row.entry;
-                      return (
-                        <tr
-                          key={entry.playerId}
-                          className={winnerPlayerIds.includes(entry.playerId) ? "winner" : ""}
-                          style={speciesVar(entry.speciesId)}
-                        >
-                          <td>{index + 1}</td>
-                          <td>
-                            <strong>{entry.name}</strong>
-                            {entry.speciesId && <small> · {speciesDefinitions[entry.speciesId].displayName}</small>}
-                          </td>
-                          <td>{entry.baseScore}</td>
-                          {categories.some((c) => c.key === "objective") && <td>+{entry.objectivePoints}</td>}
-                          {categories.some((c) => c.key === "scenario") && <td>+{entry.scenarioPoints}</td>}
-                          <td>+{entry.resourceMajorityPoints}</td>
-                          <td>+{entry.seedPoints}</td>
-                          <td>
-                            <strong>{entry.totalScore}</strong>
-                          </td>
-                          <td>{entry.remainingResources}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
               </div>
             )}
             <div className="ceremony-actions">
