@@ -23,6 +23,7 @@ interface Category {
   key: CategoryKey;
   label: string;
   hint: string;
+  color: string;
   icon: typeof Leaf;
   points: (entry: FinalScoreEntry) => number;
 }
@@ -60,15 +61,15 @@ export function EndgameCeremony({
     const hasObjective = entries.some((e) => e.objectivePoints !== 0);
     const hasScenario = entries.some((e) => e.scenarioPoints !== 0);
     const list: Category[] = [
-      { key: "base", label: "Pontos da partida", hint: "Conquistados ao longo do jogo", icon: Leaf, points: (e) => e.baseScore },
-      { key: "majority", label: "Maioria de recursos", hint: "Carne, ovo e fruta dominados", icon: Trophy, points: (e) => e.resourceMajorityPoints },
-      { key: "seed", label: "Pinhas (sementes)", hint: "1 ponto a cada 2 sementes", icon: Sprout, points: (e) => e.seedPoints }
+      { key: "base", label: "Pontos da partida", hint: "Conquistados ao longo do jogo", color: "#5fd08a", icon: Leaf, points: (e) => e.baseScore },
+      { key: "majority", label: "Maioria de recursos", hint: "Carne, ovo e fruta dominados", color: "#f2c14e", icon: Trophy, points: (e) => e.resourceMajorityPoints },
+      { key: "seed", label: "Sementes", hint: "1 ponto a cada 2 sementes", color: "#4cc6e8", icon: Sprout, points: (e) => e.seedPoints }
     ];
     if (hasObjective) {
-      list.push({ key: "objective", label: "Objetivos", hint: "Metas da mini-expansão", icon: Target, points: (e) => e.objectivePoints });
+      list.push({ key: "objective", label: "Objetivos", hint: "Metas da mini-expansão", color: "#b98cff", icon: Target, points: (e) => e.objectivePoints });
     }
     if (hasScenario) {
-      list.push({ key: "scenario", label: "Cenário", hint: "Bônus do bioma em jogo", icon: Star, points: (e) => e.scenarioPoints });
+      list.push({ key: "scenario", label: "Cenário", hint: "Bônus do bioma em jogo", color: "#ef8b5a", icon: Star, points: (e) => e.scenarioPoints });
     }
     return list;
   }, [entries]);
@@ -109,6 +110,26 @@ export function EndgameCeremony({
     let sum = 0;
     for (let i = 0; i < upTo && i < categories.length; i++) sum += categories[i].points(entry);
     return Math.min(pointCap, sum);
+  };
+
+  // Stacked bar segments per player. Each category is a colored slice whose
+  // width is its share of the point cap, clamped so the bar never overflows.
+  const segmentsFor = (entry: FinalScoreEntry) => {
+    let used = 0;
+    return categories.map((c, i) => {
+      const raw = c.points(entry);
+      const room = Math.max(0, pointCap - used);
+      const val = Math.min(raw, room);
+      used += val;
+      return {
+        key: c.key,
+        color: c.color,
+        widthPct: (val / pointCap) * 100,
+        points: val,
+        revealed: i < revealCount,
+        active: !done && i === revealCount - 1
+      };
+    });
   };
 
   const ranking = useMemo(() => {
@@ -154,7 +175,7 @@ export function EndgameCeremony({
     []
   );
 
-  const rowH = entries.length > 4 ? 76 : 84;
+  const rowH = entries.length > 4 ? 80 : 88;
 
   return (
     <div className="choice-modal-backdrop ceremony-backdrop" role="presentation">
@@ -177,21 +198,42 @@ export function EndgameCeremony({
           {done && <p className={`ceremony-winner ${winnerPlayerIds.length ? "is-win" : ""}`}>{winnerText}</p>}
         </header>
 
-        {/* Category being calculated right now */}
+        {/* Category being calculated right now — large, colored, prominent */}
         {!done && currentCategory && (
-          <div className="ceremony-stage" key={currentCategory.key}>
+          <div
+            className={`ceremony-stage ${isBaseStage ? "is-base" : ""}`}
+            key={currentCategory.key}
+            style={{ ["--cat" as string]: currentCategory.color } as CSSProperties}
+          >
             <span className="ceremony-stage-leaf">
               <currentCategory.icon aria-hidden="true" />
             </span>
             <div className="ceremony-stage-text">
-              <strong>{isBaseStage ? "Revelando placar base" : `Somando: ${currentCategory.label}`}</strong>
+              <em>{isBaseStage ? "Revelando" : "Somando agora"}</em>
+              <strong>{isBaseStage ? "Placar da partida" : currentCategory.label}</strong>
               <small>{currentCategory.hint}</small>
             </div>
-            <div className="ceremony-stage-dots">
-              {categories.map((c, i) => (
-                <span key={c.key} className={i < revealCount ? "on" : ""} />
-              ))}
+            <div className="ceremony-stage-step">
+              {revealCount}<span>/{categories.length}</span>
             </div>
+          </div>
+        )}
+
+        {/* Color legend so players can map bar colors to categories */}
+        {!done && (
+          <div className="ceremony-legend">
+            {categories.map((c, i) => (
+              <span
+                key={c.key}
+                className={`ceremony-legend-item ${i < revealCount ? "on" : ""} ${
+                  i === revealCount - 1 ? "current" : ""
+                }`}
+                style={{ ["--cat" as string]: c.color } as CSSProperties}
+              >
+                <i />
+                {c.label}
+              </span>
+            ))}
           </div>
         )}
 
@@ -202,6 +244,7 @@ export function EndgameCeremony({
             const species = entry.speciesId ? speciesDefinitions[entry.speciesId] : null;
             const isWinner = done && winnerPlayerIds.includes(entry.playerId);
             const gain = !isBaseStage && currentCategory ? currentCategory.points(entry) : 0;
+            const segments = segmentsFor(entry);
             return (
               <div
                 key={entry.playerId}
@@ -213,13 +256,31 @@ export function EndgameCeremony({
                   {isWinner && <Crown className="ceremony-crown" aria-hidden="true" />}
                   {species ? <img src={encodeURI(species.portraitAsset)} alt="" /> : <Users aria-hidden="true" />}
                 </span>
-                <span className="ceremony-id">
-                  <strong>{entry.name}</strong>
-                  {species && <small>{species.displayName}</small>}
-                </span>
+                <div className="ceremony-main">
+                  <div className="ceremony-id">
+                    <strong>{entry.name}</strong>
+                    {species && <small>{species.displayName}</small>}
+                  </div>
+                  <div className="ceremony-bar" role="presentation">
+                    {segments.map((seg) => (
+                      <span
+                        key={seg.key}
+                        className={`ceremony-seg ${seg.active ? "is-active" : ""}`}
+                        style={{
+                          width: seg.revealed ? `${seg.widthPct}%` : "0%",
+                          background: seg.color
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
                 <span className="ceremony-points">
                   {!done && gain > 0 && (
-                    <span className="ceremony-gain" key={revealCount}>
+                    <span
+                      className="ceremony-gain"
+                      key={revealCount}
+                      style={{ color: currentCategory?.color } as CSSProperties}
+                    >
                       +{gain}
                     </span>
                   )}
@@ -249,7 +310,7 @@ export function EndgameCeremony({
                   const species = entry.speciesId ? speciesDefinitions[entry.speciesId] : null;
                   const isWinner = winnerPlayerIds.includes(entry.playerId);
                   const chips = categories
-                    .map((c) => ({ key: c.key, label: c.label, icon: c.icon, value: c.points(entry) }))
+                    .map((c) => ({ key: c.key, label: c.label, icon: c.icon, color: c.color, value: c.points(entry) }))
                     .filter((c) => c.key === "base" || c.value !== 0);
                   return (
                     <div
@@ -268,7 +329,7 @@ export function EndgameCeremony({
                         </div>
                         <div className="cd-chips">
                           {chips.map((c) => (
-                            <span key={c.key} className="cd-chip">
+                            <span key={c.key} className="cd-chip" style={{ ["--cat" as string]: c.color } as CSSProperties}>
                               <c.icon aria-hidden="true" />
                               <em>{c.label}</em>
                               <b>{c.key === "base" ? c.value : `+${c.value}`}</b>
