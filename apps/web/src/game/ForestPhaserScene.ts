@@ -532,27 +532,28 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   private drawHighlights(vm: ForestViewModel): void {
     for (const t of vm.expansionTargets) {
+      const occupied = vm.cards.some((card) => key(card) === key(t));
       const w = this.worldOf(t);
       const slot = this.add.container(w.x, w.y);
       const g = this.add.graphics();
-      g.fillStyle(0xf2c14e, 0.08);
+      g.fillStyle(occupied ? 0xd66060 : 0xf2c14e, occupied ? 0.1 : 0.08);
       g.fillRoundedRect(-CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
-      g.lineStyle(3, 0xf2c14e, 0.8);
+      g.lineStyle(3, occupied ? 0xd66060 : 0xf2c14e, 0.8);
       this.dashedRoundRect(g, -CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
       const plus = this.add
-        .text(0, -14, "+", {
+        .text(0, -14, occupied ? "!" : "+", {
           fontFamily: "Outfit, sans-serif",
           fontSize: "44px",
           fontStyle: "300",
-          color: "#f2c14e"
+          color: occupied ? "#ffb6a9" : "#f2c14e"
         })
         .setOrigin(0.5);
       const label = this.add
-        .text(0, 26, "COLOCAR CARTA", {
+        .text(0, 26, occupied ? "SUBSTITUIR CARTA" : "COLOCAR CARTA", {
           fontFamily: "Outfit, sans-serif",
           fontSize: "12px",
           fontStyle: "700",
-          color: "#f2c14e"
+          color: occupied ? "#ffb6a9" : "#f2c14e"
         })
         .setOrigin(0.5);
       const hit = this.add.rectangle(0, 0, CARD, CARD, 0xffffff, 0).setInteractive({ useHandCursor: true });

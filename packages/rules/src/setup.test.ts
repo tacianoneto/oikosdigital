@@ -2074,6 +2074,51 @@ describe("threat mini expansion", () => {
     expect(game.players.find((candidate) => candidate.playerId === "wolf")?.reservePieces).toContain(removable[0]);
     expect(game.activePlayerId).toBe("jaguar");
   });
+
+  it("makes Desmatamento replace an existing forest card instead of expanding", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "jaguar", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+    game = {
+      ...game,
+      activeThreatCardId: "threat_2",
+      players: game.players.map((candidate) =>
+        candidate.playerId === "coati" ? { ...candidate, hand: ["bosque_1"] } : candidate
+      )
+    };
+
+    const beforeCount = game.forest.cards.length;
+    expect(getAvailableForestExpansionPositionsForCard(game, "bosque_1")).toContainEqual({ x: -1, y: -1 });
+
+    game = placeForestCard(game, "coati", "bosque_1", { x: -1, y: -1 });
+
+    expect(game.forest.cards).toHaveLength(beforeCount);
+    expect(game.forest.cards.find((card) => card.x === -1 && card.y === -1)?.definitionId).toBe("bosque_1");
+    expect(game.pieces.find((piece) => piece.pieceId === "jaguar_piece_1")?.location).toEqual({
+      x: -1,
+      y: -1,
+      siteId: "main"
+    });
+    expect(game.players.find((candidate) => candidate.playerId === "coati")?.hand).not.toContain("bosque_1");
+    expect(game.log.at(-1)?.message).toContain("Desmatamento");
+  });
+
+  it("does not let Desmatamento place into an empty expansion slot", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "jaguar", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+    game = {
+      ...game,
+      activeThreatCardId: "threat_2",
+      players: game.players.map((candidate) =>
+        candidate.playerId === "coati" ? { ...candidate, hand: ["bosque_1"] } : candidate
+      )
+    };
+
+    expect(() => placeForestCard(game, "coati", "bosque_1", { x: -2, y: -1 })).toThrow("Desmatamento");
+  });
 });
 
 function setActiveAction(game: ReturnType<typeof createInitialGameState>, playerId: string, actionIndex: number) {

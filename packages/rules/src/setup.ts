@@ -516,7 +516,12 @@ export function getAvailableForestExpansionPositionsForCard(
     return [];
   }
 
-  return getAvailableForestExpansionPositions(game.forest.cards).filter((position) =>
+  const basePositions =
+    game.activeThreatCardId === "threat_2"
+      ? game.forest.cards.map((card) => ({ x: card.x, y: card.y }))
+      : getAvailableForestExpansionPositions(game.forest.cards);
+
+  return basePositions.filter((position) =>
     isForestCardRiverConnectionValid(game, cardDefinition, position, rotation)
   );
 }
@@ -906,18 +911,31 @@ export function placeForestCard(
     throw new Error("Apenas cartas comuns da mao podem ser colocadas na floresta.");
   }
 
-  if (game.forest.cards.some((card) => card.x === location.x && card.y === location.y)) {
+  const existingCardAtLocation = game.forest.cards.find((card) => card.x === location.x && card.y === location.y) ?? null;
+  const replacesExistingCard = game.activeThreatCardId === "threat_2";
+
+  if (!replacesExistingCard && existingCardAtLocation) {
     throw new Error("Ja existe uma carta nesta posicao da floresta.");
+  }
+
+  if (replacesExistingCard && !existingCardAtLocation) {
+    throw new Error("Desmatamento: escolha uma carta ja na floresta para substituir.");
   }
 
   if (!isWithinForestLimit(location)) {
     throw new Error("A floresta tem limite maximo de 7x7 cartas.");
   }
 
-  const availablePositions = getAvailableForestExpansionPositions(game.forest.cards);
+  const availablePositions = replacesExistingCard
+    ? game.forest.cards.map((card) => ({ x: card.x, y: card.y }))
+    : getAvailableForestExpansionPositions(game.forest.cards);
   const isAvailable = availablePositions.some((position) => position.x === location.x && position.y === location.y);
   if (!isAvailable) {
-    throw new Error("Escolha uma posicao vazia adjacente a floresta.");
+    throw new Error(
+      replacesExistingCard
+        ? "Desmatamento: escolha uma carta ja na floresta para substituir."
+        : "Escolha uma posicao vazia adjacente a floresta."
+    );
   }
 
   const validRiverPositions = getAvailableForestExpansionPositionsForCard(game, cardId, rotation);
@@ -934,24 +952,28 @@ export function placeForestCard(
     const cardIndex = nextPlayer.hand.indexOf(cardId);
     nextPlayer.hand = nextPlayer.hand.filter((candidate, index) => candidate !== cardId || index !== cardIndex);
   }
-  const newCardInstanceId = `played_${cardId}_${next.forest.cards.length + 1}`;
-  next.forest.cards = [
-    ...next.forest.cards,
-    {
+  const newCardInstanceId = `${replacesExistingCard ? "replaced" : "played"}_${cardId}_${next.forest.cards.length + 1}_${next.log.length + 1}`;
+  const nextCard: ForestCardState = {
       instanceId: newCardInstanceId,
       definitionId: cardId,
       x: location.x,
       y: location.y,
       rotation,
       isInitial: false
-    }
-  ];
+    };
+  next.forest.cards = replacesExistingCard
+    ? next.forest.cards.map((card) =>
+        card.x === location.x && card.y === location.y ? nextCard : card
+      )
+    : [...next.forest.cards, nextCard];
   next.activePlayedForestCardId = cardId;
   next.log = [
     ...next.log,
     {
       id: `place_card_${cardId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} colocou ${cardDefinition.label} na floresta.`,
+      message: replacesExistingCard
+        ? `${nextPlayer.name} substituiu uma carta por ${cardDefinition.label} (Desmatamento).`
+        : `${nextPlayer.name} colocou ${cardDefinition.label} na floresta.`,
       createdAt: Date.now(),
       payload: {
         kind: "place_card",
