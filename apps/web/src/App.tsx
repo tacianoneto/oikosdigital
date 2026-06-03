@@ -3839,6 +3839,31 @@ export function App() {
           </section>
         </div>
       )}
+      {cacaIlegalPending && canResolveCacaIlegal && cacaIlegalRemovalMode && (
+        <div className="caca-board-removal-floating" role="status" aria-live="polite">
+          <span>
+            Selecione uma peca sua na floresta. Selecionada: <strong>{selectedRemovalPieceIds.length}/1</strong>.
+          </span>
+          <button
+            type="button"
+            className="caca-board-confirm-btn"
+            disabled={selectedRemovalPieceIds.length !== 1}
+            onClick={resolveSelectedCacaIlegalPiece}
+          >
+            Remover peca
+          </button>
+          <button
+            type="button"
+            className="caca-board-cancel-btn"
+            onClick={() => {
+              setCacaIlegalRemovalMode(false);
+              setSelectedRemovalPieceIds([]);
+            }}
+          >
+            Voltar
+          </button>
+        </div>
+      )}
       {caatingaPending && canResolveCaatinga && (
         <div className="caatinga-choice-backdrop" role="presentation">
           <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caatinga-choice-title">

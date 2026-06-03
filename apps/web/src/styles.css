@@ -8116,6 +8116,59 @@ input:focus {
   gap: 8px;
 }
 
+.caca-board-removal-floating {
+  position: fixed;
+  left: 50%;
+  bottom: 132px;
+  z-index: 245;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: minmax(220px, auto) auto auto;
+  align-items: center;
+  gap: 10px;
+  max-width: min(760px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(242, 193, 78, 0.68);
+  background: rgba(8, 16, 12, 0.94);
+  color: var(--paper);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+.caca-board-removal-floating span {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.caca-board-removal-floating button {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 9px;
+  border: 1px solid rgba(242, 193, 78, 0.62);
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.caca-board-confirm-btn {
+  background: linear-gradient(135deg, rgba(214, 96, 96, 0.9), rgba(242, 193, 78, 0.72));
+  color: var(--ink);
+}
+
+.caca-board-confirm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.caca-board-cancel-btn {
+  background: rgba(28, 51, 41, 0.9);
+  color: var(--paper);
+}
+
 .caca-piece-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
