@@ -2244,9 +2244,9 @@ input:focus {
 }
 
 .opponent-inspector {
-  --opponent-button-size: 104px;
-  --opponent-button-gap: 22px;
-  --opponent-arrow-offset: 46px;
+  --opponent-button-size: 86px;
+  --opponent-button-gap: 18px;
+  --opponent-arrow-offset: 38px;
   position: fixed;
   z-index: 105;
   top: clamp(40px, 8vh, 90px);
@@ -2263,14 +2263,14 @@ input:focus {
 
 .opponent-rail {
   display: grid;
-  gap: 22px;
+  gap: 18px;
   pointer-events: auto;
 }
 
 .opponent-portrait-btn {
   position: relative;
-  width: 104px;
-  height: 104px;
+  width: 86px;
+  height: 86px;
   display: grid;
   place-items: center;
   padding: 0;
@@ -2351,15 +2351,15 @@ input:focus {
 }
 
 .opponent-portrait-frame {
-  width: 90px;
-  height: 90px;
+  width: 74px;
+  height: 74px;
   display: grid;
   place-items: center;
 }
 
 .opponent-portrait-frame img {
-  max-width: 90px;
-  max-height: 90px;
+  max-width: 74px;
+  max-height: 74px;
   width: auto;
   height: auto;
   object-fit: contain;
