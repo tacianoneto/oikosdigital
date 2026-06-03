@@ -6359,29 +6359,58 @@ export function App() {
       {!cleanBoardMode && needsObjectiveChoice && (
         <div className="choice-modal-backdrop objective-choice-backdrop" role="presentation">
           <div className="choice-modal objective-choice-modal" role="dialog" aria-modal="true" aria-label="Escolha objetivo">
-            <header className="choice-modal-head">
-              <span className="choice-icon">
-                <Trophy aria-hidden="true" />
+            <header className="objective-choice-header">
+              <span className="objective-choice-eyebrow">
+                <Trophy aria-hidden="true" /> Carta de objetivo
               </span>
-              <div>
-                <strong>Escolha seu objetivo</strong>
-                <small>Fique com 1 carta. A outra sera descartada.</small>
-              </div>
+              <h2>Escolha seu objetivo</h2>
+              <p>Fique com 1 carta. A outra será descartada.</p>
             </header>
             <div className="objective-choice-grid">
-              {objectiveChoices.map((card) => (
-                <button
-                  type="button"
-                  className={`objective-choice-card ${pendingObjectiveCardId === card.id ? "is-pending" : ""}`}
-                  key={card.id}
-                  disabled={Boolean(pendingObjectiveCardId)}
-                  onClick={() => {
-                    void handleSelectObjective(card.id);
-                  }}
-                >
-                  <img src={encodeURI(card.imagePath)} alt={card.label} />
-                </button>
-              ))}
+              {objectiveChoices.map((card, index) => {
+                const isPending = pendingObjectiveCardId === card.id;
+                return (
+                  <div
+                    className={`objective-choice-card ${isPending ? "is-pending" : ""} ${
+                      pendingObjectiveCardId && !isPending ? "is-dimmed" : ""
+                    }`}
+                    key={card.id}
+                  >
+                    <button
+                      type="button"
+                      className="objective-choice-pick"
+                      disabled={Boolean(pendingObjectiveCardId)}
+                      onClick={() => {
+                        void handleSelectObjective(card.id);
+                      }}
+                    >
+                      <span className="objective-choice-badge">{index + 1}</span>
+                      <span className="objective-choice-art">
+                        <img src={encodeURI(card.imagePath)} alt={card.label} />
+                      </span>
+                      <span className="objective-choice-cta">
+                        {isPending ? (
+                          <>
+                            <Check aria-hidden="true" /> Objetivo escolhido
+                          </>
+                        ) : (
+                          "Escolher este objetivo"
+                        )}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="objective-choice-zoom"
+                      aria-label="Ampliar carta"
+                      title="Ampliar"
+                      onClick={() => setExpandedObjectiveCardId(card.id)}
+                    >
+                      <Eye aria-hidden="true" />
+                    </button>
+                  </div>
+                );
+              })}
+              <span className="objective-choice-or" aria-hidden="true">ou</span>
             </div>
           </div>
         </div>

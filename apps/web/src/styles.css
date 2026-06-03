@@ -585,50 +585,219 @@ label {
 }
 
 .objective-choice-modal {
-  width: min(760px, 96vw);
+  width: min(720px, 96vw);
+  gap: 20px;
 }
 
+/* Header */
+.objective-choice-header {
+  text-align: center;
+  display: grid;
+  gap: 4px;
+}
+
+.objective-choice-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+}
+
+.objective-choice-eyebrow svg {
+  width: 15px;
+  height: 15px;
+}
+
+.objective-choice-header h2 {
+  font-size: clamp(20px, 3.4vw, 26px);
+  font-weight: 900;
+  color: var(--paper);
+  line-height: 1.1;
+}
+
+.objective-choice-header p {
+  font-size: 13px;
+  color: rgba(244, 239, 226, 0.7);
+}
+
+/* Two-card grid with an "ou" divider between */
 .objective-choice-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
+}
+
+.objective-choice-or {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: linear-gradient(180deg, #243a30, #16271d);
+  border: 2px solid color-mix(in srgb, var(--amber) 50%, transparent);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
 }
 
 .objective-choice-card {
+  position: relative;
+  border-radius: 16px;
+  transition: transform 160ms ease, opacity 200ms ease;
+}
+
+.objective-choice-card.is-dimmed {
+  opacity: 0.45;
+}
+
+/* Main clickable area: art + call-to-action footer */
+.objective-choice-pick {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   padding: 0;
-  border: 3px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel-2);
   cursor: pointer;
   overflow: hidden;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: linear-gradient(180deg, #1c3228, #132219);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.objective-choice-card:hover {
+.objective-choice-pick:hover:not(:disabled) {
+  transform: translateY(-4px);
   border-color: var(--amber);
-  transform: translateY(-3px);
+  box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.28), 0 16px 30px rgba(0, 0, 0, 0.55);
 }
 
-.objective-choice-card:disabled {
-  cursor: wait;
+.objective-choice-pick:disabled {
+  cursor: default;
 }
 
-.objective-choice-card:disabled:not(.is-pending) {
-  opacity: 0.55;
+.objective-choice-card.is-pending .objective-choice-pick {
+  border-color: #6fe09a;
+  box-shadow: 0 0 0 3px rgba(111, 224, 154, 0.4), 0 16px 30px rgba(0, 0, 0, 0.55);
 }
 
-.objective-choice-card.is-pending {
-  border-color: var(--amber);
-  transform: translateY(-3px);
-  box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.36), 0 14px 28px rgba(0, 0, 0, 0.55);
+.objective-choice-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 900;
+  color: #0c160f;
+  background: var(--amber);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
 }
 
-.objective-choice-card img,
+.objective-choice-art {
+  display: block;
+  padding: 10px 10px 0;
+}
+
+.objective-choice-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
 .objective-preview-modal img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* Call-to-action footer bar */
+.objective-choice-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 12px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--paper);
+  background: rgba(255, 255, 255, 0.04);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.objective-choice-cta svg {
+  width: 16px;
+  height: 16px;
+}
+
+.objective-choice-pick:hover:not(:disabled) .objective-choice-cta {
+  background: var(--amber);
+  color: #0c160f;
+}
+
+.objective-choice-card.is-pending .objective-choice-cta {
+  background: #6fe09a;
+  color: #0c160f;
+}
+
+/* Zoom / magnify button, top-right of each card */
+.objective-choice-zoom {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: var(--paper);
+  background: rgba(8, 16, 13, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.objective-choice-zoom:hover {
+  background: rgba(8, 16, 13, 0.92);
+  transform: scale(1.08);
+}
+
+.objective-choice-zoom svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 560px) {
+  .objective-choice-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .objective-choice-or {
+    position: static;
+    transform: none;
+    margin: 0 auto;
+  }
 }
 
 .objective-preview-backdrop {
