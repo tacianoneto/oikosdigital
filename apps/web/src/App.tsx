@@ -11,7 +11,6 @@ import {
   ChevronUp,
   Clock,
   Copy,
-  Crown,
   Eye,
   EyeOff,
   GraduationCap,
@@ -135,6 +134,7 @@ import {
   type AudioSettings
 } from "./ui/audio";
 import { ActionStepsViewer } from "./ui/ActionStepsViewer";
+import { EndgameCeremony } from "./ui/EndgameCeremony";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -645,18 +645,6 @@ export function App() {
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
-  const endgameConfetti = useMemo<CSSProperties[]>(() => {
-    const colors = ["#f2c14e", "#5fd08a", "#3a7fc4", "#e06a5a", "#b6815f", "#ffd773"];
-    return Array.from({ length: 80 }, () => ({
-      left: `${Math.random() * 100}%`,
-      backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-      animationDelay: `${Math.random() * 2.5}s`,
-      animationDuration: `${2.6 + Math.random() * 2.2}s`,
-      transform: `rotate(${Math.random() * 360}deg)`,
-      width: `${6 + Math.random() * 6}px`,
-      height: `${9 + Math.random() * 8}px`
-    }) as CSSProperties);
-  }, []);
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(isSmallScreen);
   const [hudRightCollapsed, setHudRightCollapsed] = useState(isSmallScreen);
   // Mobile-only: the species panel can collapse to its header. Desktop keeps it
@@ -6706,149 +6694,16 @@ export function App() {
           </div>
         )}
 
-      {!cleanBoardMode && room?.game?.status === "finished" && room.game.finalScoreBreakdown && (() => {
-        const breakdown = room.game.finalScoreBreakdown;
-        const winnerIds = room.game.winnerPlayerIds;
-        const ranked = [...breakdown.entries].sort(
-          (a, b) =>
-            b.totalScore - a.totalScore ||
-            b.remainingResources - a.remainingResources ||
-            b.populationValue - a.populationValue
-        );
-        const top = ranked.slice(0, 3).map((entry, index) => ({ entry, rank: index + 1 }));
-        // Visual order so 1st sits in the middle, taller.
-        const podiumOrder =
-          top.length === 3 ? [top[1], top[0], top[2]] : top.length === 2 ? [top[1], top[0]] : top;
-        const winnerText =
-          winnerIds.length === 0
-            ? "Sem vencedor"
-            : winnerIds.length === 1
-              ? `${ranked.find((e) => e.playerId === winnerIds[0])?.name ?? "Jogador"} venceu!`
-              : `Empate: ${ranked
-                  .filter((e) => winnerIds.includes(e.playerId))
-                  .map((e) => e.name)
-                  .join(", ")}`;
+      {!cleanBoardMode && room?.game?.status === "finished" && room.game.finalScoreBreakdown && (
+        <EndgameCeremony
+          breakdown={room.game.finalScoreBreakdown}
+          winnerPlayerIds={room.game.winnerPlayerIds}
+          isLocalRoom={isLocalRoom}
+          onPlayAgain={playAgainLocal}
+          onLeave={leaveTable}
+        />
+      )}
 
-        return (
-          <div className="choice-modal-backdrop endgame-backdrop" role="presentation">
-            {winnerIds.length > 0 && (
-              <div className="endgame-confetti" aria-hidden="true">
-                {endgameConfetti.map((piece, i) => (
-                  <span key={i} className="confetti-piece" style={piece} />
-                ))}
-              </div>
-            )}
-            <div className="endgame-modal" role="dialog" aria-modal="true" aria-label="Fim de jogo">
-              <header className="endgame-head">
-                <span className="endgame-eyebrow">
-                  <Trophy aria-hidden="true" /> Fim de jogo
-                </span>
-                <h2 className="endgame-title">{winnerText}</h2>
-              </header>
-
-              <div className={`endgame-podium count-${podiumOrder.length}`}>
-                {podiumOrder.map(({ entry, rank }) => {
-                  const species = entry.speciesId ? speciesDefinitions[entry.speciesId] : null;
-                  return (
-                    <div
-                      key={entry.playerId}
-                      className={`podium-slot rank-${rank}`}
-                      style={speciesVar(entry.speciesId)}
-                    >
-                      <div className="podium-figure">
-                        {rank === 1 && <Crown className="podium-crown" aria-hidden="true" />}
-                        <div className="podium-portrait">
-                          {species ? (
-                            <img src={encodeURI(species.portraitAsset)} alt="" />
-                          ) : (
-                            <Users aria-hidden="true" />
-                          )}
-                        </div>
-                        <strong className="podium-name">{entry.name}</strong>
-                        {species && <small className="podium-species">{species.displayName}</small>}
-                        <div className="podium-score">
-                          <AnimatedNumber value={entry.totalScore} />
-                          <span>pts</span>
-                        </div>
-                      </div>
-                      <div className="podium-stand">
-                        <span>{rank}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <details className="endgame-details">
-                <summary>Ver detalhamento de pontos</summary>
-                <p className="endgame-note">
-                  Total = pontos da partida + objetivo + cenário + maioria de carne/ovo/fruta (+1 cada, gasta o recurso) + 1 ponto por 2
-                  sementes. Limite {breakdown.pointCap} pts. Desempate: recursos restantes, depois maior população.
-                </p>
-                <table className="final-score-table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Jogador</th>
-                      <th>Partida</th>
-                      <th>Objetivo</th>
-                      <th>Cenário</th>
-                      <th>Maioria</th>
-                      <th>Sementes</th>
-                      <th>Total</th>
-                      <th>Recursos</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ranked.map((entry, index) => (
-                      <tr
-                        key={entry.playerId}
-                        className={winnerIds.includes(entry.playerId) ? "winner" : ""}
-                        style={speciesVar(entry.speciesId)}
-                      >
-                        <td>{index + 1}</td>
-                        <td>
-                          <strong>{entry.name}</strong>
-                          {entry.speciesId && <small> · {speciesDefinitions[entry.speciesId].displayName}</small>}
-                        </td>
-                        <td>{entry.baseScore}</td>
-                        <td>+{entry.objectivePoints}</td>
-                        <td>+{entry.scenarioPoints}</td>
-                        <td>+{entry.resourceMajorityPoints}</td>
-                        <td>+{entry.seedPoints}</td>
-                        <td>
-                          <strong>{entry.totalScore}</strong>
-                        </td>
-                        <td>{entry.remainingResources}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </details>
-
-              <div className="endgame-actions">
-                {isLocalRoom ? (
-                  <>
-                    <button className="primary-button" onClick={playAgainLocal}>
-                      <Play aria-hidden="true" />
-                      Jogar de novo
-                    </button>
-                    <button className="secondary-button" onClick={leaveTable}>
-                      <LogOut aria-hidden="true" />
-                      Sair
-                    </button>
-                  </>
-                ) : (
-                  <button className="primary-button" onClick={leaveTable}>
-                    <LogOut aria-hidden="true" />
-                    Voltar ao lobby
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {!cleanBoardMode &&
         hasStartedGame &&
