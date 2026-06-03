@@ -2,7 +2,7 @@ import {
   commonForestCards,
   initialForestCardCandidates,
   objectiveCards,
-  objectiveResourceByCard,
+  objectiveCardsById,
   speciesDefinitions,
   speciesOrderBySetup,
   speciesOrderByTurn,
@@ -20,11 +20,11 @@ import type {
   GridPosition,
   Habitat,
   MiniExpansionId,
+  ObjectiveCardDefinition,
   PieceLocation,
   PieceState,
   PlayerState,
   Resource,
-  ObjectiveRuleTier,
   RoomPlayer,
   ScenarioCardId,
   SpeciesId
@@ -746,10 +746,38 @@ function dealObjectiveChoices(players: PlayerState[], roomPlayers: RoomPlayer[],
   const objectiveDeck = shuffle(objectiveCards.map((card) => card.id), random);
 
   for (const player of players) {
-    player.objectiveChoices = [objectiveDeck.shift(), objectiveDeck.shift()].filter((id): id is string => Boolean(id));
+    if (!player.speciesId) {
+      player.objectiveChoices = [];
+      continue;
+    }
+
+    const objectiveChoices = objectiveDeck
+      .filter((objectiveCardId) => {
+        const card = objectiveCardsById.get(objectiveCardId);
+        return card ? canSpeciesReceiveObjective(player.speciesId!, card) : false;
+      })
+      .slice(0, 2);
+
+    for (const objectiveCardId of objectiveChoices) {
+      const deckIndex = objectiveDeck.indexOf(objectiveCardId);
+      if (deckIndex >= 0) {
+        objectiveDeck.splice(deckIndex, 1);
+      }
+    }
+
+    player.objectiveChoices = objectiveChoices;
     const roomPlayer = roomPlayers.find((candidate) => candidate.playerId === player.playerId);
     player.selectedObjectiveCardId = roomPlayer?.isBot ? (player.objectiveChoices[0] ?? null) : null;
   }
+}
+
+function canSpeciesReceiveObjective(speciesId: SpeciesId, card: ObjectiveCardDefinition): boolean {
+  const category = speciesDefinitions[speciesId].category;
+  if (category === "subpredator") {
+    return card.eligibleCategories.includes("predator") || card.eligibleCategories.includes("middle");
+  }
+
+  return card.eligibleCategories.includes(category);
 }
 
 export function selectObjectiveCard(game: GameState, playerId: string, objectiveCardId: string): GameState {
@@ -766,6 +794,13 @@ export function selectObjectiveCard(game: GameState, playerId: string, objective
     throw new Error("Escolha uma das 2 cartas de objetivo recebidas.");
   }
 
+  if (player.speciesId) {
+    const card = objectiveCardsById.get(objectiveCardId);
+    if (!card || !canSpeciesReceiveObjective(player.speciesId, card)) {
+      throw new Error("Esta especie nao pode receber este objetivo.");
+    }
+  }
+
   const next = cloneGameState(game);
   const nextPlayer = findPlayer(next, playerId);
   nextPlayer.selectedObjectiveCardId = objectiveCardId;
@@ -775,6 +810,44 @@ export function selectObjectiveCard(game: GameState, playerId: string, objective
       id: `objective_select_${playerId}_${next.log.length + 1}`,
       message: `${nextPlayer.name} escolheu uma carta de objetivo.`,
       createdAt: Date.now()
+    }
+  ];
+
+  return next;
+}
+
+export function discardObjectiveForResources(game: GameState, playerId: string): GameState {
+  if (game.status !== "active") {
+    throw new Error("Objetivo so pode ser descartado durante a partida.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (!player.selectedObjectiveCardId) {
+    throw new Error("Jogador nao possui objetivo selecionado.");
+  }
+
+  const card = objectiveCardsById.get(player.selectedObjectiveCardId);
+  if (card?.scoring.kind !== "discard_for_resources") {
+    throw new Error("Este objetivo nao pode ser descartado por recursos.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  nextPlayer.resources = {
+    meat: (nextPlayer.resources.meat ?? 0) + 1,
+    egg: (nextPlayer.resources.egg ?? 0) + 1,
+    fruit: (nextPlayer.resources.fruit ?? 0) + 1,
+    seed: (nextPlayer.resources.seed ?? 0) + 1
+  };
+  nextPlayer.selectedObjectiveCardId = null;
+  nextPlayer.objectiveChoices = [];
+  next.log = [
+    ...next.log,
+    {
+      id: `objective_discard_${playerId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} descartou o objetivo para ganhar 1 recurso de cada.`,
+      createdAt: Date.now(),
+      payload: { kind: "objective", actorPlayerId: playerId, resources: ["meat", "egg", "fruit", "seed"] }
     }
   ];
 
@@ -3471,90 +3544,142 @@ const RESOURCE_MAJORITY_POINTS = 1;
 const SEEDS_PER_POINT = 2;
 const MAJORITY_RESOURCES: Resource[] = ["meat", "egg", "fruit"];
 const ALL_RESOURCES: Resource[] = ["meat", "egg", "fruit", "seed"];
+type ResourceSnapshot = Map<string, Record<Resource, number>>;
 
-function getObjectivePointsForTurn(game: GameState, player: PlayerState): number {
+function getObjectivePointsForTurn(
+  game: GameState,
+  player: PlayerState,
+  resourceSnapshot: ResourceSnapshot = createResourceSnapshot(game),
+  spendResources = false
+): number {
   if (!player.speciesId || !player.selectedObjectiveCardId) {
     return 0;
   }
 
-  const tier = getObjectiveRuleTier(player.speciesId);
-  if (tier === "subpredator") {
-    return Math.max(
-      getObjectivePointsForTier(game, player, player.selectedObjectiveCardId, "red"),
-      getObjectivePointsForTier(game, player, player.selectedObjectiveCardId, "yellow")
-    );
+  const card = objectiveCardsById.get(player.selectedObjectiveCardId);
+  if (!card || !canSpeciesReceiveObjective(player.speciesId, card)) {
+    return 0;
   }
 
-  return getObjectivePointsForTier(game, player, player.selectedObjectiveCardId, tier);
+  switch (card.scoring.kind) {
+    case "removed_species": {
+      const removedSpeciesCount = getRemovedSpeciesCount(game, player.playerId);
+      return removedSpeciesCount >= 3 ? 2 : removedSpeciesCount >= 2 ? 1 : 0;
+    }
+
+    case "resource_majority": {
+      return card.scoring.resource
+        ? getResourceMajorityObjectivePoints(game, resourceSnapshot, player.playerId, card.scoring.resource)
+        : 0;
+    }
+
+    case "seed_spend": {
+      return getSeedSpendObjectivePoints(player, resourceSnapshot, spendResources, card.scoring.spendSeedCount ?? 3, card.scoring.points ?? 3);
+    }
+
+    case "resource_majority_count": {
+      return getResourceMajorityCount(game, resourceSnapshot, player.playerId);
+    }
+
+    case "habitat_line": {
+      if (!card.scoring.habitat) {
+        return 0;
+      }
+
+      return Math.min(
+        card.scoring.maxPoints ?? 2,
+        countLines(
+          game,
+          (forestCard) => getCardDefinitionOrNull(forestCard.definitionId)?.habitat === card.scoring.habitat,
+          Boolean(card.scoring.diagonalsOnly),
+          card.scoring.minLength ?? 3
+        )
+      );
+    }
+
+    case "resource_line": {
+      if (!card.scoring.resource) {
+        return 0;
+      }
+
+      return Math.min(
+        card.scoring.maxPoints ?? 2,
+        countLines(
+          game,
+          (forestCard) => getCardDefinitionOrNull(forestCard.definitionId)?.resource === card.scoring.resource,
+          false,
+          card.scoring.minLength ?? 3
+        )
+      );
+    }
+
+    case "missing_resources": {
+      return Math.min(
+        card.scoring.maxPoints ?? 2,
+        ALL_RESOURCES.filter((resource) => getResourceCount(resourceSnapshot, player.playerId, resource) === 0).length
+      );
+    }
+
+    case "resource_square": {
+      return Math.min(card.scoring.maxPoints ?? 2, countResourceSquares(game));
+    }
+
+    case "pieces_in_forest": {
+      const totalPieces = speciesDefinitions[player.speciesId].totalPieces;
+      const inForest = player.piecesInForest.length;
+      return (inForest > totalPieces / 2 ? 1 : 0) + (inForest === totalPieces ? 1 : 0);
+    }
+
+    case "discard_for_resources":
+    case "extra_turn":
+      return 0;
+  }
 }
 
-function getObjectiveRuleTier(speciesId: SpeciesId): ObjectiveRuleTier | "subpredator" {
-  const category = speciesDefinitions[speciesId].category;
-  if (category === "predator") return "red";
-  if (category === "subpredator") return "subpredator";
-  if (category === "base") return "blue";
-  return "yellow";
+function createResourceSnapshot(game: GameState): ResourceSnapshot {
+  return new Map(
+    game.players.map((player) => [
+      player.playerId,
+      {
+        meat: player.resources.meat ?? 0,
+        egg: player.resources.egg ?? 0,
+        fruit: player.resources.fruit ?? 0,
+        seed: player.resources.seed ?? 0
+      }
+    ])
+  );
 }
 
-function getObjectivePointsForTier(
-  game: GameState,
+function getResourceCount(resourceSnapshot: ResourceSnapshot, playerId: string, resource: Resource): number {
+  return resourceSnapshot.get(playerId)?.[resource] ?? 0;
+}
+
+function getSeedSpendObjectivePoints(
   player: PlayerState,
-  objectiveCardId: string,
-  tier: ObjectiveRuleTier
+  resourceSnapshot: ResourceSnapshot,
+  spendResources: boolean,
+  spendSeedCount: number,
+  points: number
 ): number {
-  if (tier === "red") {
-    if (objectiveCardId === "objective_1" || objectiveCardId === "objective_5") {
-      return getRemovedSpeciesCount(game, player.playerId) >= 3 ? 2 : getRemovedSpeciesCount(game, player.playerId) >= 2 ? 1 : 0;
-    }
-
-    if (objectiveCardId === "objective_3" || objectiveCardId === "objective_4") {
-      return getResourceMajorityCount(game, player.playerId);
-    }
-
+  if (getResourceCount(resourceSnapshot, player.playerId, "seed") < spendSeedCount) {
     return 0;
   }
 
-  if (tier === "yellow") {
-    if (objectiveCardId === "objective_1" || objectiveCardId === "objective_2" || objectiveCardId === "objective_5") {
-      const resource = objectiveResourceByCard[objectiveCardId];
-      return resource ? getResourceMajorityObjectivePoints(game, player.playerId, resource) : 0;
+  if (spendResources) {
+    const snapshotResources = resourceSnapshot.get(player.playerId);
+    if (snapshotResources) {
+      resourceSnapshot.set(player.playerId, {
+        ...snapshotResources,
+        seed: Math.max(0, snapshotResources.seed - spendSeedCount)
+      });
     }
-
-    if (objectiveCardId === "objective_3") {
-      return Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.habitat === "field", false, 3));
-    }
-
-    if (objectiveCardId === "objective_4") {
-      return Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.habitat === "river", false, 4));
-    }
-
-    if (objectiveCardId === "objective_6") {
-      return Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.habitat === "forest", true, 3));
-    }
-
-    if (objectiveCardId === "objective_7" || objectiveCardId === "objective_12") {
-      return Math.min(2, ALL_RESOURCES.filter((resource) => (player.resources[resource] ?? 0) === 0).length);
-    }
-
-    return 0;
+    player.resources = {
+      ...player.resources,
+      seed: Math.max(0, (player.resources.seed ?? 0) - spendSeedCount)
+    };
   }
 
-  if (objectiveCardId === "objective_7" || objectiveCardId === "objective_8" || objectiveCardId === "objective_9" || objectiveCardId === "objective_10") {
-    const resource = objectiveResourceByCard[objectiveCardId];
-    return resource ? Math.min(2, countLines(game, (card) => getCardDefinitionOrNull(card.definitionId)?.resource === resource, false, 3)) : 0;
-  }
-
-  if (objectiveCardId === "objective_11") {
-    return Math.min(2, countResourceSquares(game));
-  }
-
-  if (objectiveCardId === "objective_12" && player.speciesId) {
-    const totalPieces = speciesDefinitions[player.speciesId].totalPieces;
-    const inForest = player.piecesInForest.length;
-    return (inForest > totalPieces / 2 ? 1 : 0) + (inForest === totalPieces ? 1 : 0);
-  }
-
-  return 0;
+  return points;
 }
 
 function getRemovedSpeciesCount(game: GameState, playerId: string): number {
@@ -3575,23 +3700,27 @@ function getRemovedSpeciesCount(game: GameState, playerId: string): number {
   return species.size;
 }
 
-function getResourceMajorityCount(game: GameState, playerId: string): number {
-  return MAJORITY_RESOURCES.filter((resource) => getResourceMajorityObjectivePoints(game, playerId, resource) > 0).length;
+function getResourceMajorityCount(game: GameState, resourceSnapshot: ResourceSnapshot, playerId: string): number {
+  return MAJORITY_RESOURCES.filter((resource) => getResourceMajorityObjectivePoints(game, resourceSnapshot, playerId, resource) > 0).length;
 }
 
-function getResourceMajorityObjectivePoints(game: GameState, playerId: string, resource: Resource): number {
-  const player = findPlayer(game, playerId);
-  const count = player.resources[resource] ?? 0;
+function getResourceMajorityObjectivePoints(
+  game: GameState,
+  resourceSnapshot: ResourceSnapshot,
+  playerId: string,
+  resource: Resource
+): number {
+  const count = getResourceCount(resourceSnapshot, playerId, resource);
   if (count <= 0) {
     return 0;
   }
 
-  const top = game.players.reduce((max, candidate) => Math.max(max, candidate.resources[resource] ?? 0), 0);
+  const top = game.players.reduce((max, candidate) => Math.max(max, getResourceCount(resourceSnapshot, candidate.playerId, resource)), 0);
   if (count < top) {
     return 0;
   }
 
-  const tied = game.players.filter((candidate) => (candidate.resources[resource] ?? 0) === top).length;
+  const tied = game.players.filter((candidate) => getResourceCount(resourceSnapshot, candidate.playerId, resource) === top).length;
   return tied === 1 ? 2 : 1;
 }
 
@@ -3678,6 +3807,7 @@ function applyFinalScoring(game: GameState): void {
   }
 
   const amazoniaActive = scenarioIds.has("amazonia");
+  const resourceSnapshot = createResourceSnapshot(game);
 
   // Majority per resource, except seed. Each player tied for the most of a
   // resource scores 1 point and spends ALL of that resource. With Amazonia
@@ -3721,7 +3851,7 @@ function applyFinalScoring(game: GameState): void {
 
   const entries: FinalScoreEntry[] = game.players.map((player) => {
     const baseScore = player.score;
-    const objectivePoints = getObjectivePointsForTurn(game, player);
+    const objectivePoints = getObjectivePointsForTurn(game, player, resourceSnapshot, true);
     const scenarioPoints = scenarioPointsByPlayer.get(player.playerId) ?? 0;
     const resourceMajorityPoints = majorityPointsByPlayer.get(player.playerId) ?? 0;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commonForestCards, initialForestCardCandidates } from "@oikos/content";
+import { commonForestCards, initialForestCardCandidates, objectiveCardsById, speciesDefinitions } from "@oikos/content";
 import type { ForestCardState, RoomPlayer } from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
@@ -11,6 +11,7 @@ import {
   collectCaatingaBonus,
   collectCerradoBonus,
   discardMataAtlanticaPileCard,
+  discardObjectiveForResources,
   createInitialGameState,
   createPreviewInitialForest,
   forceEndPlayerTurn,
@@ -182,6 +183,54 @@ describe("setup placement", () => {
 
     const selected = selectObjectiveCard(game, "jaguar", jaguar.objectiveChoices[0]!);
     expect(selected.players.find((candidate) => candidate.playerId === "jaguar")?.selectedObjectiveCardId).toBe(jaguar.objectiveChoices[0]);
+  });
+
+  it("deals only objective cards eligible for each species category", () => {
+    const game = createInitialGameState(
+      "objectives_by_category",
+      [
+        player("jaguar", "jaguar"),
+        player("wolf", "maned_wolf"),
+        player("armadillo", "armadillo"),
+        player("macaw", "macaw"),
+        player("capuchin", "capuchin"),
+        player("coati", "coati")
+      ],
+      () => 0.42,
+      createPreviewInitialForest(),
+      { enabledMiniExpansions: ["objectives"] }
+    );
+
+    for (const gamePlayer of game.players) {
+      expect(gamePlayer.objectiveChoices).toHaveLength(2);
+      expect(
+        gamePlayer.objectiveChoices.every((objectiveCardId) => {
+          const card = objectiveCardsById.get(objectiveCardId);
+          expect(card).toBeDefined();
+          const category = speciesDefinitions[gamePlayer.speciesId!].category;
+          if (category === "subpredator") {
+            return card!.eligibleCategories.includes("predator") || card!.eligibleCategories.includes("middle");
+          }
+          return card!.eligibleCategories.includes(category);
+        })
+      ).toBe(true);
+    }
+  });
+
+  it("discards the resource objective during active play", () => {
+    let game = createTestGameState("objective_discard", [player("jaguar", "jaguar"), player("wolf", "maned_wolf")]);
+    const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+    jaguar.selectedObjectiveCardId = "objective_18";
+    game.status = "active";
+    game.activePlayerId = "wolf";
+
+    game = discardObjectiveForResources(game, "jaguar");
+    const updated = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+
+    expect(updated.selectedObjectiveCardId).toBeNull();
+    expect(updated.objectiveChoices).toEqual([]);
+    expect(updated.resources).toEqual({ meat: 1, egg: 1, fruit: 1, seed: 1 });
+    expect(game.log.at(-1)?.payload).toMatchObject({ kind: "objective", actorPlayerId: "jaguar" });
   });
 
   it("skips objective cards when the objective mini-expansion is disabled", () => {

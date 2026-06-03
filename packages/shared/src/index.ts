@@ -27,6 +27,19 @@ export type ScenarioCardId =
   | "pantanal";
 export type ScenarioSelectionMode = "vote" | "host";
 export type ScenarioCount = 1 | 2;
+export type ObjectiveEligibilityCategory = "predator" | "middle" | "base";
+export type ObjectiveScoringKind =
+  | "removed_species"
+  | "resource_majority"
+  | "seed_spend"
+  | "resource_majority_count"
+  | "habitat_line"
+  | "resource_line"
+  | "missing_resources"
+  | "extra_turn"
+  | "discard_for_resources"
+  | "resource_square"
+  | "pieces_in_forest";
 export type ThreatCardId =
   | "threat_1"
   | "threat_2"
@@ -78,6 +91,17 @@ export interface ObjectiveCardDefinition {
   id: string;
   label: string;
   imagePath: string;
+  eligibleCategories: ObjectiveEligibilityCategory[];
+  scoring: {
+    kind: ObjectiveScoringKind;
+    resource?: Resource;
+    habitat?: Habitat;
+    minLength?: number;
+    diagonalsOnly?: boolean;
+    maxPoints?: number;
+    points?: number;
+    spendSeedCount?: number;
+  };
   rules: Partial<Record<ObjectiveRuleTier, string>>;
 }
 

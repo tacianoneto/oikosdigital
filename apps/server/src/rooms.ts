@@ -7,6 +7,7 @@ import {
   addWolfForCurrentAction,
   completeCurrentAction,
   createInitialGameState,
+  discardObjectiveForResources,
   forceEndPlayerTurn,
   movePieceForCurrentAction,
   placeForestCard,
@@ -820,6 +821,20 @@ export function chooseObjective(roomId: string, playerId: string, objectiveCardI
 
   room.game = selectObjectiveCard(room.game, playerId, objectiveCardId);
   room.status = room.game.status === "setup" ? "setup" : room.status;
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
+export function discardObjective(roomId: string, playerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (!room.game) {
+    throw new Error("A partida ainda nao foi iniciada.");
+  }
+
+  room.game = discardObjectiveForResources(room.game, playerId);
+  room.status = room.game.status === "active" ? "active" : room.status;
   room.warnings = room.game.contentWarnings;
 
   return toPublicRoom(room);

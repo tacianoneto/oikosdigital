@@ -24,6 +24,7 @@ import {
   getTurnTimerMs,
   setTurnTimer,
   chooseObjective,
+  discardObjective,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -604,6 +605,14 @@ io.on("connection", (socket) => {
   socket.on("objective:select", (payload: { roomId: string; objectiveCardId: string }, reply) => {
     withReply(reply, () => {
       const room = chooseObjective(payload.roomId, playerId, payload.objectiveCardId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("objective:discard", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = discardObjective(payload.roomId, playerId);
       broadcastRoom(room);
       return room;
     });

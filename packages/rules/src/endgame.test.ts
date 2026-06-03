@@ -77,7 +77,7 @@ describe("end game scoring", () => {
     let game = activeGame([player("p1", "coati"), player("p2", "macaw")]);
     const a = game.players.find((p) => p.playerId === "p1")!;
     a.score = 4;
-    a.selectedObjectiveCardId = "objective_12";
+    a.selectedObjectiveCardId = "objective_23";
     a.piecesInForest = ["a", "b", "c", "d", "e"]; // Quati has 8 pieces: more than half = +1 objective point.
 
     game = forceEndPlayerTurn(game, "p1", "end turn");
@@ -91,6 +91,48 @@ describe("end game scoring", () => {
     expect(entryA.objectivePoints).toBe(1);
     expect(entryA.totalScore).toBe(5);
     expect(finished.players.find((p) => p.playerId === "p1")!.score).toBe(5);
+  });
+
+  it("scores resource-majority objectives from the pre-spend final resources", () => {
+    const game = activeGame([player("p1", "coati"), player("p2", "macaw")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    const b = game.players.find((p) => p.playerId === "p2")!;
+    a.selectedObjectiveCardId = "objective_2";
+    a.resources = { meat: 0, egg: 0, fruit: 3, seed: 0 };
+    b.resources = { meat: 0, egg: 0, fruit: 1, seed: 0 };
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+
+    expect(entryA.resourceMajorityPoints).toBe(1);
+    expect(entryA.objectivePoints).toBe(2);
+    expect(finished.players.find((p) => p.playerId === "p1")!.resources.fruit).toBe(0);
+  });
+
+  it("spends 3 seeds for the predator seed objective before normal seed conversion", () => {
+    const game = activeGame([player("p1", "jaguar"), player("p2", "macaw")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    a.selectedObjectiveCardId = "objective_3";
+    a.resources = { meat: 0, egg: 0, fruit: 0, seed: 5 };
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+
+    expect(entryA.objectivePoints).toBe(3);
+    expect(entryA.seedPoints).toBe(1);
+    expect(finished.players.find((p) => p.playerId === "p1")!.resources.seed).toBe(0);
+  });
+
+  it("scores missing-resource objectives for predator and middle categories", () => {
+    const game = activeGame([player("p1", "jaguar"), player("p2", "macaw")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    a.selectedObjectiveCardId = "objective_14";
+    a.resources = { meat: 0, egg: 1, fruit: 0, seed: 0 };
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+
+    expect(entryA.objectivePoints).toBe(2);
   });
 
   it("tiebreak falls back to higher population value", () => {

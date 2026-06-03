@@ -151,6 +151,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "threat:caca-ilegal-resolve", { roomId, ...choice }),
   selectObjective: (socket: OikosSocket, roomId: string, objectiveCardId: string) =>
     emitWithReply<PublicRoomState>(socket, "objective:select", { roomId, objectiveCardId }),
+  discardObjective: (socket: OikosSocket, roomId: string) =>
+    emitWithReply<PublicRoomState>(socket, "objective:discard", { roomId }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "setup:place-piece", { roomId, x, y }),
   placeForestCard: (

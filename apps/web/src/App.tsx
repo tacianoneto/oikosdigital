@@ -102,7 +102,8 @@ import {
   spendWolfResourcesForPoints,
   collectCaatingaBonus,
   collectCerradoBonus,
-  discardMataAtlanticaPileCard
+  discardMataAtlanticaPileCard,
+  discardObjectiveForResources
 } from "@oikos/rules";
 import type {
   GameState,
@@ -1853,6 +1854,12 @@ export function App() {
   const selectedObjectiveCard = currentGamePlayer?.selectedObjectiveCardId
     ? getObjectiveCardDefinition(currentGamePlayer.selectedObjectiveCardId)
     : null;
+  const canDiscardSelectedObjective = Boolean(
+    !isSpectator &&
+      currentGamePlayer &&
+      room?.game?.status === "active" &&
+      selectedObjectiveCard?.scoring.kind === "discard_for_resources"
+  );
   const needsObjectiveChoice = Boolean(
     currentGamePlayer &&
       objectiveChoices.length > 0 &&
@@ -3266,6 +3273,34 @@ export function App() {
     },
     [currentGamePlayer, isLocalRoom, name, pendingObjectiveCardId, room, socket]
   );
+
+  const handleDiscardObjective = useCallback(async () => {
+    if (!room?.game || !currentGamePlayer || !canDiscardSelectedObjective) {
+      return;
+    }
+
+    setError(null);
+    setNotice(null);
+
+    if (isLocalRoom) {
+      try {
+        const nextGame = discardObjectiveForResources(room.game, currentGamePlayer.playerId);
+        setRoom({
+          ...room,
+          game: nextGame,
+          warnings: nextGame.contentWarnings
+        });
+        setExpansionPreview(null);
+        setNotice("Objetivo descartado: +1 recurso de cada.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha ao descartar objetivo.");
+      }
+      return;
+    }
+
+    await run(() => roomApi.discardObjective(requireSocket(), room.roomId), "Objetivo descartado: +1 recurso de cada.");
+    setExpansionPreview(null);
+  }, [canDiscardSelectedObjective, currentGamePlayer, isLocalRoom, room, socket]);
 
   function toggleLocalSpecies(speciesId: SpeciesId) {
     setLocalSpeciesIds((current) =>
@@ -5412,11 +5447,19 @@ export function App() {
             <X aria-hidden="true" />
           </button>
           {expansionPreview === "objective" && selectedObjectiveCard && (
-            <img
-              src={encodeURI(selectedObjectiveCard.imagePath)}
-              alt={selectedObjectiveCard.label}
-              draggable={false}
-            />
+            <>
+              <img
+                src={encodeURI(selectedObjectiveCard.imagePath)}
+                alt={selectedObjectiveCard.label}
+                draggable={false}
+              />
+              {canDiscardSelectedObjective && (
+                <button type="button" className="expansion-preview-action" onClick={() => void handleDiscardObjective()}>
+                  <Leaf aria-hidden="true" />
+                  Descartar por recursos
+                </button>
+              )}
+            </>
           )}
           {expansionPreview === "scenarios" && (
             <div className="expansion-preview-stack">
