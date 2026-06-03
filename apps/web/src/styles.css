@@ -8119,8 +8119,8 @@ input:focus {
 .caca-board-removal-floating {
   position: fixed;
   left: 50%;
-  bottom: 132px;
-  z-index: 245;
+  top: 96px;
+  z-index: 12000;
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: minmax(220px, auto) auto auto;
