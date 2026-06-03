@@ -30,6 +30,7 @@ import type {
   SpeciesId
 } from "@oikos/shared";
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
+import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 
 const defaultCardSiteId = "main";
 
@@ -2705,9 +2706,14 @@ export function getValidJaguarMovementDestinations(game: GameState, playerId: st
   }
 
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
-
-  if (game.activeThreatCardId === "threat_6") {
-    return getPotentialDestinations(jaguarPiece.location, "adjacent")
+  const movementOverride = getMovementKindOverride(game, {
+    playerId,
+    speciesId: "jaguar",
+    origin: jaguarPiece.location,
+    actionId: (action as ActionId | null) ?? null
+  });
+  if (movementOverride) {
+    return getPotentialDestinations(jaguarPiece.location, movementOverride)
       .filter((position) => forestPositions.has(positionKey(position)))
       .sort((a, b) => a.y - b.y || a.x - b.x);
   }
@@ -3032,8 +3038,7 @@ function advanceActiveAction(game: GameState): void {
 
 function finishPlayerTurn(game: GameState, player: PlayerState): void {
   player.turnsTaken += 1;
-  applyEndTurnThreatPenalty(game, player);
-  if (queueCacaIlegalIfNeeded(game, player)) {
+  if (applyEndTurnRuleEffects(game, player).paused) {
     return;
   }
   rotateToNextPlayer(game, player);
@@ -3110,46 +3115,6 @@ function revealThreatForRound(game: GameState): void {
       createdAt: Date.now()
     }
   ];
-}
-
-function applyEndTurnThreatPenalty(game: GameState, player: PlayerState): void {
-  if (game.activeThreatCardId !== "threat_8") {
-    return;
-  }
-
-  const previousScore = player.score;
-  player.score = Math.max(0, player.score - 1);
-  game.log = [
-    ...game.log,
-    {
-      id: `threat_infestacao_${player.playerId}_${player.turnsTaken}`,
-      message:
-        previousScore > player.score
-          ? `${player.name} perdeu 1 ponto por Infestacao.`
-          : `${player.name} nao tinha pontos para perder por Infestacao.`,
-      createdAt: Date.now()
-    }
-  ];
-}
-
-function queueCacaIlegalIfNeeded(game: GameState, player: PlayerState): boolean {
-  if (game.activeThreatCardId !== "threat_4") return false;
-  const hasPieces = player.speciesId !== "jaguar" && player.piecesInForest.length > 0;
-  const totalResources = ALL_RESOURCES.reduce(
-    (sum, resource) => sum + (player.resources[resource] ?? 0),
-    0
-  );
-  if (!hasPieces && totalResources === 0) return false;
-  game.cacaIlegalPending = { playerId: player.playerId };
-  game.log = [
-    ...game.log,
-    {
-      id: `caca_ilegal_pending_${player.playerId}_${player.turnsTaken}`,
-      message: `${player.name} precisa resolver Caca ilegal: remover 1 peca propria ou gastar o recurso que mais possui.`,
-      createdAt: Date.now()
-    }
-  ];
-  return true;
 }
 
 export function getCacaIlegalTopResources(game: GameState, playerId: string): Resource[] {
@@ -4063,7 +4028,11 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
     return null;
   }
 
-  const threatBlockReason = getThreatCollectionBlockReason(game, resource, targetDefinition?.habitat ?? null);
+  const threatBlockReason = getCollectionBlockReason(game, {
+    playerId,
+    resource,
+    habitat: targetDefinition?.habitat ?? null
+  });
   if (threatBlockReason) {
     const player = findPlayer(game, playerId);
     game.log = [
@@ -4099,22 +4068,6 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
   };
 
   return resource;
-}
-
-function getThreatCollectionBlockReason(game: GameState, resource: Resource, habitat: Habitat | null): string | null {
-  if (game.activeThreatCardId === "threat_1" && habitat === "river") {
-    return "Seca bloqueia coletas em rio";
-  }
-  if (game.activeThreatCardId === "threat_3" && resource === "egg") {
-    return "Queimada bloqueia ovos";
-  }
-  if (game.activeThreatCardId === "threat_5" && resource === "seed") {
-    return "Poluicao bloqueia pinhas";
-  }
-  if (game.activeThreatCardId === "threat_7" && resource === "fruit") {
-    return "Erosao bloqueia frutas";
-  }
-  return null;
 }
 
 function isForestCardRiverConnectionValid(
@@ -4293,8 +4246,14 @@ function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, orig
   }
 
   const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
-  if (game.activeThreatCardId === "threat_6") {
-    return getPotentialDestinations(origin, "adjacent")
+  const movementOverride = getMovementKindOverride(game, {
+    playerId: game.activePlayerId ?? "",
+    speciesId,
+    origin,
+    habitat: playedCard.habitat
+  });
+  if (movementOverride) {
+    return getPotentialDestinations(origin, movementOverride)
       .filter((position) => forestPositions.has(positionKey(position)))
       .sort((a, b) => a.y - b.y || a.x - b.x);
   }
