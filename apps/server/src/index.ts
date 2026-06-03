@@ -1,7 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { Server } from "socket.io";
-import type { MiniExpansionId, PublicRoomState, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
+import type { MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
@@ -62,6 +62,7 @@ import {
   collectCaatinga,
   collectCerrado,
   discardMataAtlanticaCard,
+  resolveCacaIlegalThreat,
   SCENARIO_VOTING_DURATION_MS
 } from "./rooms";
 
@@ -566,6 +567,26 @@ io.on("connection", (socket) => {
       return room;
     });
   });
+
+  socket.on(
+    "threat:caca-ilegal-resolve",
+    (
+      payload:
+        | { roomId: string; kind: "remove_piece"; pieceId: string }
+        | { roomId: string; kind: "spend_resource"; resource: Resource },
+      reply
+    ) => {
+      withReply(reply, () => {
+        const choice =
+          payload.kind === "remove_piece"
+            ? { kind: "remove_piece" as const, pieceId: payload.pieceId }
+            : { kind: "spend_resource" as const, resource: payload.resource };
+        const room = resolveCacaIlegalThreat(payload.roomId, playerId, choice);
+        broadcastRoom(room);
+        return room;
+      });
+    }
+  );
 
   socket.on("scenario:vote", (payload: { roomId: string; votes: ScenarioCardId[] }, reply) => {
     withReply(reply, () => {

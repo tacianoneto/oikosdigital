@@ -672,7 +672,8 @@ export function createInitialGameState(
     caatingaUsedByPlayer: {},
     caatingaPending: null,
     mataAtlanticaPiles,
-    mataAtlanticaDiscardByPlayer: {}
+    mataAtlanticaDiscardByPlayer: {},
+    cacaIlegalPending: null
   };
 }
 
@@ -2266,6 +2267,10 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     throw new Error("Resolva o efeito do Cerrado antes de continuar.");
   }
 
+  if (game.cacaIlegalPending) {
+    throw new Error("Resolva o efeito de Caca ilegal antes de continuar.");
+  }
+
   if (game.pendingCoatiPairBonus) {
     throw new Error("Resolva o bonus da dupla de quatis antes de concluir a acao.");
   }
@@ -2970,7 +2975,7 @@ function advanceSetupTurn(game: GameState): void {
 }
 
 function advanceActiveAction(game: GameState): void {
-  if (game.caatingaPending || game.cerradoPending) {
+  if (game.caatingaPending || game.cerradoPending || game.cacaIlegalPending) {
     return;
   }
 
@@ -3006,6 +3011,13 @@ function advanceActiveAction(game: GameState): void {
 function finishPlayerTurn(game: GameState, player: PlayerState): void {
   player.turnsTaken += 1;
   applyEndTurnThreatPenalty(game, player);
+  if (queueCacaIlegalIfNeeded(game, player)) {
+    return;
+  }
+  rotateToNextPlayer(game, player);
+}
+
+function rotateToNextPlayer(game: GameState, player: PlayerState): void {
   const currentTurnIndex = game.turnOrder.indexOf(player.playerId);
   const nextTurnIndex = currentTurnIndex >= 0 ? (currentTurnIndex + 1) % game.turnOrder.length : 0;
   const nextPlayerId = game.turnOrder[nextTurnIndex] ?? null;
@@ -3096,6 +3108,103 @@ function applyEndTurnThreatPenalty(game: GameState, player: PlayerState): void {
       createdAt: Date.now()
     }
   ];
+}
+
+function queueCacaIlegalIfNeeded(game: GameState, player: PlayerState): boolean {
+  if (game.activeThreatCardId !== "threat_4") return false;
+  const hasPieces = player.piecesInForest.length > 0;
+  const totalResources = ALL_RESOURCES.reduce(
+    (sum, resource) => sum + (player.resources[resource] ?? 0),
+    0
+  );
+  if (!hasPieces && totalResources === 0) return false;
+  game.cacaIlegalPending = { playerId: player.playerId };
+  game.log = [
+    ...game.log,
+    {
+      id: `caca_ilegal_pending_${player.playerId}_${player.turnsTaken}`,
+      message: `${player.name} precisa resolver Caca ilegal: remover 1 peca propria ou gastar o recurso que mais possui.`,
+      createdAt: Date.now()
+    }
+  ];
+  return true;
+}
+
+export function getCacaIlegalTopResources(game: GameState, playerId: string): Resource[] {
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player) return [];
+  let max = 0;
+  for (const resource of ALL_RESOURCES) {
+    const count = player.resources[resource] ?? 0;
+    if (count > max) max = count;
+  }
+  if (max <= 0) return [];
+  return ALL_RESOURCES.filter((resource) => (player.resources[resource] ?? 0) === max);
+}
+
+export function getCacaIlegalRemovablePieceIds(game: GameState, playerId: string): string[] {
+  return game.pieces
+    .filter((piece) => piece.ownerId === playerId && piece.location)
+    .map((piece) => piece.pieceId);
+}
+
+export function resolveCacaIlegal(
+  game: GameState,
+  playerId: string,
+  choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }
+): GameState {
+  if (game.status !== "active") {
+    throw new Error("Caca ilegal so pode ser resolvida durante a fase ativa.");
+  }
+  if (!game.cacaIlegalPending || game.cacaIlegalPending.playerId !== playerId) {
+    throw new Error("Nenhum efeito de Caca ilegal pendente.");
+  }
+  const next = cloneGameState(game);
+  const player = findPlayer(next, playerId);
+
+  if (choice.kind === "remove_piece") {
+    const piece = next.pieces.find(
+      (candidate) => candidate.pieceId === choice.pieceId && candidate.ownerId === playerId && candidate.location
+    );
+    if (!piece) {
+      throw new Error("Peca invalida para remocao.");
+    }
+    piece.location = null;
+    player.piecesInForest = player.piecesInForest.filter((id) => id !== choice.pieceId);
+    player.reservePieces = [...player.reservePieces, choice.pieceId];
+    if (piece.speciesId === "coati") {
+      pruneResolvedCoatiPairBonuses(next, playerId);
+    }
+    next.log = [
+      ...next.log,
+      {
+        id: `caca_ilegal_remove_${playerId}_${next.log.length + 1}`,
+        message: `${player.name} removeu 1 ${player.speciesId ? getSpeciesPieceLogName(player.speciesId) : "peca"} (Caca ilegal).`,
+        createdAt: Date.now()
+      }
+    ];
+  } else {
+    const top = getCacaIlegalTopResources(next, playerId);
+    if (!top.includes(choice.resource)) {
+      throw new Error("Recurso invalido: escolha um dos recursos que voce mais possui.");
+    }
+    player.resources = {
+      ...player.resources,
+      [choice.resource]: Math.max(0, (player.resources[choice.resource] ?? 0) - 1)
+    };
+    next.log = [
+      ...next.log,
+      {
+        id: `caca_ilegal_spend_${playerId}_${next.log.length + 1}`,
+        message: `${player.name} gastou 1 ${choice.resource} (Caca ilegal).`,
+        createdAt: Date.now()
+      }
+    ];
+  }
+
+  next.cacaIlegalPending = null;
+  rotateToNextPlayer(next, player);
+  return next;
 }
 
 function getMataAtlanticaPileTops(game: GameState): string[] {
@@ -3854,6 +3963,7 @@ function cloneGameState(game: GameState): GameState {
       ? game.mataAtlanticaPiles.map((pile) => [...pile])
       : null,
     mataAtlanticaDiscardByPlayer: { ...(game.mataAtlanticaDiscardByPlayer ?? {}) },
+    cacaIlegalPending: game.cacaIlegalPending ? { ...game.cacaIlegalPending } : null,
     pendingCoatiPairBonus: game.pendingCoatiPairBonus
       ? {
           ...game.pendingCoatiPairBonus,

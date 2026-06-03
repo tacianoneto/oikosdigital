@@ -143,6 +143,12 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "scenario:cerrado-collect", { roomId, mode }),
   discardMataAtlantica: (socket: OikosSocket, roomId: string, cardId: string) =>
     emitWithReply<PublicRoomState>(socket, "scenario:mata-atlantica-discard", { roomId, cardId }),
+  resolveCacaIlegal: (
+    socket: OikosSocket,
+    roomId: string,
+    choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }
+  ) =>
+    emitWithReply<PublicRoomState>(socket, "threat:caca-ilegal-resolve", { roomId, ...choice }),
   selectObjective: (socket: OikosSocket, roomId: string, objectiveCardId: string) =>
     emitWithReply<PublicRoomState>(socket, "objective:select", { roomId, objectiveCardId }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>

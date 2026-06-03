@@ -9,6 +9,9 @@ import {
   collectCerradoBonus,
   completeCurrentAction,
   discardMataAtlanticaPileCard,
+  resolveCacaIlegal,
+  getCacaIlegalRemovablePieceIds,
+  getCacaIlegalTopResources,
   forceEndPlayerTurn,
   getArmadilloHidePieceIds,
   getArmadilloSeedPlacementPositions,
@@ -80,6 +83,21 @@ export function playBotStep(game: GameState, playerId: string): GameState {
       return collectCerradoBonus(game, playerId);
     } catch {
       // fall through and keep playing
+    }
+  }
+
+  if (game.cacaIlegalPending?.playerId === playerId) {
+    try {
+      const top = getCacaIlegalTopResources(game, playerId);
+      if (top.length > 0) {
+        return resolveCacaIlegal(game, playerId, { kind: "spend_resource", resource: top[0] });
+      }
+      const removable = getCacaIlegalRemovablePieceIds(game, playerId);
+      if (removable.length > 0) {
+        return resolveCacaIlegal(game, playerId, { kind: "remove_piece", pieceId: removable[0] });
+      }
+    } catch {
+      // fall through
     }
   }
 
@@ -162,6 +180,21 @@ export function playRandomStep(game: GameState, playerId: string): GameState {
   if (game.cerradoPending?.playerId === playerId) {
     try {
       return collectCerradoBonus(game, playerId);
+    } catch {
+      // fall through
+    }
+  }
+
+  if (game.cacaIlegalPending?.playerId === playerId) {
+    try {
+      const top = getCacaIlegalTopResources(game, playerId);
+      if (top.length > 0) {
+        return resolveCacaIlegal(game, playerId, { kind: "spend_resource", resource: top[0] });
+      }
+      const removable = getCacaIlegalRemovablePieceIds(game, playerId);
+      if (removable.length > 0) {
+        return resolveCacaIlegal(game, playerId, { kind: "remove_piece", pieceId: removable[0] });
+      }
     } catch {
       // fall through
     }

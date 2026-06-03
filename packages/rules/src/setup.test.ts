@@ -38,6 +38,8 @@ import {
   getWolfMeatPlacementPositions,
   getWolfRemovableBasePieceIds,
   getWolfSpendableResourceTypes,
+  getCacaIlegalRemovablePieceIds,
+  getCacaIlegalTopResources,
   getAvailableForestExpansionPositions,
   moveJaguarForCurrentAction,
   movePieceForCurrentAction,
@@ -46,6 +48,7 @@ import {
   removeBasePieceForWolfAction,
   removePiecesForCurrentAction,
   resolveCoatiPairBonus,
+  resolveCacaIlegal,
   selectObjectiveCard,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
@@ -1993,11 +1996,83 @@ describe("threat mini expansion", () => {
         seen.add(game.activeThreatCardId);
       }
       game = forceEndPlayerTurn(game, game.activePlayerId!, "teste");
+      if (game.cacaIlegalPending) {
+        const pendingPlayerId = game.cacaIlegalPending.playerId;
+        const topResources = getCacaIlegalTopResources(game, pendingPlayerId);
+        if (topResources.length > 0) {
+          game = resolveCacaIlegal(game, pendingPlayerId, { kind: "spend_resource", resource: topResources[0] });
+        } else {
+          game = resolveCacaIlegal(game, pendingPlayerId, {
+            kind: "remove_piece",
+            pieceId: getCacaIlegalRemovablePieceIds(game, pendingPlayerId)[0]!
+          });
+        }
+      }
     }
 
     expect(seen.size).toBe(5);
     expect(game.status).toBe("finished");
     expect(game.threatDeckIds).toHaveLength(3);
+  });
+
+  it("pauses at end of turn for Caca ilegal and lets tied top resources be chosen", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("wolf", "maned_wolf")]);
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+    game = {
+      ...setActiveAction(game, "wolf", 3),
+      activeThreatCardId: "threat_4",
+      players: game.players.map((candidate) =>
+        candidate.playerId === "wolf"
+          ? { ...candidate, resources: { meat: 2, egg: 2, fruit: 1, seed: 0 } }
+          : candidate
+      )
+    };
+
+    game = forceEndPlayerTurn(game, "wolf", "teste");
+
+    expect(game.activePlayerId).toBe("wolf");
+    expect(game.cacaIlegalPending).toEqual({ playerId: "wolf" });
+    expect(getCacaIlegalTopResources(game, "wolf")).toEqual(["meat", "egg"]);
+
+    game = resolveCacaIlegal(game, "wolf", { kind: "spend_resource", resource: "egg" });
+
+    expect(game.players.find((candidate) => candidate.playerId === "wolf")?.resources).toEqual({
+      meat: 2,
+      egg: 1,
+      fruit: 1,
+      seed: 0
+    });
+    expect(game.cacaIlegalPending).toBeNull();
+    expect(game.activePlayerId).toBe("jaguar");
+  });
+
+  it("lets Caca ilegal remove one own piece from the board", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("wolf", "maned_wolf")]);
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+    game = {
+      ...setActiveAction(game, "wolf", 3),
+      activeThreatCardId: "threat_4",
+      players: game.players.map((candidate) =>
+        candidate.playerId === "wolf"
+          ? { ...candidate, resources: { meat: 0, egg: 0, fruit: 0, seed: 0 } }
+          : candidate
+      )
+    };
+    game = forceEndPlayerTurn(game, "wolf", "teste");
+    const removable = getCacaIlegalRemovablePieceIds(game, "wolf");
+
+    expect(removable).toHaveLength(2);
+
+    game = resolveCacaIlegal(game, "wolf", { kind: "remove_piece", pieceId: removable[0] });
+
+    expect(game.pieces.find((piece) => piece.pieceId === removable[0])?.location).toBeNull();
+    expect(game.players.find((candidate) => candidate.playerId === "wolf")?.piecesInForest).not.toContain(removable[0]);
+    expect(game.players.find((candidate) => candidate.playerId === "wolf")?.reservePieces).toContain(removable[0]);
+    expect(game.activePlayerId).toBe("jaguar");
   });
 });
 

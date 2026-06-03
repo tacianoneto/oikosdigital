@@ -85,12 +85,15 @@ import {
   getWolfMeatPlacementPositions,
   getWolfRemovableBasePieceIds,
   getWolfSpendableResourceTypes,
+  getCacaIlegalRemovablePieceIds,
+  getCacaIlegalTopResources,
   movePieceForCurrentAction,
   placeForestCard,
   placeInitialPiece,
   removeBasePieceForWolfAction,
   removePiecesForCurrentAction,
   resolveCoatiPairBonus,
+  resolveCacaIlegal,
   selectObjectiveCard,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
@@ -3632,12 +3635,48 @@ export function App() {
   const caatingaGamePlayer = caatingaPending
     ? room?.game?.players.find((candidate) => candidate.playerId === caatingaPending.playerId) ?? null
     : null;
+  const cacaIlegalPending = room?.game?.cacaIlegalPending ?? null;
+  const cacaIlegalGamePlayer = cacaIlegalPending
+    ? room?.game?.players.find((candidate) => candidate.playerId === cacaIlegalPending.playerId) ?? null
+    : null;
+  const cacaIlegalTopResources = useMemo(
+    () => (room?.game && cacaIlegalPending ? getCacaIlegalTopResources(room.game, cacaIlegalPending.playerId) : []),
+    [cacaIlegalPending, room?.game]
+  );
+  const cacaIlegalRemovablePieceIds = useMemo(
+    () => (room?.game && cacaIlegalPending ? getCacaIlegalRemovablePieceIds(room.game, cacaIlegalPending.playerId) : []),
+    [cacaIlegalPending, room?.game]
+  );
+  const cacaIlegalRemovablePieces = useMemo(
+    () =>
+      room?.game
+        ? cacaIlegalRemovablePieceIds
+            .map((pieceId) => room.game!.pieces.find((piece) => piece.pieceId === pieceId) ?? null)
+            .filter((piece): piece is NonNullable<typeof piece> => Boolean(piece))
+        : [],
+    [cacaIlegalRemovablePieceIds, room?.game]
+  );
   const cerradoPending = room?.game?.cerradoPending ?? null;
   const cerradoGamePlayer = cerradoPending
     ? room?.game?.players.find((candidate) => candidate.playerId === cerradoPending.playerId) ?? null
     : null;
+  const canResolveCacaIlegal = Boolean(cacaIlegalPending && controlledPlayerId === cacaIlegalPending.playerId);
   const canResolveCaatinga = Boolean(caatingaPending && controlledPlayerId === caatingaPending.playerId);
-  const canResolveCerrado = Boolean(!caatingaPending && cerradoPending && controlledPlayerId === cerradoPending.playerId);
+  const canResolveCerrado = Boolean(!caatingaPending && !cacaIlegalPending && cerradoPending && controlledPlayerId === cerradoPending.playerId);
+  const resolveCacaIlegalChoice = (choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }) => {
+    if (!room?.game || !cacaIlegalPending || !canResolveCacaIlegal) return;
+    if (isLocalRoom) {
+      try {
+        const nextGame = resolveCacaIlegal(room.game, cacaIlegalPending.playerId, choice);
+        setRoom((current) => (current ? { ...current, game: nextGame } : current));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao resolver Caca ilegal.");
+      }
+    } else {
+      const rid = room.roomId;
+      run(() => roomApi.resolveCacaIlegal(requireSocket(), rid, choice));
+    }
+  };
   const resolveCaatingaChoice = (mode: "gain" | "lose" | "skip") => {
     if (!room?.game || !caatingaPending || !canResolveCaatinga) return;
     if (isLocalRoom) {
@@ -3677,7 +3716,8 @@ export function App() {
       (room.game.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer.playerId] !== currentGamePlayer.turnsTaken &&
       mataAtlanticaPileTopIds.length > 0 &&
       !caatingaPending &&
-      !cerradoPending
+      !cerradoPending &&
+      !cacaIlegalPending
   );
   const resolveMataAtlanticaDiscard = (cardId: string) => {
     if (!room?.game || !currentGamePlayer) return;
@@ -3723,6 +3763,65 @@ export function App() {
       }`}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
     >
+      {cacaIlegalPending && canResolveCacaIlegal && (
+        <div className="caatinga-choice-backdrop" role="presentation">
+          <section className="caatinga-choice-modal caca-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caca-choice-title">
+            <div className="caatinga-choice-head caca-choice-head">
+              <AlertTriangle aria-hidden="true" />
+              <span>Ameaca Caca ilegal</span>
+            </div>
+            <h2 id="caca-choice-title">Escolha a perda do turno</h2>
+            <p>
+              {cacaIlegalGamePlayer?.name ?? "Jogador"}, ao final do seu turno remova 1 peca sua do tabuleiro
+              ou gaste 1 recurso entre os que voce mais possui.
+            </p>
+            {cacaIlegalTopResources.length > 0 && (
+              <div className="caca-choice-section">
+                <strong>Gastar recurso</strong>
+                <div className="caca-resource-grid">
+                  {cacaIlegalTopResources.map((resource) => (
+                    <button
+                      key={resource}
+                      type="button"
+                      className="caatinga-collect-btn caca-resource-btn"
+                      onClick={() => resolveCacaIlegalChoice({ kind: "spend_resource", resource })}
+                    >
+                      <img src={encodeURI(resourceAssets[resource])} alt="" />
+                      {resourceLabels[resource]} ({cacaIlegalGamePlayer?.resources[resource] ?? 0})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {cacaIlegalRemovablePieces.length > 0 && (
+              <div className="caca-choice-section">
+                <strong>Remover peca</strong>
+                <div className="caca-piece-grid">
+                  {cacaIlegalRemovablePieces.map((piece, index) => {
+                    const species = speciesDefinitions[piece.speciesId];
+                    return (
+                      <button
+                        key={piece.pieceId}
+                        type="button"
+                        className="caca-piece-btn"
+                        onClick={() => resolveCacaIlegalChoice({ kind: "remove_piece", pieceId: piece.pieceId })}
+                      >
+                        <img src={encodeURI(species.meepleAsset)} alt="" />
+                        <span>
+                          {species.displayName} {index + 1}
+                        </span>
+                        <small>
+                          ({piece.location?.x}, {piece.location?.y})
+                        </small>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
       {caatingaPending && canResolveCaatinga && (
         <div className="caatinga-choice-backdrop" role="presentation">
           <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caatinga-choice-title">

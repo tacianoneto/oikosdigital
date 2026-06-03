@@ -284,6 +284,11 @@ export interface GameState {
   // Tracks per-player turnsTaken when they last manually discarded a card from
   // a Mata Atlântica pile. Used to avoid double-discard at turn end.
   mataAtlanticaDiscardByPlayer: Record<string, number>;
+  // Threat 4 (Caca ilegal): at end of turn the active player must choose
+  // between removing one of their own pieces from the forest or spending one
+  // unit of the resource they currently hold the most of. Turn rotation
+  // pauses until the choice is resolved.
+  cacaIlegalPending: { playerId: string } | null;
 }
 
 export interface RoomPlayer {

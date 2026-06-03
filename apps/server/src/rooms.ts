@@ -17,6 +17,7 @@ import {
   selectObjectiveCard,
   collectCaatingaBonus,
   collectCerradoBonus,
+  resolveCacaIlegal,
   discardMataAtlanticaPileCard,
   requiredCommonCardsForPlayers,
   hideArmadilloForCurrentAction,
@@ -849,6 +850,21 @@ export function collectCerrado(
     throw new Error("A partida ainda nao foi iniciada.");
   }
   room.game = collectCerradoBonus(room.game, playerId, mode);
+  room.status = room.game.status === "active" ? "active" : room.status;
+  room.warnings = room.game.contentWarnings;
+  return toPublicRoom(room);
+}
+
+export function resolveCacaIlegalThreat(
+  roomId: string,
+  playerId: string,
+  choice: Parameters<typeof resolveCacaIlegal>[2]
+): PublicRoomState {
+  const room = getRoom(roomId);
+  if (!room.game) {
+    throw new Error("A partida ainda nao foi iniciada.");
+  }
+  room.game = resolveCacaIlegal(room.game, playerId, choice);
   room.status = room.game.status === "active" ? "active" : room.status;
   room.warnings = room.game.contentWarnings;
   return toPublicRoom(room);
