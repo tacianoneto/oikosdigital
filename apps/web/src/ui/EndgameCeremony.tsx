@@ -35,7 +35,7 @@ interface EndgameCeremonyProps {
   onLeave: () => void;
 }
 
-const STAGE_INTERVAL_MS = 1300;
+const STAGE_INTERVAL_MS = 2200;
 
 function rankSort(a: { score: number; entry: FinalScoreEntry }, b: { score: number; entry: FinalScoreEntry }) {
   return (
@@ -92,7 +92,7 @@ export function EndgameCeremony({
   useEffect(() => {
     if (done) return;
     if (revealCount >= categories.length) {
-      const t = window.setTimeout(() => setDone(true), 700);
+      const t = window.setTimeout(() => setDone(true), 1100);
       return () => window.clearTimeout(t);
     }
     const t = window.setTimeout(() => setRevealCount((n) => n + 1), STAGE_INTERVAL_MS);
