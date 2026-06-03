@@ -31,6 +31,12 @@ import type {
 } from "@oikos/shared";
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
+import {
+  canSpeciesRemovePieceForCacaIlegal,
+  getSpeciesPieceLogName,
+  hasSpeciesMovementRule,
+  isImplementedSpecies
+} from "./speciesRules";
 
 const defaultCardSiteId = "main";
 
@@ -2644,7 +2650,8 @@ export function getValidPieceMovementDestinations(game: GameState, playerId: str
   }
 
   const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId === "maned_wolf" && getCurrentAction(game) === "A") {
+  const action = getCurrentAction(game);
+  if (player?.speciesId === "maned_wolf" && action === "A") {
     const piece = game.pieces.find((candidate) => candidate.pieceId === pieceId);
     if (!piece?.location || piece.ownerId !== playerId || piece.speciesId !== "maned_wolf") {
       return [];
@@ -2661,7 +2668,7 @@ export function getValidPieceMovementDestinations(game: GameState, playerId: str
     return getValidJaguarMovementDestinations(game, playerId, pieceId);
   }
 
-  if (player?.speciesId === "macaw" && getCurrentAction(game) === "C") {
+  if (player?.speciesId === "macaw" && hasSpeciesMovementRule(player.speciesId, "relocate", action)) {
     const piece = game.pieces.find((candidate) => candidate.pieceId === pieceId);
     if (!piece?.location || piece.ownerId !== playerId || piece.speciesId !== "macaw") {
       return [];
@@ -2674,10 +2681,7 @@ export function getValidPieceMovementDestinations(game: GameState, playerId: str
     return getMacawActionCTargets(game, playerId);
   }
 
-  if (
-    (player?.speciesId !== "coati" && player?.speciesId !== "capuchin" && player?.speciesId !== "macaw" && player?.speciesId !== "armadillo") ||
-    getCurrentAction(game) !== "B"
-  ) {
+  if (!player?.speciesId || !hasSpeciesMovementRule(player.speciesId, "played_card", action)) {
     return [];
   }
 
@@ -2780,29 +2784,28 @@ export function movePieceForCurrentAction(
     return moveJaguarForCurrentAction(game, playerId, destination, targetPieceId);
   }
 
-  if (
-    player.speciesId !== "coati" &&
-    player.speciesId !== "capuchin" &&
-    player.speciesId !== "macaw" &&
-    player.speciesId !== "armadillo" &&
-    player.speciesId !== "maned_wolf"
-  ) {
+  if (!player.speciesId) {
+    throw new Error("Jogador sem especie nao pode mover peca.");
+  }
+
+  if (!isImplementedSpecies(player.speciesId)) {
     throw new Error("Movimento de acao implementado apenas para especies ja implementadas nesta etapa.");
   }
 
-  if (player.speciesId === "macaw" && getCurrentAction(game) === "C") {
+  const action = getCurrentAction(game);
+  if (hasSpeciesMovementRule(player.speciesId, "relocate", action)) {
     return relocateMacawForCurrentAction(game, playerId, pieceId, destination);
   }
 
   if (player.speciesId === "maned_wolf") {
-    if (getCurrentAction(game) !== "A") {
+    if (!hasSpeciesMovementRule(player.speciesId, "pending_all_by_played_card", action)) {
       throw new Error("O Lobo-guara so move durante a acao A apos jogar uma carta.");
     }
 
     if (!game.pendingWolfMoves || game.pendingWolfMoves.playerId !== playerId || !game.pendingWolfMoves.pieceIds.includes(pieceId)) {
       throw new Error("Este lobo nao tem movimento pendente nesta acao.");
     }
-  } else if (getCurrentAction(game) !== "B") {
+  } else if (!hasSpeciesMovementRule(player.speciesId, "played_card", action)) {
     throw new Error("Esta especie so move durante a acao B.");
   }
 
@@ -3131,7 +3134,7 @@ export function getCacaIlegalTopResources(game: GameState, playerId: string): Re
 
 export function getCacaIlegalRemovablePieceIds(game: GameState, playerId: string): string[] {
   const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId === "jaguar") return [];
+  if (!canSpeciesRemovePieceForCacaIlegal(player?.speciesId ?? null)) return [];
   return game.pieces
     .filter((piece) => piece.ownerId === playerId && piece.location)
     .map((piece) => piece.pieceId);
@@ -3152,7 +3155,7 @@ export function resolveCacaIlegal(
   const player = findPlayer(next, playerId);
 
   if (choice.kind === "remove_piece") {
-    if (player.speciesId === "jaguar") {
+    if (!canSpeciesRemovePieceForCacaIlegal(player.speciesId)) {
       throw new Error("A Onca nao pode remover peca por Caca ilegal; gaste um recurso.");
     }
     const piece = next.pieces.find(
@@ -3907,7 +3910,7 @@ function shouldSkipWolfMeatAction(game: GameState, playerId: string): boolean {
   return getCurrentAction(game) === "D" && getWolfMeatPlacementPositions(game, playerId).length === 0;
 }
 
-function getCurrentAction(game: GameState): string | null {
+function getCurrentAction(game: GameState): ActionId | null {
   if (!game.activePlayerId) {
     return null;
   }
@@ -4147,30 +4150,6 @@ function getSurroundingDestinations(game: GameState, origin: GridPosition): Grid
     .map((direction) => ({ x: origin.x + direction.x, y: origin.y + direction.y }))
     .filter((position) => forestPositions.has(positionKey(position)))
     .sort((a, b) => a.y - b.y || a.x - b.x);
-}
-
-function getSpeciesPieceLogName(speciesId: SpeciesId): string {
-  if (speciesId === "coati") {
-    return "quati";
-  }
-
-  if (speciesId === "capuchin") {
-    return "macaco-prego";
-  }
-
-  if (speciesId === "macaw") {
-    return "arara";
-  }
-
-  if (speciesId === "armadillo") {
-    return "tatu";
-  }
-
-  if (speciesId === "maned_wolf") {
-    return "lobo-guara";
-  }
-
-  return "peca";
 }
 
 function getWolfCompletionLogMessage(playerName: string, action: string | null): string {

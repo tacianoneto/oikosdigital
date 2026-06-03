@@ -1,4 +1,5 @@
 import type { ActionId, GameState, GridPosition, Habitat, MovementKind, PlayerState, Resource } from "@oikos/shared";
+import { canSpeciesRemovePieceForCacaIlegal } from "./speciesRules";
 
 type EffectSource = "threat" | "scenario" | "species";
 
@@ -52,7 +53,7 @@ const ruleEffects: RuleEffect[] = [
     source: "threat",
     active: (game) => game.activeThreatCardId === "threat_4",
     onEndTurn: ({ game, player }) => {
-      const hasPieces = player.speciesId !== "jaguar" && player.piecesInForest.length > 0;
+      const hasPieces = canSpeciesRemovePieceForCacaIlegal(player.speciesId) && player.piecesInForest.length > 0;
       const totalResources = allResources.reduce((sum, resource) => sum + (player.resources[resource] ?? 0), 0);
       if (!hasPieces && totalResources === 0) return { paused: false };
 
