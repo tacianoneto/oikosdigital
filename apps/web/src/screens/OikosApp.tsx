@@ -104,7 +104,8 @@ import {
   collectCerradoBonus,
   discardMataAtlanticaPileCard,
   discardObjectiveForResources,
-  isObjectiveCompleted
+  isObjectiveCompleted,
+  getObjectiveProgressPoints
 } from "@oikos/rules";
 import type {
   GameState,
@@ -1839,6 +1840,17 @@ export function OikosApp() {
       currentGamePlayer?.selectedObjectiveCardId &&
       isObjectiveCompleted(room.game, currentGamePlayer.playerId)
   );
+  // Points the selected objective is currently scoring (live). Only meaningful
+  // for point objectives, not the discard/extra-turn action cards.
+  const selectedObjectiveScoresPoints = Boolean(
+    selectedObjectiveCard &&
+      selectedObjectiveCard.scoring.kind !== "discard_for_resources" &&
+      selectedObjectiveCard.scoring.kind !== "extra_turn"
+  );
+  const selectedObjectiveProgress =
+    room?.game && currentGamePlayer?.selectedObjectiveCardId && selectedObjectiveScoresPoints
+      ? getObjectiveProgressPoints(room.game, currentGamePlayer.playerId)
+      : 0;
   const canDiscardSelectedObjective = Boolean(
     !isSpectator &&
       currentGamePlayer &&
@@ -5435,6 +5447,22 @@ export function OikosApp() {
                 alt={selectedObjectiveCard.label}
                 draggable={false}
               />
+              {selectedObjectiveScoresPoints && (
+                <div
+                  className={`objective-progress ${selectedObjectiveProgress > 0 ? "is-scoring" : "is-pending"}`}
+                  role="status"
+                >
+                  <img src={encodeURI(resourceAssets.point)} alt="" />
+                  {selectedObjectiveProgress > 0 ? (
+                    <span>
+                      Fazendo <strong>{selectedObjectiveProgress}</strong> ponto
+                      {selectedObjectiveProgress > 1 ? "s" : ""}
+                    </span>
+                  ) : (
+                    <span>Ainda sem pontos</span>
+                  )}
+                </div>
+              )}
               {canDiscardSelectedObjective && (
                 <button
                   type="button"

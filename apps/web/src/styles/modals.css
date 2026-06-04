@@ -136,6 +136,46 @@
   height: 15px;
 }
 
+/* Live point progress shown right below a point-scoring objective card. */
+.objective-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(14, 27, 21, 0.7);
+  color: var(--paper);
+}
+
+.objective-progress img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.objective-progress strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.objective-progress.is-scoring {
+  border-color: rgba(250, 222, 118, 0.7);
+  background: linear-gradient(180deg, rgba(78, 64, 24, 0.85), rgba(54, 44, 18, 0.9));
+  box-shadow: 0 0 0 1px rgba(250, 222, 118, 0.25), 0 8px 18px rgba(0, 0, 0, 0.4);
+  animation: objective-progress-pop 260ms cubic-bezier(0.2, 0.9, 0.24, 1.4);
+}
+
+.objective-progress.is-pending {
+  opacity: 0.78;
+}
+
+@keyframes objective-progress-pop {
+  0% { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+
 /* Prominent discard action shown right below a discard-type objective card. */
 .objective-discard-btn {
   width: 100%;
