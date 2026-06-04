@@ -3,6 +3,7 @@ import type { RoomPlayer } from "@oikos/shared";
 import {
   createInitialGameState,
   createPreviewInitialForest,
+  completeCurrentAction,
   finalizeGame,
   forceEndPlayerTurn,
   resolveExtraTurnObjective
@@ -231,5 +232,23 @@ describe("end game flow", () => {
     expect(game.status).toBe("finished");
     expect(game.activePlayerId).toBeNull();
     expect(game.finalScoreBreakdown?.entries.find((entry) => entry.playerId === "jaguar")?.baseScore).toBe(2);
+  });
+
+  it("lets a card-using extra-turn player skip action A when no forest card is playable", () => {
+    let game = activeGame([player("p1", "maned_wolf"), player("p2", "coati")]);
+    const wolf = game.players.find((candidate) => candidate.playerId === "p1")!;
+    wolf.hand = [];
+    wolf.score = 3;
+    wolf.selectedObjectiveCardId = "objective_20";
+    game.extraTurnPlayerId = "p1";
+    game.activePlayerId = "p1";
+    game.activeActionIndex = 0;
+    game.activePlayedForestCardId = null;
+
+    game = completeCurrentAction(game, "p1");
+
+    expect(game.activePlayerId).toBe("p1");
+    expect(game.activeActionIndex).toBeGreaterThan(0);
+    expect(game.log.some((entry) => entry.id.startsWith("extra_turn_skip_no_card"))).toBe(true);
   });
 });

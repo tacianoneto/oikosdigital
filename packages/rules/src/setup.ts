@@ -2393,6 +2393,23 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
   assertMataAtlanticaDiscarded(game, playerId);
 
   const player = findPlayer(game, playerId);
+  if (shouldSkipExtraTurnCardAction(game, playerId)) {
+    const next = cloneGameState(game);
+    const nextPlayer = findPlayer(next, playerId);
+    const action = getCurrentAction(game);
+    next.log = [
+      ...next.log,
+      {
+        id: `extra_turn_skip_no_card_${playerId}_${next.log.length + 1}`,
+        message: `${nextPlayer.name} concluiu a acao ${action} do turno extra sem carta de floresta jogavel.`,
+        createdAt: Date.now(),
+        payload: { kind: "skip", actorPlayerId: playerId, actionId: action ?? undefined }
+      }
+    ];
+    advanceActiveAction(next);
+    return next;
+  }
+
   if (player.speciesId !== "coati") {
     if (player.speciesId === "jaguar") {
       const action = getCurrentAction(game);
@@ -3625,6 +3642,20 @@ function skipAutomaticActionIfNeeded(game: GameState): void {
 
   const player = findPlayer(game, game.activePlayerId);
   const action = getCurrentAction(game);
+  if (game.extraTurnPlayerId === player.playerId && shouldSkipExtraTurnCardAction(game, player.playerId)) {
+    game.log = [
+      ...game.log,
+      {
+        id: `auto_skip_extra_turn_card_${player.playerId}_${game.log.length + 1}`,
+        message: `${player.name} pulou automaticamente a acao ${action} do turno extra porque nao havia carta de floresta para jogar.`,
+        createdAt: Date.now(),
+        payload: { kind: "skip", actorPlayerId: player.playerId, actionId: action ?? undefined }
+      }
+    ];
+    advanceActiveAction(game);
+    return;
+  }
+
   if (player.speciesId === "coati" && action === "C" && getRequiredCoatiRemovalCount(game, player.playerId) === 0) {
     game.log = [
       ...game.log,
@@ -3678,6 +3709,20 @@ function skipAutomaticActionIfNeeded(game: GameState): void {
     ];
     advanceActiveAction(game);
   }
+}
+
+function shouldSkipExtraTurnCardAction(game: GameState, playerId: string): boolean {
+  if (getCurrentAction(game) !== "A" || game.activePlayedForestCardId) {
+    return false;
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player?.speciesId || !speciesDefinitions[player.speciesId].usesForestCards) {
+    return false;
+  }
+
+  const playableCards = game.mataAtlanticaPiles ? getMataAtlanticaPileTops(game) : player.hand;
+  return !playableCards.some((cardId) => getAvailableForestExpansionPositionsForCard(game, cardId).length > 0);
 }
 
 function shouldSkipJaguarMoveAction(game: GameState, playerId: string): boolean {

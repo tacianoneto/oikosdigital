@@ -368,6 +368,26 @@ function ObjectiveStatusBadge({
   );
 }
 
+function SkipExtraTurnNoCardAction({
+  visible,
+  onComplete
+}: {
+  visible: boolean;
+  onComplete: () => void;
+}) {
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div className="action-box-actions">
+      <button type="button" className="action-box-btn is-secondary" onClick={onComplete}>
+        Concluir sem carta
+      </button>
+    </div>
+  );
+}
+
 function isExclusiveScenarioPair(a: ScenarioCardId, b: ScenarioCardId): boolean {
   return (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
 }
@@ -1428,6 +1448,21 @@ export function OikosApp() {
         activeSpecies?.speciesId === "macaw" ||
         activeSpecies?.speciesId === "armadillo" ||
         activeSpecies?.speciesId === "maned_wolf")
+  );
+  const hasPlayableForestCardThisAction = useMemo(() => {
+    if (!room?.game || !handPlayableThisAction) {
+      return false;
+    }
+
+    const rotations: Array<0 | 90 | 180 | 270> = [0, 90, 180, 270];
+    return [...playableCardIds].some((cardId) =>
+      rotations.some((rotation) => getAvailableForestExpansionPositionsForCard(room.game!, cardId, rotation).length > 0)
+    );
+  }, [handPlayableThisAction, playableCardIds, room?.game]);
+  const canSkipExtraTurnNoCardAction = Boolean(
+    room?.game?.extraTurnPlayerId === room?.game?.activePlayerId &&
+      handPlayableThisAction &&
+      !hasPlayableForestCardThisAction
   );
   const rotateSelectedCard = useCallback((dir: 1 | -1) => {
     setSelectedCardRotation((r) => (((r + (dir === 1 ? 90 : 270)) % 360) as 0 | 90 | 180 | 270));
@@ -3278,6 +3313,17 @@ export function OikosApp() {
       setSelectedRemovalPieceIds([]);
     });
   }, [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive]);
+
+  useEffect(() => {
+    if (!canSkipExtraTurnNoCardAction || tutorialActive) {
+      return;
+    }
+
+    const id = window.setTimeout(() => {
+      handleCompleteAction();
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [canSkipExtraTurnNoCardAction, handleCompleteAction, tutorialActive]);
 
   const handleSelectObjective = useCallback(
     async (objectiveCardId: string) => {
