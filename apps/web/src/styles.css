@@ -12630,7 +12630,7 @@ input:focus {
   align-items: center;
   justify-content: flex-start;
   isolation: isolate;
-  background: #0c1710;
+  background: transparent;
   --wood-1: #6b4a2a;
   --wood-2: #4a3019;
   --wood-edge: #87603a;

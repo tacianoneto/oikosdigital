@@ -137,7 +137,6 @@ import {
 } from "./ui/audio";
 import { ActionStepsViewer } from "./ui/ActionStepsViewer";
 import { EndgameCeremony } from "./ui/EndgameCeremony";
-import { ForestMenuScene } from "./ui/ForestMenuScene";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -4142,8 +4141,6 @@ export function App() {
       )}
       {!hasStartedGame && !room && landingMode === "idle" && (
         <div className="forest-menu" role="main">
-          <ForestMenuScene />
-
           <span className="forest-version">v0.1 · beta</span>
 
           <div className="forest-menu-content">
