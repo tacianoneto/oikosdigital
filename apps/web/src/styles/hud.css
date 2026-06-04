@@ -8175,3 +8175,56 @@
 /* ============================================================
    Forest main menu — cozy, magical, layered woodland scene
    ============================================================ */
+
+/* =========================================================
+   Maioria de recurso — pulsa o número no HUD inferior da
+   especie quando o jogador controlado tem a maioria daquele
+   recurso (meat/egg/fruit). Pinha nunca qualifica.
+   Mantem o translate(-50%,50%) que ancora o numero no centro.
+   ========================================================= */
+.hud-bottom-jaguar-resource-item.is-majority,
+.hud-bottom-wolf-resource-item.is-majority,
+.hud-bottom-tatu-resource-item.is-majority,
+.hud-bottom-macaw-resource-item.is-majority,
+.hud-bottom-capuchin-resource-item.is-majority,
+.hud-bottom-coati-resource-item.is-majority {
+  display: grid;
+  place-items: center;
+  min-width: 1.25em;
+  min-height: 1.25em;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 231, 143, 0.3) 0 44%, rgba(255, 196, 69, 0.16) 45% 68%, transparent 70%);
+  box-shadow:
+    0 0 0 2px rgba(255, 230, 128, 0.75),
+    0 0 18px rgba(255, 202, 60, 0.65),
+    inset 0 0 12px rgba(255, 255, 210, 0.18);
+  color: #ffe07a;
+  animation: hud-res-majority 1.5s ease-in-out infinite;
+}
+
+@keyframes hud-res-majority {
+  0%, 100% {
+    transform: translate(-50%, 50%) scale(1);
+    text-shadow: 0 0 6px rgba(255, 214, 102, 0.55), 0 0 2px rgba(0, 0, 0, 0.6);
+  }
+  50% {
+    transform: translate(-50%, 50%) scale(1.22);
+    text-shadow: 0 0 16px rgba(255, 214, 102, 0.95), 0 0 4px rgba(0, 0, 0, 0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-bottom-jaguar-resource-item.is-majority,
+  .hud-bottom-wolf-resource-item.is-majority,
+  .hud-bottom-tatu-resource-item.is-majority,
+  .hud-bottom-macaw-resource-item.is-majority,
+  .hud-bottom-capuchin-resource-item.is-majority,
+  .hud-bottom-coati-resource-item.is-majority {
+    animation: none;
+    box-shadow:
+      0 0 0 2px rgba(255, 230, 128, 0.75),
+      0 0 14px rgba(255, 202, 60, 0.6);
+    text-shadow: 0 0 8px rgba(255, 214, 102, 0.8);
+  }
+}
