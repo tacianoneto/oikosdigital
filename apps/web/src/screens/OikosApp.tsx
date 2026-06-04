@@ -1126,11 +1126,6 @@ export function OikosApp() {
         ref={(node) => setEffectTarget(`hudbar:${resource}`, node)}
       >
         <span className="hud-resource-value">{currentGamePlayer?.resources[resource] ?? 0}</span>
-        {hasMajority && resource !== "seed" && (
-          <span className="hud-resource-majority-mark" aria-label="Maioria de recurso">
-            ★
-          </span>
-        )}
       </div>
     );
   };
