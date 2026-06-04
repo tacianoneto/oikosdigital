@@ -229,6 +229,7 @@ describe("setup placement", () => {
     const updated = game.players.find((candidate) => candidate.playerId === "jaguar")!;
 
     expect(updated.selectedObjectiveCardId).toBeNull();
+    expect(updated.discardedObjectiveCardId).toBe("objective_18");
     expect(updated.objectiveChoices).toEqual([]);
     expect(updated.resources).toEqual({ meat: 1, egg: 1, fruit: 1, seed: 1 });
     expect(game.log.at(-1)?.payload).toMatchObject({ kind: "objective", actorPlayerId: "jaguar" });

@@ -171,6 +171,18 @@
   opacity: 0.78;
 }
 
+.objective-progress.is-discarded {
+  border-color: rgba(239, 68, 68, 0.68);
+  background: linear-gradient(180deg, rgba(92, 30, 30, 0.88), rgba(56, 24, 24, 0.92));
+}
+
+.objective-progress.is-discarded svg {
+  width: 18px;
+  height: 18px;
+  color: #ffb4a8;
+  stroke-width: 3.5;
+}
+
 @keyframes objective-progress-pop {
   0% { transform: scale(0.85); }
   100% { transform: scale(1); }
@@ -226,6 +238,10 @@
 .objective-discard-text small {
   font-size: 0.72rem;
   opacity: 0.82;
+}
+
+.objective-preview-discard-btn {
+  margin-top: 12px;
 }
 
 /* New-threat announcement shown to everyone at the start of a round */

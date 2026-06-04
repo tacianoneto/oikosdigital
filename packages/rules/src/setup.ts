@@ -456,6 +456,7 @@ export function createPlayerState(player: RoomPlayer): PlayerState {
     hand: [],
     objectiveChoices: [],
     selectedObjectiveCardId: null,
+    discardedObjectiveCardId: null,
     reservePieces,
     piecesInForest: [],
     turnsTaken: 0
@@ -802,6 +803,7 @@ export function selectObjectiveCard(game: GameState, playerId: string, objective
   const next = cloneGameState(game);
   const nextPlayer = findPlayer(next, playerId);
   nextPlayer.selectedObjectiveCardId = objectiveCardId;
+  nextPlayer.discardedObjectiveCardId = null;
   next.log = [
     ...next.log,
     {
@@ -831,6 +833,7 @@ export function discardObjectiveForResources(game: GameState, playerId: string):
 
   const next = cloneGameState(game);
   const nextPlayer = findPlayer(next, playerId);
+  const discardedObjectiveCardId = nextPlayer.selectedObjectiveCardId;
   nextPlayer.resources = {
     meat: (nextPlayer.resources.meat ?? 0) + 1,
     egg: (nextPlayer.resources.egg ?? 0) + 1,
@@ -838,6 +841,7 @@ export function discardObjectiveForResources(game: GameState, playerId: string):
     seed: (nextPlayer.resources.seed ?? 0) + 1
   };
   nextPlayer.selectedObjectiveCardId = null;
+  nextPlayer.discardedObjectiveCardId = discardedObjectiveCardId;
   nextPlayer.objectiveChoices = [];
   next.log = [
     ...next.log,
@@ -3642,6 +3646,7 @@ function cloneGameState(game: GameState): GameState {
       resources: { ...player.resources },
       hand: [...player.hand],
       objectiveChoices: [...(player.objectiveChoices ?? [])],
+      discardedObjectiveCardId: player.discardedObjectiveCardId ?? null,
       reservePieces: [...player.reservePieces],
       piecesInForest: [...player.piecesInForest]
     })),

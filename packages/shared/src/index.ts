@@ -171,6 +171,7 @@ export interface PlayerState {
   hand: string[];
   objectiveChoices: string[];
   selectedObjectiveCardId: string | null;
+  discardedObjectiveCardId: string | null;
   reservePieces: string[];
   piecesInForest: string[];
   turnsTaken: number;

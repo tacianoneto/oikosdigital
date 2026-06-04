@@ -341,6 +341,32 @@ function MovementGlyph({ kind }: { kind: MovementKind }) {
   );
 }
 
+function ObjectiveStatusBadge({
+  completed,
+  discarded
+}: {
+  completed: boolean;
+  discarded: boolean;
+}) {
+  if (discarded) {
+    return (
+      <span className="expansion-done-badge is-discarded" title="Objetivo descartado" aria-label="Objetivo descartado">
+        <X aria-hidden="true" />
+      </span>
+    );
+  }
+
+  if (!completed) {
+    return null;
+  }
+
+  return (
+    <span className="expansion-done-badge" title="Objetivo cumprido" aria-label="Objetivo cumprido">
+      <Check aria-hidden="true" />
+    </span>
+  );
+}
+
 function isExclusiveScenarioPair(a: ScenarioCardId, b: ScenarioCardId): boolean {
   return (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
 }
@@ -1835,6 +1861,11 @@ export function OikosApp() {
   const selectedObjectiveCard = currentGamePlayer?.selectedObjectiveCardId
     ? getObjectiveCardDefinition(currentGamePlayer.selectedObjectiveCardId)
     : null;
+  const discardedObjectiveCard = currentGamePlayer?.discardedObjectiveCardId
+    ? getObjectiveCardDefinition(currentGamePlayer.discardedObjectiveCardId)
+    : null;
+  const objectiveWasDiscarded = Boolean(discardedObjectiveCard);
+  const objectivePreviewCard = selectedObjectiveCard ?? discardedObjectiveCard;
   const selectedObjectiveCompleted = Boolean(
     room?.game &&
       currentGamePlayer?.selectedObjectiveCardId &&
@@ -3303,6 +3334,7 @@ export function OikosApp() {
           warnings: nextGame.contentWarnings
         });
         setExpansionPreview(null);
+        setExpandedObjectiveCardId(null);
         setNotice("Objetivo descartado: +1 recurso de cada.");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Falha ao descartar objetivo.");
@@ -3312,6 +3344,7 @@ export function OikosApp() {
 
     await run(() => roomApi.discardObjective(requireSocket(), room.roomId), "Objetivo descartado: +1 recurso de cada.");
     setExpansionPreview(null);
+    setExpandedObjectiveCardId(null);
   }, [canDiscardSelectedObjective, currentGamePlayer, isLocalRoom, room, socket]);
 
   // Toggle the centered card preview, capturing the clicked icon's center so the
@@ -5440,13 +5473,19 @@ export function OikosApp() {
           >
             <X aria-hidden="true" />
           </button>
-          {expansionPreview === "objective" && selectedObjectiveCard && (
+          {expansionPreview === "objective" && objectivePreviewCard && (
             <>
               <img
-                src={encodeURI(selectedObjectiveCard.imagePath)}
-                alt={selectedObjectiveCard.label}
+                src={encodeURI(objectivePreviewCard.imagePath)}
+                alt={objectivePreviewCard.label}
                 draggable={false}
               />
+              {objectiveWasDiscarded && (
+                <div className="objective-progress is-discarded" role="status">
+                  <X aria-hidden="true" />
+                  <span>Objetivo descartado</span>
+                </div>
+              )}
               {selectedObjectiveScoresPoints && (
                 <div
                   className={`objective-progress ${selectedObjectiveProgress > 0 ? "is-scoring" : "is-pending"}`}
@@ -6373,6 +6412,19 @@ export function OikosApp() {
               src={encodeURI(getObjectiveCardDefinition(expandedObjectiveCardId).imagePath)}
               alt={getObjectiveCardDefinition(expandedObjectiveCardId).label}
             />
+            {canDiscardSelectedObjective && expandedObjectiveCardId === currentGamePlayer?.selectedObjectiveCardId && (
+              <button
+                type="button"
+                className="objective-discard-btn objective-preview-discard-btn"
+                onClick={() => void handleDiscardObjective()}
+              >
+                <Leaf aria-hidden="true" />
+                <span className="objective-discard-text">
+                  <strong>Descartar</strong>
+                  <small>Ganhe 1 de cada recurso</small>
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -6977,14 +7029,10 @@ export function OikosApp() {
               <img src="/assets/interface/onça/Movimentos_onca.png" alt="Movimentos" />
             </div>
             <div className="hud-bottom-jaguar-expansions">
-              {selectedObjectiveCard && (
+              {objectivePreviewCard && (
                 <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  {selectedObjectiveCompleted && (
-                    <span className="expansion-done-badge" title="Objetivo cumprido" aria-label="Objetivo cumprido">
-                      <Check aria-hidden="true" />
-                    </span>
-                  )}
+                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
@@ -7083,14 +7131,10 @@ export function OikosApp() {
               <img src="/assets/interface/lobo/Movimentos_lobo.png" alt="Movimentos" />
             </div>
             <div className="hud-bottom-wolf-expansions">
-              {selectedObjectiveCard && (
+              {objectivePreviewCard && (
                 <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  {selectedObjectiveCompleted && (
-                    <span className="expansion-done-badge" title="Objetivo cumprido" aria-label="Objetivo cumprido">
-                      <Check aria-hidden="true" />
-                    </span>
-                  )}
+                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
@@ -7190,14 +7234,10 @@ export function OikosApp() {
               <img src="/assets/interface/tatu/Movimentos_tatu.png" alt="Movimentos" />
             </div>
             <div className="hud-bottom-tatu-expansions">
-              {selectedObjectiveCard && (
+              {objectivePreviewCard && (
                 <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  {selectedObjectiveCompleted && (
-                    <span className="expansion-done-badge" title="Objetivo cumprido" aria-label="Objetivo cumprido">
-                      <Check aria-hidden="true" />
-                    </span>
-                  )}
+                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
@@ -7289,14 +7329,10 @@ export function OikosApp() {
               <img src="/assets/interface/arara/Movimentos_arara.png" alt="Movimentos" />
             </div>
             <div className="hud-bottom-macaw-expansions">
-              {selectedObjectiveCard && (
+              {objectivePreviewCard && (
                 <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  {selectedObjectiveCompleted && (
-                    <span className="expansion-done-badge" title="Objetivo cumprido" aria-label="Objetivo cumprido">
-                      <Check aria-hidden="true" />
-                    </span>
-                  )}
+                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
@@ -7390,14 +7426,10 @@ export function OikosApp() {
               <img src="/assets/interface/macaco/Movimentos_macaco.png" alt="Movimentos" />
             </div>
             <div className="hud-bottom-capuchin-expansions">
-              {selectedObjectiveCard && (
+              {objectivePreviewCard && (
                 <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  {selectedObjectiveCompleted && (
-                    <span className="expansion-done-badge" title="Objetivo cumprido" aria-label="Objetivo cumprido">
-                      <Check aria-hidden="true" />
-                    </span>
-                  )}
+                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
@@ -7504,14 +7536,10 @@ export function OikosApp() {
               <img src="/assets/interface/quati/Movimentos_quati.png" alt="Movimentos" />
             </div>
             <div className="hud-bottom-coati-expansions">
-              {selectedObjectiveCard && (
+              {objectivePreviewCard && (
                 <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  {selectedObjectiveCompleted && (
-                    <span className="expansion-done-badge" title="Objetivo cumprido" aria-label="Objetivo cumprido">
-                      <Check aria-hidden="true" />
-                    </span>
-                  )}
+                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
