@@ -153,7 +153,7 @@ import {
   resourceOrder,
   speciesList
 } from "../ui/gameConstants";
-import type { FloatingGain, TravelEffect } from "../ui/gameEffects";
+import type { FloatingGain, RemovalBurst, TravelEffect } from "../ui/gameEffects";
 import { elementCenter, sameGridPosition } from "../ui/geometry";
 import {
   clearOnlineSession,
@@ -678,6 +678,7 @@ export function OikosApp() {
   const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
   const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
   const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
+  const [removalBursts, setRemovalBursts] = useState<RemovalBurst[]>([]);
   const [cardDrag, setCardDrag] = useState<{
     cardId: string;
     src: string;
@@ -2234,9 +2235,15 @@ export function OikosApp() {
             removedPieces.find((piece) => piece.ownerId === player.playerId)?.location ??
             sourceFallbacks[0];
           const from = source ? forestCanvasRef.current?.getCardCenter(source) : null;
-          const target =
-            (hudGamePlayer?.playerId === player.playerId ? effectTargetRefs.current.get(`hud:${resource}`) : null) ??
-            effectTargetRefs.current.get(`${player.playerId}:${resource}`);
+          // Own resources fly to the new species HUD bar; an opponent's fly
+          // straight to their portrait in the rail. Legacy keys remain as
+          // fallbacks for spectators / when the new HUD is not mounted.
+          const isOwnPlayer = hudGamePlayer?.playerId === player.playerId;
+          const target = isOwnPlayer
+            ? effectTargetRefs.current.get(`hudbar:${resource}`) ??
+              effectTargetRefs.current.get(`hud:${resource}`)
+            : effectTargetRefs.current.get(`portrait:${player.playerId}`) ??
+              effectTargetRefs.current.get(`${player.playerId}:${resource}`);
           const to = elementCenter(target);
           if (from && to) {
             nextEffects.push({
@@ -2250,11 +2257,18 @@ export function OikosApp() {
         }
       }
 
+      const nextBursts: RemovalBurst[] = [];
       for (const removed of removedPieces) {
         const from = forestCanvasRef.current?.getCardCenter(removed.location);
-        const target =
-          (hudGamePlayer?.playerId === removed.ownerId ? effectTargetRefs.current.get("hud:reserve") : null) ??
-          effectTargetRefs.current.get(`${removed.ownerId}:reserve`);
+        if (from) {
+          // Quick shrink + red flash + particles at the board spot it left.
+          nextBursts.push({ id: ++travelSeqRef.current, speciesId: removed.speciesId, at: from });
+        }
+        const isOwnPlayer = hudGamePlayer?.playerId === removed.ownerId;
+        const target = isOwnPlayer
+          ? effectTargetRefs.current.get("hudbar:reserve") ?? effectTargetRefs.current.get("hud:reserve")
+          : effectTargetRefs.current.get(`portrait:${removed.ownerId}`) ??
+            effectTargetRefs.current.get(`${removed.ownerId}:reserve`);
         const to = elementCenter(target);
         if (from && to) {
           nextEffects.push({
@@ -2265,6 +2279,14 @@ export function OikosApp() {
             to
           });
         }
+      }
+
+      if (nextBursts.length > 0) {
+        setRemovalBursts((current) => [...current, ...nextBursts]);
+        const burstIds = new Set(nextBursts.map((burst) => burst.id));
+        window.setTimeout(() => {
+          setRemovalBursts((current) => current.filter((burst) => !burstIds.has(burst.id)));
+        }, 700);
       }
 
       if (nextEffects.length > 0) {
@@ -4096,6 +4118,28 @@ export function OikosApp() {
               </span>
             );
           })}
+        </div>
+      )}
+      {removalBursts.length > 0 && (
+        <div className="removal-burst-layer" aria-hidden="true">
+          {removalBursts.map((burst) => (
+            <span
+              className="removal-burst"
+              key={burst.id}
+              style={
+                {
+                  "--burst-x": `${burst.at.x}px`,
+                  "--burst-y": `${burst.at.y}px`
+                } as CSSProperties
+              }
+            >
+              <span className="removal-burst-flash" />
+              <img className="removal-burst-meeple" src={encodeURI(speciesDefinitions[burst.speciesId].meepleAsset)} alt="" />
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <span className="removal-burst-particle" key={i} style={{ "--i": i } as CSSProperties} />
+              ))}
+            </span>
+          ))}
         </div>
       )}
       {!cleanBoardMode && macawScoreAnim && (
@@ -6488,6 +6532,7 @@ export function OikosApp() {
               <button
                 type="button"
                 role="listitem"
+                ref={(node) => setEffectTarget(`portrait:${player.playerId}`, node)}
                 className={`opponent-portrait-btn ${selectedOpponentPlayerId === player.playerId ? "is-selected" : ""} ${
                   isActivePlayer ? "is-active-turn" : ""
                 }`}
@@ -7028,7 +7073,7 @@ export function OikosApp() {
           <div className="hud-top-jaguar">
             <img src="/assets/interface/onça/UI_oncaTOP.png" alt="" className="hud-top-jaguar-bg" />
             <div className="hud-top-jaguar-score">{currentGamePlayer.score}</div>
-            <div className="hud-top-jaguar-meeples">
+            <div className="hud-top-jaguar-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.jaguar.meepleAsset)}
             </div>
           </div>
@@ -7071,10 +7116,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-jaguar-resources">
-              <div className="hud-bottom-jaguar-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
+              <div className="hud-bottom-jaguar-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
+              <div className="hud-bottom-jaguar-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
+              <div className="hud-bottom-jaguar-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
+              <div className="hud-bottom-jaguar-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
             </div>
             <div className="hud-bottom-jaguar-movements">
               <img src="/assets/interface/onça/Movimentos_onca.png" alt="Movimentos" />
@@ -7104,7 +7149,7 @@ export function OikosApp() {
           <div className="hud-top-wolf">
             <img src="/assets/interface/lobo/UI_loboTOP.png" alt="" className="hud-top-wolf-bg" />
             <div className="hud-top-wolf-score">{currentGamePlayer.score}</div>
-            <div className="hud-top-wolf-meeples">
+            <div className="hud-top-wolf-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.maned_wolf.meepleAsset)}
             </div>
           </div>
@@ -7172,10 +7217,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-wolf-resources">
-              <div className="hud-bottom-wolf-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
+              <div className="hud-bottom-wolf-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
+              <div className="hud-bottom-wolf-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
+              <div className="hud-bottom-wolf-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
+              <div className="hud-bottom-wolf-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
             </div>
             <div className="hud-bottom-wolf-movements">
               <img src="/assets/interface/lobo/Movimentos_lobo.png" alt="Movimentos" />
@@ -7207,7 +7252,7 @@ export function OikosApp() {
             <div className="hud-top-tatu-score">
               {currentGamePlayer.score ?? 0}
             </div>
-            <div className="hud-top-tatu-meeples">
+            <div className="hud-top-tatu-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.armadillo.meepleAsset)}
             </div>
           </div>
@@ -7274,10 +7319,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-tatu-resources">
-              <div className="hud-bottom-tatu-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
+              <div className="hud-bottom-tatu-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
+              <div className="hud-bottom-tatu-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
+              <div className="hud-bottom-tatu-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
+              <div className="hud-bottom-tatu-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
             </div>
             <div className="hud-bottom-tatu-movements">
               <img src="/assets/interface/tatu/Movimentos_tatu.png" alt="Movimentos" />
@@ -7309,7 +7354,7 @@ export function OikosApp() {
             <div className="hud-top-macaw-score">
               {currentGamePlayer.score ?? 0}
             </div>
-            <div className="hud-top-macaw-meeples">
+            <div className="hud-top-macaw-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.macaw.meepleAsset)}
             </div>
           </div>
@@ -7368,10 +7413,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-macaw-resources">
-              <div className="hud-bottom-macaw-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
+              <div className="hud-bottom-macaw-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
+              <div className="hud-bottom-macaw-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
+              <div className="hud-bottom-macaw-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
+              <div className="hud-bottom-macaw-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
             </div>
             <div className="hud-bottom-macaw-movements">
               <img src="/assets/interface/arara/Movimentos_arara.png" alt="Movimentos" />
@@ -7403,7 +7448,7 @@ export function OikosApp() {
             <div className="hud-top-capuchin-score">
               {currentGamePlayer.score ?? 0}
             </div>
-            <div className="hud-top-capuchin-meeples">
+            <div className="hud-top-capuchin-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.capuchin.meepleAsset)}
             </div>
           </div>
@@ -7464,10 +7509,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-capuchin-resources">
-              <div className="hud-bottom-capuchin-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
+              <div className="hud-bottom-capuchin-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
+              <div className="hud-bottom-capuchin-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
+              <div className="hud-bottom-capuchin-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
+              <div className="hud-bottom-capuchin-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
             </div>
             <div className="hud-bottom-capuchin-movements">
               <img src="/assets/interface/macaco/Movimentos_macaco.png" alt="Movimentos" />
@@ -7499,7 +7544,7 @@ export function OikosApp() {
             <div className="hud-top-coati-score">
               {currentGamePlayer.score ?? 0}
             </div>
-            <div className="hud-top-coati-meeples">
+            <div className="hud-top-coati-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.coati.meepleAsset)}
             </div>
           </div>
@@ -7573,10 +7618,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-coati-resources">
-              <div className="hud-bottom-coati-resource-item res-meat">{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-fruit">{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-egg">{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-seed">{currentGamePlayer.resources.seed ?? 0}</div>
+              <div className="hud-bottom-coati-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
+              <div className="hud-bottom-coati-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
+              <div className="hud-bottom-coati-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
+              <div className="hud-bottom-coati-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
             </div>
             <div className="hud-bottom-coati-movements">
               <img src="/assets/interface/quati/Movimentos_quati.png" alt="Movimentos" />
