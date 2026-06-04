@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { Crown, Leaf, LogOut, Play, Sprout, Star, Target, Trophy, Users } from "lucide-react";
 import type { FinalScoreBreakdown, FinalScoreEntry, SpeciesId } from "@oikos/shared";
-import { speciesDefinitions } from "@oikos/content";
+import { resourceLabels, speciesDefinitions } from "@oikos/content";
 import { speciesVar } from "./speciesStyle";
 import { AnimatedNumber } from "./AnimatedNumber";
 
@@ -83,6 +83,19 @@ export function EndgameCeremony({
         .map((e) => e.playerId),
     [entries]
   );
+
+  // Which resources each player won a majority of, named for the badge. A player
+  // can dominate more than one (e.g. carne + ovo), so this lists all of them.
+  const wonResourceLabelsByPlayer = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const majority of breakdown.resourceMajorities) {
+      for (const winnerId of majority.winnerPlayerIds) {
+        const label = resourceLabels[majority.resource];
+        map.set(winnerId, map.has(winnerId) ? `${map.get(winnerId)}, ${label}` : label);
+      }
+    }
+    return map;
+  }, [breakdown.resourceMajorities]);
 
   // playerStep = index of the player currently being scored; catStep = how many
   // of that player's categories are revealed (1 = only base).
@@ -250,7 +263,11 @@ export function EndgameCeremony({
                 <strong>{currentEntry.name}</strong>
                 <small key={currentCategory.key} className="ceremony-stage-cat">
                   <currentCategory.icon aria-hidden="true" />
-                  {isBaseStage ? "Placar da partida" : currentCategory.label}
+                  {isBaseStage
+                    ? "Placar da partida"
+                    : currentCategory.key === "majority" && wonResourceLabelsByPlayer.has(currentEntry.playerId)
+                      ? `Maioria: ${wonResourceLabelsByPlayer.get(currentEntry.playerId)}`
+                      : currentCategory.label}
                   <b>{catPoints > 0 ? `+${catPoints}` : "—"}</b>
                 </small>
               </div>
@@ -374,7 +391,11 @@ export function EndgameCeremony({
                           {chips.map((c) => (
                             <span key={c.key} className="cd-chip" style={{ ["--cat" as string]: c.color } as CSSProperties}>
                               <c.icon aria-hidden="true" />
-                              <em>{c.label}</em>
+                              <em>
+                                {c.key === "majority" && wonResourceLabelsByPlayer.has(entry.playerId)
+                                  ? `Maioria: ${wonResourceLabelsByPlayer.get(entry.playerId)}`
+                                  : c.label}
+                              </em>
                               <b>{c.key === "base" ? c.value : `+${c.value}`}</b>
                             </span>
                           ))}
