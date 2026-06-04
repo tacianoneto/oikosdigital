@@ -1,0 +1,315 @@
+/* Oikos Digital — graphic board-game UI (Root / Ticket to Ride inspired) */
+
+/* Disable the native image drag-ghost across the whole game UI. Without this
+   rule, click-and-drag on any decorative <img> (HUD chrome, cards, meeples,
+   portraits…) starts a browser drag operation that displays a translucent
+   copy of the image floating under the cursor. Game interactions use custom
+   click/pointer handlers, so the native drag is always undesirable. */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --bg: #0c1813;
+  --bg-2: #0f1f1a;
+  --felt: #123326;
+  --panel: #16271f;
+  --panel-2: #1c3329;
+  --slot: #11241c;
+
+  --ink: #0e1b15;
+  --paper: #f4ecd8;
+  --muted: #9bb1a4;
+  --line: #c9b88a;
+  --line-soft: rgba(201, 184, 138, 0.28);
+
+  --amber: #f2c14e;
+  --teal: #6fd3c0;
+  --coral: #e0654b;
+  --leaf: #4fae6e;
+
+  --sp-jaguar: #e8a33d;
+  --sp-maned_wolf: #c8553d;
+  --sp-armadillo: #b98a4b;
+  --sp-macaw: #2e6fb5;
+  --sp-capuchin: #5c7a6a;
+  --sp-coati: #a9745a;
+
+  --r: 10px;
+  --bw: 2px;
+  --shadow: 0 10px 0 rgba(0, 0, 0, 0.28);
+  --left-recap-reserve: 260px;
+
+  background: var(--bg);
+  color: var(--paper);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+html,
+body {
+  overscroll-behavior: none; /* no pull-to-refresh / bounce fighting canvas gestures */
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+strong,
+.brand-strip h1 {
+  font-family: Outfit, Inter, sans-serif;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--paper);
+}
+
+p,
+li,
+small,
+span,
+label {
+  color: var(--muted);
+}
+
+.app-shell {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0e1c16, #0a130f);
+}
+
+.app-shell:not(.game-active) .right-panel {
+  display: none;
+}
+
+.desktop-only-shell {
+  min-height: 100vh;
+  width: 100vw;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(180deg, #13241d, #07110d);
+}
+
+.desktop-only-card {
+  width: min(520px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  padding: 32px;
+  border: 2px solid rgba(201, 184, 138, 0.38);
+  border-radius: 10px;
+  background: rgba(14, 27, 21, 0.88);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+  text-align: center;
+}
+
+.desktop-only-logo {
+  width: min(180px, 64vw);
+  height: auto;
+}
+
+.desktop-only-card > svg {
+  width: 34px;
+  height: 34px;
+  color: var(--amber);
+}
+
+.desktop-only-card h1 {
+  font-size: 24px;
+  line-height: 1.08;
+}
+
+.desktop-only-card p {
+  max-width: 420px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* full-bleed forest background layer */
+.stage-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.app-shell.menu-active .stage-layer {
+  filter: blur(7px) brightness(0.5) saturate(0.85);
+  transform: scale(1.05);
+}
+
+.app-shell.menu-active .stage-layer .forest-status-chip,
+.app-shell.menu-active .stage-layer .forest-recenter {
+  display: none;
+}
+
+/* floating glass HUD docks */
+.hud-dock {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(310px, 28vw);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease;
+}
+
+.hud-dock::-webkit-scrollbar,
+.menu-card ::-webkit-scrollbar,
+.menu-card::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* species HUD — top-left, compact, fixed */
+.hud-species {
+  position: absolute;
+  z-index: 6;
+  top: 16px;
+  left: 16px;
+  width: min(340px, 30vw);
+}
+
+/* action / setup panel — left, below species HUD, collapsible */
+.hud-action.hud-left {
+  top: 238px;
+  left: 16px;
+  width: min(340px, 30vw);
+  max-height: calc(100vh - 262px);
+}
+
+.hud-action.hud-left.has-turn-recap {
+  bottom: calc(var(--left-recap-reserve) + 18px);
+  max-height: none;
+}
+
+.hud-left {
+  top: 16px;
+  left: 50px;
+}
+
+.hud-right {
+  top: 16px;
+  right: 50px;
+  max-height: calc(100vh - 32px);
+  overflow: visible;
+}
+
+.hud-right .panel-block {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  min-height: 0;
+}
+
+.hud-left.is-collapsed {
+  transform: translateX(calc(-100% - 60px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hud-right.is-collapsed {
+  transform: translateX(calc(100% + 60px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* collapse tab buttons — top-level, fixed to viewport edge */
+.hud-collapse-tab {
+  position: fixed;
+  top: 50%;
+  z-index: 9;
+  width: 30px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: var(--bw) solid var(--line);
+  background: var(--panel);
+  color: var(--paper);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.hud-collapse-tab svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hud-collapse-left {
+  left: 0;
+  transform: translateY(-50%);
+  border-radius: 0 12px 12px 0;
+}
+
+.hud-collapse-right {
+  right: 0;
+  transform: translateY(-50%);
+  border-radius: 12px 0 0 12px;
+}
+
+.hud-collapse-left:hover {
+  transform: translateY(-50%) translateX(2px);
+}
+
+.hud-collapse-right:hover {
+  transform: translateY(-50%) translateX(-2px);
+}
+
+.hud-collapse-tab:hover {
+  background: var(--panel-2);
+  border-color: var(--amber);
+}
