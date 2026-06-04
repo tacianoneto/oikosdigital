@@ -251,4 +251,20 @@ describe("end game flow", () => {
     expect(game.activeActionIndex).toBeGreaterThan(0);
     expect(game.log.some((entry) => entry.id.startsWith("extra_turn_skip_no_card"))).toBe(true);
   });
+
+  it("repairs an active round 6 state by queueing the extra-turn objective", () => {
+    let game = activeGame([player("jaguar", "jaguar"), player("coati", "coati")]);
+    const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+    jaguar.score = 2;
+    jaguar.selectedObjectiveCardId = "objective_20";
+    game.round = 6;
+    game.activePlayerId = "coati";
+    game.activeActionIndex = 0;
+
+    game = completeCurrentAction(game, "coati");
+
+    expect(game.pendingExtraTurnPlayerId).toBe("jaguar");
+    expect(game.activePlayerId).toBeNull();
+    expect(game.status).toBe("active");
+  });
 });

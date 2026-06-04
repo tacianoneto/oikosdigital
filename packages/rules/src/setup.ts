@@ -2366,6 +2366,18 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     throw new Error("Acoes so podem ser concluidas durante a fase ativa.");
   }
 
+  if (game.round > game.maxRounds && !game.extraTurnPlayerId && !game.pendingExtraTurnPlayerId) {
+    const next = cloneGameState(game);
+    next.activePlayerId = null;
+    next.activeActionIndex = 0;
+    next.activePlayedForestCardId = null;
+    next.pendingCoatiPairBonus = null;
+    next.pendingMacawMovedPiece = null;
+    next.pendingWolfMoves = null;
+    queueExtraTurnOrFinalize(next);
+    return next;
+  }
+
   if (game.caatingaPending) {
     throw new Error("Resolva o efeito da Caatinga antes de continuar.");
   }

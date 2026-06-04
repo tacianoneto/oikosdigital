@@ -1022,7 +1022,12 @@ export function OikosApp() {
 
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom
-    ? room?.game?.caatingaPending?.playerId ?? room?.game?.cerradoPending?.playerId ?? room?.game?.setupActivePlayerId ?? room?.game?.activePlayerId ?? null
+    ? room?.game?.pendingExtraTurnPlayerId ??
+      room?.game?.caatingaPending?.playerId ??
+      room?.game?.cerradoPending?.playerId ??
+      room?.game?.setupActivePlayerId ??
+      room?.game?.activePlayerId ??
+      null
     : isSpectator
       ? null
       : playerId;
@@ -1463,6 +1468,13 @@ export function OikosApp() {
     room?.game?.extraTurnPlayerId === room?.game?.activePlayerId &&
       handPlayableThisAction &&
       !hasPlayableForestCardThisAction
+  );
+  const needsEndgameOverflowRepair = Boolean(
+    room?.game?.status === "active" &&
+      room.game.round > room.game.maxRounds &&
+      room.game.activePlayerId &&
+      !room.game.extraTurnPlayerId &&
+      !room.game.pendingExtraTurnPlayerId
   );
   const rotateSelectedCard = useCallback((dir: 1 | -1) => {
     setSelectedCardRotation((r) => (((r + (dir === 1 ? 90 : 270)) % 360) as 0 | 90 | 180 | 270));
@@ -3315,7 +3327,7 @@ export function OikosApp() {
   }, [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive]);
 
   useEffect(() => {
-    if (!canSkipExtraTurnNoCardAction || tutorialActive) {
+    if ((!canSkipExtraTurnNoCardAction && !needsEndgameOverflowRepair) || tutorialActive) {
       return;
     }
 
@@ -3323,7 +3335,7 @@ export function OikosApp() {
       handleCompleteAction();
     }, 250);
     return () => window.clearTimeout(id);
-  }, [canSkipExtraTurnNoCardAction, handleCompleteAction, tutorialActive]);
+  }, [canSkipExtraTurnNoCardAction, handleCompleteAction, needsEndgameOverflowRepair, tutorialActive]);
 
   const handleSelectObjective = useCallback(
     async (objectiveCardId: string) => {
@@ -3811,7 +3823,7 @@ export function OikosApp() {
     ? room.game.players.find((player) => player.playerId === room.game?.pendingExtraTurnPlayerId) ?? null
     : null;
   const canResolveExtraTurn = Boolean(
-    room?.game?.pendingExtraTurnPlayerId && controlledPlayerId === room.game.pendingExtraTurnPlayerId
+    room?.game?.pendingExtraTurnPlayerId && (isLocalRoom || controlledPlayerId === room.game.pendingExtraTurnPlayerId)
   );
   const resolveCacaIlegalChoice = (choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }) => {
     if (!room?.game || !cacaIlegalPending || !canResolveCacaIlegal) return;
