@@ -550,17 +550,24 @@ export class ForestPhaserScene extends Phaser.Scene {
   private drawHighlights(vm: ForestViewModel): void {
     for (const t of vm.expansionTargets) {
       const occupied = vm.cards.some((card) => key(card) === key(t));
+      const accent = occupied ? 0xd66060 : 0xf2c14e;
       const w = this.worldOf(t);
       const slot = this.add.container(w.x, w.y);
+
+      // Soft glow halo that breathes to pull the eye to valid slots.
+      const glow = this.add.graphics();
+      glow.fillStyle(accent, 0.16);
+      glow.fillRoundedRect(-CARD / 2 - 10, -CARD / 2 - 10, CARD + 20, CARD + 20, RADIUS + 8);
+
       const g = this.add.graphics();
-      g.fillStyle(occupied ? 0xd66060 : 0xf2c14e, occupied ? 0.1 : 0.08);
+      g.fillStyle(accent, occupied ? 0.12 : 0.1);
       g.fillRoundedRect(-CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
-      g.lineStyle(3, occupied ? 0xd66060 : 0xf2c14e, 0.8);
+      g.lineStyle(3.5, accent, 0.95);
       this.dashedRoundRect(g, -CARD / 2, -CARD / 2, CARD, CARD, RADIUS);
       const plus = this.add
         .text(0, -14, occupied ? "!" : "+", {
           fontFamily: "Outfit, sans-serif",
-          fontSize: "44px",
+          fontSize: "46px",
           fontStyle: "300",
           color: occupied ? "#ffb6a9" : "#f2c14e"
         })
@@ -578,12 +585,15 @@ export class ForestPhaserScene extends Phaser.Scene {
         e?.stopPropagation?.();
         this.cb.onExpansionTargetClick?.({ x: t.x, y: t.y });
       });
-      hit.on("pointerover", () => this.tweens.add({ targets: slot, scale: 1.03, duration: 120 }));
-      hit.on("pointerout", () => this.tweens.add({ targets: slot, scale: 1, duration: 120 }));
-      slot.add([g, plus, label, hit]);
+      hit.on("pointerover", () => this.tweens.add({ targets: slot, scale: 1.06, duration: 130, ease: "Back.easeOut" }));
+      hit.on("pointerout", () => this.tweens.add({ targets: slot, scale: 1, duration: 130 }));
+      slot.add([glow, g, plus, label, hit]);
       this.highlightLayer.add(slot);
       this.pulses.push(
         this.tweens.add({ targets: [plus, label], alpha: { from: 0.5, to: 1 }, duration: 820, yoyo: true, repeat: -1 })
+      );
+      this.pulses.push(
+        this.tweens.add({ targets: glow, alpha: { from: 0.35, to: 1 }, scale: { from: 0.94, to: 1.04 }, duration: 1000, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
       );
     }
 
@@ -804,11 +814,15 @@ export class ForestPhaserScene extends Phaser.Scene {
       .setAngle(preview.rotation)
       .setAlpha(0.95);
 
+    const glow = this.add.graphics();
+    glow.fillStyle(0xf2c14e, 0.18);
+    glow.fillRoundedRect(-CARD / 2 - 12, -CARD / 2 - 12, CARD + 24, CARD + 24, RADIUS + 10);
+
     const frame = this.add.graphics();
     frame.lineStyle(4, 0xf2c14e, 1);
     frame.strokeRoundedRect(-CARD / 2 - 2, -CARD / 2 - 2, CARD + 4, CARD + 4, RADIUS + 2);
 
-    slot.add([shadow, img, frame]);
+    slot.add([glow, shadow, img, frame]);
 
     // Confirm / cancel buttons, centered above the card.
     const makeButton = (
@@ -850,6 +864,12 @@ export class ForestPhaserScene extends Phaser.Scene {
     this.highlightLayer.add(slot);
     this.pulses.push(
       this.tweens.add({ targets: frame, alpha: { from: 0.6, to: 1 }, duration: 760, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
+    );
+    this.pulses.push(
+      this.tweens.add({ targets: glow, alpha: { from: 0.4, to: 1 }, scale: { from: 0.96, to: 1.05 }, duration: 1000, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
+    );
+    this.pulses.push(
+      this.tweens.add({ targets: confirm, scale: { from: 1, to: 1.12 }, duration: 620, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
     );
   }
 

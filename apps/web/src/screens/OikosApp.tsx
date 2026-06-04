@@ -679,28 +679,6 @@ export function OikosApp() {
   const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
   const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
   const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
-  const [cardDrag, setCardDrag] = useState<{
-    cardId: string;
-    src: string;
-    size: number;
-    x: number;
-    y: number;
-    target: { x: number; y: number; rotation: 0 | 90 | 180 | 270 } | null;
-  } | null>(null);
-  const dragJustHandledRef = useRef(false);
-  const pendingDragRef = useRef<
-    | {
-        cardId: string;
-        src: string;
-        size: number;
-        startX: number;
-        startY: number;
-      }
-    | null
-  >(null);
-  // Last pointer position during a drag, read by the live drag handlers so
-  // rotating mid-drag recomputes targets without a stale closure.
-  const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   // Chosen-but-unconfirmed card placement: shows a preview with confirm/cancel
   // over the slot to guard against misclicks.
   const [pendingPlacement, setPendingPlacement] = useState<{
@@ -1516,45 +1494,6 @@ export function OikosApp() {
   // Keep a ref of the current drop targets so async drag handlers always see the
   // set for the latest rotation (the pointermove closure is captured once).
   // Each target carries the rotation to apply when dropped there.
-  type DropTarget = { x: number; y: number; rotation: 0 | 90 | 180 | 270 };
-  const dropTargetsRef = useRef<DropTarget[]>([]);
-  dropTargetsRef.current = [
-    ...displayExpansionTargets.map((p) => ({ x: p.x, y: p.y, rotation: selectedCardRotation })),
-    ...displayRotateFitTargets.map((t) => ({ x: t.position.x, y: t.position.y, rotation: t.rotation }))
-  ];
-
-  // Nearest valid slot to a screen point, or null if none within snap range.
-  const computeNearestTarget = useCallback((x: number, y: number): DropTarget | null => {
-    const targets = dropTargetsRef.current;
-    const canvas = forestCanvasRef.current;
-    if (!canvas || targets.length === 0) return null;
-    let nearest: DropTarget | null = null;
-    let nearestDist = 110 * 110;
-    for (const t of targets) {
-      const center = canvas.getCardCenter(t);
-      if (!center) continue;
-      const ddx = center.x - x;
-      const ddy = center.y - y;
-      const d = ddx * ddx + ddy * ddy;
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearest = t;
-      }
-    }
-    return nearest;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Rotating mid-drag (without moving the pointer) must re-magnetize: the valid
-  // slots changed, so recompute the target from the last known pointer position.
-  useEffect(() => {
-    if (!cardDrag) return;
-    const p = dragPointerRef.current;
-    if (!p) return;
-    const target = computeNearestTarget(p.x, p.y);
-    setCardDrag((current) => (current ? { ...current, target } : current));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCardRotation]);
   const spotlightInstanceIds = useMemo(() => {
     if (!room?.game || room.game.status !== "active" || recapCollapsed || !turnSummary || hoveredSummaryCardIds.length === 0) return [];
     const alive = new Set(room.game.forest.cards.map((card) => card.instanceId));
@@ -4070,26 +4009,6 @@ export function OikosApp() {
           </section>
         </div>
       )}
-      {cardDrag && (
-        <div className="card-drag-layer" aria-hidden="true">
-          <span
-            className={`card-drag-ghost ${cardDrag.target ? "locked" : ""}`}
-            style={
-              {
-                "--ghost-x": `${cardDrag.x}px`,
-                "--ghost-y": `${cardDrag.y}px`,
-                "--ghost-size": `${cardDrag.size}px`
-              } as CSSProperties
-            }
-          >
-            <img
-              src={cardDrag.src}
-              alt=""
-              style={{ transform: `rotate(${selectedCardRotation}deg)` }}
-            />
-          </span>
-        </div>
-      )}
       {travelEffects.length > 0 && (
         <div className="travel-effect-layer" aria-hidden="true">
           {travelEffects.map((effect) => {
@@ -6228,90 +6147,11 @@ export function OikosApp() {
                         data-card-id={card.id}
                         className={`hand-card ${isSelected ? "selected" : ""} ${
                           handPlayableThisAction ? "playable" : "not-playable"
-                        } ${cardDrag?.cardId === card.id ? "dragging" : ""} ${
+                        } ${
                           tutorialRequiredCardId === card.id ? "tutorial-marked" : ""
                         }`}
                         style={{ ["--hand-index" as string]: handIndex }}
-                        onPointerDown={(event) => {
-                          if (!canSelectHandCards || event.button !== 0) {
-                            return;
-                          }
-                          // Allow grabbing any playable card directly: no need to
-                          // pre-select with a click. Selection happens on drag
-                          // activation below, which unlocks the valid slots.
-                          if (!handPlayableThisAction || pendingPlacement) {
-                            return;
-                          }
-                          const target = event.currentTarget as HTMLDivElement;
-                          const rect = target.getBoundingClientRect();
-                          const startX = event.clientX;
-                          const startY = event.clientY;
-                          pendingDragRef.current = {
-                            cardId: card.id,
-                            src: encodeURI(card.imagePath),
-                            size: rect.width,
-                            startX,
-                            startY
-                          };
-                          let activated = false;
-                          const handleMove = (e: PointerEvent) => {
-                            const pending = pendingDragRef.current;
-                            if (!pending) return;
-                            const x = e.clientX;
-                            const y = e.clientY;
-                            if (!activated) {
-                              const dx = x - pending.startX;
-                              const dy = y - pending.startY;
-                              if (dx * dx + dy * dy < 36) return;
-                              activated = true;
-                              if (selectedHandCardId !== pending.cardId) {
-                                setSelectedHandCardId(pending.cardId);
-                                setSelectedCardRotation(0);
-                              }
-                            }
-                            dragPointerRef.current = { x, y };
-                            const nearest = computeNearestTarget(x, y);
-                            setCardDrag({
-                              cardId: pending.cardId,
-                              src: pending.src,
-                              size: pending.size,
-                              x,
-                              y,
-                              target: nearest
-                            });
-                          };
-                          const handleUp = () => {
-                            document.removeEventListener("pointermove", handleMove);
-                            document.removeEventListener("pointerup", handleUp);
-                            document.removeEventListener("pointercancel", handleUp);
-                            const pending = pendingDragRef.current;
-                            pendingDragRef.current = null;
-                            dragPointerRef.current = null;
-                            if (!activated || !pending) {
-                              setCardDrag(null);
-                              return;
-                            }
-                            dragJustHandledRef.current = true;
-                            setCardDrag((current) => {
-                              if (current?.target) {
-                                const t = current.target;
-                                setPendingPlacement({
-                                  position: { x: t.x, y: t.y },
-                                  rotation: t.rotation
-                                });
-                              }
-                              return null;
-                            });
-                          };
-                          document.addEventListener("pointermove", handleMove);
-                          document.addEventListener("pointerup", handleUp);
-                          document.addEventListener("pointercancel", handleUp);
-                        }}
                         onClick={() => {
-                          if (dragJustHandledRef.current) {
-                            dragJustHandledRef.current = false;
-                            return;
-                          }
                           if (!canSelectHandCards) {
                             return;
                           }
