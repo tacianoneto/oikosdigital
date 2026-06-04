@@ -158,6 +158,75 @@ describe("end game scoring", () => {
     expect(entryA.objectivePoints).toBe(2);
   });
 
+  it("scores resource-line objectives only on orthogonal lines, not diagonals", () => {
+    const game = activeGame([player("p1", "macaw"), player("p2", "coati")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    a.selectedObjectiveCardId = "objective_16"; // straight line of 3 meat locations
+    // One orthogonal meat row (1 point) plus a diagonal meat trio (must not count).
+    const meat = (x: number, y: number) => ({
+      instanceId: `c_${x}_${y}`,
+      definitionId: "bosque_4", // forest, meat
+      x,
+      y,
+      rotation: 0 as const,
+      isInitial: false
+    });
+    game.forest.cards = [
+      meat(0, 0),
+      meat(1, 0),
+      meat(2, 0), // orthogonal row of 3
+      meat(4, 1),
+      meat(5, 2),
+      meat(6, 3) // diagonal trio
+    ];
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+    expect(entryA.objectivePoints).toBe(1);
+  });
+
+  it("scores connected-river objective only when river mouths actually meet", () => {
+    const game = activeGame([player("p1", "macaw"), player("p2", "coati")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    a.selectedObjectiveCardId = "objective_8"; // river of 4+ connected cards
+    const channel = (x: number, y: number) => ({
+      instanceId: `r_${x}_${y}`,
+      definitionId: "rio_2", // river, meat, north/south channel mouths
+      x,
+      y,
+      rotation: 0 as const,
+      isInitial: false
+    });
+    // Vertical chain of 4 channels: each card's south mouth meets the next
+    // card's north mouth -> one connected river of size 4.
+    game.forest.cards = [channel(0, 0), channel(0, 1), channel(0, 2), channel(0, 3)];
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+    expect(entryA.objectivePoints).toBe(1);
+  });
+
+  it("does not connect river cards that only touch through land sides", () => {
+    const game = activeGame([player("p1", "macaw"), player("p2", "coati")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    a.selectedObjectiveCardId = "objective_8";
+    // Four river-end cards (single north mouth). Stacked vertically the mouths
+    // point away from each other, so no two cards connect -> no river of 4.
+    const end = (x: number, y: number) => ({
+      instanceId: `e_${x}_${y}`,
+      definitionId: "rio_4", // river, meat, single north mouth (end)
+      x,
+      y,
+      rotation: 0 as const,
+      isInitial: false
+    });
+    game.forest.cards = [end(0, 0), end(0, 1), end(0, 2), end(0, 3)];
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+    expect(entryA.objectivePoints).toBe(0);
+  });
+
   it("tiebreak falls back to higher population value", () => {
     const game = activeGame();
     const a = game.players.find((p) => p.playerId === "p1")!; // coati, pop 8

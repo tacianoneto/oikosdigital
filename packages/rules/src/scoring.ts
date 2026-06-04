@@ -172,6 +172,10 @@ function getObjectivePointsForTurn(
       return Math.min(card.scoring.maxPoints ?? 2, countResourceSquares(game, deps));
     }
 
+    case "connected_river": {
+      return Math.min(card.scoring.maxPoints ?? 2, countConnectedRivers(game, card.scoring.minLength ?? 4, deps));
+    }
+
     case "pieces_in_forest": {
       const totalPieces = speciesDefinitions[player.speciesId].totalPieces;
       const inForest = player.piecesInForest.length;
@@ -182,6 +186,98 @@ function getObjectivePointsForTurn(
     case "extra_turn":
       return 0;
   }
+}
+
+const CONNECTION_DIRECTIONS = ["north", "east", "south", "west"] as const;
+type ConnectionSide = (typeof CONNECTION_DIRECTIONS)[number];
+const CONNECTION_OFFSETS: Record<ConnectionSide, GridPosition> = {
+  north: { x: 0, y: -1 },
+  east: { x: 1, y: 0 },
+  south: { x: 0, y: 1 },
+  west: { x: -1, y: 0 }
+};
+const OPPOSITE_SIDE: Record<ConnectionSide, ConnectionSide> = {
+  north: "south",
+  east: "west",
+  south: "north",
+  west: "east"
+};
+
+function getRotatedConnectionSides(
+  definition: ForestCardDefinition,
+  rotation: ForestCardState["rotation"]
+): Record<ConnectionSide, boolean> {
+  const connections = definition.connections;
+  const steps = (rotation / 90) % CONNECTION_DIRECTIONS.length;
+  const rotated: Record<ConnectionSide, boolean> = { north: false, east: false, south: false, west: false };
+  if (!connections) {
+    return rotated;
+  }
+  for (let i = 0; i < CONNECTION_DIRECTIONS.length; i += 1) {
+    const from = CONNECTION_DIRECTIONS[i];
+    const to = CONNECTION_DIRECTIONS[(i + steps) % CONNECTION_DIRECTIONS.length];
+    rotated[to] = connections[from] === "river";
+  }
+  return rotated;
+}
+
+// Counts "rivers" (connected components of river-habitat cards whose water
+// mouths actually meet) with at least `minLength` cards. Two orthogonally
+// adjacent river cards belong to the same river only when both expose a river
+// mouth on the shared border — adjacency through land sides does not connect.
+function countConnectedRivers(game: GameState, minLength: number, deps: FinalScoringDeps): number {
+  const riverCards = game.forest.cards.filter(
+    (card) => deps.getCardDefinitionOrNull(card.definitionId)?.habitat === "river"
+  );
+  const byPos = new Map(riverCards.map((card) => [deps.positionKey(card), card]));
+  const sidesByPos = new Map(
+    riverCards.map((card) => {
+      const definition = deps.getCardDefinitionOrNull(card.definitionId)!;
+      return [deps.positionKey(card), getRotatedConnectionSides(definition, card.rotation)];
+    })
+  );
+
+  const visited = new Set<string>();
+  let count = 0;
+
+  for (const start of riverCards) {
+    const startKey = deps.positionKey(start);
+    if (visited.has(startKey)) {
+      continue;
+    }
+
+    let size = 0;
+    const stack = [startKey];
+    visited.add(startKey);
+    while (stack.length > 0) {
+      const key = stack.pop()!;
+      const card = byPos.get(key)!;
+      const sides = sidesByPos.get(key)!;
+      size += 1;
+
+      for (const side of CONNECTION_DIRECTIONS) {
+        if (!sides[side]) {
+          continue;
+        }
+        const offset = CONNECTION_OFFSETS[side];
+        const neighborKey = deps.positionKey({ x: card.x + offset.x, y: card.y + offset.y });
+        if (visited.has(neighborKey)) {
+          continue;
+        }
+        const neighborSides = sidesByPos.get(neighborKey);
+        if (neighborSides?.[OPPOSITE_SIDE[side]]) {
+          visited.add(neighborKey);
+          stack.push(neighborKey);
+        }
+      }
+    }
+
+    if (size >= minLength) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 // Self-contained scoring deps so callers (e.g. the web HUD) can probe objective

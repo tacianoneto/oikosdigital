@@ -69,7 +69,7 @@ export const objectiveCards: ObjectiveCardDefinition[] = [
   objectiveCard(
     8,
     ["middle", "base"],
-    { kind: "habitat_line", habitat: "river", minLength: 4, maxPoints: 2 },
+    { kind: "connected_river", minLength: 4, maxPoints: 2 },
     "Ganhe 1 ponto por cada rio de 4 ou mais cartas consecutivas na floresta. Maximo 2 pontos."
   ),
   objectiveCard(

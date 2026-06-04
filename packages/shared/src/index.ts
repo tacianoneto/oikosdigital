@@ -39,7 +39,8 @@ export type ObjectiveScoringKind =
   | "extra_turn"
   | "discard_for_resources"
   | "resource_square"
-  | "pieces_in_forest";
+  | "pieces_in_forest"
+  | "connected_river";
 export type ThreatCardId =
   | "threat_1"
   | "threat_2"
