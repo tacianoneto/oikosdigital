@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { AlertTriangle, Copy, LogOut, Minus, Play, Plus, Settings, Users, Volume2, VolumeX, X } from "lucide-react";
+import { AlertTriangle, Copy, Eye, LogOut, Minus, Play, Plus, Settings, Users, Volume2, VolumeX, X } from "lucide-react";
 import type { AudioSettings } from "./audio";
 import { initAudioOnGesture, playClick } from "./audio";
 
@@ -29,6 +29,8 @@ interface TableContext {
 interface SettingsModalProps {
   audio: AudioSettings;
   onUpdate: (partial: Partial<AudioSettings>) => void;
+  visualAccessibility: boolean;
+  onVisualAccessibilityChange: (enabled: boolean) => void;
   onClose: () => void;
   // When opened during a game, the table controls (room code, bot speed,
   // scenarios/threat, leave) are shown above the audio settings.
@@ -42,7 +44,14 @@ interface SettingsModalProps {
  * in-game panel looks and behaves the same as the menu's. Closes on the X or
  * the backdrop.
  */
-export function SettingsModal({ audio, onUpdate, onClose, table }: SettingsModalProps) {
+export function SettingsModal({
+  audio,
+  onUpdate,
+  visualAccessibility,
+  onVisualAccessibilityChange,
+  onClose,
+  table
+}: SettingsModalProps) {
   const volumePct = Math.round(audio.sfxVolume * 100);
 
   return (
@@ -144,6 +153,30 @@ export function SettingsModal({ audio, onUpdate, onClose, table }: SettingsModal
             </button>
           </section>
         )}
+
+        <section className="settings-group">
+          <div className="settings-group-title">
+            <Eye aria-hidden="true" />
+            <span>Acessibilidade</span>
+          </div>
+
+          <div className="settings-row">
+            <div className="settings-row-text">
+              <strong>Alto contraste e padroes</strong>
+              <small>Marcas extras para especies e recursos</small>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={visualAccessibility}
+              aria-label="Ativar modo de alto contraste e padroes visuais"
+              className={`settings-switch ${visualAccessibility ? "is-on" : ""}`}
+              onClick={() => onVisualAccessibilityChange(!visualAccessibility)}
+            >
+              <span className="settings-switch-knob" aria-hidden="true" />
+            </button>
+          </div>
+        </section>
 
         <section className="settings-group">
           <div className="settings-group-title">

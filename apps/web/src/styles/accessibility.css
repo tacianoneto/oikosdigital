@@ -1,0 +1,290 @@
+.app-shell.accessibility-visual-mode {
+  --access-ink: #fff8d8;
+  --access-line: #fff1a8;
+  --access-shadow: rgba(0, 0, 0, 0.86);
+}
+
+.accessibility-visual-mode .settings-modal,
+.accessibility-visual-mode .panel-block,
+.accessibility-visual-mode .opponent-popover,
+.accessibility-visual-mode .flow-card {
+  border-color: rgba(255, 241, 168, 0.72);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.72),
+    0 0 18px rgba(255, 241, 168, 0.12);
+}
+
+.accessibility-visual-mode [data-resource] {
+  --resource-mark: "??";
+  --resource-pattern: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.26) 0 2px, transparent 2px 7px);
+}
+
+.accessibility-visual-mode [data-resource="meat"] {
+  --resource-mark: "CA";
+  --resource-pattern: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0 3px, transparent 3px 9px);
+}
+
+.accessibility-visual-mode [data-resource="fruit"] {
+  --resource-mark: "FR";
+  --resource-pattern: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.42) 0 2px, transparent 3px);
+  background-size: 10px 10px;
+}
+
+.accessibility-visual-mode [data-resource="egg"] {
+  --resource-mark: "OV";
+  --resource-pattern: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0 2px, transparent 2px 8px);
+}
+
+.accessibility-visual-mode [data-resource="seed"] {
+  --resource-mark: "PI";
+  --resource-pattern:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.22) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.22) 75%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.22) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.22) 75%);
+  background-position: 0 0, 5px 5px;
+  background-size: 10px 10px;
+}
+
+.accessibility-visual-mode .resource-bank .resource-chip:nth-child(1) {
+  --resource-mark: "CA";
+  --resource-pattern: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.3) 0 3px, transparent 3px 9px);
+}
+
+.accessibility-visual-mode .resource-bank .resource-chip:nth-child(2) {
+  --resource-mark: "OV";
+  --resource-pattern: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0 2px, transparent 2px 8px);
+}
+
+.accessibility-visual-mode .resource-bank .resource-chip:nth-child(3) {
+  --resource-mark: "FR";
+  --resource-pattern: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.42) 0 2px, transparent 3px);
+  background-size: 10px 10px;
+}
+
+.accessibility-visual-mode .resource-bank .resource-chip:nth-child(4) {
+  --resource-mark: "PI";
+  --resource-pattern:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.22) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.22) 75%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.22) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.22) 75%);
+  background-position: 0 0, 5px 5px;
+  background-size: 10px 10px;
+}
+
+.accessibility-visual-mode .resource-chip,
+.accessibility-visual-mode .mini-resource,
+.accessibility-visual-mode .opponent-resource,
+.accessibility-visual-mode .opponent-portrait-leader,
+.accessibility-visual-mode .wolf-resource-option {
+  position: relative;
+  outline: 2px solid rgba(255, 241, 168, 0.68);
+  outline-offset: 2px;
+  isolation: isolate;
+}
+
+.accessibility-visual-mode .resource-chip::before,
+.accessibility-visual-mode .mini-resource::before,
+.accessibility-visual-mode .opponent-resource::before,
+.accessibility-visual-mode .opponent-portrait-leader::before,
+.accessibility-visual-mode .wolf-resource-option::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--resource-pattern);
+  opacity: 0.28;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.accessibility-visual-mode .resource-chip::after,
+.accessibility-visual-mode .mini-resource::after,
+.accessibility-visual-mode .opponent-resource::after,
+.accessibility-visual-mode .opponent-portrait-leader::after,
+.accessibility-visual-mode .wolf-resource-option::after {
+  content: var(--resource-mark);
+  position: absolute;
+  right: -7px;
+  top: -8px;
+  min-width: 20px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+  border-radius: 5px;
+  border: 1px solid #1b1208;
+  background: var(--access-ink);
+  color: #1b1208;
+  font-family: Outfit, sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: none;
+  z-index: 4;
+}
+
+.accessibility-visual-mode .hud-bottom-jaguar-resource-item[data-resource]::before,
+.accessibility-visual-mode .hud-bottom-wolf-resource-item[data-resource]::before,
+.accessibility-visual-mode .hud-bottom-tatu-resource-item[data-resource]::before,
+.accessibility-visual-mode .hud-bottom-macaw-resource-item[data-resource]::before,
+.accessibility-visual-mode .hud-bottom-capuchin-resource-item[data-resource]::before,
+.accessibility-visual-mode .hud-bottom-coati-resource-item[data-resource]::before {
+  content: var(--resource-mark);
+  position: absolute;
+  left: 50%;
+  top: -16px;
+  transform: translateX(-50%);
+  min-width: 18px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+  border-radius: 5px;
+  border: 1px solid #1b1208;
+  background: var(--access-ink);
+  color: #1b1208;
+  font-family: Outfit, sans-serif;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: none;
+  pointer-events: none;
+}
+
+.accessibility-visual-mode .hud-resource-value,
+.accessibility-visual-mode .resource-chip strong,
+.accessibility-visual-mode .mini-resource b,
+.accessibility-visual-mode .opponent-resource strong,
+.accessibility-visual-mode .wolf-resource-option strong {
+  color: var(--access-ink) !important;
+  -webkit-text-stroke: 0.5px #1b1208;
+  text-shadow:
+    0 0 3px #000,
+    0 2px 2px var(--access-shadow);
+}
+
+.accessibility-visual-mode [data-species] {
+  --species-mark: "??";
+  --species-pattern: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.2) 0 2px, transparent 2px 8px);
+}
+
+.accessibility-visual-mode [data-species="jaguar"] {
+  --species-mark: "ON";
+  --species-pattern: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.24) 0 3px, transparent 3px 10px);
+}
+
+.accessibility-visual-mode [data-species="maned_wolf"] {
+  --species-mark: "LG";
+  --species-pattern: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 3px, transparent 3px 9px);
+}
+
+.accessibility-visual-mode [data-species="armadillo"] {
+  --species-mark: "TA";
+  --species-pattern: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0 3px, transparent 3px 9px);
+}
+
+.accessibility-visual-mode [data-species="macaw"] {
+  --species-mark: "AR";
+  --species-pattern: radial-gradient(circle, rgba(255, 255, 255, 0.34) 0 2px, transparent 3px);
+  background-size: 11px 11px;
+}
+
+.accessibility-visual-mode [data-species="capuchin"] {
+  --species-mark: "MP";
+  --species-pattern:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.2) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.2) 75%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.2) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.2) 75%);
+  background-position: 0 0, 6px 6px;
+  background-size: 12px 12px;
+}
+
+.accessibility-visual-mode [data-species="coati"] {
+  --species-mark: "QT";
+  --species-pattern: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.2) 0 2px, transparent 2px 8px);
+}
+
+.accessibility-visual-mode .flow-species-card,
+.accessibility-visual-mode .flow-species-card-wrap,
+.accessibility-visual-mode .opponent-portrait-btn,
+.accessibility-visual-mode .player-row,
+.accessibility-visual-mode .species-hud,
+.accessibility-visual-mode .opponent-popover {
+  position: relative;
+  outline: 2px solid rgba(255, 241, 168, 0.72);
+  outline-offset: 2px;
+}
+
+.accessibility-visual-mode .flow-species-card::before,
+.accessibility-visual-mode .player-row::before,
+.accessibility-visual-mode .species-hud::before,
+.accessibility-visual-mode .opponent-popover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--species-pattern);
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.accessibility-visual-mode .opponent-portrait-btn::before {
+  background-image: var(--species-pattern);
+  opacity: 0.28;
+}
+
+.accessibility-visual-mode .flow-species-card > *,
+.accessibility-visual-mode .player-row > *,
+.accessibility-visual-mode .species-hud > *,
+.accessibility-visual-mode .opponent-popover > * {
+  position: relative;
+  z-index: 1;
+}
+
+.accessibility-visual-mode .flow-species-card-wrap::after,
+.accessibility-visual-mode .opponent-portrait-btn::after,
+.accessibility-visual-mode .player-row::after,
+.accessibility-visual-mode .species-hud::after,
+.accessibility-visual-mode .opponent-popover::after {
+  content: var(--species-mark);
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  min-width: 24px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  border-radius: 5px;
+  border: 1px solid #1b1208;
+  background: var(--access-ink);
+  color: #1b1208;
+  font-family: Outfit, sans-serif;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: none;
+  z-index: 5;
+}
+
+.accessibility-visual-mode .opponent-portrait-btn::after {
+  right: -6px;
+  top: -6px;
+  transform: none;
+  width: auto;
+  box-shadow: none;
+  animation: none;
+}
+
+.accessibility-visual-mode .opponent-portrait-btn.is-active-turn::after {
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.68), 0 0 12px rgba(255, 241, 168, 0.62);
+}
+
+.accessibility-visual-mode .flow-species-card strong,
+.accessibility-visual-mode .player-summary-head strong,
+.accessibility-visual-mode .species-hud h2,
+.accessibility-visual-mode .opponent-popover strong {
+  color: var(--access-ink);
+  text-shadow:
+    0 0 3px #000,
+    0 2px 2px var(--access-shadow);
+}

@@ -215,6 +215,19 @@ function isBelowDesktopWidth(): boolean {
   return typeof window !== "undefined" && window.matchMedia(DESKTOP_ONLY_QUERY).matches;
 }
 
+const VISUAL_ACCESSIBILITY_KEY = "oikos.visualAccessibility";
+function getVisualAccessibilityPreference(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(VISUAL_ACCESSIBILITY_KEY) === "true";
+}
+
+function setVisualAccessibilityPreference(enabled: boolean): boolean {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(VISUAL_ACCESSIBILITY_KEY, enabled ? "true" : "false");
+  }
+  return enabled;
+}
+
 type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 
 // Selectable turn-timer durations for online rooms (ms).
@@ -702,6 +715,7 @@ export function OikosApp() {
   const [isBelowDesktop, setIsBelowDesktop] = useState(isBelowDesktopWidth);
   const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
+  const [visualAccessibility, setVisualAccessibility] = useState(() => getVisualAccessibilityPreference());
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(isSmallScreen);
@@ -1122,6 +1136,7 @@ export function OikosApp() {
     return (
       <div
         className={`${itemClassName} res-${resource}${hasMajority ? " is-majority" : ""}`}
+        data-resource={resource}
         data-majority={hasMajority ? "true" : "false"}
         ref={(node) => setEffectTarget(`hudbar:${resource}`, node)}
       >
@@ -1194,6 +1209,10 @@ export function OikosApp() {
 
   const updateAudio = useCallback((partial: Partial<AudioSettings>) => {
     setAudioSettingsState(setAudioSettings(partial));
+  }, []);
+
+  const updateVisualAccessibility = useCallback((enabled: boolean) => {
+    setVisualAccessibility(setVisualAccessibilityPreference(enabled));
   }, []);
 
   // Orchestrate the scripted tutorial: detect when the taught action is done and
@@ -4028,7 +4047,8 @@ export function OikosApp() {
         currentGamePlayer?.speciesId === "macaw" ? "is-macaw-active" : ""
       } ${currentGamePlayer?.speciesId === "capuchin" ? "is-capuchin-active" : ""} ${
         currentGamePlayer?.speciesId === "coati" ? "is-coati-active" : ""
-      }`}
+      } ${visualAccessibility ? "accessibility-visual-mode" : ""}`}
+      data-visual-accessibility={visualAccessibility ? "true" : "false"}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
     >
       {cacaIlegalPending && canResolveCacaIlegal && !cacaIlegalRemovalMode && (
@@ -4426,7 +4446,13 @@ export function OikosApp() {
       )}
 
       {settingsOpen && (
-        <SettingsModal audio={audioSettings} onUpdate={updateAudio} onClose={() => setSettingsOpen(false)} />
+        <SettingsModal
+          audio={audioSettings}
+          onUpdate={updateAudio}
+          visualAccessibility={visualAccessibility}
+          onVisualAccessibilityChange={updateVisualAccessibility}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
 
       {!hasStartedGame && !room && landingMode === "create" && (
@@ -4736,6 +4762,7 @@ export function OikosApp() {
                     <div
                       key={species.speciesId}
                       className={`flow-species-card-wrap ${isBotSlot ? "is-bot" : ""}`}
+                      data-species={species.speciesId}
                       style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
                     >
                       <button
@@ -5833,6 +5860,8 @@ export function OikosApp() {
         <SettingsModal
           audio={audioSettings}
           onUpdate={updateAudio}
+          visualAccessibility={visualAccessibility}
+          onVisualAccessibilityChange={updateVisualAccessibility}
           onClose={() => setConfigOpen(false)}
           table={{
             roomLabel: isLocalRoom ? "Teste local" : "Sala online",
@@ -5873,6 +5902,7 @@ export function OikosApp() {
       {hasStartedGame && !cleanBoardMode && hudGamePlayer && hudSpecies && (
         <section
           className={`hud-species panel-block species-hud ${hudSpeciesCollapsed ? "is-collapsed" : ""}`}
+          data-species={hudGamePlayer.speciesId}
           style={speciesVar(hudGamePlayer.speciesId)}
         >
             <div className="species-hud-header">
@@ -6637,6 +6667,7 @@ export function OikosApp() {
                 }`}
                 key={player.playerId}
                 style={speciesVar(player.speciesId)}
+                data-species={player.speciesId ?? undefined}
                 title={species ? `Ver ${species.displayName}` : player.name}
                 aria-label={species ? `Ver informações de ${species.displayName}` : `Ver informações de ${player.name}`}
                 aria-pressed={selectedOpponentPlayerId === player.playerId}
@@ -6666,6 +6697,7 @@ export function OikosApp() {
                         <span
                           key={resource}
                           className="opponent-portrait-leader"
+                          data-resource={resource}
                           title={`Maioria de ${resourceLabels[resource]}: ${gamePlayer.resources[resource]}`}
                         >
                           <img src={encodeURI(resourceAssets[resource])} alt="" />
@@ -6681,6 +6713,7 @@ export function OikosApp() {
           {selectedOpponentEntry?.gamePlayer && selectedOpponentEntry.species && (
             <section
               className="opponent-popover"
+              data-species={selectedOpponentEntry.gamePlayer.speciesId}
               style={
                 {
                   ...speciesVar(selectedOpponentEntry.gamePlayer.speciesId),
@@ -6704,6 +6737,7 @@ export function OikosApp() {
                   return (
                     <span
                       className={`opponent-resource ${isLeader ? "is-leader" : ""}`}
+                      data-resource={resource}
                       key={resource}
                       title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
                       ref={(node) => setEffectTarget(`${selectedOpponentEntry.gamePlayer!.playerId}:${resource}`, node)}
@@ -6771,6 +6805,7 @@ export function OikosApp() {
                 className={`player-row ${isActivePlayer ? "active" : ""}`}
                 key={player.playerId}
                 style={speciesVar(player.speciesId)}
+                data-species={player.speciesId ?? undefined}
               >
                 <button
                   type="button"
@@ -6826,6 +6861,7 @@ export function OikosApp() {
                         return (
                           <span
                             className={`mini-resource ${isLeader ? "is-leader" : ""}`}
+                            data-resource={resource}
                             title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
                             key={resource}
                             ref={(node) => setEffectTarget(`${gamePlayer.playerId}:${resource}`, node)}
@@ -6967,6 +7003,7 @@ export function OikosApp() {
                 {resourceOrder.map((resource) => (
                   <button
                     className={`wolf-resource-option ${selectedWolfResources.includes(resource) ? "selected" : ""}`}
+                    data-resource={resource}
                     disabled={!wolfSpendableResources.includes(resource)}
                     key={resource}
                     onClick={() =>
