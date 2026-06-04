@@ -953,7 +953,7 @@ describe("setup placement", () => {
     game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
     game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
     game = setActiveAction(game, "jaguar", 0);
-    game.players.find((candidate) => candidate.playerId === "jaguar")!.selectedObjectiveCardId = "objective_1";
+    game.players.find((candidate) => candidate.playerId === "jaguar")!.selectedObjectiveCardId = "objective_9";
 
     const coatiPieceId = game.pieces.find((piece) => piece.ownerId === "coati" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
     game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, coatiPieceId);

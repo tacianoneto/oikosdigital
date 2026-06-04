@@ -31,12 +31,6 @@ function objectiveCard(
 
 export const objectiveCards: ObjectiveCardDefinition[] = [
   objectiveCard(
-    1,
-    ["predator"],
-    { kind: "removed_species" },
-    "Ganhe 1 ponto se remover 2 especies diferentes na partida, ou 2 pontos se remover 3 ou mais especies."
-  ),
-  objectiveCard(
     2,
     ["middle", "base"],
     { kind: "resource_majority", resource: "fruit" },
