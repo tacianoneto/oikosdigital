@@ -137,6 +137,7 @@ import {
 } from "./ui/audio";
 import { ActionStepsViewer } from "./ui/ActionStepsViewer";
 import { EndgameCeremony } from "./ui/EndgameCeremony";
+import { SettingsModal } from "./ui/SettingsModal";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -637,6 +638,7 @@ export function App() {
   const [cleanBoardMode, setCleanBoardMode] = useState(false);
   const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [scenarioDockOpen, setScenarioDockOpen] = useState(false);
   const [expansionPreview, setExpansionPreview] = useState<"objective" | "scenarios" | "threat" | null>(null);
   // Viewport point (icon center) the preview should grow out from, for the
@@ -4189,6 +4191,21 @@ export function App() {
                     </span>
                   </button>
                 ))}
+
+                <button
+                  type="button"
+                  className="forest-btn"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <span className="forest-btn-glow" aria-hidden="true" />
+                  <span className="forest-btn-icon">
+                    <Settings aria-hidden="true" />
+                  </span>
+                  <span className="forest-btn-text">
+                    <strong>Configurações</strong>
+                    <small>Som e preferências</small>
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -4199,6 +4216,10 @@ export function App() {
             <span>Servidor autoritativo · Socket.IO</span>
           </footer>
         </div>
+      )}
+
+      {settingsOpen && (
+        <SettingsModal audio={audioSettings} onUpdate={updateAudio} onClose={() => setSettingsOpen(false)} />
       )}
 
       {!hasStartedGame && !room && landingMode === "create" && (
