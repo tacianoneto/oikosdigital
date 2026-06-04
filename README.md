@@ -4,6 +4,15 @@
 
 O multiplayer usa servidor autoritativo com Socket.IO. O navegador envia a jogada, o servidor valida nas regras e todos os jogadores da sala recebem o novo estado.
 
+## Regra de paridade local/online
+
+Toda regra, acao, objetivo, cenario, ameaca, bot e fluxo de fim de jogo precisa funcionar no teste local e no multiplayer online.
+
+- O teste local pode aplicar as regras direto no navegador para acelerar validacao.
+- O online precisa ter o mesmo comportamento validado pelo servidor autoritativo.
+- Sempre que uma acao nova for criada no teste local, crie tambem o evento Socket.IO, a funcao em `apps/server/src/rooms.ts` e a chamada em `apps/web/src/socket.ts`.
+- Antes de considerar uma mudanca pronta, verifique os dois caminhos: teste local e sala online.
+
 Para jogar com pessoas em outros locais, suba duas partes:
 
 1. Servidor Node, com WebSocket liberado.
