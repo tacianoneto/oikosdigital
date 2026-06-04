@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { RoomPlayer } from "@oikos/shared";
-import { createInitialGameState, createPreviewInitialForest, finalizeGame, forceEndPlayerTurn } from "./setup";
+import {
+  createInitialGameState,
+  createPreviewInitialForest,
+  finalizeGame,
+  forceEndPlayerTurn,
+  resolveExtraTurnObjective
+} from "./setup";
 
 function player(playerId: string, speciesId: RoomPlayer["speciesId"]): RoomPlayer {
   return { playerId, name: playerId, speciesId, ready: true, connected: true };
@@ -197,5 +203,33 @@ describe("end game flow", () => {
     expect(game.status).toBe("finished");
     expect(game.round).toBeGreaterThan(game.maxRounds);
     expect(game.activePlayerId).toBeNull();
+  });
+
+  it("queues the extra-turn objective after the last normal turn and finalizes after that extra turn", () => {
+    let game = activeGame([player("jaguar", "jaguar"), player("coati", "coati")]);
+    const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+    jaguar.score = 3;
+    jaguar.selectedObjectiveCardId = "objective_20";
+    game.round = game.maxRounds;
+    game.activePlayerId = "jaguar";
+
+    game = forceEndPlayerTurn(game, "jaguar", "end turn");
+
+    expect(game.status).toBe("active");
+    expect(game.pendingExtraTurnPlayerId).toBe("jaguar");
+    expect(game.activePlayerId).toBeNull();
+    expect(game.finalScoreBreakdown).toBeNull();
+
+    game = resolveExtraTurnObjective(game, "jaguar", true);
+
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.extraTurnPlayerId).toBe("jaguar");
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")!.score).toBe(2);
+
+    game = forceEndPlayerTurn(game, "jaguar", "extra done");
+
+    expect(game.status).toBe("finished");
+    expect(game.activePlayerId).toBeNull();
+    expect(game.finalScoreBreakdown?.entries.find((entry) => entry.playerId === "jaguar")?.baseScore).toBe(2);
   });
 });

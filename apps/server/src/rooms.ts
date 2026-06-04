@@ -15,6 +15,7 @@ import {
   removeBasePieceForWolfAction,
   removePiecesForCurrentAction,
   resolveCoatiPairBonus,
+  resolveExtraTurnObjective,
   selectObjectiveCard,
   collectCaatingaBonus,
   collectCerradoBonus,
@@ -835,6 +836,20 @@ export function discardObjective(roomId: string, playerId: string): PublicRoomSt
 
   room.game = discardObjectiveForResources(room.game, playerId);
   room.status = room.game.status === "active" ? "active" : room.status;
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
+export function resolveExtraTurn(roomId: string, playerId: string, accept: boolean): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (!room.game) {
+    throw new Error("A partida ainda nao foi iniciada.");
+  }
+
+  room.game = resolveExtraTurnObjective(room.game, playerId, accept);
+  room.status = room.game.status === "finished" ? "finished" : "active";
   room.warnings = room.game.contentWarnings;
 
   return toPublicRoom(room);

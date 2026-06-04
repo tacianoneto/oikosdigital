@@ -25,6 +25,7 @@ import {
   setTurnTimer,
   chooseObjective,
   discardObjective,
+  resolveExtraTurn,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -613,6 +614,14 @@ io.on("connection", (socket) => {
   socket.on("objective:discard", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
       const room = discardObjective(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("objective:extra-turn", (payload: { roomId: string; accept: boolean }, reply) => {
+    withReply(reply, () => {
+      const room = resolveExtraTurn(payload.roomId, playerId, payload.accept);
       broadcastRoom(room);
       return room;
     });

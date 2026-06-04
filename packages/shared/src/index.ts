@@ -264,6 +264,9 @@ export interface GameState {
     playerId: string;
     pieceIds: string[];
   } | null;
+  pendingExtraTurnPlayerId: string | null;
+  extraTurnPlayerId: string | null;
+  resolvedExtraTurnPlayerIds: string[];
   resolvedCoatiPairBonuses: string[];
   setupActivePlayerId: string | null;
   turnOrder: string[];

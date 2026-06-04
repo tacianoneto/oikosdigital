@@ -660,6 +660,9 @@ export function createInitialGameState(
     pendingCoatiPairBonus: null,
     pendingMacawMovedPiece: null,
     pendingWolfMoves: null,
+    pendingExtraTurnPlayerId: null,
+    extraTurnPlayerId: null,
+    resolvedExtraTurnPlayerIds: [],
     resolvedCoatiPairBonuses: [],
     setupActivePlayerId: setupSpeciesOrder.length > 0 ? findPlayerBySpecies(roomPlayers, setupSpeciesOrder[0]).playerId : null,
     setupOrder: setupSpeciesOrder.map((speciesId) => findPlayerBySpecies(roomPlayers, speciesId).playerId),
@@ -3081,7 +3084,7 @@ function advanceSetupTurn(game: GameState): void {
 }
 
 function advanceActiveAction(game: GameState): void {
-  if (game.caatingaPending || game.cerradoPending || game.cacaIlegalPending) {
+  if (game.caatingaPending || game.cerradoPending || game.cacaIlegalPending || game.pendingExtraTurnPlayerId) {
     return;
   }
 
@@ -3123,6 +3126,27 @@ function finishPlayerTurn(game: GameState, player: PlayerState): void {
 }
 
 function rotateToNextPlayer(game: GameState, player: PlayerState): void {
+  if (game.extraTurnPlayerId === player.playerId) {
+    game.activePlayerId = null;
+    game.activeActionIndex = 0;
+    game.activePlayedForestCardId = null;
+    game.pendingCoatiPairBonus = null;
+    game.pendingMacawMovedPiece = null;
+    game.pendingWolfMoves = null;
+    game.extraTurnPlayerId = null;
+    game.log = [
+      ...game.log,
+      {
+        id: `extra_turn_complete_${player.playerId}_${game.log.length + 1}`,
+        message: `${player.name} concluiu o turno extra.`,
+        createdAt: Date.now(),
+        payload: { kind: "advance_turn", actorPlayerId: player.playerId }
+      }
+    ];
+    queueExtraTurnOrFinalize(game);
+    return;
+  }
+
   const currentTurnIndex = game.turnOrder.indexOf(player.playerId);
   const nextTurnIndex = currentTurnIndex >= 0 ? (currentTurnIndex + 1) % game.turnOrder.length : 0;
   const nextPlayerId = game.turnOrder[nextTurnIndex] ?? null;
@@ -3149,11 +3173,7 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
   ];
 
   if (game.round > game.maxRounds) {
-    applyFinalScoring(game, {
-      findPlayer,
-      getCardDefinitionOrNull,
-      positionKey
-    });
+    queueExtraTurnOrFinalize(game);
     return;
   }
 
@@ -3161,6 +3181,53 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
     revealThreatForRound(game);
   }
   skipAutomaticActionIfNeeded(game);
+}
+
+function queueExtraTurnOrFinalize(game: GameState): void {
+  const candidate = findNextExtraTurnCandidate(game);
+  if (candidate) {
+    game.pendingExtraTurnPlayerId = candidate.playerId;
+    game.activePlayerId = null;
+    game.activeActionIndex = 0;
+    game.activePlayedForestCardId = null;
+    game.log = [
+      ...game.log,
+      {
+        id: `extra_turn_pending_${candidate.playerId}_${game.log.length + 1}`,
+        message: `${candidate.name} pode perder 1 ponto para jogar 1 turno extra.`,
+        createdAt: Date.now(),
+        payload: { kind: "objective", actorPlayerId: candidate.playerId }
+      }
+    ];
+    return;
+  }
+
+  applyFinalScoring(game, {
+    findPlayer,
+    getCardDefinitionOrNull,
+    positionKey
+  });
+}
+
+function findNextExtraTurnCandidate(game: GameState): PlayerState | null {
+  const resolved = new Set(game.resolvedExtraTurnPlayerIds ?? []);
+  for (const playerId of game.turnOrder) {
+    if (resolved.has(playerId)) {
+      continue;
+    }
+
+    const player = game.players.find((candidate) => candidate.playerId === playerId);
+    if (!player?.selectedObjectiveCardId || player.score < 1) {
+      continue;
+    }
+
+    const card = objectiveCardsById.get(player.selectedObjectiveCardId);
+    if (card?.scoring.kind === "extra_turn") {
+      return player;
+    }
+  }
+
+  return null;
 }
 
 function revealThreatForRound(game: GameState): void {
@@ -3197,6 +3264,59 @@ function revealThreatForRound(game: GameState): void {
       createdAt: Date.now()
     }
   ];
+}
+
+export function resolveExtraTurnObjective(game: GameState, playerId: string, accept: boolean): GameState {
+  if (game.status !== "active") {
+    throw new Error("Turno extra so pode ser resolvido durante a partida.");
+  }
+
+  if (game.pendingExtraTurnPlayerId !== playerId) {
+    throw new Error("Nenhum turno extra pendente para este jogador.");
+  }
+
+  const next = cloneGameState(game);
+  const player = findPlayer(next, playerId);
+  next.pendingExtraTurnPlayerId = null;
+  next.resolvedExtraTurnPlayerIds = [...new Set([...(next.resolvedExtraTurnPlayerIds ?? []), playerId])];
+
+  if (!accept) {
+    next.log = [
+      ...next.log,
+      {
+        id: `extra_turn_declined_${playerId}_${next.log.length + 1}`,
+        message: `${player.name} recusou o turno extra.`,
+        createdAt: Date.now(),
+        payload: { kind: "objective", actorPlayerId: playerId }
+      }
+    ];
+    queueExtraTurnOrFinalize(next);
+    return next;
+  }
+
+  if (player.score < 1) {
+    throw new Error("E preciso ter ao menos 1 ponto para comprar o turno extra.");
+  }
+
+  player.score -= 1;
+  next.extraTurnPlayerId = playerId;
+  next.activePlayerId = playerId;
+  next.activeActionIndex = 0;
+  next.activePlayedForestCardId = null;
+  next.pendingCoatiPairBonus = null;
+  next.pendingMacawMovedPiece = null;
+  next.pendingWolfMoves = null;
+  next.log = [
+    ...next.log,
+    {
+      id: `extra_turn_accept_${playerId}_${next.log.length + 1}`,
+      message: `${player.name} perdeu 1 ponto para jogar 1 turno extra.`,
+      createdAt: Date.now(),
+      payload: { kind: "objective", actorPlayerId: playerId, points: -1 }
+    }
+  ];
+  skipAutomaticActionIfNeeded(next);
+  return next;
 }
 
 export function resolveCacaIlegal(
@@ -3640,6 +3760,9 @@ function cloneGameState(game: GameState): GameState {
           pieceIds: [...game.pendingWolfMoves.pieceIds]
         }
       : null,
+    pendingExtraTurnPlayerId: game.pendingExtraTurnPlayerId ?? null,
+    extraTurnPlayerId: game.extraTurnPlayerId ?? null,
+    resolvedExtraTurnPlayerIds: [...(game.resolvedExtraTurnPlayerIds ?? [])],
     resolvedCoatiPairBonuses: [...game.resolvedCoatiPairBonuses],
     players: game.players.map((player) => ({
       ...player,

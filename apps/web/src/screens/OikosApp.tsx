@@ -104,6 +104,7 @@ import {
   collectCerradoBonus,
   discardMataAtlanticaPileCard,
   discardObjectiveForResources,
+  resolveExtraTurnObjective,
   isObjectiveCompleted,
   getObjectiveProgressPoints
 } from "@oikos/rules";
@@ -3760,6 +3761,12 @@ export function OikosApp() {
   const canResolveCacaIlegal = Boolean(cacaIlegalPending && controlledPlayerId === cacaIlegalPending.playerId);
   const canResolveCaatinga = Boolean(caatingaPending && controlledPlayerId === caatingaPending.playerId);
   const canResolveCerrado = Boolean(!caatingaPending && !cacaIlegalPending && cerradoPending && controlledPlayerId === cerradoPending.playerId);
+  const pendingExtraTurnPlayer = room?.game?.pendingExtraTurnPlayerId
+    ? room.game.players.find((player) => player.playerId === room.game?.pendingExtraTurnPlayerId) ?? null
+    : null;
+  const canResolveExtraTurn = Boolean(
+    room?.game?.pendingExtraTurnPlayerId && controlledPlayerId === room.game.pendingExtraTurnPlayerId
+  );
   const resolveCacaIlegalChoice = (choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }) => {
     if (!room?.game || !cacaIlegalPending || !canResolveCacaIlegal) return;
     if (isLocalRoom) {
@@ -3811,6 +3818,29 @@ export function OikosApp() {
       const rid = room.roomId;
       run(() => roomApi.collectCerrado(requireSocket(), rid, mode));
     }
+  };
+  const resolveExtraTurnChoice = (accept: boolean) => {
+    if (!room?.game?.pendingExtraTurnPlayerId || !canResolveExtraTurn) return;
+
+    const pendingPlayerId = room.game.pendingExtraTurnPlayerId;
+    if (isLocalRoom) {
+      try {
+        const nextGame = resolveExtraTurnObjective(room.game, pendingPlayerId, accept);
+        setRoom({
+          ...room,
+          status: nextGame.status === "finished" ? "finished" : "active",
+          game: nextGame,
+          warnings: nextGame.contentWarnings
+        });
+        setNotice(accept ? "Turno extra iniciado: -1 ponto." : "Turno extra recusado.");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao resolver turno extra.");
+      }
+      return;
+    }
+
+    const rid = room.roomId;
+    run(() => roomApi.resolveExtraTurn(requireSocket(), rid, accept));
   };
   const mataAtlanticaForcedDiscard = Boolean(
     room?.game &&
@@ -4016,6 +4046,39 @@ export function OikosApp() {
                 onClick={() => resolveCerradoChoice("skip")}
               >
                 Agora não
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {room?.game?.pendingExtraTurnPlayerId && canResolveExtraTurn && (
+        <div className="caatinga-choice-backdrop" role="presentation">
+          <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="extra-turn-title">
+            <div className="caatinga-choice-head">
+              <Trophy aria-hidden="true" />
+              <span>Objetivo de turno extra</span>
+            </div>
+            <h2 id="extra-turn-title">Jogar 1 turno extra?</h2>
+            <p>
+              {pendingExtraTurnPlayer?.name ?? "Jogador"}, voce pode perder 1 ponto para jogar sozinho um turno extra
+              antes da pontuacao final.
+            </p>
+            <div className="caatinga-choice-actions caatinga-choice-actions--stack">
+              <button
+                type="button"
+                className="caatinga-collect-btn"
+                onClick={() => resolveExtraTurnChoice(true)}
+                disabled={(pendingExtraTurnPlayer?.score ?? 0) < 1}
+              >
+                <Trophy aria-hidden="true" />
+                Perder 1 ponto e jogar
+              </button>
+              <button
+                type="button"
+                className="caatinga-collect-btn caatinga-collect-btn--skip"
+                onClick={() => resolveExtraTurnChoice(false)}
+              >
+                Recusar e finalizar
               </button>
             </div>
           </section>
