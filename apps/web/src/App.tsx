@@ -121,7 +121,8 @@ import type {
   ScenarioCardDefinition,
   ScenarioCardId,
   SpeciesId,
-  ThreatCardDefinition
+  ThreatCardDefinition,
+  ThreatCardId
 } from "@oikos/shared";
 import { ForestCanvas, type ForestCanvasHandle } from "./game/ForestCanvas";
 import { createSocket, roomApi, type OikosSocket } from "./socket";
@@ -641,6 +642,15 @@ export function App() {
   // Viewport point (icon center) the preview should grow out from, for the
   // fly-from-origin open animation. Recomputed on each open.
   const [expansionOrigin, setExpansionOrigin] = useState<{ x: number; y: number } | null>(null);
+  // Full-screen threat announcement shown to everyone when a new round reveals a
+  // threat. Auto-dismisses after 5s or when the player clicks the close button.
+  const [threatReveal, setThreatReveal] = useState<ThreatCardId | null>(null);
+  // Tracks the last threat seen per game so the announcement fires only on an
+  // actual change, not on the initial load / reconnect into an ongoing game.
+  const lastThreatRef = useRef<{ gameId: string | null; threatId: ThreatCardId | null }>({
+    gameId: null,
+    threatId: null
+  });
   // Mobile-only HUD: below this width the floating docks become bottom sheets
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
   const [isMobile, setIsMobile] = useState(isMobileWidth);
@@ -1315,6 +1325,38 @@ export function App() {
   const activeThreatDefinition = room?.game?.activeThreatCardId
     ? threatCardsById.get(room.game.activeThreatCardId) ?? null
     : null;
+
+  // Announce a newly revealed threat to everyone. Fires only when the active
+  // threat changes within the same game session (a new round), never on the
+  // first load or on reconnect into an ongoing game.
+  const gameId = room?.game?.gameId ?? null;
+  const activeThreatCardId = room?.game?.activeThreatCardId ?? null;
+  useEffect(() => {
+    if (!gameId) {
+      lastThreatRef.current = { gameId: null, threatId: null };
+      return;
+    }
+    const prev = lastThreatRef.current;
+    if (prev.gameId !== gameId) {
+      // New game or first sight of this game: adopt current threat silently.
+      lastThreatRef.current = { gameId, threatId: activeThreatCardId };
+      return;
+    }
+    if (activeThreatCardId && activeThreatCardId !== prev.threatId) {
+      setThreatReveal(activeThreatCardId);
+    }
+    lastThreatRef.current = { gameId, threatId: activeThreatCardId };
+  }, [gameId, activeThreatCardId]);
+
+  // Auto-dismiss the threat announcement after 5s.
+  useEffect(() => {
+    if (!threatReveal) return;
+    const timer = setTimeout(() => setThreatReveal(null), 5000);
+    return () => clearTimeout(timer);
+  }, [threatReveal]);
+
+  const threatRevealDefinition = threatReveal ? threatCardsById.get(threatReveal) ?? null : null;
+
   const activeScenarioKey = activeScenarioDefinitions.map((scenario) => scenario.id).join("|");
   useEffect(() => {
     if (activeScenarioKey) {
@@ -5517,6 +5559,49 @@ export function App() {
         </div>
       )}
 
+      {threatRevealDefinition && (
+        <div
+          className="threat-reveal-backdrop"
+          role="presentation"
+          onClick={() => setThreatReveal(null)}
+        >
+          <div
+            className="threat-reveal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Nova ameaca: ${threatRevealDefinition.label}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="expansion-preview-close threat-reveal-close"
+              aria-label="Fechar"
+              onClick={() => setThreatReveal(null)}
+            >
+              <X aria-hidden="true" />
+            </button>
+            <div className="threat-reveal-badge">
+              <AlertTriangle aria-hidden="true" />
+              <span>Nova ameaca</span>
+            </div>
+            {threatRevealDefinition.imagePath ? (
+              <img
+                src={encodeURI(threatRevealDefinition.imagePath)}
+                alt={threatRevealDefinition.label}
+                draggable={false}
+              />
+            ) : (
+              <div className="threat-reveal-icon">
+                <AlertTriangle aria-hidden="true" />
+              </div>
+            )}
+            <strong className="threat-reveal-name">{threatRevealDefinition.label}</strong>
+            <p className="threat-reveal-desc">{threatRevealDefinition.description}</p>
+            <span className="threat-reveal-progress" aria-hidden="true" />
+          </div>
+        </div>
+      )}
+
       {hasStartedGame && !cleanBoardMode && isSpectator && (
         <div className="spectator-banner" role="status">
           <Eye aria-hidden="true" />
@@ -6123,7 +6208,7 @@ export function App() {
             cards={forestCards}
             pieces={pieces}
             canPlaceSetupPiece={canPlaceSetupPiece}
-            interactive={!expansionPreview}
+            interactive={!expansionPreview && !threatReveal}
             expansionTargets={displayExpansionTargets}
             rotateFitTargets={displayRotateFitTargets}
             rotateFitCardId={canPlaceSelectedForestCard ? selectedHandCardId : null}
