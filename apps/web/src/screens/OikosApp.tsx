@@ -153,7 +153,7 @@ import {
   resourceOrder,
   speciesList
 } from "../ui/gameConstants";
-import type { FloatingGain, RemovalBurst, TravelEffect } from "../ui/gameEffects";
+import type { FloatingGain, TravelEffect } from "../ui/gameEffects";
 import { elementCenter, sameGridPosition } from "../ui/geometry";
 import {
   clearOnlineSession,
@@ -678,7 +678,6 @@ export function OikosApp() {
   const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
   const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
   const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
-  const [removalBursts, setRemovalBursts] = useState<RemovalBurst[]>([]);
   const [cardDrag, setCardDrag] = useState<{
     cardId: string;
     src: string;
@@ -2258,17 +2257,14 @@ export function OikosApp() {
         }
       }
 
-      const nextBursts: RemovalBurst[] = [];
       for (const removed of removedPieces) {
         // Exact last meeple position (card-local offset included); fall back to
-        // the card center only if the piece was never rendered.
+        // the card center only if the piece was never rendered. The shrink +
+        // red flash + particle burst itself is drawn inside the Phaser scene
+        // (camera-locked); here we only fly a token to the reserve/portrait.
         const from =
           forestCanvasRef.current?.getPieceCenter(removed.pieceId) ??
           forestCanvasRef.current?.getCardCenter(removed.location);
-        if (from) {
-          // Quick shrink + red flash + particles at the board spot it left.
-          nextBursts.push({ id: ++travelSeqRef.current, speciesId: removed.speciesId, at: from });
-        }
         const isOwnPlayer = hudGamePlayer?.playerId === removed.ownerId;
         const target = isOwnPlayer
           ? effectTargetRefs.current.get("hudbar:reserve") ?? effectTargetRefs.current.get("hud:reserve")
@@ -2284,14 +2280,6 @@ export function OikosApp() {
             to
           });
         }
-      }
-
-      if (nextBursts.length > 0) {
-        setRemovalBursts((current) => [...current, ...nextBursts]);
-        const burstIds = new Set(nextBursts.map((burst) => burst.id));
-        window.setTimeout(() => {
-          setRemovalBursts((current) => current.filter((burst) => !burstIds.has(burst.id)));
-        }, 700);
       }
 
       if (nextEffects.length > 0) {
@@ -4123,28 +4111,6 @@ export function OikosApp() {
               </span>
             );
           })}
-        </div>
-      )}
-      {removalBursts.length > 0 && (
-        <div className="removal-burst-layer" aria-hidden="true">
-          {removalBursts.map((burst) => (
-            <span
-              className="removal-burst"
-              key={burst.id}
-              style={
-                {
-                  "--burst-x": `${burst.at.x}px`,
-                  "--burst-y": `${burst.at.y}px`
-                } as CSSProperties
-              }
-            >
-              <span className="removal-burst-flash" />
-              <img className="removal-burst-meeple" src={encodeURI(speciesDefinitions[burst.speciesId].meepleAsset)} alt="" />
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <span className="removal-burst-particle" key={i} style={{ "--i": i } as CSSProperties} />
-              ))}
-            </span>
-          ))}
         </div>
       )}
       {!cleanBoardMode && macawScoreAnim && (

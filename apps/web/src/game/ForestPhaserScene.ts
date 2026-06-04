@@ -986,15 +986,61 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     for (const [id, po] of this.pieceObjs) {
       if (!alive.has(id)) {
+        // Burst exactly where the meeple sits (world space, so it tracks the
+        // camera) then shrink + red flash the sprite away.
+        this.spawnRemovalBurst(po.root.x, po.root.y);
+        const img = po.root.getData("img") as Phaser.GameObjects.Image | undefined;
+        if (img?.postFX) {
+          img.postFX.clear();
+          img.postFX.addGlow(0xff3b30, 6, 0, false, 0.3, 16);
+        }
         this.tweens.add({
           targets: po.root,
           alpha: 0,
-          scale: 0.4,
-          duration: 240,
+          scale: 0.05,
+          angle: 26,
+          duration: 360,
+          ease: "Back.easeIn",
           onComplete: () => po.root.destroy()
         });
         this.pieceObjs.delete(id);
       }
+    }
+  }
+
+  // Quick capture/removal flourish drawn in the piece layer (world space) so it
+  // stays locked to the spot the meeple left even as the camera pans/zooms.
+  private spawnRemovalBurst(x: number, y: number): void {
+    const cy = y - 4;
+    const flash = this.add.circle(x, cy, 26, 0xff3b30, 0.5);
+    flash.setDepth(70);
+    this.pieceLayer.add(flash);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scale: 1.9,
+      duration: 340,
+      ease: "Quad.easeOut",
+      onComplete: () => flash.destroy()
+    });
+
+    const count = 7;
+    for (let i = 0; i < count; i += 1) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+      const dist = 26 + Math.random() * 18;
+      const particle = this.add.circle(x, cy, 2.5 + Math.random() * 1.5, 0xffd9a0, 0.95);
+      particle.setDepth(71);
+      this.pieceLayer.add(particle);
+      this.tweens.add({
+        targets: particle,
+        x: x + Math.cos(angle) * dist,
+        y: cy + Math.sin(angle) * dist,
+        alpha: 0,
+        scale: 0.2,
+        duration: 460 + Math.random() * 160,
+        ease: "Cubic.easeOut",
+        onComplete: () => particle.destroy()
+      });
     }
   }
 
