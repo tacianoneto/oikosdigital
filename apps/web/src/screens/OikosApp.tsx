@@ -5436,9 +5436,16 @@ export function OikosApp() {
                 draggable={false}
               />
               {canDiscardSelectedObjective && (
-                <button type="button" className="expansion-preview-action" onClick={() => void handleDiscardObjective()}>
+                <button
+                  type="button"
+                  className="objective-discard-btn"
+                  onClick={() => void handleDiscardObjective()}
+                >
                   <Leaf aria-hidden="true" />
-                  Descartar por recursos
+                  <span className="objective-discard-text">
+                    <strong>Descartar</strong>
+                    <small>Ganhe 1 de cada recurso</small>
+                  </span>
                 </button>
               )}
             </>

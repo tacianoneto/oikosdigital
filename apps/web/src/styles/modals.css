@@ -136,6 +136,58 @@
   height: 15px;
 }
 
+/* Prominent discard action shown right below a discard-type objective card. */
+.objective-discard-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border: 1px solid rgba(120, 200, 140, 0.6);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(46, 96, 64, 0.96), rgba(28, 64, 44, 0.96));
+  color: var(--paper);
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 120ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.objective-discard-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, rgba(58, 120, 80, 0.98), rgba(36, 80, 56, 0.98));
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(120, 200, 140, 0.35);
+}
+
+.objective-discard-btn:active {
+  transform: translateY(0);
+}
+
+.objective-discard-btn svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #b6f0c4;
+}
+
+.objective-discard-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.objective-discard-text strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.objective-discard-text small {
+  font-size: 0.72rem;
+  opacity: 0.82;
+}
+
 /* New-threat announcement shown to everyone at the start of a round */
 .threat-reveal-backdrop {
   position: fixed;
