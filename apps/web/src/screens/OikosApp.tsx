@@ -4238,11 +4238,10 @@ export function OikosApp() {
                     type="button"
                     className="mata-discard-option"
                     onClick={() => resolveMataAtlanticaDiscard(cardId)}
-                    title={`Descartar ${def.label}`}
+                    title={`Descartar carta da pilha ${index + 1}`}
                   >
                     <span className="mata-discard-pile-label">Pilha {index + 1}</span>
-                    <img src={encodeURI(def.imagePath)} alt={def.label} />
-                    <span className="mata-discard-card-label">{def.label}</span>
+                    <img src={encodeURI(def.imagePath)} alt={`Carta da pilha ${index + 1}`} />
                   </button>
                 );
               })}
