@@ -5628,130 +5628,44 @@ export function App() {
       )}
 
       {hasStartedGame && !cleanBoardMode && configOpen && (
-        <div className="config-modal-backdrop" role="presentation" onClick={() => setConfigOpen(false)}>
-          <div
-            className="config-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Mesa"
-            onClick={(event) => event.stopPropagation()}
-          >
-          <section className="panel-block session-card">
-            <div className="section-title">
-              <Users aria-hidden="true" />
-              <h2>Mesa</h2>
-            </div>
-            <div className="session-row">
-              <div>
-                <span>{isLocalRoom ? "Teste local" : "Sala online"}</span>
-                <strong>{room?.roomId ?? "Mesa"}</strong>
-              </div>
-              {!isLocalRoom && room && (
-                <button
-                  className="icon-button compact"
-                  title="Copiar codigo da sala"
-                  onClick={() => {
+        <SettingsModal
+          audio={audioSettings}
+          onUpdate={updateAudio}
+          onClose={() => setConfigOpen(false)}
+          table={{
+            roomLabel: isLocalRoom ? "Teste local" : "Sala online",
+            roomId: room?.roomId ?? "Mesa",
+            onCopy:
+              !isLocalRoom && room
+                ? () => {
                     void navigator.clipboard?.writeText(room.roomId);
                     setNotice("Codigo copiado.");
-                  }}
-                >
-                  <Copy aria-hidden="true" />
-                </button>
-              )}
-            </div>
-            {((!isLocalRoom && isHost) || (isLocalRoom && roomHasBots)) && (
-              <div className="bot-speed-control" aria-label="Velocidade dos bots">
-                <button
-                  type="button"
-                  className="icon-button compact"
-                  title="Bots mais rápidos"
-                  aria-label="Bots mais rápidos"
-                  onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
-                >
-                  <Minus aria-hidden="true" />
-                </button>
-                <span>Bots {formatBotDelay(botTurnDelayMs)}</span>
-                <button
-                  type="button"
-                  className="icon-button compact"
-                  title="Bots mais lentos"
-                  aria-label="Bots mais lentos"
-                  onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
-                >
-                  <Plus aria-hidden="true" />
-                </button>
-              </div>
-            )}
-            {activeScenarioDefinitions.length > 0 && (
-              <div className="config-scenarios">
-                <strong>Cenários ativos</strong>
-                {activeScenarioDefinitions.map((scenario) => (
-                  <article key={scenario.id} className="config-scenario-card">
-                    <img src={encodeURI(scenario.imagePath)} alt="" />
-                    <div>
-                      <span>{scenario.label}</span>
-                      <p>{scenario.description}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-            {activeThreatDefinition && (
-              <div className="config-scenarios">
-                <strong>Ameaca ativa</strong>
-                <article className="config-scenario-card">
-                  {activeThreatDefinition.imagePath ? (
-                    <img src={encodeURI(activeThreatDefinition.imagePath)} alt="" />
-                  ) : (
-                    <span className="config-threat-icon" aria-hidden="true">
-                      <AlertTriangle />
-                    </span>
-                  )}
-                  <div>
-                    <span>{activeThreatDefinition.label}</span>
-                    <p>{activeThreatDefinition.description}</p>
-                  </div>
-                </article>
-              </div>
-            )}
-            <button className="secondary-button exit-button" onClick={leaveTable}>
-              <LogOut aria-hidden="true" />
-              Sair
-            </button>
-            <button type="button" className="secondary-button" onClick={() => setConfigOpen(false)}>
-              <X aria-hidden="true" />
-              Fechar
-            </button>
-          </section>
-
-          <section className="panel-block audio-card">
-            <div className="section-title">
-              {audioSettings.muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
-              <h2>Áudio</h2>
-            </div>
-            <button
-              type="button"
-              className={`secondary-button ${audioSettings.muted ? "" : "is-active"}`}
-              onClick={() => updateAudio({ muted: !audioSettings.muted })}
-            >
-              {audioSettings.muted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
-              {audioSettings.muted ? "Som desligado" : "Som ligado"}
-            </button>
-            <label className="audio-slider">
-              <span>Efeitos</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={Math.round(audioSettings.sfxVolume * 100)}
-                disabled={audioSettings.muted}
-                onChange={(event) => updateAudio({ sfxVolume: Number(event.target.value) / 100 })}
-              />
-              <small>{Math.round(audioSettings.sfxVolume * 100)}%</small>
-            </label>
-          </section>
-          </div>
-        </div>
+                  }
+                : undefined,
+            botSpeed:
+              (!isLocalRoom && isHost) || (isLocalRoom && roomHasBots)
+                ? {
+                    label: `Bots ${formatBotDelay(botTurnDelayMs)}`,
+                    onFaster: () => adjustBotSpeed(-botTurnDelayStepMs),
+                    onSlower: () => adjustBotSpeed(botTurnDelayStepMs)
+                  }
+                : null,
+            scenarios: activeScenarioDefinitions.map((scenario) => ({
+              id: scenario.id,
+              label: scenario.label,
+              description: scenario.description,
+              imagePath: scenario.imagePath
+            })),
+            threat: activeThreatDefinition
+              ? {
+                  label: activeThreatDefinition.label,
+                  description: activeThreatDefinition.description,
+                  imagePath: activeThreatDefinition.imagePath
+                }
+              : null,
+            onExit: leaveTable
+          }}
+        />
       )}
 
       {hasStartedGame && !cleanBoardMode && hudGamePlayer && hudSpecies && (

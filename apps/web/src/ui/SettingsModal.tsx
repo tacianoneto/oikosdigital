@@ -1,20 +1,48 @@
 import type { CSSProperties } from "react";
-import { Play, Settings, Volume2, VolumeX, X } from "lucide-react";
+import { AlertTriangle, Copy, LogOut, Minus, Play, Plus, Settings, Users, Volume2, VolumeX, X } from "lucide-react";
 import type { AudioSettings } from "./audio";
 import { initAudioOnGesture, playClick } from "./audio";
+
+interface TableScenarioInfo {
+  id: string;
+  label: string;
+  description: string;
+  imagePath: string;
+}
+
+interface TableThreatInfo {
+  label: string;
+  description: string;
+  imagePath?: string;
+}
+
+interface TableContext {
+  roomLabel: string;
+  roomId: string;
+  onCopy?: () => void;
+  botSpeed?: { label: string; onFaster: () => void; onSlower: () => void } | null;
+  scenarios: TableScenarioInfo[];
+  threat: TableThreatInfo | null;
+  onExit: () => void;
+}
 
 interface SettingsModalProps {
   audio: AudioSettings;
   onUpdate: (partial: Partial<AudioSettings>) => void;
   onClose: () => void;
+  // When opened during a game, the table controls (room code, bot speed,
+  // scenarios/threat, leave) are shown above the audio settings.
+  table?: TableContext;
 }
 
 /**
- * Polished, themed settings dialog. Shared between the main menu and anywhere
- * else that needs the global preferences (currently audio). Closes on the X,
- * the backdrop, or Escape (handled by the caller).
+ * Polished, themed settings dialog. Shared between the main menu and the
+ * in-game config button. Without `table` it shows only the global preferences
+ * (audio); with `table` it also renders the current table's controls so the
+ * in-game panel looks and behaves the same as the menu's. Closes on the X or
+ * the backdrop.
  */
-export function SettingsModal({ audio, onUpdate, onClose }: SettingsModalProps) {
+export function SettingsModal({ audio, onUpdate, onClose, table }: SettingsModalProps) {
   const volumePct = Math.round(audio.sfxVolume * 100);
 
   return (
@@ -36,9 +64,86 @@ export function SettingsModal({ audio, onUpdate, onClose }: SettingsModalProps) 
           </span>
           <div>
             <h2>Configurações</h2>
-            <p>Ajuste o som e a experiência</p>
+            <p>{table ? "Mesa, som e preferências" : "Ajuste o som e a experiência"}</p>
           </div>
         </header>
+
+        {table && (
+          <section className="settings-group">
+            <div className="settings-group-title">
+              <Users aria-hidden="true" />
+              <span>Mesa</span>
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-row-text">
+                <strong>{table.roomLabel}</strong>
+                <small>{table.roomId}</small>
+              </div>
+              {table.onCopy && (
+                <button type="button" className="settings-icon-btn" title="Copiar código da sala" onClick={table.onCopy}>
+                  <Copy aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {table.botSpeed && (
+              <div className="settings-row">
+                <div className="settings-row-text">
+                  <strong>Velocidade dos bots</strong>
+                  <small>{table.botSpeed.label}</small>
+                </div>
+                <div className="settings-stepper">
+                  <button type="button" className="settings-icon-btn" title="Bots mais rápidos" onClick={table.botSpeed.onFaster}>
+                    <Minus aria-hidden="true" />
+                  </button>
+                  <button type="button" className="settings-icon-btn" title="Bots mais lentos" onClick={table.botSpeed.onSlower}>
+                    <Plus aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {table.scenarios.length > 0 && (
+              <div className="settings-cards">
+                <span className="settings-cards-label">Cenários ativos</span>
+                {table.scenarios.map((scenario) => (
+                  <article key={scenario.id} className="settings-card">
+                    <img src={encodeURI(scenario.imagePath)} alt="" />
+                    <div>
+                      <strong>{scenario.label}</strong>
+                      <p>{scenario.description}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+
+            {table.threat && (
+              <div className="settings-cards">
+                <span className="settings-cards-label">Ameaça ativa</span>
+                <article className="settings-card">
+                  {table.threat.imagePath ? (
+                    <img src={encodeURI(table.threat.imagePath)} alt="" />
+                  ) : (
+                    <span className="settings-card-icon" aria-hidden="true">
+                      <AlertTriangle />
+                    </span>
+                  )}
+                  <div>
+                    <strong>{table.threat.label}</strong>
+                    <p>{table.threat.description}</p>
+                  </div>
+                </article>
+              </div>
+            )}
+
+            <button type="button" className="settings-exit" onClick={table.onExit}>
+              <LogOut aria-hidden="true" />
+              Sair da mesa
+            </button>
+          </section>
+        )}
 
         <section className="settings-group">
           <div className="settings-group-title">
