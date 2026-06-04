@@ -638,6 +638,9 @@ export function App() {
   const [configOpen, setConfigOpen] = useState(false);
   const [scenarioDockOpen, setScenarioDockOpen] = useState(false);
   const [expansionPreview, setExpansionPreview] = useState<"objective" | "scenarios" | "threat" | null>(null);
+  // Viewport point (icon center) the preview should grow out from, for the
+  // fly-from-origin open animation. Recomputed on each open.
+  const [expansionOrigin, setExpansionOrigin] = useState<{ x: number; y: number } | null>(null);
   // Mobile-only HUD: below this width the floating docks become bottom sheets
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
   const [isMobile, setIsMobile] = useState(isMobileWidth);
@@ -3302,6 +3305,17 @@ export function App() {
     setExpansionPreview(null);
   }, [canDiscardSelectedObjective, currentGamePlayer, isLocalRoom, room, socket]);
 
+  // Toggle the centered card preview, capturing the clicked icon's center so the
+  // modal can grow out from it.
+  const toggleExpansionPreview = useCallback(
+    (kind: "objective" | "scenarios" | "threat", event: React.MouseEvent<HTMLButtonElement>) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setExpansionOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+      setExpansionPreview((current) => (current === kind ? null : kind));
+    },
+    []
+  );
+
   function toggleLocalSpecies(speciesId: SpeciesId) {
     setLocalSpeciesIds((current) =>
       current.includes(speciesId) ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
@@ -5437,7 +5451,26 @@ export function App() {
       )}
 
       {hasStartedGame && !cleanBoardMode && expansionPreview && (
-        <div className={`expansion-preview is-${expansionPreview}`} role="dialog" aria-label="Carta da partida">
+        <div
+          className="expansion-modal-backdrop"
+          role="presentation"
+          onClick={() => setExpansionPreview(null)}
+        >
+        <div
+          className={`expansion-preview is-${expansionPreview}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Carta da partida"
+          onClick={(event) => event.stopPropagation()}
+          style={
+            expansionOrigin
+              ? ({
+                  "--from-x": `${expansionOrigin.x - window.innerWidth / 2}px`,
+                  "--from-y": `${expansionOrigin.y - window.innerHeight / 2}px`
+                } as React.CSSProperties)
+              : undefined
+          }
+        >
           <button
             type="button"
             className="expansion-preview-close"
@@ -5480,6 +5513,7 @@ export function App() {
               draggable={false}
             />
           )}
+        </div>
         </div>
       )}
 
@@ -7078,17 +7112,17 @@ export function App() {
             </div>
             <div className="hud-bottom-jaguar-expansions">
               {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "objective" ? null : "objective"))} title="Ver Objetivo">
+                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "scenarios" ? null : "scenarios"))} title="Ver Cenários">
+                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
                   <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "threat" ? null : "threat"))} title="Ver Ameaça">
+                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
                   <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
                 </button>
               )}
@@ -7179,17 +7213,17 @@ export function App() {
             </div>
             <div className="hud-bottom-wolf-expansions">
               {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "objective" ? null : "objective"))} title="Ver Objetivo">
+                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "scenarios" ? null : "scenarios"))} title="Ver Cenários">
+                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
                   <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "threat" ? null : "threat"))} title="Ver Ameaça">
+                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
                   <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
                 </button>
               )}
@@ -7281,17 +7315,17 @@ export function App() {
             </div>
             <div className="hud-bottom-tatu-expansions">
               {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "objective" ? null : "objective"))} title="Ver Objetivo">
+                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "scenarios" ? null : "scenarios"))} title="Ver Cenários">
+                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
                   <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "threat" ? null : "threat"))} title="Ver Ameaça">
+                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
                   <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
                 </button>
               )}
@@ -7375,17 +7409,17 @@ export function App() {
             </div>
             <div className="hud-bottom-macaw-expansions">
               {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "objective" ? null : "objective"))} title="Ver Objetivo">
+                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "scenarios" ? null : "scenarios"))} title="Ver Cenários">
+                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
                   <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "threat" ? null : "threat"))} title="Ver Ameaça">
+                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
                   <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
                 </button>
               )}
@@ -7471,17 +7505,17 @@ export function App() {
             </div>
             <div className="hud-bottom-capuchin-expansions">
               {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "objective" ? null : "objective"))} title="Ver Objetivo">
+                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "scenarios" ? null : "scenarios"))} title="Ver Cenários">
+                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
                   <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "threat" ? null : "threat"))} title="Ver Ameaça">
+                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
                   <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
                 </button>
               )}
@@ -7580,17 +7614,17 @@ export function App() {
             </div>
             <div className="hud-bottom-coati-expansions">
               {selectedObjectiveCard && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "objective" ? null : "objective"))} title="Ver Objetivo">
+                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
                   <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "scenarios" ? null : "scenarios"))} title="Ver Cenários">
+                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
                   <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={() => setExpansionPreview((p) => (p === "threat" ? null : "threat"))} title="Ver Ameaça">
+                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
                   <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
                 </button>
               )}
