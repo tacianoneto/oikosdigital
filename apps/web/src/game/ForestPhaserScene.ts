@@ -554,10 +554,10 @@ export class ForestPhaserScene extends Phaser.Scene {
       const w = this.worldOf(t);
       const slot = this.add.container(w.x, w.y);
 
-      // Soft glow halo that breathes to pull the eye to valid slots.
+      // Subtle glow halo that breathes gently to hint at valid slots.
       const glow = this.add.graphics();
-      glow.fillStyle(accent, 0.16);
-      glow.fillRoundedRect(-CARD / 2 - 10, -CARD / 2 - 10, CARD + 20, CARD + 20, RADIUS + 8);
+      glow.fillStyle(accent, 0.08);
+      glow.fillRoundedRect(-CARD / 2 - 6, -CARD / 2 - 6, CARD + 12, CARD + 12, RADIUS + 5);
 
       const g = this.add.graphics();
       g.fillStyle(accent, occupied ? 0.12 : 0.1);
@@ -593,7 +593,7 @@ export class ForestPhaserScene extends Phaser.Scene {
         this.tweens.add({ targets: [plus, label], alpha: { from: 0.5, to: 1 }, duration: 820, yoyo: true, repeat: -1 })
       );
       this.pulses.push(
-        this.tweens.add({ targets: glow, alpha: { from: 0.35, to: 1 }, scale: { from: 0.94, to: 1.04 }, duration: 1000, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
+        this.tweens.add({ targets: glow, alpha: { from: 0.25, to: 0.6 }, scale: { from: 0.98, to: 1.02 }, duration: 1200, yoyo: true, repeat: -1, ease: "Sine.easeInOut" })
       );
     }
 
