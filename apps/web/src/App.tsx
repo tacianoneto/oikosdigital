@@ -137,6 +137,7 @@ import {
 } from "./ui/audio";
 import { ActionStepsViewer } from "./ui/ActionStepsViewer";
 import { EndgameCeremony } from "./ui/EndgameCeremony";
+import { ForestMenuScene } from "./ui/ForestMenuScene";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -4140,109 +4141,64 @@ export function App() {
         </div>
       )}
       {!hasStartedGame && !room && landingMode === "idle" && (
-        <div className="landing-screen" role="main">
-          <div className="landing-bg-orbs" aria-hidden="true">
-            <span className="orb orb-1" />
-            <span className="orb orb-2" />
-            <span className="orb orb-3" />
-          </div>
+        <div className="forest-menu" role="main">
+          <ForestMenuScene />
 
-          <header className="landing-header landing-header-minimal">
-            <span aria-hidden="true" />
-            <span className="landing-version">v0.1 · beta</span>
-          </header>
+          <span className="forest-version">v0.1 · beta</span>
 
-          <div className="landing-hero landing-hero-logo">
-            <img className="brand-logo-hero" src="/oikos-logo.png" alt="Oikos Digital" />
-          </div>
+          <div className="forest-menu-content">
+            {/* Title sign hanging from the top branch */}
+            <div className="forest-title">
+              <span className="forest-title-rope forest-title-rope-l" aria-hidden="true" />
+              <span className="forest-title-rope forest-title-rope-r" aria-hidden="true" />
+              <div className="forest-title-sign">
+                <span className="forest-title-vine" aria-hidden="true" />
+                <img src="/oikos-logo.png" alt="Oikos Digital" />
+              </div>
+            </div>
 
-          <div className="landing-panel">
-            <label className="landing-name-field">
-              <Users aria-hidden="true" />
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                maxLength={24}
-                placeholder="Seu nome"
-                aria-label="Seu nome"
-              />
-            </label>
+            <div className="forest-panel">
+              <label className="forest-name-field">
+                <Users aria-hidden="true" />
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={24}
+                  placeholder="Seu nome"
+                  aria-label="Seu nome"
+                />
+              </label>
 
-            <div className="landing-actions">
-              <button
-                type="button"
-                className="landing-action landing-action-primary"
-                onClick={() => setLandingMode("create")}
-              >
-                <span className="landing-action-icon">
-                  <Play aria-hidden="true" />
-                </span>
-                <span className="landing-action-text">
-                  <strong>Criar Sala</strong>
-                  <small>Hospede uma partida online</small>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                className="landing-action landing-action-secondary"
-                onClick={() => setLandingMode("join")}
-              >
-                <span className="landing-action-icon">
-                  <LogIn aria-hidden="true" />
-                </span>
-                <span className="landing-action-text">
-                  <strong>Entrar em Sala</strong>
-                  <small>Escolha uma sala aberta ou use o código</small>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                className="landing-action landing-action-secondary"
-                onClick={() => setLandingMode("local")}
-              >
-                <span className="landing-action-icon">
-                  <MapPin aria-hidden="true" />
-                </span>
-                <span className="landing-action-text">
-                  <strong>Teste Local</strong>
-                  <small>Controle 2-6 espécies nesta tela</small>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                className="landing-action landing-action-secondary"
-                onClick={() => setLandingMode("tutorials")}
-              >
-                <span className="landing-action-icon">
-                  <GraduationCap aria-hidden="true" />
-                </span>
-                <span className="landing-action-text">
-                  <strong>Tutoriais</strong>
-                  <small>Aprenda a jogar passo a passo</small>
-                </span>
-              </button>
+              <div className="forest-actions">
+                {[
+                  { mode: "create" as const, icon: Play, title: "Criar Sala", sub: "Hospede uma partida online", primary: true },
+                  { mode: "join" as const, icon: LogIn, title: "Entrar em Sala", sub: "Sala aberta ou código", primary: false },
+                  { mode: "local" as const, icon: MapPin, title: "Teste Local", sub: "Controle 2-6 espécies nesta tela", primary: false },
+                  { mode: "tutorials" as const, icon: GraduationCap, title: "Tutoriais", sub: "Aprenda a jogar passo a passo", primary: false }
+                ].map(({ mode, icon: Icon, title, sub, primary }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`forest-btn ${primary ? "is-primary" : ""}`}
+                    onClick={() => setLandingMode(mode)}
+                  >
+                    <span className="forest-btn-glow" aria-hidden="true" />
+                    <span className="forest-btn-icon">
+                      <Icon aria-hidden="true" />
+                    </span>
+                    <span className="forest-btn-text">
+                      <strong>{title}</strong>
+                      <small>{sub}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="landing-species-rail" aria-hidden="true">
-            {speciesList.map((species) => (
-              <div
-                key={species.speciesId}
-                className="landing-species-card"
-                style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
-              >
-                <img src={encodeURI(species.meepleAsset)} alt="" />
-                <span>{species.displayName}</span>
-              </div>
-            ))}
-          </div>
-
-          <footer className="landing-footer">
+          <footer className="forest-footer">
             <span>Oikos Digital</span>
-            <span className="landing-footer-sep">·</span>
+            <span className="forest-footer-sep">·</span>
             <span>Servidor autoritativo · Socket.IO</span>
           </footer>
         </div>

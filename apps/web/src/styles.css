@@ -12616,3 +12616,532 @@ input:focus {
 .action-steps--card .action-steps-eyebrow {
   font-size: 10px;
 }
+
+/* ============================================================
+   Forest main menu — cozy, magical, layered woodland scene
+   ============================================================ */
+.forest-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  isolation: isolate;
+  background: #0c1710;
+  --wood-1: #6b4a2a;
+  --wood-2: #4a3019;
+  --wood-edge: #87603a;
+  --glow-green: #9fe07a;
+  --glow-gold: #f2cf6b;
+}
+
+.forest-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Full-bleed background layers only — NOT the animals, which position
+   themselves with left/top or right/bottom. */
+.forest-sky,
+.forest-sun,
+.forest-rays,
+.forest-leaves,
+.forest-fireflies,
+.forest-vignette {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* --- Sky / dusk + sun ------------------------------------- */
+.forest-sky {
+  background:
+    radial-gradient(120% 90% at 50% -10%, #2a4a3a 0%, #16301f 45%, #0c1c12 100%);
+}
+
+.forest-sun {
+  background: radial-gradient(34% 30% at 52% 8%, rgba(245, 214, 130, 0.55), rgba(245, 214, 130, 0.12) 45%, transparent 70%);
+  mix-blend-mode: screen;
+  animation: forest-sun-breathe 9s ease-in-out infinite;
+}
+
+@keyframes forest-sun-breathe {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+/* --- Sun rays through the canopy ------------------------- */
+.forest-rays span {
+  position: absolute;
+  top: -10%;
+  width: clamp(60px, 9vw, 140px);
+  height: 120%;
+  background: linear-gradient(to bottom, rgba(245, 220, 140, 0.22), transparent 70%);
+  transform: rotate(var(--ang));
+  transform-origin: top center;
+  filter: blur(6px);
+  mix-blend-mode: screen;
+  animation: forest-ray-shimmer 7s ease-in-out infinite;
+}
+.forest-rays span:nth-child(2) { animation-delay: 1.4s; }
+.forest-rays span:nth-child(3) { animation-delay: 2.8s; }
+.forest-rays span:nth-child(4) { animation-delay: 4.2s; }
+
+@keyframes forest-ray-shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+/* --- Tree layers ----------------------------------------- */
+.forest-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.forest-far { opacity: 0.5; filter: blur(5px); transform: translateY(4%); }
+.forest-mid { opacity: 0.95; }
+.forest-deer { opacity: 0.85; }
+.forest-near { opacity: 1; }
+
+.forest-sway {
+  transform-origin: 50% 100%;
+  animation: forest-sway 6.5s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes forest-sway {
+  0%, 100% { transform: rotate(-1.1deg); }
+  50% { transform: rotate(1.1deg); }
+}
+
+.forest-sway-soft {
+  transform-origin: 50% 0%;
+  animation: forest-sway-soft 5s ease-in-out infinite;
+}
+@keyframes forest-sway-soft {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+.forest-deer-head { transform-origin: 40px -10px; animation: forest-deer-graze 8s ease-in-out infinite; }
+@keyframes forest-deer-graze {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  75% { transform: rotate(26deg) translateY(6px); }
+  85% { transform: rotate(26deg) translateY(6px); }
+}
+
+/* --- Owl ------------------------------------------------- */
+.forest-owl {
+  position: absolute;
+  left: clamp(2%, 6vw, 9%);
+  top: clamp(8%, 11vh, 16%);
+  width: clamp(54px, 7vw, 96px);
+  height: auto;
+  z-index: 1;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4));
+}
+.forest-owl-body { transform-origin: 60px 130px; animation: forest-owl-tilt 7s ease-in-out infinite; }
+@keyframes forest-owl-tilt {
+  0%, 70%, 100% { transform: rotate(0deg); }
+  80% { transform: rotate(-7deg); }
+  90% { transform: rotate(-7deg); }
+}
+.forest-owl-lid { transform-origin: 60px 62px; transform: scaleY(0); animation: forest-blink 5s ease-in-out infinite; }
+@keyframes forest-blink {
+  0%, 92%, 100% { transform: scaleY(0); }
+  95% { transform: scaleY(1); }
+}
+
+/* --- Fox mascot ------------------------------------------ */
+.forest-fox {
+  position: absolute;
+  right: clamp(2%, 7vw, 12%);
+  bottom: clamp(2%, 4vh, 8%);
+  width: clamp(120px, 18vw, 240px);
+  height: auto;
+  z-index: 3;
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.45));
+}
+.forest-fox-tail { transform-origin: 150px 130px; animation: forest-fox-tail 4s ease-in-out infinite; }
+@keyframes forest-fox-tail {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(8deg); }
+}
+.forest-fox-head { transform-origin: 78px 96px; animation: forest-fox-nod 9s ease-in-out infinite; }
+@keyframes forest-fox-nod {
+  0%, 80%, 100% { transform: rotate(0deg); }
+  88% { transform: rotate(6deg); }
+}
+.forest-fox-ear { transform-origin: 60px 60px; animation: forest-ear-twitch 6s ease-in-out infinite; }
+.forest-fox-ear-r { transform-origin: 96px 60px; animation-delay: 0.3s; }
+.forest-fox-eyes { transform-origin: 78px 86px; animation: forest-eye-blink 5.5s ease-in-out infinite; }
+@keyframes forest-eye-blink {
+  0%, 94%, 100% { transform: scaleY(1); }
+  97% { transform: scaleY(0.1); }
+}
+
+/* --- Rabbit ---------------------------------------------- */
+.forest-rabbit {
+  position: absolute;
+  left: clamp(3%, 8vw, 13%);
+  bottom: clamp(1%, 3vh, 6%);
+  width: clamp(60px, 8vw, 110px);
+  height: auto;
+  z-index: 3;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.4));
+}
+.forest-rabbit-ear { transform-origin: 40px 60px; animation: forest-ear-twitch 4.5s ease-in-out infinite; }
+.forest-rabbit-ear-r { transform-origin: 48px 60px; animation-delay: 0.6s; }
+@keyframes forest-ear-twitch {
+  0%, 70%, 100% { transform: rotate(0deg); }
+  80% { transform: rotate(-10deg); }
+  88% { transform: rotate(6deg); }
+}
+
+/* --- Bird gliding across once in a while ----------------- */
+.forest-bird {
+  position: absolute;
+  top: 14%;
+  left: -8%;
+  width: clamp(30px, 4vw, 56px);
+  height: auto;
+  z-index: 1;
+  opacity: 0;
+  animation: forest-bird-glide 16s ease-in-out infinite;
+}
+@keyframes forest-bird-glide {
+  0% { transform: translate(0, 0); opacity: 0; }
+  8% { opacity: 0.8; }
+  50% { transform: translate(60vw, -6vh); opacity: 0.8; }
+  60% { opacity: 0; }
+  100% { transform: translate(120vw, 4vh); opacity: 0; }
+}
+.forest-bird-w { animation: forest-bird-flap 0.5s ease-in-out infinite; transform-origin: 30px 16px; }
+@keyframes forest-bird-flap {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.55); }
+}
+
+/* --- Drifting leaves ------------------------------------- */
+.forest-leaves { position: absolute; inset: 0; z-index: 4; }
+.forest-leaf {
+  position: absolute;
+  top: -8vh;
+  width: clamp(12px, 1.6vw, 22px);
+  height: auto;
+  opacity: 0;
+  animation: forest-leaf-fall linear infinite;
+}
+.forest-leaf svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25)); }
+@keyframes forest-leaf-fall {
+  0% { transform: translateY(-8vh) translateX(0) rotate(0deg); opacity: 0; }
+  8% { opacity: 0.95; }
+  50% { transform: translateY(50vh) translateX(var(--sway, 40px)) rotate(180deg); }
+  92% { opacity: 0.9; }
+  100% { transform: translateY(112vh) translateX(0) rotate(360deg); opacity: 0; }
+}
+
+/* --- Fireflies ------------------------------------------- */
+.forest-fireflies { position: absolute; inset: 0; z-index: 4; }
+.forest-firefly {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6c0 0%, #f4d96a 40%, rgba(244, 217, 106, 0) 70%);
+  box-shadow: 0 0 8px 2px rgba(244, 217, 106, 0.7);
+  opacity: 0;
+  animation: forest-firefly-glow ease-in-out infinite;
+}
+@keyframes forest-firefly-glow {
+  0%, 100% { opacity: 0; transform: translate(0, 0); }
+  40% { opacity: 0.95; }
+  60% { opacity: 0.5; }
+  80% { opacity: 0.9; transform: translate(var(--fx, 0), var(--fy, 0)); }
+}
+
+.forest-vignette {
+  background: radial-gradient(120% 100% at 50% 40%, transparent 55%, rgba(4, 10, 7, 0.7) 100%);
+  z-index: 5;
+}
+
+/* --- Foreground content (above the scene) ---------------- */
+.forest-version {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 10;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(238, 226, 200, 0.6);
+}
+
+.forest-menu-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 3vh, 36px);
+  margin-top: clamp(8px, 4vh, 48px);
+  padding: 0 20px;
+  width: 100%;
+  max-width: 560px;
+}
+
+/* --- Title sign hanging from the branch ------------------- */
+.forest-title {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 18px;
+}
+.forest-title-rope {
+  position: absolute;
+  top: -6px;
+  width: 3px;
+  height: 38px;
+  background: linear-gradient(#caa46a, #6b4a2a);
+  transform-origin: top center;
+}
+.forest-title-rope-l { left: 22%; transform: rotate(14deg); }
+.forest-title-rope-r { right: 22%; transform: rotate(-14deg); }
+
+.forest-title-sign {
+  position: relative;
+  padding: clamp(12px, 2.2vh, 22px) clamp(22px, 5vw, 48px);
+  border-radius: 22px 18px 24px 16px;
+  background:
+    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.06) 0 7px, rgba(255, 255, 255, 0.03) 7px 14px),
+    linear-gradient(160deg, #7a5430, #4d3119);
+  border: 2px solid var(--wood-edge);
+  box-shadow:
+    0 16px 30px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 3px rgba(40, 26, 14, 0.5),
+    inset 0 2px 10px rgba(255, 220, 160, 0.12);
+  transform-origin: top center;
+  animation: forest-sign-swing 6s ease-in-out infinite;
+}
+@keyframes forest-sign-swing {
+  0%, 100% { transform: rotate(-1.2deg); }
+  50% { transform: rotate(1.2deg); }
+}
+.forest-title-sign img {
+  display: block;
+  width: clamp(170px, 34vw, 300px);
+  height: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+/* Decorative vine/leaves draped over the sign corner */
+.forest-title-sign .forest-title-vine {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 70px;
+  height: 70px;
+  background:
+    radial-gradient(circle at 30% 30%, #4f8a45 0 6px, transparent 7px),
+    radial-gradient(circle at 60% 55%, #3c6b40 0 8px, transparent 9px),
+    radial-gradient(circle at 20% 70%, #4f8a45 0 5px, transparent 6px);
+  border-top: 4px solid #2c4a30;
+  border-left: 4px solid #2c4a30;
+  border-radius: 60% 0 0 0;
+  pointer-events: none;
+}
+
+/* --- Wooden panel + buttons ------------------------------ */
+.forest-panel {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.forest-name-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 46px;
+  border-radius: 14px 12px 16px 10px;
+  background: linear-gradient(160deg, rgba(30, 44, 30, 0.82), rgba(18, 30, 20, 0.88));
+  border: 1px solid rgba(159, 224, 122, 0.28);
+  box-shadow: inset 0 1px 8px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+}
+.forest-name-field svg { width: 18px; height: 18px; color: var(--glow-green); }
+.forest-name-field input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+.forest-name-field input::placeholder { color: rgba(238, 226, 200, 0.5); }
+
+.forest-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Wooden plank button */
+.forest-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  text-align: left;
+  cursor: pointer;
+  color: #f4ead2;
+  border: 2px solid var(--wood-edge);
+  border-radius: 18px 14px 20px 12px;
+  background:
+    repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.05) 0 6px, rgba(255, 255, 255, 0.025) 6px 12px),
+    linear-gradient(160deg, var(--wood-1), var(--wood-2));
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 2px rgba(36, 24, 12, 0.45),
+    inset 0 2px 6px rgba(255, 220, 160, 0.12);
+  transform: translateY(0) scale(1);
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease;
+  overflow: hidden;
+}
+
+/* Hover glow halo (leaves/fireflies feel) */
+.forest-btn-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: radial-gradient(80% 120% at 50% 50%, rgba(159, 224, 122, 0.35), transparent 70%);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+.forest-btn:hover,
+.forest-btn:focus-visible {
+  transform: translateY(-2px) scale(1.035);
+  border-color: var(--glow-gold);
+  box-shadow:
+    0 16px 28px rgba(0, 0, 0, 0.46),
+    0 0 22px rgba(242, 207, 107, 0.4),
+    inset 0 0 0 2px rgba(36, 24, 12, 0.45);
+  outline: none;
+}
+.forest-btn:hover .forest-btn-glow,
+.forest-btn:focus-visible .forest-btn-glow { opacity: 1; }
+
+/* Firefly sparks that drift up on hover */
+.forest-btn::before,
+.forest-btn::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6c0, rgba(244, 217, 106, 0));
+  box-shadow: 0 0 8px 2px rgba(244, 217, 106, 0.7);
+  opacity: 0;
+  pointer-events: none;
+}
+.forest-btn::before { left: 16%; bottom: 18%; }
+.forest-btn::after { right: 22%; bottom: 30%; }
+.forest-btn:hover::before { animation: forest-spark 1.3s ease-out infinite; }
+.forest-btn:hover::after { animation: forest-spark 1.6s ease-out 0.3s infinite; }
+@keyframes forest-spark {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px) scale(1.1); }
+}
+
+/* Click: sink + a quick particle burst via the glow layer */
+.forest-btn:active {
+  transform: translateY(2px) scale(0.99);
+  box-shadow:
+    0 5px 12px rgba(0, 0, 0, 0.5),
+    inset 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+.forest-btn:active .forest-btn-glow {
+  opacity: 1;
+  animation: forest-btn-burst 420ms ease-out;
+}
+@keyframes forest-btn-burst {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+
+.forest-btn.is-primary {
+  --wood-1: #7c5226;
+  --wood-2: #553414;
+  border-color: var(--glow-gold);
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.45),
+    0 0 16px rgba(242, 207, 107, 0.28),
+    inset 0 0 0 2px rgba(36, 24, 12, 0.45);
+}
+
+.forest-btn-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #356845, #1e3a26);
+  border: 1px solid rgba(159, 224, 122, 0.4);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+.forest-btn-icon svg { width: 20px; height: 20px; color: var(--glow-green); }
+.forest-btn.is-primary .forest-btn-icon svg { color: var(--glow-gold); }
+
+.forest-btn-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.forest-btn-text strong {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.forest-btn-text small {
+  font-size: 0.74rem;
+  color: rgba(238, 226, 200, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forest-footer {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: rgba(238, 226, 200, 0.5);
+}
+.forest-footer-sep { opacity: 0.6; }
+
+@media (max-width: 560px) {
+  .forest-fox { width: clamp(90px, 26vw, 150px); right: 2%; }
+  .forest-owl { width: clamp(40px, 12vw, 70px); }
+  .forest-menu-content { margin-top: 10px; gap: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forest-scene *,
+  .forest-title-sign,
+  .forest-btn { animation: none !important; }
+}
