@@ -1,4 +1,9 @@
-import { objectiveCardsById, speciesDefinitions } from "@oikos/content";
+import {
+  commonForestCards,
+  initialForestCardCandidates,
+  objectiveCardsById,
+  speciesDefinitions
+} from "@oikos/content";
 import type {
   FinalScoreBreakdown,
   FinalScoreEntry,
@@ -174,6 +179,42 @@ function getObjectivePointsForTurn(
     case "extra_turn":
       return 0;
   }
+}
+
+// Self-contained scoring deps so callers (e.g. the web HUD) can probe objective
+// progress without wiring the rules engine's internal helpers.
+function createDefaultScoringDeps(): FinalScoringDeps {
+  return {
+    findPlayer: (game, playerId) => {
+      const found = game.players.find((player) => player.playerId === playerId);
+      if (!found) {
+        throw new Error(`Player ${playerId} not found`);
+      }
+      return found;
+    },
+    getCardDefinitionOrNull: (definitionId) =>
+      commonForestCards.find((card) => card.id === definitionId) ??
+      initialForestCardCandidates.find((card) => card.id === definitionId) ??
+      null,
+    positionKey: (position) => `${position.x},${position.y}`
+  };
+}
+
+/**
+ * Points the player's selected objective would currently award if the turn
+ * ended now. Non-mutating (never spends resources). 0 = not yet fulfilled.
+ */
+export function getObjectiveProgressPoints(game: GameState, playerId: string): number {
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player) {
+    return 0;
+  }
+  return getObjectivePointsForTurn(game, player, createDefaultScoringDeps(), createResourceSnapshot(game), false);
+}
+
+/** True when the selected objective is currently satisfied (would score > 0). */
+export function isObjectiveCompleted(game: GameState, playerId: string): boolean {
+  return getObjectiveProgressPoints(game, playerId) > 0;
 }
 
 function createResourceSnapshot(game: GameState): ResourceSnapshot {
