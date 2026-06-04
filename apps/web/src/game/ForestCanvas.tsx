@@ -87,6 +87,20 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
         y: rect.top + local.y
       };
     },
+    getPieceCenter(pieceId: string) {
+      const host = hostRef.current;
+      const local = sceneRef.current?.getPieceScreenPoint(pieceId);
+      if (!host || !local) {
+        return null;
+      }
+
+      const canvas = host.querySelector("canvas") as HTMLCanvasElement | null;
+      const rect = (canvas ?? host).getBoundingClientRect();
+      return {
+        x: rect.left + local.x,
+        y: rect.top + local.y
+      };
+    },
     getCardLocal(position: GridPosition) {
       const local = sceneRef.current?.gridToScreenPoint(position);
       if (!local) return null;

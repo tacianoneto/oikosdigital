@@ -41,6 +41,7 @@ export interface ForestCanvasProps {
 
 export interface ForestCanvasHandle {
   getCardCenter: (position: GridPosition) => { x: number; y: number } | null;
+  getPieceCenter: (pieceId: string) => { x: number; y: number } | null;
   getCardLocal: (position: GridPosition) => { x: number; y: number } | null;
   getCardScreenSize: () => number;
   getHostElement: () => HTMLDivElement | null;

@@ -109,6 +109,10 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   private cardObjs = new Map<string, CardObj>();
   private pieceObjs = new Map<string, PieceObj>();
+  // Last known world position (card-local offset included) for every piece we
+  // have rendered, kept even after the piece is removed so removal effects can
+  // fire at the exact spot the meeple sat. Converted to screen on demand.
+  private lastPieceWorld = new Map<string, { x: number; y: number }>();
   private pulses: Phaser.Tweens.Tween[] = [];
   private ambient: AmbientParticle[] = [];
 
@@ -358,6 +362,19 @@ export class ForestPhaserScene extends Phaser.Scene {
   getCardScreenSize(): number {
     if (!this.ready) return 0;
     return CARD * this.cameras.main.zoom;
+  }
+
+  // Screen point (canvas-local) of a piece's last rendered position, including
+  // its card-local offset. Returns null if we never rendered that piece.
+  getPieceScreenPoint(pieceId: string): { x: number; y: number } | null {
+    if (!this.ready) return null;
+    const world = this.lastPieceWorld.get(pieceId);
+    if (!world) return null;
+    const camera = this.cameras.main;
+    return {
+      x: camera.x + (world.x - camera.scrollX) * camera.zoom,
+      y: camera.y + (world.y - camera.scrollY) * camera.zoom
+    };
   }
 
   private worldOf(p: GridPosition): { x: number; y: number } {
@@ -890,6 +907,7 @@ export class ForestPhaserScene extends Phaser.Scene {
         const rowCount = Math.min(cols, n - row * cols);
         const tx = base.x + (inRow - (rowCount - 1) / 2) * sx;
         const ty = base.y + (row - (rows - 1) / 2) * sy + 28;
+        this.lastPieceWorld.set(piece.pieceId, { x: tx, y: ty });
         const isSel = selectable.has(piece.pieceId);
         const isPicked = selected.has(piece.pieceId);
 

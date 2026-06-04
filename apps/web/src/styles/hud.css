@@ -408,12 +408,14 @@
   border: 2px solid var(--amber);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
   transform: translate(calc(var(--from-x) - 18px), calc(var(--from-y) - 18px)) scale(0.8);
-  animation: travel-to-bank 860ms cubic-bezier(0.2, 0.9, 0.24, 1) forwards;
+  /* Resource gains travel a touch slower so the path from the card reads clearly. */
+  animation: travel-to-bank 1250ms cubic-bezier(0.2, 0.9, 0.24, 1) forwards;
 }
 
 .travel-effect.piece {
   border-color: var(--line);
   background: rgba(244, 236, 216, 0.12);
+  animation-duration: 820ms;
 }
 
 .travel-effect img {

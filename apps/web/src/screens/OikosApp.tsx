@@ -2190,7 +2190,7 @@ export function OikosApp() {
       const prevPieces = new Map(prevGame.pieces.map((piece) => [piece.pieceId, piece]));
       const currentPieces = new Map(game.pieces.map((piece) => [piece.pieceId, piece]));
       const sourcesByOwner = new Map<string, GridPosition[]>();
-      const removedPieces: Array<{ ownerId: string; speciesId: SpeciesId; location: GridPosition }> = [];
+      const removedPieces: Array<{ pieceId: string; ownerId: string; speciesId: SpeciesId; location: GridPosition }> = [];
 
       for (const piece of game.pieces) {
         const previous = prevPieces.get(piece.pieceId);
@@ -2205,6 +2205,7 @@ export function OikosApp() {
         const current = currentPieces.get(previous.pieceId);
         if (previous.location && !current?.location) {
           removedPieces.push({
+            pieceId: previous.pieceId,
             ownerId: previous.ownerId,
             speciesId: previous.speciesId,
             location: previous.location
@@ -2259,7 +2260,11 @@ export function OikosApp() {
 
       const nextBursts: RemovalBurst[] = [];
       for (const removed of removedPieces) {
-        const from = forestCanvasRef.current?.getCardCenter(removed.location);
+        // Exact last meeple position (card-local offset included); fall back to
+        // the card center only if the piece was never rendered.
+        const from =
+          forestCanvasRef.current?.getPieceCenter(removed.pieceId) ??
+          forestCanvasRef.current?.getCardCenter(removed.location);
         if (from) {
           // Quick shrink + red flash + particles at the board spot it left.
           nextBursts.push({ id: ++travelSeqRef.current, speciesId: removed.speciesId, at: from });
@@ -2294,7 +2299,7 @@ export function OikosApp() {
         const ids = new Set(nextEffects.map((effect) => effect.id));
         window.setTimeout(() => {
           setTravelEffects((current) => current.filter((effect) => !ids.has(effect.id)));
-        }, 920);
+        }, 1300);
       }
     }
 
