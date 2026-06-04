@@ -6096,7 +6096,7 @@ export function App() {
             cards={forestCards}
             pieces={pieces}
             canPlaceSetupPiece={canPlaceSetupPiece}
-            interactive={!expansionPreview && !threatReveal}
+            interactive={!expansionPreview && !threatReveal && !configOpen && !settingsOpen}
             expansionTargets={displayExpansionTargets}
             rotateFitTargets={displayRotateFitTargets}
             rotateFitCardId={canPlaceSelectedForestCard ? selectedHandCardId : null}
