@@ -433,7 +433,7 @@ function ScenarioVotingOverlay({
   const [now, setNow] = useState(() => Date.now());
   const [localVotes, setLocalVotes] = useState<ScenarioCardId[]>([]);
   const [submitted, setSubmitted] = useState(false);
-  const scenarioCount = voting?.scenarioCount ?? room.scenarioCount ?? 2;
+  const scenarioCount = voting?.scenarioCount ?? room.scenarioCount ?? 1;
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 250);
@@ -660,8 +660,8 @@ export function OikosApp() {
   const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
   const [localBotTurnDelayMs, setLocalBotTurnDelayMs] = useState(defaultBotTurnDelayMs);
   const [localEnabledMiniExpansions, setLocalEnabledMiniExpansions] = useState<MiniExpansionId[]>([]);
-  const [localScenarioCount, setLocalScenarioCount] = useState<ScenarioCount>(2);
-  const [localSelectedScenarioIds, setLocalSelectedScenarioIds] = useState<ScenarioCardId[]>(["amazonia", "cerrado"]);
+  const [localScenarioCount, setLocalScenarioCount] = useState<ScenarioCount>(1);
+  const [localSelectedScenarioIds, setLocalSelectedScenarioIds] = useState<ScenarioCardId[]>(["amazonia"]);
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [selectedCardRotation, setSelectedCardRotation] = useState<0 | 90 | 180 | 270>(0);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
@@ -1374,7 +1374,7 @@ export function OikosApp() {
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
   const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? [];
   const scenarioSelectionMode = room?.scenarioSelectionMode ?? "vote";
-  const scenarioCount = room?.scenarioCount ?? 2;
+  const scenarioCount = room?.scenarioCount ?? 1;
   const hostSelectedScenarioIds = room?.hostSelectedScenarioIds ?? [];
   const needsHostScenarioSelection =
     !isLocalRoom &&
@@ -2542,8 +2542,8 @@ export function OikosApp() {
     }
 
     void run(
-      () => roomApi.setScenarioCount(requireSocket(), room.roomId, nextCount),
-      `${nextCount} cenario${nextCount === 1 ? "" : "s"} por partida.`
+      () => roomApi.setScenarioCount(requireSocket(), room.roomId, 1),
+      "1 cenario por partida."
     );
   }
 
@@ -2583,8 +2583,8 @@ export function OikosApp() {
   }
 
   function setLocalScenarioCountValue(nextCount: ScenarioCount) {
-    setLocalScenarioCount(nextCount);
-    setLocalSelectedScenarioIds((current) => current.slice(0, nextCount));
+    setLocalScenarioCount(1);
+    setLocalSelectedScenarioIds((current) => current.slice(0, 1));
   }
 
   function toggleLocalScenario(scenarioId: ScenarioCardId) {
@@ -4816,23 +4816,7 @@ export function OikosApp() {
                     <div className="lobby-scenario-picker-head">
                       <div>
                         <strong>Cenarios</strong>
-                        <small>Escolha {localScenarioCount} cenario(s) para o teste local ({localSelectedScenarioIds.length}/{localScenarioCount}).</small>
-                      </div>
-                      <div className="lobby-segmented" role="group" aria-label="Quantidade de cenarios no teste local">
-                        <button
-                          type="button"
-                          className={localScenarioCount === 1 ? "is-active" : ""}
-                          onClick={() => setLocalScenarioCountValue(1)}
-                        >
-                          1 carta
-                        </button>
-                        <button
-                          type="button"
-                          className={localScenarioCount === 2 ? "is-active" : ""}
-                          onClick={() => setLocalScenarioCountValue(2)}
-                        >
-                          2 cartas
-                        </button>
+                        <small>Escolha 1 cenario para o teste local ({localSelectedScenarioIds.length}/1).</small>
                       </div>
                     </div>
                     <ul className="lobby-scenario-card-list">
@@ -5344,27 +5328,9 @@ export function OikosApp() {
                               <strong>Cenários</strong>
                               <small>
                                 {scenarioSelectionMode === "vote"
-                                  ? `Jogadores votam em ${scenarioCount} carta${scenarioCount === 1 ? "" : "s"} antes do setup.`
-                                  : `Definido pelo host (${hostSelectedScenarioIds.length}/${scenarioCount}).`}
+                                  ? "Jogadores votam em 1 carta antes do setup."
+                                  : `Definido pelo host (${hostSelectedScenarioIds.length}/1).`}
                               </small>
-                            </div>
-                            <div className="lobby-segmented" role="group" aria-label="Quantidade de cenarios">
-                              <button
-                                type="button"
-                                className={scenarioCount === 1 ? "is-active" : ""}
-                                disabled={!isHost || room.status !== "lobby"}
-                                onClick={() => setRoomScenarioCount(1)}
-                              >
-                                1 carta
-                              </button>
-                              <button
-                                type="button"
-                                className={scenarioCount === 2 ? "is-active" : ""}
-                                disabled={!isHost || room.status !== "lobby"}
-                                onClick={() => setRoomScenarioCount(2)}
-                              >
-                                2 cartas
-                              </button>
                             </div>
                             <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenários">
                               <button

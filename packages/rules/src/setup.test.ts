@@ -2169,6 +2169,43 @@ describe("threat mini expansion", () => {
     expect(game.threatDeckIds).toHaveLength(3);
   });
 
+  it("removes Enchente from the threat deck when Pampa is active", () => {
+    let game = createInitialGameState(
+      "pampa-threats",
+      [player("jaguar", "jaguar"), player("wolf", "maned_wolf")],
+      () => 0,
+      createPreviewInitialForest(),
+      { enabledMiniExpansions: ["threats", "scenarios"], activeScenarioIds: ["pampa"] }
+    );
+
+    expect(game.threatDeckIds).not.toContain("threat_6");
+    expect(game.threatDeckIds).toHaveLength(7);
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "wolf", { x: 1, y: 0 });
+
+    const revealed = new Set<string>();
+    while (game.status === "active" && game.round <= game.maxRounds) {
+      if (game.activeThreatCardId) {
+        revealed.add(game.activeThreatCardId);
+      }
+      game = forceEndPlayerTurn(game, game.activePlayerId!, "teste");
+      if (game.cacaIlegalPending) {
+        const pendingPlayerId = game.cacaIlegalPending.playerId;
+        const removablePieceId = getCacaIlegalRemovablePieceIds(game, pendingPlayerId)[0];
+        game = removablePieceId
+          ? resolveCacaIlegal(game, pendingPlayerId, { kind: "remove_piece", pieceId: removablePieceId })
+          : resolveCacaIlegal(game, pendingPlayerId, {
+              kind: "spend_resource",
+              resource: getCacaIlegalTopResources(game, pendingPlayerId)[0]!
+            });
+      }
+    }
+
+    expect(revealed).not.toContain("threat_6");
+  });
+
   it("pauses at end of turn for Caca ilegal and lets tied top resources be chosen", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("wolf", "maned_wolf")]);
     game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });

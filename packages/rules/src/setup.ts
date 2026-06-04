@@ -46,6 +46,7 @@ import {
 export { getCacaIlegalRemovablePieceIds, getCacaIlegalTopResources } from "./scenarios";
 
 const defaultCardSiteId = "main";
+const floodThreatId = "threat_6";
 
 const cardinalDirections = [
   { x: 0, y: -1 },
@@ -601,9 +602,12 @@ export function createInitialGameState(
 ): GameState {
   const enabledMiniExpansions = options?.enabledMiniExpansions ?? [];
   const activeScenarioIds = options?.activeScenarioIds ?? [];
+  const threatCardIds = activeScenarioIds.includes("pampa")
+    ? threatCards.map((card) => card.id).filter((id) => id !== floodThreatId)
+    : threatCards.map((card) => card.id);
   const threatDeckIds = enabledMiniExpansions.includes("threats")
     ? shuffle(
-        threatCards.map((card) => card.id),
+        threatCardIds,
         random
       )
     : [];
@@ -3330,7 +3334,10 @@ function revealThreatForRound(game: GameState): void {
     game.threatDiscardIds = [...(game.threatDiscardIds ?? []), game.activeThreatCardId];
   }
 
-  const [nextThreatId, ...remainingThreatIds] = game.threatDeckIds ?? [];
+  const availableThreatDeckIds = (game.threatDeckIds ?? []).filter(
+    (id) => !(game.activeScenarioIds ?? []).includes("pampa") || id !== floodThreatId
+  );
+  const [nextThreatId, ...remainingThreatIds] = availableThreatDeckIds;
   game.threatDeckIds = remainingThreatIds;
   game.activeThreatCardId = nextThreatId ?? null;
 

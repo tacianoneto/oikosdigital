@@ -74,7 +74,7 @@ interface ServerRoom {
 const MIN_TURN_TIMER_MS = 15000;
 const MAX_TURN_TIMER_MS = 300000;
 const defaultMiniExpansions: MiniExpansionId[] = [];
-const defaultScenarioCount: ScenarioCount = 2;
+const defaultScenarioCount: ScenarioCount = 1;
 export const SCENARIO_VOTING_DURATION_MS = 50000;
 
 function pickRandom<T>(items: T[], random: () => number): T {
@@ -144,7 +144,7 @@ function fillMissingScenarioVotes(voting: ScenarioVotingState, players: RoomPlay
 }
 
 function normalizeScenarioCount(value: unknown): ScenarioCount {
-  return value === 1 ? 1 : 2;
+  return 1;
 }
 
 const rooms = new Map<string, ServerRoom>();
