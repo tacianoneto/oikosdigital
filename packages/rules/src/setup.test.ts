@@ -58,6 +58,7 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "./setup";
+import { getObjectiveProgressPoints } from "./scoring";
 
 function player(playerId: string, speciesId: RoomPlayer["speciesId"]): RoomPlayer {
   return {
@@ -943,6 +944,22 @@ describe("setup placement", () => {
 
     expect(game.pieces.find((piece) => piece.pieceId === coatiPieceId)?.location).toBeNull();
     expect(game.pieces.find((piece) => piece.pieceId === wolfPieceId)?.location).toEqual({ x: 1, y: 0, siteId: "main" });
+  });
+
+  it("does not count the Onca itself as a removed species for objective progress", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+    game = setActiveAction(game, "jaguar", 0);
+    game.players.find((candidate) => candidate.playerId === "jaguar")!.selectedObjectiveCardId = "objective_1";
+
+    const coatiPieceId = game.pieces.find((piece) => piece.ownerId === "coati" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, coatiPieceId);
+
+    const removalLog = [...game.log].reverse().find((entry) => entry.payload?.kind === "remove_piece");
+    expect(removalLog?.payload?.pieceIds).toEqual([coatiPieceId]);
+    expect(getObjectiveProgressPoints(game, "jaguar")).toBe(0);
   });
 
   it("spends Onca meat for points up to three times during action C", () => {

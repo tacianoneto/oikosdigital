@@ -3035,7 +3035,7 @@ export function moveJaguarForCurrentAction(
         cardDefinitionId: jaguarDestCard?.definitionId,
         habitat: jaguarDestCard ? getCardDefinitionOrNull(jaguarDestCard.definitionId)?.habitat ?? undefined : undefined,
         location: { x: destination.x, y: destination.y },
-        pieceIds: nextTargetPiece ? [nextJaguarPiece.pieceId, nextTargetPiece.pieceId] : [nextJaguarPiece.pieceId],
+        pieceIds: nextTargetPiece ? [nextTargetPiece.pieceId] : [nextJaguarPiece.pieceId],
         actionId: (getCurrentAction(game) as "A" | "B" | "C" | "D" | null) ?? undefined,
         resources: nextTargetPiece ? ["meat"] : undefined
       }
