@@ -77,7 +77,7 @@ describe("end game scoring", () => {
     let game = activeGame([player("p1", "coati"), player("p2", "macaw")]);
     const a = game.players.find((p) => p.playerId === "p1")!;
     a.score = 4;
-    a.selectedObjectiveCardId = "objective_23";
+    a.selectedObjectiveCardId = "objective_11";
     a.piecesInForest = ["a", "b", "c", "d", "e"]; // Quati has 8 pieces: more than half = +1 objective point.
 
     game = forceEndPlayerTurn(game, "p1", "end turn");

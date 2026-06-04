@@ -1,6 +1,6 @@
 // Cross-platform asset sync (used locally and by the Netlify build).
 // Mirrors scripts/sync-assets.ps1.
-import { copyFileSync, mkdirSync, readdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,6 +37,24 @@ let copied = 0;
 for (const group of groups) {
   mkdirSync(group.to, { recursive: true });
   const allowed = group.extensions ?? defaultExtensions;
+  const sourceFiles = new Set(
+    readdirSync(group.from, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && allowed.some((ext) => entry.name.toLowerCase().endsWith(ext)))
+      .map((entry) => entry.name)
+  );
+
+  if (existsSync(group.to)) {
+    for (const entry of readdirSync(group.to, { withFileTypes: true })) {
+      if (
+        entry.isFile() &&
+        allowed.some((ext) => entry.name.toLowerCase().endsWith(ext)) &&
+        !sourceFiles.has(entry.name)
+      ) {
+        rmSync(join(group.to, entry.name));
+      }
+    }
+  }
+
   for (const entry of readdirSync(group.from, { withFileTypes: true })) {
     if (entry.isFile() && allowed.some((ext) => entry.name.toLowerCase().endsWith(ext))) {
       copyFileSync(join(group.from, entry.name), join(group.to, entry.name));

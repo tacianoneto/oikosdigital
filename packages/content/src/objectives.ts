@@ -55,12 +55,6 @@ export const objectiveCards: ObjectiveCardDefinition[] = [
     "Ganhe 1 ponto extra se tiver maioria de carne. Ganhe +1 ponto extra se nao empatar essa maioria com outro jogador."
   ),
   objectiveCard(
-    5,
-    ["predator"],
-    { kind: "resource_majority_count" },
-    "Ao final da partida, ganhe 1 ponto extra por cada maioria que voce tiver de recursos."
-  ),
-  objectiveCard(
     6,
     ["middle", "base"],
     { kind: "habitat_line", habitat: "field", minLength: 3, maxPoints: 2 },
@@ -92,9 +86,9 @@ export const objectiveCards: ObjectiveCardDefinition[] = [
   ),
   objectiveCard(
     11,
-    ["predator"],
-    { kind: "seed_spend", spendSeedCount: 3, points: 3 },
-    "Ao final da partida, voce pode gastar 3 pinhas para ganhar 3 pontos."
+    ["base"],
+    { kind: "pieces_in_forest" },
+    "Ganhe 1 ponto se mais da metade de suas pecas estiver na floresta. Ganhe +1 ponto extra se todas estiverem na floresta."
   ),
   objectiveCard(
     12,
@@ -116,9 +110,9 @@ export const objectiveCards: ObjectiveCardDefinition[] = [
   ),
   objectiveCard(
     15,
-    ["predator"],
-    { kind: "extra_turn" },
-    "Gaste 1 ponto para jogar um turno extra apos a contagem de maiorias."
+    ["middle", "base"],
+    { kind: "resource_square", maxPoints: 2 },
+    "Ganhe 1 ponto por cada quadrado de locais com os 4 recursos diferentes. Maximo 2 pontos."
   ),
   objectiveCard(
     16,
@@ -149,24 +143,6 @@ export const objectiveCards: ObjectiveCardDefinition[] = [
     ["predator"],
     { kind: "extra_turn" },
     "Gaste 1 ponto para jogar um turno extra apos a contagem de maiorias."
-  ),
-  objectiveCard(
-    21,
-    ["middle", "base"],
-    { kind: "resource_square", maxPoints: 2 },
-    "Ganhe 1 ponto por cada quadrado de locais com os 4 recursos diferentes. Maximo 2 pontos."
-  ),
-  objectiveCard(
-    22,
-    ["predator", "middle"],
-    { kind: "missing_resources", maxPoints: 2 },
-    "Ganhe 1 ponto por cada recurso que nao possuir no final da partida. Maximo 2 pontos."
-  ),
-  objectiveCard(
-    23,
-    ["base"],
-    { kind: "pieces_in_forest" },
-    "Ganhe 1 ponto se mais da metade de suas pecas estiver na floresta. Ganhe +1 ponto extra se todas estiverem na floresta."
   )
 ];
 
