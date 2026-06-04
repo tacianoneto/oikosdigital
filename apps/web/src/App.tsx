@@ -6123,6 +6123,7 @@ export function App() {
             cards={forestCards}
             pieces={pieces}
             canPlaceSetupPiece={canPlaceSetupPiece}
+            interactive={!expansionPreview}
             expansionTargets={displayExpansionTargets}
             rotateFitTargets={displayRotateFitTargets}
             rotateFitCardId={canPlaceSelectedForestCard ? selectedHandCardId : null}

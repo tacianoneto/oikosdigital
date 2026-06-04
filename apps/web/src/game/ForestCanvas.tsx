@@ -13,6 +13,10 @@ interface ForestCanvasProps {
   cards: ForestCardState[];
   pieces: PieceState[];
   canPlaceSetupPiece: boolean;
+  // When false, Phaser input is disabled so clicks can't reach the board (e.g.
+  // while a full-screen modal/overlay is open). Phaser listens on window by
+  // default, so an overlay div alone doesn't block board hits.
+  interactive?: boolean;
   expansionTargets?: GridPosition[];
   rotateFitTargets?: RotateFitTarget[];
   rotateFitCardId?: string | null;
@@ -52,6 +56,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
     cards,
     pieces,
     canPlaceSetupPiece,
+    interactive = true,
     expansionTargets = [],
     rotateFitTargets = [],
     rotateFitCardId = null,
@@ -171,6 +176,12 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
       sceneRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const game = gameRef.current;
+    if (!game?.input) return;
+    game.input.enabled = interactive;
+  }, [interactive]);
 
   useEffect(() => {
     const scene = sceneRef.current;
