@@ -3836,8 +3836,6 @@ export function OikosApp() {
   const pendingSeedSpendCount = pendingSeedSpendCard?.scoring.spendSeedCount ?? 3;
   const pendingSeedSpendPoints = pendingSeedSpendCard?.scoring.points ?? 3;
   const pendingSeedSpendSeeds = pendingSeedSpendPlayer?.resources.seed ?? 0;
-  const pendingSeedSpendRemainingSeeds = Math.max(0, pendingSeedSpendSeeds - pendingSeedSpendCount);
-  const pendingSeedSpendSeedPoints = Math.floor(pendingSeedSpendRemainingSeeds / 2);
   const canResolveSeedSpend = Boolean(
     room?.game?.pendingSeedSpendObjectivePlayerId &&
       !room.game.pendingExtraTurnPlayerId &&
@@ -4196,13 +4194,6 @@ export function OikosApp() {
               <strong>{pendingSeedSpendCount} sementes</strong> para ganhar{" "}
               <strong>{pendingSeedSpendPoints} pontos</strong>. Depois disso, sementes restantes ainda pontuam normalmente.
             </p>
-            <div className="caatinga-choice-resource">
-              <img src={encodeURI(resourceAssets.seed)} alt="" />
-              <span>
-                {pendingSeedSpendSeeds} sementes agora. Se gastar, sobram {pendingSeedSpendRemainingSeeds} e valem +
-                {pendingSeedSpendSeedPoints}.
-              </span>
-            </div>
             <div className="caatinga-choice-actions caatinga-choice-actions--stack">
               <button
                 type="button"
@@ -4210,8 +4201,10 @@ export function OikosApp() {
                 onClick={() => resolveSeedSpendChoice(true)}
                 disabled={pendingSeedSpendSeeds < pendingSeedSpendCount}
               >
-                <Trophy aria-hidden="true" />
-                Gastar sementes e pontuar
+                Gastar {pendingSeedSpendCount}
+                <img src={encodeURI(resourceAssets.seed)} alt="sementes" />
+                para fazer {pendingSeedSpendPoints}
+                <img src={encodeURI(resourceAssets.point)} alt="pontos" />
               </button>
               <button
                 type="button"
