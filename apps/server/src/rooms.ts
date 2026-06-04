@@ -21,6 +21,7 @@ import {
   collectCerradoBonus,
   resolveCacaIlegal,
   discardMataAtlanticaPileCard,
+  resolveSeedSpendObjective,
   requiredCommonCardsForPlayers,
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
@@ -849,6 +850,20 @@ export function resolveExtraTurn(roomId: string, playerId: string, accept: boole
   }
 
   room.game = resolveExtraTurnObjective(room.game, playerId, accept);
+  room.status = room.game.status === "finished" ? "finished" : "active";
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
+export function resolveSeedSpend(roomId: string, playerId: string, accept: boolean): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (!room.game) {
+    throw new Error("A partida ainda nao foi iniciada.");
+  }
+
+  room.game = resolveSeedSpendObjective(room.game, playerId, accept);
   room.status = room.game.status === "finished" ? "finished" : "active";
   room.warnings = room.game.contentWarnings;
 

@@ -267,6 +267,9 @@ export interface GameState {
   pendingExtraTurnPlayerId: string | null;
   extraTurnPlayerId: string | null;
   resolvedExtraTurnPlayerIds: string[];
+  pendingSeedSpendObjectivePlayerId: string | null;
+  acceptedSeedSpendObjectivePlayerIds: string[];
+  resolvedSeedSpendObjectivePlayerIds: string[];
   resolvedCoatiPairBonuses: string[];
   setupActivePlayerId: string | null;
   turnOrder: string[];

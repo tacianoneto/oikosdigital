@@ -26,6 +26,7 @@ import {
   chooseObjective,
   discardObjective,
   resolveExtraTurn,
+  resolveSeedSpend,
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
@@ -622,6 +623,14 @@ io.on("connection", (socket) => {
   socket.on("objective:extra-turn", (payload: { roomId: string; accept: boolean }, reply) => {
     withReply(reply, () => {
       const room = resolveExtraTurn(payload.roomId, playerId, payload.accept);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("objective:seed-spend", (payload: { roomId: string; accept: boolean }, reply) => {
+    withReply(reply, () => {
+      const room = resolveSeedSpend(payload.roomId, playerId, payload.accept);
       broadcastRoom(room);
       return room;
     });

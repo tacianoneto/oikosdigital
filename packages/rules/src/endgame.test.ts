@@ -6,7 +6,8 @@ import {
   completeCurrentAction,
   finalizeGame,
   forceEndPlayerTurn,
-  resolveExtraTurnObjective
+  resolveExtraTurnObjective,
+  resolveSeedSpendObjective
 } from "./setup";
 
 function player(playerId: string, speciesId: RoomPlayer["speciesId"]): RoomPlayer {
@@ -121,6 +122,7 @@ describe("end game scoring", () => {
     const a = game.players.find((p) => p.playerId === "p1")!;
     a.selectedObjectiveCardId = "objective_3";
     a.resources = { meat: 0, egg: 0, fruit: 0, seed: 5 };
+    game.acceptedSeedSpendObjectivePlayerIds = ["p1"];
 
     const finished = finalizeGame(game);
     const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
@@ -128,6 +130,20 @@ describe("end game scoring", () => {
     expect(entryA.objectivePoints).toBe(3);
     expect(entryA.seedPoints).toBe(1);
     expect(finished.players.find((p) => p.playerId === "p1")!.resources.seed).toBe(0);
+  });
+
+  it("does not spend seeds for the predator seed objective unless accepted", () => {
+    const game = activeGame([player("p1", "jaguar"), player("p2", "macaw")]);
+    const a = game.players.find((p) => p.playerId === "p1")!;
+    a.selectedObjectiveCardId = "objective_3";
+    a.resources = { meat: 0, egg: 0, fruit: 0, seed: 5 };
+
+    const finished = finalizeGame(game);
+    const entryA = finished.finalScoreBreakdown!.entries.find((e) => e.playerId === "p1")!;
+
+    expect(entryA.objectivePoints).toBe(0);
+    expect(entryA.seedPoints).toBe(2);
+    expect(finished.players.find((p) => p.playerId === "p1")!.resources.seed).toBe(1);
   });
 
   it("scores missing-resource objectives for predator and middle categories", () => {
@@ -266,5 +282,47 @@ describe("end game flow", () => {
     expect(game.pendingExtraTurnPlayerId).toBe("jaguar");
     expect(game.activePlayerId).toBeNull();
     expect(game.status).toBe("active");
+  });
+
+  it("queues the seed-spend objective before final scoring and applies accepted choice before seed points", () => {
+    let game = activeGame([player("jaguar", "jaguar"), player("coati", "coati")]);
+    const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+    jaguar.score = 10;
+    jaguar.resources = { meat: 0, egg: 0, fruit: 0, seed: 5 };
+    jaguar.selectedObjectiveCardId = "objective_3";
+    game.round = game.maxRounds;
+    game.activePlayerId = "jaguar";
+
+    game = forceEndPlayerTurn(game, "jaguar", "end turn");
+
+    expect(game.status).toBe("active");
+    expect(game.pendingSeedSpendObjectivePlayerId).toBe("jaguar");
+    expect(game.finalScoreBreakdown).toBeNull();
+
+    game = resolveSeedSpendObjective(game, "jaguar", true);
+    const entry = game.finalScoreBreakdown!.entries.find((candidate) => candidate.playerId === "jaguar")!;
+
+    expect(game.status).toBe("finished");
+    expect(entry.objectivePoints).toBe(3);
+    expect(entry.seedPoints).toBe(1);
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")!.resources.seed).toBe(0);
+  });
+
+  it("keeps all seeds for normal seed scoring when seed-spend objective is declined", () => {
+    let game = activeGame([player("jaguar", "jaguar"), player("coati", "coati")]);
+    const jaguar = game.players.find((candidate) => candidate.playerId === "jaguar")!;
+    jaguar.score = 10;
+    jaguar.resources = { meat: 0, egg: 0, fruit: 0, seed: 5 };
+    jaguar.selectedObjectiveCardId = "objective_3";
+    game.round = game.maxRounds;
+    game.activePlayerId = "jaguar";
+
+    game = forceEndPlayerTurn(game, "jaguar", "end turn");
+    game = resolveSeedSpendObjective(game, "jaguar", false);
+    const entry = game.finalScoreBreakdown!.entries.find((candidate) => candidate.playerId === "jaguar")!;
+
+    expect(entry.objectivePoints).toBe(0);
+    expect(entry.seedPoints).toBe(2);
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")!.resources.seed).toBe(1);
   });
 });

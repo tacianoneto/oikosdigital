@@ -155,6 +155,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "objective:discard", { roomId }),
   resolveExtraTurn: (socket: OikosSocket, roomId: string, accept: boolean) =>
     emitWithReply<PublicRoomState>(socket, "objective:extra-turn", { roomId, accept }),
+  resolveSeedSpend: (socket: OikosSocket, roomId: string, accept: boolean) =>
+    emitWithReply<PublicRoomState>(socket, "objective:seed-spend", { roomId, accept }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "setup:place-piece", { roomId, x, y }),
   placeForestCard: (

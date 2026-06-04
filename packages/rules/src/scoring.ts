@@ -111,6 +111,9 @@ function getObjectivePointsForTurn(
     }
 
     case "seed_spend": {
+      if (!(game.acceptedSeedSpendObjectivePlayerIds ?? []).includes(player.playerId)) {
+        return 0;
+      }
       return getSeedSpendObjectivePoints(
         player,
         resourceSnapshot,
@@ -486,6 +489,8 @@ export function applyFinalScoring(game: GameState, deps: FinalScoringDeps): void
   game.pendingMacawMovedPiece = null;
   game.pendingWolfMoves = null;
   game.cerradoPending = null;
+  game.pendingExtraTurnPlayerId = null;
+  game.pendingSeedSpendObjectivePlayerId = null;
   game.status = "finished";
 
   const winnerNames = game.players

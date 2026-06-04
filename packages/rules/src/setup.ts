@@ -663,6 +663,9 @@ export function createInitialGameState(
     pendingExtraTurnPlayerId: null,
     extraTurnPlayerId: null,
     resolvedExtraTurnPlayerIds: [],
+    pendingSeedSpendObjectivePlayerId: null,
+    acceptedSeedSpendObjectivePlayerIds: [],
+    resolvedSeedSpendObjectivePlayerIds: [],
     resolvedCoatiPairBonuses: [],
     setupActivePlayerId: setupSpeciesOrder.length > 0 ? findPlayerBySpecies(roomPlayers, setupSpeciesOrder[0]).playerId : null,
     setupOrder: setupSpeciesOrder.map((speciesId) => findPlayerBySpecies(roomPlayers, speciesId).playerId),
@@ -2366,7 +2369,12 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     throw new Error("Acoes so podem ser concluidas durante a fase ativa.");
   }
 
-  if (game.round > game.maxRounds && !game.extraTurnPlayerId && !game.pendingExtraTurnPlayerId) {
+  if (
+    game.round > game.maxRounds &&
+    !game.extraTurnPlayerId &&
+    !game.pendingExtraTurnPlayerId &&
+    !game.pendingSeedSpendObjectivePlayerId
+  ) {
     const next = cloneGameState(game);
     next.activePlayerId = null;
     next.activeActionIndex = 0;
@@ -2374,7 +2382,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     next.pendingCoatiPairBonus = null;
     next.pendingMacawMovedPiece = null;
     next.pendingWolfMoves = null;
-    queueExtraTurnOrFinalize(next);
+    queueEndgameChoiceOrFinalize(next);
     return next;
   }
 
@@ -3113,7 +3121,13 @@ function advanceSetupTurn(game: GameState): void {
 }
 
 function advanceActiveAction(game: GameState): void {
-  if (game.caatingaPending || game.cerradoPending || game.cacaIlegalPending || game.pendingExtraTurnPlayerId) {
+  if (
+    game.caatingaPending ||
+    game.cerradoPending ||
+    game.cacaIlegalPending ||
+    game.pendingExtraTurnPlayerId ||
+    game.pendingSeedSpendObjectivePlayerId
+  ) {
     return;
   }
 
@@ -3172,7 +3186,7 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
         payload: { kind: "advance_turn", actorPlayerId: player.playerId }
       }
     ];
-    queueExtraTurnOrFinalize(game);
+    queueEndgameChoiceOrFinalize(game);
     return;
   }
 
@@ -3202,7 +3216,7 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
   ];
 
   if (game.round > game.maxRounds) {
-    queueExtraTurnOrFinalize(game);
+    queueEndgameChoiceOrFinalize(game);
     return;
   }
 
@@ -3212,7 +3226,7 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
   skipAutomaticActionIfNeeded(game);
 }
 
-function queueExtraTurnOrFinalize(game: GameState): void {
+function queueEndgameChoiceOrFinalize(game: GameState): void {
   const candidate = findNextExtraTurnCandidate(game);
   if (candidate) {
     game.pendingExtraTurnPlayerId = candidate.playerId;
@@ -3231,11 +3245,59 @@ function queueExtraTurnOrFinalize(game: GameState): void {
     return;
   }
 
+  const seedSpendCandidate = findNextSeedSpendObjectiveCandidate(game);
+  if (seedSpendCandidate) {
+    game.pendingSeedSpendObjectivePlayerId = seedSpendCandidate.player.playerId;
+    game.activePlayerId = null;
+    game.activeActionIndex = 0;
+    game.activePlayedForestCardId = null;
+    game.log = [
+      ...game.log,
+      {
+        id: `seed_spend_pending_${seedSpendCandidate.player.playerId}_${game.log.length + 1}`,
+        message: `${seedSpendCandidate.player.name} pode gastar ${seedSpendCandidate.spendSeedCount} sementes para ganhar ${seedSpendCandidate.points} pontos.`,
+        createdAt: Date.now(),
+        payload: { kind: "objective", actorPlayerId: seedSpendCandidate.player.playerId }
+      }
+    ];
+    return;
+  }
+
   applyFinalScoring(game, {
     findPlayer,
     getCardDefinitionOrNull,
     positionKey
   });
+}
+
+function findNextSeedSpendObjectiveCandidate(
+  game: GameState
+): { player: PlayerState; spendSeedCount: number; points: number } | null {
+  const resolved = new Set(game.resolvedSeedSpendObjectivePlayerIds ?? []);
+  for (const playerId of game.turnOrder) {
+    if (resolved.has(playerId)) {
+      continue;
+    }
+
+    const player = game.players.find((candidate) => candidate.playerId === playerId);
+    if (!player?.selectedObjectiveCardId) {
+      continue;
+    }
+
+    const card = objectiveCardsById.get(player.selectedObjectiveCardId);
+    if (!player.speciesId || !card || !canSpeciesReceiveObjective(player.speciesId, card) || card.scoring.kind !== "seed_spend") {
+      continue;
+    }
+
+    const spendSeedCount = card.scoring.spendSeedCount ?? 3;
+    if ((player.resources.seed ?? 0) < spendSeedCount) {
+      continue;
+    }
+
+    return { player, spendSeedCount, points: card.scoring.points ?? 3 };
+  }
+
+  return null;
 }
 
 function findNextExtraTurnCandidate(game: GameState): PlayerState | null {
@@ -3319,7 +3381,7 @@ export function resolveExtraTurnObjective(game: GameState, playerId: string, acc
         payload: { kind: "objective", actorPlayerId: playerId }
       }
     ];
-    queueExtraTurnOrFinalize(next);
+    queueEndgameChoiceOrFinalize(next);
     return next;
   }
 
@@ -3345,6 +3407,53 @@ export function resolveExtraTurnObjective(game: GameState, playerId: string, acc
     }
   ];
   skipAutomaticActionIfNeeded(next);
+  return next;
+}
+
+export function resolveSeedSpendObjective(game: GameState, playerId: string, accept: boolean): GameState {
+  if (game.status !== "active") {
+    throw new Error("Objetivo de sementes so pode ser resolvido durante a partida.");
+  }
+
+  if (game.pendingSeedSpendObjectivePlayerId !== playerId) {
+    throw new Error("Nenhum objetivo de sementes pendente para este jogador.");
+  }
+
+  const next = cloneGameState(game);
+  const player = findPlayer(next, playerId);
+  const card = player.selectedObjectiveCardId ? objectiveCardsById.get(player.selectedObjectiveCardId) : null;
+  if (card?.scoring.kind !== "seed_spend") {
+    throw new Error("Objetivo de sementes invalido para este jogador.");
+  }
+
+  const spendSeedCount = card.scoring.spendSeedCount ?? 3;
+  if (accept && (player.resources.seed ?? 0) < spendSeedCount) {
+    throw new Error("Sementes insuficientes para ativar este objetivo.");
+  }
+
+  next.pendingSeedSpendObjectivePlayerId = null;
+  next.resolvedSeedSpendObjectivePlayerIds = [
+    ...new Set([...(next.resolvedSeedSpendObjectivePlayerIds ?? []), playerId])
+  ];
+  if (accept) {
+    next.acceptedSeedSpendObjectivePlayerIds = [
+      ...new Set([...(next.acceptedSeedSpendObjectivePlayerIds ?? []), playerId])
+    ];
+  }
+
+  next.log = [
+    ...next.log,
+    {
+      id: `seed_spend_${accept ? "accepted" : "declined"}_${playerId}_${next.log.length + 1}`,
+      message: accept
+        ? `${player.name} escolheu gastar ${spendSeedCount} sementes no objetivo final.`
+        : `${player.name} recusou gastar sementes no objetivo final.`,
+      createdAt: Date.now(),
+      payload: { kind: "objective", actorPlayerId: playerId }
+    }
+  ];
+
+  queueEndgameChoiceOrFinalize(next);
   return next;
 }
 
@@ -3820,6 +3929,9 @@ function cloneGameState(game: GameState): GameState {
     pendingExtraTurnPlayerId: game.pendingExtraTurnPlayerId ?? null,
     extraTurnPlayerId: game.extraTurnPlayerId ?? null,
     resolvedExtraTurnPlayerIds: [...(game.resolvedExtraTurnPlayerIds ?? [])],
+    pendingSeedSpendObjectivePlayerId: game.pendingSeedSpendObjectivePlayerId ?? null,
+    acceptedSeedSpendObjectivePlayerIds: [...(game.acceptedSeedSpendObjectivePlayerIds ?? [])],
+    resolvedSeedSpendObjectivePlayerIds: [...(game.resolvedSeedSpendObjectivePlayerIds ?? [])],
     resolvedCoatiPairBonuses: [...game.resolvedCoatiPairBonuses],
     players: game.players.map((player) => ({
       ...player,

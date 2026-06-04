@@ -105,6 +105,7 @@ import {
   discardMataAtlanticaPileCard,
   discardObjectiveForResources,
   resolveExtraTurnObjective,
+  resolveSeedSpendObjective,
   isObjectiveCompleted,
   getObjectiveProgressPoints
 } from "@oikos/rules";
@@ -1023,6 +1024,7 @@ export function OikosApp() {
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom
     ? room?.game?.pendingExtraTurnPlayerId ??
+      room?.game?.pendingSeedSpendObjectivePlayerId ??
       room?.game?.caatingaPending?.playerId ??
       room?.game?.cerradoPending?.playerId ??
       room?.game?.setupActivePlayerId ??
@@ -3825,6 +3827,22 @@ export function OikosApp() {
   const canResolveExtraTurn = Boolean(
     room?.game?.pendingExtraTurnPlayerId && (isLocalRoom || controlledPlayerId === room.game.pendingExtraTurnPlayerId)
   );
+  const pendingSeedSpendPlayer = room?.game?.pendingSeedSpendObjectivePlayerId
+    ? room.game.players.find((player) => player.playerId === room.game?.pendingSeedSpendObjectivePlayerId) ?? null
+    : null;
+  const pendingSeedSpendCard = pendingSeedSpendPlayer?.selectedObjectiveCardId
+    ? getObjectiveCardDefinition(pendingSeedSpendPlayer.selectedObjectiveCardId)
+    : null;
+  const pendingSeedSpendCount = pendingSeedSpendCard?.scoring.spendSeedCount ?? 3;
+  const pendingSeedSpendPoints = pendingSeedSpendCard?.scoring.points ?? 3;
+  const pendingSeedSpendSeeds = pendingSeedSpendPlayer?.resources.seed ?? 0;
+  const pendingSeedSpendRemainingSeeds = Math.max(0, pendingSeedSpendSeeds - pendingSeedSpendCount);
+  const pendingSeedSpendSeedPoints = Math.floor(pendingSeedSpendRemainingSeeds / 2);
+  const canResolveSeedSpend = Boolean(
+    room?.game?.pendingSeedSpendObjectivePlayerId &&
+      !room.game.pendingExtraTurnPlayerId &&
+      (isLocalRoom || controlledPlayerId === room.game.pendingSeedSpendObjectivePlayerId)
+  );
   const resolveCacaIlegalChoice = (choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }) => {
     if (!room?.game || !cacaIlegalPending || !canResolveCacaIlegal) return;
     if (isLocalRoom) {
@@ -3899,6 +3917,29 @@ export function OikosApp() {
 
     const rid = room.roomId;
     run(() => roomApi.resolveExtraTurn(requireSocket(), rid, accept));
+  };
+  const resolveSeedSpendChoice = (accept: boolean) => {
+    if (!room?.game?.pendingSeedSpendObjectivePlayerId || !canResolveSeedSpend) return;
+
+    const pendingPlayerId = room.game.pendingSeedSpendObjectivePlayerId;
+    if (isLocalRoom) {
+      try {
+        const nextGame = resolveSeedSpendObjective(room.game, pendingPlayerId, accept);
+        setRoom({
+          ...room,
+          status: nextGame.status === "finished" ? "finished" : "active",
+          game: nextGame,
+          warnings: nextGame.contentWarnings
+        });
+        setNotice(accept ? `Objetivo ativado: -${pendingSeedSpendCount} sementes, +${pendingSeedSpendPoints} pontos.` : "Objetivo recusado.");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Falha ao resolver objetivo de sementes.");
+      }
+      return;
+    }
+
+    const rid = room.roomId;
+    run(() => roomApi.resolveSeedSpend(requireSocket(), rid, accept));
   };
   const mataAtlanticaForcedDiscard = Boolean(
     room?.game &&
@@ -4137,6 +4178,47 @@ export function OikosApp() {
                 onClick={() => resolveExtraTurnChoice(false)}
               >
                 Recusar e finalizar
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {room?.game?.pendingSeedSpendObjectivePlayerId && canResolveSeedSpend && (
+        <div className="caatinga-choice-backdrop" role="presentation">
+          <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="seed-spend-title">
+            <div className="caatinga-choice-head">
+              <Trophy aria-hidden="true" />
+              <span>Objetivo de sementes</span>
+            </div>
+            <h2 id="seed-spend-title">Gastar {pendingSeedSpendCount} sementes?</h2>
+            <p>
+              {pendingSeedSpendPlayer?.name ?? "Jogador"}, antes da pontuacao final voce pode gastar{" "}
+              <strong>{pendingSeedSpendCount} sementes</strong> para ganhar{" "}
+              <strong>{pendingSeedSpendPoints} pontos</strong>. Depois disso, sementes restantes ainda pontuam normalmente.
+            </p>
+            <div className="caatinga-choice-resource">
+              <img src={encodeURI(resourceAssets.seed)} alt="" />
+              <span>
+                {pendingSeedSpendSeeds} sementes agora. Se gastar, sobram {pendingSeedSpendRemainingSeeds} e valem +
+                {pendingSeedSpendSeedPoints}.
+              </span>
+            </div>
+            <div className="caatinga-choice-actions caatinga-choice-actions--stack">
+              <button
+                type="button"
+                className="caatinga-collect-btn"
+                onClick={() => resolveSeedSpendChoice(true)}
+                disabled={pendingSeedSpendSeeds < pendingSeedSpendCount}
+              >
+                <Trophy aria-hidden="true" />
+                Gastar sementes e pontuar
+              </button>
+              <button
+                type="button"
+                className="caatinga-collect-btn caatinga-collect-btn--skip"
+                onClick={() => resolveSeedSpendChoice(false)}
+              >
+                Nao gastar
               </button>
             </div>
           </section>
