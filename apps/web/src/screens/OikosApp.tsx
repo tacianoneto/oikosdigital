@@ -2287,7 +2287,7 @@ export function OikosApp() {
         const ids = new Set(nextEffects.map((effect) => effect.id));
         window.setTimeout(() => {
           setTravelEffects((current) => current.filter((effect) => !ids.has(effect.id)));
-        }, 1300);
+        }, 1850);
       }
     }
 
