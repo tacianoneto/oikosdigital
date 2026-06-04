@@ -8211,14 +8211,31 @@
 .res-meat.is-majority::after,
 .res-fruit.is-majority::after,
 .res-egg.is-majority::after {
-  content: "";
+  content: none;
+}
+
+.hud-resource-value {
+  position: relative;
+  z-index: 2;
+}
+
+.hud-resource-majority-mark {
   position: absolute;
-  top: -0.32em;
-  right: -0.18em;
-  width: 0.42em;
-  height: 0.42em;
+  top: -0.55em;
+  right: -0.52em;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 0.74em;
+  height: 0.74em;
   border-radius: 999px;
   background: #ffe66d;
+  color: #254631;
+  font-family: Outfit, sans-serif;
+  font-size: 0.52em;
+  font-weight: 900;
+  line-height: 1;
+  -webkit-text-stroke: 0;
   box-shadow:
     0 0 0 2px rgba(39, 72, 49, 0.85),
     0 0 10px rgba(255, 230, 109, 0.95);

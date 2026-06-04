@@ -1094,7 +1094,46 @@ export function OikosApp() {
     }
 
     return leaders;
-  }, [room?.game?.players]);
+  }, [room?.game]);
+
+  // Whether the controlled player currently holds the majority of each
+  // majority-eligible resource (meat/egg/fruit). Seed never qualifies (it only
+  // converts to points at the end). Used to pulse the resource number in the
+  // bottom species HUD.
+  const currentPlayerResourceMajority = useMemo(() => {
+    const gamePlayers = room?.game?.players ?? [];
+    const major = (resource: Resource) => {
+      if (!currentGamePlayer || gamePlayers.length === 0) {
+        return false;
+      }
+
+      const currentCount = currentGamePlayer.resources[resource] ?? 0;
+      if (currentCount <= 0) {
+        return false;
+      }
+
+      const topCount = Math.max(...gamePlayers.map((player) => player.resources[resource] ?? 0));
+      return currentCount === topCount;
+    };
+    return { meat: major("meat"), egg: major("egg"), fruit: major("fruit"), seed: false };
+  }, [room?.game, currentGamePlayer]);
+  const renderHudResource = (itemClassName: string, resource: Resource) => {
+    const hasMajority = currentPlayerResourceMajority[resource];
+    return (
+      <div
+        className={`${itemClassName} res-${resource}${hasMajority ? " is-majority" : ""}`}
+        data-majority={hasMajority ? "true" : "false"}
+        ref={(node) => setEffectTarget(`hudbar:${resource}`, node)}
+      >
+        <span className="hud-resource-value">{currentGamePlayer?.resources[resource] ?? 0}</span>
+        {hasMajority && resource !== "seed" && (
+          <span className="hud-resource-majority-mark" aria-label="Maioria de recurso">
+            ★
+          </span>
+        )}
+      </div>
+    );
+  };
 
   // Tutorial state derived from the current step.
   const tutorialSteps = getTutorialSteps(tutorialId);
@@ -7215,10 +7254,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-jaguar-resources">
-              <div className="hud-bottom-jaguar-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-jaguar-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
+              {renderHudResource("hud-bottom-jaguar-resource-item", "meat")}
+              {renderHudResource("hud-bottom-jaguar-resource-item", "fruit")}
+              {renderHudResource("hud-bottom-jaguar-resource-item", "egg")}
+              {renderHudResource("hud-bottom-jaguar-resource-item", "seed")}
             </div>
             <div className="hud-bottom-jaguar-movements">
               <img src="/assets/interface/onça/Movimentos_onca.png" alt="Movimentos" />
@@ -7317,10 +7356,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-wolf-resources">
-              <div className="hud-bottom-wolf-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-wolf-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
+              {renderHudResource("hud-bottom-wolf-resource-item", "meat")}
+              {renderHudResource("hud-bottom-wolf-resource-item", "fruit")}
+              {renderHudResource("hud-bottom-wolf-resource-item", "egg")}
+              {renderHudResource("hud-bottom-wolf-resource-item", "seed")}
             </div>
             <div className="hud-bottom-wolf-movements">
               <img src="/assets/interface/lobo/Movimentos_lobo.png" alt="Movimentos" />
@@ -7420,10 +7459,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-tatu-resources">
-              <div className="hud-bottom-tatu-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-tatu-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
+              {renderHudResource("hud-bottom-tatu-resource-item", "meat")}
+              {renderHudResource("hud-bottom-tatu-resource-item", "fruit")}
+              {renderHudResource("hud-bottom-tatu-resource-item", "egg")}
+              {renderHudResource("hud-bottom-tatu-resource-item", "seed")}
             </div>
             <div className="hud-bottom-tatu-movements">
               <img src="/assets/interface/tatu/Movimentos_tatu.png" alt="Movimentos" />
@@ -7515,10 +7554,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-macaw-resources">
-              <div className="hud-bottom-macaw-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-macaw-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
+              {renderHudResource("hud-bottom-macaw-resource-item", "meat")}
+              {renderHudResource("hud-bottom-macaw-resource-item", "fruit")}
+              {renderHudResource("hud-bottom-macaw-resource-item", "egg")}
+              {renderHudResource("hud-bottom-macaw-resource-item", "seed")}
             </div>
             <div className="hud-bottom-macaw-movements">
               <img src="/assets/interface/arara/Movimentos_arara.png" alt="Movimentos" />
@@ -7612,10 +7651,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-capuchin-resources">
-              <div className="hud-bottom-capuchin-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-capuchin-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
+              {renderHudResource("hud-bottom-capuchin-resource-item", "meat")}
+              {renderHudResource("hud-bottom-capuchin-resource-item", "fruit")}
+              {renderHudResource("hud-bottom-capuchin-resource-item", "egg")}
+              {renderHudResource("hud-bottom-capuchin-resource-item", "seed")}
             </div>
             <div className="hud-bottom-capuchin-movements">
               <img src="/assets/interface/macaco/Movimentos_macaco.png" alt="Movimentos" />
@@ -7722,10 +7761,10 @@ export function OikosApp() {
               </div>
             </div>
             <div className="hud-bottom-coati-resources">
-              <div className="hud-bottom-coati-resource-item res-meat" ref={(node) => setEffectTarget("hudbar:meat", node)}>{currentGamePlayer.resources.meat ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-fruit" ref={(node) => setEffectTarget("hudbar:fruit", node)}>{currentGamePlayer.resources.fruit ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-egg" ref={(node) => setEffectTarget("hudbar:egg", node)}>{currentGamePlayer.resources.egg ?? 0}</div>
-              <div className="hud-bottom-coati-resource-item res-seed" ref={(node) => setEffectTarget("hudbar:seed", node)}>{currentGamePlayer.resources.seed ?? 0}</div>
+              {renderHudResource("hud-bottom-coati-resource-item", "meat")}
+              {renderHudResource("hud-bottom-coati-resource-item", "fruit")}
+              {renderHudResource("hud-bottom-coati-resource-item", "egg")}
+              {renderHudResource("hud-bottom-coati-resource-item", "seed")}
             </div>
             <div className="hud-bottom-coati-movements">
               <img src="/assets/interface/quati/Movimentos_quati.png" alt="Movimentos" />
