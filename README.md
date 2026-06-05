@@ -72,14 +72,16 @@ npm run tunnel          # sobe o quick tunnel no 4173 e imprime o link de teste
 
 O script usa `.tools/cloudflared.exe` (ou `cloudflared` do PATH). O quick tunnel gera uma URL `*.trycloudflare.com` **diferente a cada execucao**: o link vale enquanto o processo do tunnel e o servidor estiverem vivos.
 
-**3. Frontend no Netlify**
+**3. Frontend publico fixo**
 
-- O repositorio tem `netlify.toml`. No push, o Netlify roda `npm run build -w @oikos/web` e publica `apps/web/dist`.
-- **Nao** defina `VITE_SERVER_URL` no painel do Netlify (deixe sem essa variavel): cada link de teste informa o servidor pela query `?server=`.
-- Compartilhe o link que o `npm run tunnel` imprime, no formato:
+- URL publica fixa do jogo: `https://oikosdigital.com.br/`.
+- O repositorio tem `netlify.toml`. No push, o deploy publica `apps/web/dist` no dominio fixo.
+- Em producao normal, o frontend usa `https://api.oikosdigital.com.br` como servidor.
+- Use `?server=` somente para teste temporario com backend local via Cloudflare tunnel.
+- Quando usar tunnel, compartilhe o link que o `npm run tunnel` imprime, no formato:
 
 ```
-https://oikosdigital.netlify.app/?server=https://<sub>.trycloudflare.com
+https://oikosdigital.com.br/?server=https://<sub>.trycloudflare.com
 ```
 
 O `?server=` sobrescreve o servidor padrao e fica salvo no navegador do jogador. Para limpar, abra com `?clearServer=1`.

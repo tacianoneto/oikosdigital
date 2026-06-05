@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Sobe um quick tunnel do Cloudflare apontando para o servidor local e imprime o
-// link de teste pronto (frontend Netlify + ?server=<url-do-tunnel>).
+// link de teste pronto (dominio publico fixo + ?server=<url-do-tunnel>).
 //
 // Uso:
 //   npm run tunnel                 # porta 4173, frontend padrao
@@ -15,7 +15,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..");
 
 const PORT = process.env.PORT ?? "4173";
-const FRONTEND_URL = (process.env.FRONTEND_URL ?? "https://oikosdigital.netlify.app").replace(/\/$/, "");
+const FRONTEND_URL = (process.env.FRONTEND_URL ?? "https://oikosdigital.com.br").replace(/\/$/, "");
 
 // Prefere o binario versionado em .tools; cai para o cloudflared do PATH.
 const localBin = join(repoRoot, ".tools", process.platform === "win32" ? "cloudflared.exe" : "cloudflared");

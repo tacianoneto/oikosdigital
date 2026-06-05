@@ -3,7 +3,7 @@
 #
 # Logs:
 #   logs\serve-tunnel.log  -> saida completa (server + tunnel)
-#   logs\link-atual.txt    -> link de teste atual (frontend Netlify + ?server=<tunnel>)
+#   logs\link-atual.txt    -> link de teste atual (dominio fixo + ?server=<tunnel>)
 #
 # A URL do quick tunnel muda a cada reinicio: consulte logs\link-atual.txt
 # sempre que precisar do link para compartilhar.
@@ -14,7 +14,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $logDir = Join-Path $repoRoot "logs"
 $log = Join-Path $logDir "serve-tunnel.log"
 $linkFile = Join-Path $logDir "link-atual.txt"
-$frontend = "https://oikosdigital.netlify.app"
+$frontend = "https://oikosdigital.com.br"
 
 if (-not (Test-Path $logDir)) {
   New-Item -ItemType Directory -Path $logDir | Out-Null

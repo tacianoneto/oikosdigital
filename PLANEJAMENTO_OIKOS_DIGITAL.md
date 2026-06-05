@@ -131,7 +131,9 @@ Estado implementado em junho de 2026:
 - O frontend usa Supabase project URL `https://ysqpiutokbxpcwlieqax.supabase.co` e publishable key publica.
 - A secret key fica somente no backend/local env. Nunca colocar `service_role` no frontend nem em arquivo publico.
 - O Socket.IO envia o access token do Supabase e o backend valida o usuario antes de aceitar eventos do jogo.
-- Em producao, `oikosdigital.com.br` usa `https://api.oikosdigital.com.br` como servidor.
+- Link publico fixo do jogo: `https://oikosdigital.com.br/`.
+- Em producao, `https://oikosdigital.com.br/` usa `https://api.oikosdigital.com.br` como servidor.
+- Links `*.trycloudflare.com` sao somente backend temporario de teste quando este PC precisa servir uma sessao local. Quando usados, entram apenas como query `?server=` em `https://oikosdigital.com.br/`.
 - O backend `/health` da API de producao ja foi validado.
 
 Arquivos principais:
