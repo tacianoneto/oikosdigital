@@ -15,6 +15,7 @@ import {
   EyeOff,
   GraduationCap,
   Leaf,
+  ListFilter,
   Lock,
   LogIn,
   LogOut,
@@ -2037,6 +2038,9 @@ export function OikosApp() {
         return a.index - b.index;
       });
   }, [handCards, handSortMode]);
+  const nextHandSortMode: HandSortMode = handSortMode === "habitat" ? "resource" : "habitat";
+  const handSortLabel = handSortMode === "habitat" ? "Habitat" : "Recurso";
+  const nextHandSortLabel = nextHandSortMode === "habitat" ? "habitat" : "recurso";
   const showHandDuringGame = Boolean(
     hasStartedGame &&
       currentGamePlayer &&
@@ -6410,6 +6414,19 @@ export function OikosApp() {
 
         {!cleanBoardMode && showHandDuringGame && currentGamePlayer && (
           <section className={`table-hand ${handCollapsed ? "collapsed" : ""}`} aria-label="Mão de cartas">
+            {handCards.length > 0 && (
+              <button
+                type="button"
+                className="hand-sort-toggle"
+                title={`Organizar por ${nextHandSortLabel}`}
+                aria-label={`Mão organizada por ${handSortLabel}. Clique para organizar por ${nextHandSortLabel}.`}
+                onClick={() => setHandSortMode(nextHandSortMode)}
+              >
+                <ListFilter aria-hidden="true" />
+                <span>Organizar</span>
+                <strong>{handSortLabel}</strong>
+              </button>
+            )}
             <div className="hand-header">
               <div>
                 <span>Mão · {handCards.length} cartas</span>
@@ -6422,25 +6439,6 @@ export function OikosApp() {
                 </strong>
               </div>
               <div className="hand-header-side">
-                {!handCollapsed && handCards.length > 0 && (
-                  <div className="hand-tools" aria-label="Organizar mão">
-                    {([
-                      ["habitat", "Hab."],
-                      ["resource", "Rec."]
-                    ] as const).map(([mode, label]) => (
-                      <button
-                        type="button"
-                        className={handSortMode === mode ? "is-active" : ""}
-                        key={mode}
-                        title={mode === "habitat" ? "Organizar por habitat" : "Organizar por recurso"}
-                        aria-label={mode === "habitat" ? "Organizar por habitat" : "Organizar por recurso"}
-                        onClick={() => setHandSortMode(mode)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                )}
                 <button
                   type="button"
                   className="hand-toggle"

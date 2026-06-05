@@ -6557,6 +6557,15 @@
   display: none !important;
 }
 
+.is-wolf-active .table-hand .hand-sort-toggle,
+.is-armadillo-active .table-hand .hand-sort-toggle,
+.is-macaw-active .table-hand .hand-sort-toggle,
+.is-capuchin-active .table-hand .hand-sort-toggle,
+.is-coati-active .table-hand .hand-sort-toggle {
+  top: -42px;
+  right: 0;
+}
+
 .is-wolf-active .table-hand .hand-rail,
 .is-armadillo-active .table-hand .hand-rail,
 .is-macaw-active .table-hand .hand-rail,
