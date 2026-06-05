@@ -24,3 +24,13 @@ export async function getUserIdFromAccessToken(accessToken: string): Promise<str
 
   return data.user.id;
 }
+
+export async function getUserEntitlements(userId: string): Promise<Record<string, unknown>[]> {
+  const { data, error } = await supabase.from("entitlements").select("*").eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}

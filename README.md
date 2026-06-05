@@ -55,6 +55,8 @@ Variaveis do servidor (opcionais, ver `apps/server/.env.example`):
 ```bash
 PORT=4173
 CLIENT_ORIGIN=                  # vazio = libera qualquer origem (CORS)
+SUPABASE_URL=                   # URL do projeto Supabase
+SUPABASE_SECRET_KEY=            # secret key/service role do Supabase; nunca vai no frontend
 DB_PATH=./data/oikos.db         # caminho do SQLite local
 TURN_TIMEOUT_MS=90000           # pula turno de jogador desconectado
 BOT_TURN_DELAY_MS=2500          # intervalo entre passos dos bots
@@ -82,10 +84,46 @@ https://oikosdigital.netlify.app/?server=https://<sub>.trycloudflare.com
 
 O `?server=` sobrescreve o servidor padrao e fica salvo no navegador do jogador. Para limpar, abra com `?clearServer=1`.
 
+### Producao com login Supabase
+
+O frontend exige login Supabase antes de mostrar o jogo. Para salas online funcionarem em producao, o backend publico em `https://api.oikosdigital.com.br` tambem precisa validar o token Supabase.
+
+Frontend (Netlify):
+
+```bash
+VITE_SERVER_URL=https://api.oikosdigital.com.br
+VITE_SUPABASE_URL=https://ysqpiutokbxpcwlieqax.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_T7q_lGCQkA2P2IvSh03geA_6PEgjUCW
+```
+
+Backend (`api.oikosdigital.com.br`):
+
+```bash
+CLIENT_ORIGIN=https://oikosdigital.com.br
+SUPABASE_URL=https://ysqpiutokbxpcwlieqax.supabase.co
+SUPABASE_SECRET_KEY=<secret key do Supabase>
+```
+
+`SUPABASE_SECRET_KEY` fica somente no backend. Nao coloque essa chave no Netlify do frontend.
+
+### Especies extras
+
+As 6 especies base (`jaguar`, `maned_wolf`, `armadillo`, `macaw`, `capuchin`, `coati`) ficam liberadas para todos.
+
+Qualquer especie futura fora da lista base so pode ser escolhida se a tabela `entitlements` tiver uma linha do usuario com um destes formatos:
+
+```text
+user_id = auth user id
+type/item_type/entitlement_type/kind/category = species
+key/item_key/entitlement_key/species_id/item_id = <speciesId>
+```
+
+Tambem sao aceitos valores `species:<speciesId>`, `species_<speciesId>` ou `species-<speciesId>`. Linhas com `active=false`, `enabled=false` ou `revoked=true` sao ignoradas.
+
 ### Estado atual
 
 - Salas online por codigo, acoes validadas no servidor.
-- Jogador reconecta com a mesma identidade do navegador; ao atualizar a pagina volta para a ultima sala.
+- Jogador reconecta com a identidade da conta Supabase; ao atualizar a pagina volta para a ultima sala.
 - Fim de jogo apos 5 rodadas com pontuacao final (maioria de recursos, semente 2:1, limite e desempate).
 - Turno de jogador desconectado e pulado automaticamente apos `TURN_TIMEOUT_MS`.
 - Salas persistidas em SQLite (`DB_PATH`) enquanto o servidor estiver vivo.

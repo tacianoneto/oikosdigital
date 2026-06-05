@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { Server } from "socket.io";
 import type { MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
 import { getUserIdFromAccessToken } from "./auth";
+import { canUseSpecies } from "./speciesAccess";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
@@ -537,7 +538,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("species:select", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
-    withReply(reply, () => {
+    void withReplyAsync(reply, async () => {
+      if (!(await canUseSpecies(playerId, payload.speciesId))) {
+        throw new Error("Especie nao liberada para sua conta.");
+      }
+
       const room = selectSpecies(payload.roomId, playerId, payload.speciesId);
       broadcastRoom(room);
       return room;
@@ -818,6 +823,16 @@ function withReply<T>(reply: unknown, fn: () => T): void {
 
   try {
     send?.({ ok: true, data: fn() });
+  } catch (error) {
+    send?.({ ok: false, error: error instanceof Error ? error.message : "Erro desconhecido." });
+  }
+}
+
+async function withReplyAsync<T>(reply: unknown, fn: () => Promise<T>): Promise<void> {
+  const send = typeof reply === "function" ? reply : undefined;
+
+  try {
+    send?.({ ok: true, data: await fn() });
   } catch (error) {
     send?.({ ok: false, error: error instanceof Error ? error.message : "Erro desconhecido." });
   }
