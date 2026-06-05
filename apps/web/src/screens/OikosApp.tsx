@@ -1150,6 +1150,13 @@ export function OikosApp() {
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
   const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
+  const isBasicTutorial = tutorialId === "initial";
+  const basicTutorialActionHint =
+    activeActionId === "A"
+      ? "Etapa A: escolha a carta destacada da mao e coloque no espaco marcado."
+      : activeActionId === "B"
+        ? "Etapa B: selecione um meeple seu e mova para um destino destacado."
+        : "Siga o cartao do tutorial. As acoes especiais ficam para os capitulos avancados.";
   const highlightedMovementGuideSpecies =
     tutorialActive ? tutorialDef?.highlightMovementGuideSpecies ?? null : null;
   const tutorialRequiredCardId =
@@ -3607,7 +3614,7 @@ export function OikosApp() {
     startLocalTest();
   }
 
-  // Launch the scripted initial tutorial on a real local game with one species.
+  // Launch the scripted basic tutorial on a real local game.
   function startInitialTutorial() {
     setError(null);
     setNotice(null);
@@ -4041,12 +4048,12 @@ export function OikosApp() {
     <main
       className={`app-shell ${hasStartedGame ? "game-active" : "menu-active"} ${
         isMobile && hasStartedGame && !cleanBoardMode ? "mobile-hud" : ""
-      } ${currentGamePlayer?.speciesId === "jaguar" ? "is-jaguar-active" : ""} ${
-        currentGamePlayer?.speciesId === "maned_wolf" ? "is-wolf-active" : ""
-      } ${currentGamePlayer?.speciesId === "armadillo" ? "is-armadillo-active" : ""} ${
-        currentGamePlayer?.speciesId === "macaw" ? "is-macaw-active" : ""
-      } ${currentGamePlayer?.speciesId === "capuchin" ? "is-capuchin-active" : ""} ${
-        currentGamePlayer?.speciesId === "coati" ? "is-coati-active" : ""
+      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "jaguar" ? "is-jaguar-active" : ""} ${
+        !isBasicTutorial && currentGamePlayer?.speciesId === "maned_wolf" ? "is-wolf-active" : ""
+      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "armadillo" ? "is-armadillo-active" : ""} ${
+        !isBasicTutorial && currentGamePlayer?.speciesId === "macaw" ? "is-macaw-active" : ""
+      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "capuchin" ? "is-capuchin-active" : ""} ${
+        !isBasicTutorial && currentGamePlayer?.speciesId === "coati" ? "is-coati-active" : ""
       } ${visualAccessibility ? "accessibility-visual-mode" : ""}`}
       data-visual-accessibility={visualAccessibility ? "true" : "false"}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
@@ -4939,7 +4946,7 @@ export function OikosApp() {
 
           <div className="flow-body">
             <h2 className="flow-title">Tutoriais</h2>
-            <p className="flow-subtitle">Escolha um capítulo. Comece pelo tutorial inicial.</p>
+            <p className="flow-subtitle">Escolha um capítulo. Comece pelo tutorial básico.</p>
 
             <div className="tutorial-chapters">
               <button
@@ -4951,8 +4958,8 @@ export function OikosApp() {
                   <GraduationCap aria-hidden="true" />
                 </span>
                 <span className="tutorial-chapter-text">
-                  <strong>Tutorial inicial</strong>
-                  <small>Mecânicas básicas: cartas, movimento, recursos e turno.</small>
+                  <strong>Tutorial básico</strong>
+                  <small>Meeples, cartas, rios, rotação, movimento e pontuação final.</small>
                 </span>
                 {isTutorialInitialDone() ? (
                   <span className="tutorial-chapter-badge done">
@@ -5906,11 +5913,15 @@ export function OikosApp() {
           style={speciesVar(hudGamePlayer.speciesId)}
         >
             <div className="species-hud-header">
-              <img className="player-portrait" src={encodeURI(hudSpecies.portraitAsset)} alt="" />
+              <img
+                className="player-portrait"
+                src={encodeURI(isBasicTutorial ? resourceAssets.point : hudSpecies.portraitAsset)}
+                alt=""
+              />
               <div>
                 <span>{currentGamePlayer ? "Controlando" : "Vez atual"}</span>
-                <h2>{hudSpecies.displayName}</h2>
-                <p>{hudGamePlayer.name}</p>
+                <h2>{isBasicTutorial ? "Meeples" : hudSpecies.displayName}</h2>
+                <p>{isBasicTutorial ? "Tutorial basico" : hudGamePlayer.name}</p>
               </div>
               <button
                 type="button"
@@ -6054,6 +6065,13 @@ export function OikosApp() {
             )}
             {activeSpecies && activeActionId && (
               <div className="current-action-card">
+                {isBasicTutorial ? (
+                  <>
+                    <strong>Etapa {activeActionId}</strong>
+                    <small>{basicTutorialActionHint}</small>
+                  </>
+                ) : (
+                  <>
                 <ActionStepsViewer
                   speciesId={activeSpecies.speciesId}
                   activeActionId={activeActionId}
@@ -6292,6 +6310,8 @@ export function OikosApp() {
                     </button>
                   </>
                 )}
+                  </>
+                )}
               </div>
             )}
           </section>
@@ -6393,7 +6413,13 @@ export function OikosApp() {
             <div className="hand-header">
               <div>
                 <span>Mão · {handCards.length} cartas</span>
-                <strong>{currentGamePlayer.speciesId ? speciesDefinitions[currentGamePlayer.speciesId].displayName : "Espécie"}</strong>
+                <strong>
+                  {isBasicTutorial
+                    ? "Cartas do tutorial"
+                    : currentGamePlayer.speciesId
+                      ? speciesDefinitions[currentGamePlayer.speciesId].displayName
+                      : "Espécie"}
+                </strong>
               </div>
               <div className="hand-header-side">
                 {!handCollapsed && handCards.length > 0 && (
@@ -6426,7 +6452,9 @@ export function OikosApp() {
                 </button>
               </div>
             </div>
-            {(!handCollapsed || currentGamePlayer?.speciesId === "maned_wolf" || currentGamePlayer?.speciesId === "armadillo") &&
+            {(!handCollapsed ||
+              (!isBasicTutorial &&
+                (currentGamePlayer?.speciesId === "maned_wolf" || currentGamePlayer?.speciesId === "armadillo"))) &&
               (handCards.length > 0 ? (
                 <div
                   className={`hand-rail ${selectedHandCardId ? "has-selection" : ""} ${
@@ -7204,7 +7232,7 @@ export function OikosApp() {
           ))}
         </nav>
       )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "jaguar" && (
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "jaguar" && (
         <div className="hud-overlay-jaguar">
           <div className="hud-top-jaguar">
             <img src="/assets/interface/onça/UI_oncaTOP.png" alt="" className="hud-top-jaguar-bg" />
@@ -7281,7 +7309,7 @@ export function OikosApp() {
           </div>
         </div>
       )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "maned_wolf" && (
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "maned_wolf" && (
         <div className="hud-overlay-wolf">
           <div className="hud-top-wolf">
             <img src="/assets/interface/lobo/UI_loboTOP.png" alt="" className="hud-top-wolf-bg" />
@@ -7383,7 +7411,7 @@ export function OikosApp() {
           </div>
         </div>
       )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "armadillo" && (
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "armadillo" && (
         <div className="hud-overlay-tatu">
           <div className="hud-top-tatu">
             <img src="/assets/interface/tatu/UI_tatuTOP.png" alt="" className="hud-top-tatu-bg" />
@@ -7486,7 +7514,7 @@ export function OikosApp() {
           </div>
         </div>
       )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "macaw" && (
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "macaw" && (
         <div className="hud-overlay-macaw">
           <div className="hud-top-macaw">
             <img src="/assets/interface/arara/UI_araraTOP.png" alt="" className="hud-top-macaw-bg" />
@@ -7581,7 +7609,7 @@ export function OikosApp() {
           </div>
         </div>
       )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "capuchin" && (
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "capuchin" && (
         <div className="hud-overlay-capuchin">
           <div className="hud-top-capuchin">
             <img src="/assets/interface/macaco/UI_macacoTOP.png" alt="" className="hud-top-capuchin-bg" />
@@ -7678,7 +7706,7 @@ export function OikosApp() {
           </div>
         </div>
       )}
-      {hasStartedGame && !cleanBoardMode && currentGamePlayer?.speciesId === "coati" && (
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "coati" && (
         <div className="hud-overlay-coati">
           <div className="hud-top-coati">
             <img src="/assets/interface/quati/UI_quatiTOP.png" alt="" className="hud-top-coati-bg" />

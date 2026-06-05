@@ -50,8 +50,7 @@ export interface TutorialStepDef {
 // Fixed cards dealt to the tutorial hand so the scenario is deterministic.
 export const TUTORIAL_NONRIVER_CARD = "bosque_1"; // bosque (forest), no river
 const TUTORIAL_RIVER_CARD = "rio_3"; // rio bend, must be rotated to connect
-const INITIAL_TUTORIAL_PLAYER_ID = "local_armadillo";
-const INITIAL_TUTORIAL_HIDE_ID = `${INITIAL_TUTORIAL_PLAYER_ID}_piece_1`;
+const INITIAL_TUTORIAL_PLAYER_ID = "local_basic_tutorial";
 
 // Deterministic 3x3 starting forest (coords -1..1). The river card at (1,0) has
 // a single mouth facing east into the empty cell (2,0). The player extends the
@@ -69,45 +68,44 @@ const TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "tut_8", definitionId: "campo_4", x: 1, y: 1, rotation: 0, isInitial: true }
 ];
 
-// The initial tutorial runs a real local game with a single species (Tatu-bola)
-// so the base mechanics are taught with the genuine rules engine. We click a
-// card and then choose where it goes (there is no drag mechanic here).
+// The initial tutorial uses the real rules engine, but teaches only universal
+// verbs: setup, playing cards, river rotation, movement and final scoring.
 const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Bem-vindo a Oikos",
-    body: "Esta é a floresta central. Ao longo do jogo ela cresce conforme as cartas são jogadas. Vamos aprender as mecânicas básicas.",
+    title: "Tutorial básico",
+    body: "Este capítulo ensina só as regras comuns do jogo. Aqui não vamos falar de poderes individuais: o foco é tabuleiro, cartas, meeples, recursos e pontuação final.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Habitats e recursos",
-    body: "Toda carta tem um habitat (bosque, campo ou rio) e exatamente um recurso: carne, ovo, fruta ou pinha. Os recursos ficam sempre na carta. No fim, quem tiver a maioria de cada recurso marca 1 ponto extra, exceto a pinha, que marca 1 ponto a cada 2 pinhas.",
+    title: "Tabuleiro, habitat e recurso",
+    body: "A floresta é formada por cartas. Cada carta tem um habitat: bosque, campo ou rio. Cada carta também mostra um recurso: carne, ovo, fruta ou pinha.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Entenda sua HUD",
-    body: "O topo mostra sua espécie, pontuação e meeples na reserva. Embaixo à esquerda ficam as ações A/B/C/D e seus recursos. À direita ficam os guias de movimento: bosque, campo e rio. Não precisa abrir nada; eles já ficam visíveis durante o turno.",
+    title: "Recursos importam no fim",
+    body: "Carne, ovo e fruta dão ponto por maioria no fim da partida. Quem empata na maior quantidade também recebe esse ponto. Pinha não tem maioria: cada 2 pinhas viram 1 ponto.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Posicione seus meeples",
-    body: "Cada espécie tem um total de meeples e uma quantidade inicial para o setup. Clique numa carta para posicionar cada meeple inicial e você ganha o recurso daquele local. Atenção: ganhar recurso ao adicionar só acontece no setup.",
+    title: "Posicione meeples iniciais",
+    body: "No setup, clique em cartas da floresta para colocar seus meeples iniciais. Ao posicionar no setup, você coleta o recurso do local onde entrou.",
     gate: "setup",
     autoAdvance: true
   },
   {
-    title: "Adicione uma carta",
-    body: "Para expandir a floresta, clique na carta destacada na sua mão e depois clique no espaço destacado no tabuleiro. Vamos começar com uma carta sem rio: ela encaixa em qualquer espaço livre.",
+    title: "Jogue uma carta comum",
+    body: "Clique na carta destacada da sua mão e depois no espaço destacado do tabuleiro. Cartas sem rio podem entrar em qualquer espaço livre adjacente à floresta.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_NONRIVER_CARD,
     markedSlot: { x: -2, y: 0 }
   },
   {
-    title: "Continue o rio",
-    body: "Cartas de rio têm margens de água que precisam se conectar com outra água (ou sair pela borda), nunca encostar na mata. O espaço destacado fica ao lado de um rio: gire a carta com Q/E até a água encaixar com o rio vizinho e coloque-a ali.",
+    title: "Rios precisam encaixar",
+    body: "Cartas de rio obedecem à água desenhada. Água conecta com água ou sai pela borda; ela não pode encostar em mata. Use Q/E ou os botões de giro até a carta encaixar no espaço destacado.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_RIVER_CARD,
@@ -116,29 +114,25 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Mova um meeple",
-    body: "A ação B usa o habitat da carta jogada. Como jogamos bosque, olhe o primeiro guia de movimento à direita. Clique em um tatu e escolha um destino destacado. Sempre que você move um meeple, ganha o recurso do local de destino.",
+    body: "Depois de jogar carta, chega a etapa de movimento. Clique em um meeple seu e escolha um destino destacado. Quando um meeple se move, você coleta o recurso do local de destino.",
     gate: "move",
-    autoAdvance: true,
-    openBoard: "armadillo"
+    autoAdvance: true
   },
   {
-    title: "Ação C: esconder",
-    body: "Agora a HUD mostra a ação C do Tatu-bola. Selecione o tatu destacado e clique em Esconder Tatu-bola. Peças escondidas continuam no local, mas ficam protegidas da Onça até se moverem de novo.",
-    gate: "score",
-    autoAdvance: true,
-    markedPieceId: INITIAL_TUTORIAL_HIDE_ID,
-    completeWhenActionIndex: 3
+    title: "Pontuação por maioria",
+    body: "No fim da partida, compare os recursos de todos os jogadores. A maior quantidade de carne vale 1 ponto, a maior de ovo vale 1 ponto e a maior de fruta vale 1 ponto. Se houver empate pela maior quantidade, todos empatados pontuam.",
+    gate: "none",
+    autoAdvance: false
   },
   {
-    title: "Ação D: pontuação automática",
-    body: "Na ação D, algumas espécies pontuam automaticamente. O Tatu-bola marca por compartilhar locais com outras espécies; neste treino pode não haver ponto, mas observe como a HUD avança sozinha quando a ação resolve.",
-    gate: "score",
-    autoAdvance: true,
-    completeWhenRoundAtLeast: 2
+    title: "Pontuação das sementes",
+    body: "Sementes, chamadas de pinhas no jogo, funcionam diferente: elas não disputam maioria. No fim, cada par de pinhas vale 1 ponto. Cinco pinhas, por exemplo, valem 2 pontos e sobra 1 pinha.",
+    gate: "none",
+    autoAdvance: false
   },
   {
-    title: "Você aprendeu o básico!",
-    body: "As ações de cada espécie acontecem em ordem na HUD. O jogo dura 5 rodadas e vence quem fizer mais pontos. Agora os tutoriais de espécie mostram combos e pontuações específicas. Bom jogo!",
+    title: "Você aprendeu o básico",
+    body: "Resumo: coloque meeples no setup, jogue cartas adjacentes, respeite rios e rotação, mova meeples para coletar recursos e guarde recursos pensando na pontuação final.",
     gate: "none",
     autoAdvance: false
   }
@@ -1176,7 +1170,7 @@ export function createInitialTutorialRoom(): PublicRoomState {
   const tutorialPlayers: RoomPlayer[] = [
     {
       playerId: INITIAL_TUTORIAL_PLAYER_ID,
-      name: "Tutorial",
+      name: "Tutorial basico",
       speciesId: "armadillo",
       ready: true,
       connected: true
