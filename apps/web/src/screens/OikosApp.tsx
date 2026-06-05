@@ -3882,6 +3882,9 @@ export function OikosApp() {
       return;
     }
     autoScoredRef.current = key;
+    // Armadillo highlights each rival species sharing a tile; give the player
+    // longer to read the portraits before the automatic score advances.
+    const scoreDelayMs = species === "armadillo" ? 3500 : 1500;
     const timer = window.setTimeout(() => {
       if (species === "capuchin") {
         handleScoreCapuchin();
@@ -3890,7 +3893,7 @@ export function OikosApp() {
       } else {
         handleScoreArmadillo();
       }
-    }, 1500);
+    }, scoreDelayMs);
 
     return () => window.clearTimeout(timer);
   }, [
