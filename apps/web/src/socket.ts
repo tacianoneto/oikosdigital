@@ -19,15 +19,14 @@ export interface SocketReply<T> {
 
 export type OikosSocket = Socket;
 
-const playerIdStorageKey = "oikos:player-id";
 const serverUrlStorageKey = "oikos:server-url";
 const productionHostnames = new Set(["oikosdigital.com.br", "www.oikosdigital.com.br"]);
 const productionServerUrl = "https://api.oikosdigital.com.br";
 
-export function createSocket(): OikosSocket {
+export function createSocket(accessToken: string): OikosSocket {
   return io(getServerUrl(), {
     auth: {
-      playerId: getOrCreatePlayerId()
+      accessToken
     },
     transports: ["websocket", "polling"],
     timeout: 8000,
@@ -58,17 +57,6 @@ function getServerUrl(): string {
   }
 
   return window.localStorage.getItem(serverUrlStorageKey) ?? import.meta.env.VITE_SERVER_URL ?? "http://localhost:4173";
-}
-
-function getOrCreatePlayerId(): string {
-  const existing = window.localStorage.getItem(playerIdStorageKey);
-  if (existing) {
-    return existing;
-  }
-
-  const next = `player_${crypto.randomUUID()}`;
-  window.localStorage.setItem(playerIdStorageKey, next);
-  return next;
 }
 
 export function emitWithReply<T>(socket: OikosSocket, event: string, payload: unknown): Promise<T> {

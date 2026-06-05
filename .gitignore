@@ -6,6 +6,7 @@ artifacts/
 .tools/
 logs/
 *.log
+*.env
 *.tsbuildinfo
 apps/web/public/assets/
 data/

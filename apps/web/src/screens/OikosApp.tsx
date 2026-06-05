@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
+import type { Session, User } from "@supabase/supabase-js";
 import {
   AlertTriangle,
   Bot,
@@ -702,11 +703,27 @@ function ActiveRulesDock({
   );
 }
 
-export function OikosApp() {
+interface OikosAppProps {
+  authSession: Session;
+  authUser: User;
+  onSignOut: () => void;
+}
+
+function getAuthDisplayName(user: User): string {
+  const metaName = user.user_metadata?.display_name;
+  if (typeof metaName === "string" && metaName.trim()) {
+    return metaName.trim().slice(0, 24);
+  }
+
+  return (user.email?.split("@")[0] || "Jogador").slice(0, 24);
+}
+
+export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [room, setRoom] = useState<PublicRoomState | null>(null);
-  const [name, setName] = useState("Jogador");
+  const defaultPlayerName = useMemo(() => getAuthDisplayName(authUser), [authUser]);
+  const [name, setName] = useState(defaultPlayerName);
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
   const [createPassword, setCreatePassword] = useState("");
@@ -940,7 +957,7 @@ export function OikosApp() {
   }, [landingMode, room]);
 
   useEffect(() => {
-    const nextSocket = createSocket();
+    const nextSocket = createSocket(authSession.access_token);
     setSocket(nextSocket);
 
     nextSocket.on("connect", () => {
@@ -950,7 +967,7 @@ export function OikosApp() {
     nextSocket.on("connected", (payload: { playerId: string }) => {
       setPlayerId(payload.playerId);
       const savedRoomId = window.localStorage.getItem(lastOnlineRoomStorageKey);
-      const savedName = window.localStorage.getItem(lastOnlineNameStorageKey) ?? name;
+      const savedName = window.localStorage.getItem(lastOnlineNameStorageKey) ?? defaultPlayerName;
 
       if (savedRoomId) {
         const reconnectEpoch = roomActionEpochRef.current;
@@ -1007,7 +1024,11 @@ export function OikosApp() {
     return () => {
       nextSocket.disconnect();
     };
-  }, [applyOnlineRoomState]);
+  }, [applyOnlineRoomState, authSession.access_token, clearRoomState, defaultPlayerName]);
+
+  useEffect(() => {
+    setName((current) => (current === "Jogador" ? defaultPlayerName : current));
+  }, [defaultPlayerName]);
 
   useEffect(() => {
     if ((landingMode === "create" || landingMode === "join") && socket && !socket.connected) {
@@ -4123,6 +4144,12 @@ export function OikosApp() {
       data-visual-accessibility={visualAccessibility ? "true" : "false"}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
     >
+      <div className="account-badge">
+        <span>{authUser.email}</span>
+        <button type="button" onClick={onSignOut} aria-label="Sair da conta">
+          <LogOut aria-hidden="true" />
+        </button>
+      </div>
       {cacaIlegalPending && canResolveCacaIlegal && !cacaIlegalRemovalMode && (
         <div className="caatinga-choice-backdrop" role="presentation">
           <section className="caatinga-choice-modal caca-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caca-choice-title">

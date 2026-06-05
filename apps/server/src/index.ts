@@ -1,7 +1,9 @@
+import "./env";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { Server } from "socket.io";
 import type { MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
+import { getUserIdFromAccessToken } from "./auth";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
@@ -98,6 +100,22 @@ app.get("/health", async () => ({
 const io = new Server(app.server, {
   cors: {
     origin: allowedOrigin
+  }
+});
+
+io.use(async (socket, next) => {
+  try {
+    const accessToken = socket.handshake.auth.accessToken;
+    if (typeof accessToken !== "string" || accessToken.trim().length < 20) {
+      next(new Error("Login obrigatorio."));
+      return;
+    }
+
+    socket.data.playerId = await getUserIdFromAccessToken(accessToken);
+    next();
+  } catch (error) {
+    app.log.warn({ err: error }, "Falha ao autenticar socket.");
+    next(new Error("Sessao invalida. Entre novamente."));
   }
 });
 
@@ -829,9 +847,13 @@ process.once("SIGTERM", () => {
 await app.ready();
 await app.listen({ port, host: "0.0.0.0" });
 
-function getPlayerId(socket: { handshake: { auth: Record<string, unknown> }; id: string }): string {
-  const authPlayerId = socket.handshake.auth.playerId;
-  return typeof authPlayerId === "string" && authPlayerId.trim().length >= 12 ? authPlayerId : socket.id;
+function getPlayerId(socket: { data: { playerId?: unknown } }): string {
+  const authPlayerId = socket.data.playerId;
+  if (typeof authPlayerId === "string" && authPlayerId.trim().length > 0) {
+    return authPlayerId;
+  }
+
+  throw new Error("Socket sem playerId autenticado.");
 }
 
 function registerSocket(playerId: string, socketId: string): void {

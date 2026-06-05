@@ -1,5 +1,6 @@
 import { createInitialGameState } from "@oikos/rules";
 import type { ForestCardState, GameState, GridPosition, PublicRoomState, RoomPlayer, SpeciesId } from "@oikos/shared";
+import { isTutorialProgressDone, markTutorialProgressDone } from "../auth/tutorialProgress";
 import { localRoomId } from "./gameConstants";
 
 // --- Tutorials --------------------------------------------------------------
@@ -659,6 +660,7 @@ function getTutorialDoneKey(tutorialId: TutorialId): string {
 }
 
 export function isTutorialDone(tutorialId: TutorialId): boolean {
+  if (isTutorialProgressDone(tutorialId)) return true;
   if (typeof window === "undefined") return false;
   try {
     return window.localStorage.getItem(getTutorialDoneKey(tutorialId)) === "1";
@@ -673,6 +675,7 @@ export function markTutorialDone(tutorialId: TutorialId): void {
   } catch {
     // ignore
   }
+  void markTutorialProgressDone(tutorialId);
 }
 
 export function isTutorialInitialDone(): boolean {
