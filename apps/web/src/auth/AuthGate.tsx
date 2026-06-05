@@ -10,6 +10,10 @@ interface AuthGateProps {
 
 type AuthMode = "signin" | "signup";
 
+function getEmailRedirectTo(): string {
+  return window.location.origin;
+}
+
 export function AuthGate({ children }: AuthGateProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +74,7 @@ export function AuthGate({ children }: AuthGateProps) {
           email: normalizedEmail,
           password,
           options: {
+            emailRedirectTo: getEmailRedirectTo(),
             data: {
               display_name: displayName.trim() || normalizedEmail.split("@")[0]
             }
@@ -105,7 +110,10 @@ export function AuthGate({ children }: AuthGateProps) {
     try {
       const { error } = await supabase.auth.resend({
         type: "signup",
-        email: email.trim()
+        email: email.trim(),
+        options: {
+          emailRedirectTo: getEmailRedirectTo()
+        }
       });
       if (error) throw error;
       setMessage("Email de confirmacao reenviado. Verifique caixa de entrada e spam.");
