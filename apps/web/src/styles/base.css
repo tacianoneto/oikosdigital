@@ -482,6 +482,13 @@ label {
   font-size: 2rem;
   font-weight: 900;
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-header span,
@@ -576,8 +583,7 @@ label {
   gap: 10px;
 }
 
-.profile-species-card,
-.profile-cosmetic-list article {
+.profile-species-card {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -585,7 +591,26 @@ label {
   padding: 12px;
   border: 1px solid rgba(201, 184, 138, 0.22);
   border-radius: 8px;
+  color: inherit;
   background: rgba(8, 16, 13, 0.5);
+  font: inherit;
+  text-align: left;
+}
+
+.profile-portrait-option {
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.profile-portrait-option:hover,
+.profile-portrait-option.is-selected {
+  border-color: rgba(242, 193, 78, 0.54);
+  background: rgba(242, 193, 78, 0.09);
+  transform: translateY(-1px);
+}
+
+.profile-portrait-option.is-selected {
+  box-shadow: inset 0 0 0 1px rgba(242, 193, 78, 0.32);
 }
 
 .profile-species-card img,
@@ -607,8 +632,7 @@ label {
   font-weight: 900;
 }
 
-.profile-species-card strong,
-.profile-cosmetic-list strong {
+.profile-species-card strong {
   display: block;
   min-width: 0;
   overflow: hidden;
@@ -617,32 +641,18 @@ label {
 }
 
 .profile-species-card span,
-.profile-cosmetic-list span,
-.profile-loading {
+.profile-loading,
+.profile-saving {
   color: rgba(210, 227, 216, 0.72);
   font-size: 0.86rem;
 }
 
-.profile-cosmetic-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.profile-cosmetic-list article {
-  justify-content: space-between;
-}
-
-.profile-cosmetic-list span {
-  padding: 4px 8px;
-  border: 1px solid rgba(79, 174, 110, 0.34);
-  border-radius: 999px;
-  color: #b8e7c9;
-  background: rgba(79, 174, 110, 0.14);
-}
-
 .profile-loading {
   margin: 0;
+}
+
+.profile-saving {
+  margin-left: auto;
 }
 
 @media (max-width: 680px) {

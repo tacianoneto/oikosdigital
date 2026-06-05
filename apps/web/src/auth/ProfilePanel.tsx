@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Check, ChevronDown, Crown, Fingerprint, Leaf, Palette, UserCircle, X } from "lucide-react";
+import { Check, ChevronDown, Crown, Fingerprint, Leaf, UserCircle, X } from "lucide-react";
 import { speciesDefinitions } from "@oikos/content";
 import type { SpeciesId } from "@oikos/shared";
 import { supabase } from "./supabase";
@@ -10,13 +10,13 @@ interface ProfilePanelProps {
 }
 
 type EntitlementRow = Record<string, unknown>;
-type EquippedCosmeticRow = Record<string, unknown>;
 
 interface ProfileInventory {
   entitlements: EntitlementRow[];
-  equippedCosmetics: EquippedCosmeticRow[];
   loading: boolean;
 }
+
+const profilePortraitKey = "profile_portrait_species";
 
 function getDisplayName(user: User): string {
   const metaName = user.user_metadata?.display_name;
@@ -49,18 +49,27 @@ function getEntitlementLabel(row: EntitlementRow): string {
   return key.replace(/^species:/, "").replace(/[_-]/g, " ");
 }
 
-function getCosmeticLabel(row: EquippedCosmeticRow): string {
-  return (
-    getString(row, ["cosmetic_key", "cosmetic_id", "item_key", "key", "skin_id"])?.replace(/[_-]/g, " ") ??
-    "Cosmetico equipado"
-  );
+function getEntitlementSpeciesId(row: EntitlementRow): SpeciesId | null {
+  const key = getString(row, ["item_key", "entitlement_key", "key", "species_id", "item_id"])?.replace(/^species:/, "");
+  if (key && key in speciesDefinitions) {
+    return key as SpeciesId;
+  }
+
+  return null;
+}
+
+function parseProfilePortrait(value: unknown): SpeciesId | null {
+  if (!value || typeof value !== "object" || !("speciesId" in value)) return null;
+  const speciesId = (value as { speciesId?: unknown }).speciesId;
+  return typeof speciesId === "string" && speciesId in speciesDefinitions ? (speciesId as SpeciesId) : null;
 }
 
 export function ProfilePanel({ user }: ProfilePanelProps) {
   const [open, setOpen] = useState(false);
+  const [selectedPortraitSpeciesId, setSelectedPortraitSpeciesId] = useState<SpeciesId>("jaguar");
+  const [savingPortrait, setSavingPortrait] = useState(false);
   const [inventory, setInventory] = useState<ProfileInventory>({
     entitlements: [],
-    equippedCosmetics: [],
     loading: false
   });
 
@@ -74,6 +83,18 @@ export function ProfilePanel({ user }: ProfilePanelProps) {
     []
   );
   const extraSpecies = inventory.entitlements.filter(isSpeciesEntitlement);
+  const selectableSpecies = useMemo(() => {
+    const extraIds = extraSpecies
+      .map(getEntitlementSpeciesId)
+      .filter((speciesId): speciesId is SpeciesId => Boolean(speciesId));
+    const uniqueIds = new Set<SpeciesId>([...baseSpecies.map((species) => species.id), ...extraIds]);
+    return [...uniqueIds].map((speciesId) => ({
+      id: speciesId,
+      definition: speciesDefinitions[speciesId]
+    }));
+  }, [baseSpecies, extraSpecies]);
+  const selectedPortraitSpecies =
+    selectableSpecies.find((species) => species.id === selectedPortraitSpeciesId) ?? selectableSpecies[0] ?? baseSpecies[0];
 
   useEffect(() => {
     if (!open) return;
@@ -83,25 +104,40 @@ export function ProfilePanel({ user }: ProfilePanelProps) {
 
     Promise.all([
       supabase.from("entitlements").select("*").eq("user_id", user.id),
-      supabase.from("equipped_cosmetics").select("*").eq("user_id", user.id)
+      supabase.from("user_progress").select("value").eq("user_id", user.id).eq("key", profilePortraitKey).maybeSingle()
     ])
-      .then(([entitlementsResult, cosmeticsResult]) => {
+      .then(([entitlementsResult, portraitResult]) => {
         if (!active) return;
         setInventory({
           entitlements: entitlementsResult.data ?? [],
-          equippedCosmetics: cosmeticsResult.data ?? [],
           loading: false
         });
+        setSelectedPortraitSpeciesId(parseProfilePortrait(portraitResult.data?.value) ?? "jaguar");
       })
       .catch(() => {
         if (!active) return;
-        setInventory({ entitlements: [], equippedCosmetics: [], loading: false });
+        setInventory({ entitlements: [], loading: false });
       });
 
     return () => {
       active = false;
     };
   }, [open, user.id]);
+
+  const choosePortrait = async (speciesId: SpeciesId) => {
+    setSelectedPortraitSpeciesId(speciesId);
+    setSavingPortrait(true);
+    try {
+      await supabase.from("user_progress").upsert({
+        user_id: user.id,
+        key: profilePortraitKey,
+        value: { speciesId },
+        updated_at: new Date().toISOString()
+      });
+    } finally {
+      setSavingPortrait(false);
+    }
+  };
 
   return (
     <>
@@ -116,7 +152,7 @@ export function ProfilePanel({ user }: ProfilePanelProps) {
           <section className="profile-panel" role="dialog" aria-modal="true" aria-labelledby="profile-title">
             <header className="profile-header">
               <div className="profile-avatar" aria-hidden="true">
-                {displayName.slice(0, 1).toUpperCase()}
+                {selectedPortraitSpecies && <img src={encodeURI(selectedPortraitSpecies.definition.portraitAsset)} alt="" />}
               </div>
               <div>
                 <span>Perfil do jogador</span>
@@ -150,16 +186,22 @@ export function ProfilePanel({ user }: ProfilePanelProps) {
               <div className="profile-section-title">
                 <Leaf aria-hidden="true" />
                 <h3>Especies liberadas</h3>
+                {savingPortrait && <span className="profile-saving">Salvando foto...</span>}
               </div>
               <div className="profile-species-grid">
                 {baseSpecies.map(({ id, definition }) => (
-                  <article key={id} className="profile-species-card">
+                  <button
+                    key={id}
+                    type="button"
+                    className={`profile-species-card profile-portrait-option${selectedPortraitSpecies?.id === id ? " is-selected" : ""}`}
+                    onClick={() => void choosePortrait(id)}
+                  >
                     <img src={encodeURI(definition.portraitAsset)} alt="" />
                     <div>
                       <strong>{definition.displayName}</strong>
-                      <span>Base</span>
+                      <span>{selectedPortraitSpecies?.id === id ? "Foto atual" : "Usar como foto"}</span>
                     </div>
-                  </article>
+                  </button>
                 ))}
                 {extraSpecies.map((row, index) => (
                   <article key={`${getEntitlementLabel(row)}-${index}`} className="profile-species-card is-extra">
@@ -170,29 +212,6 @@ export function ProfilePanel({ user }: ProfilePanelProps) {
                       <strong>{getEntitlementLabel(row)}</strong>
                       <span>Extra</span>
                     </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            <div className="profile-section">
-              <div className="profile-section-title">
-                <Palette aria-hidden="true" />
-                <h3>Skins e cosmeticos</h3>
-              </div>
-              <div className="profile-cosmetic-list">
-                <article>
-                  <strong>Meeples padrao</strong>
-                  <span>Liberado</span>
-                </article>
-                <article>
-                  <strong>Portrait padrao</strong>
-                  <span>Liberado</span>
-                </article>
-                {inventory.equippedCosmetics.map((row, index) => (
-                  <article key={`${getCosmeticLabel(row)}-${index}`}>
-                    <strong>{getCosmeticLabel(row)}</strong>
-                    <span>Equipado</span>
                   </article>
                 ))}
               </div>
