@@ -121,6 +121,56 @@ Motivo:
 - Phaser é adequado para manipulação visual da floresta, peças, destaques e animações.
 - O motor de regras separado garante fidelidade, testes e servidor autoritativo.
 
+## 4.1 Autenticacao, Perfil e Monetizacao
+
+Estado implementado em junho de 2026:
+
+- O jogo exige login antes de qualquer tela jogavel. A entrada passa por `AuthGate` e usa Supabase Auth com email/senha.
+- A confirmacao de email fica ligada. A tela de login/criacao mostra erro quando o email nao foi confirmado e oferece reenvio de confirmacao.
+- O redirect de confirmacao usa `window.location.origin`, entao funciona em `http://localhost:5187`, `https://oikosdigital.com.br` e dominio de deploy.
+- O frontend usa Supabase project URL `https://ysqpiutokbxpcwlieqax.supabase.co` e publishable key publica.
+- A secret key fica somente no backend/local env. Nunca colocar `service_role` no frontend nem em arquivo publico.
+- O Socket.IO envia o access token do Supabase e o backend valida o usuario antes de aceitar eventos do jogo.
+- Em producao, `oikosdigital.com.br` usa `https://api.oikosdigital.com.br` como servidor.
+- O backend `/health` da API de producao ja foi validado.
+
+Arquivos principais:
+
+- `apps/web/src/auth/AuthGate.tsx`: tela obrigatoria de entrar/criar conta, confirmacao e reenvio.
+- `apps/web/src/auth/supabase.ts`: cliente Supabase do frontend.
+- `apps/web/src/auth/ProfilePanel.tsx`: tela de perfil do jogador.
+- `apps/web/src/socket.ts`: conexao Socket.IO com token e URL de producao.
+- `apps/server/src/supabaseAuth.ts`: validacao do access token no backend.
+- `apps/server/src/index.ts`: conexao autenticada e eventos do servidor.
+- `apps/server/src/progressStore.ts`: leitura/escrita de progresso por usuario.
+- `apps/server/src/speciesAccess.ts`: validacao de especies base e especies liberadas.
+- `supabase/user_progress.sql`: tabela para progresso persistente.
+- `supabase/entitlements_permissions.sql`: grants/policies para liberar leitura server-side de entitlements.
+
+Dados persistidos agora:
+
+- Perfil basico do jogador (`profiles` no Supabase).
+- Progresso por jogador em `user_progress`, incluindo tutorial feito e preferencias futuras.
+- Portrait escolhido no perfil via chave `profile_portrait_species`.
+- Especies liberadas por conta via `entitlements`.
+
+Regras atuais de especies:
+
+- Todo jogador tem 6 especies base de graca: `jaguar`, `maned_wolf`, `armadillo`, `macaw`, `capuchin`, `coati`.
+- Especies extras sao uso individual. Se um jogador comprou, somente ele pode selecionar.
+- Ter especie extra nao da vantagem mecanica; serve para variedade.
+- Ao selecionar especie, o backend confere se ela e base ou se existe entitlement ativo para aquele usuario.
+- Skins e portraits seguem a mesma logica futura: ficam vinculados a conta, nao a sala.
+
+Pendencias importantes:
+
+- Rodar `supabase/entitlements_permissions.sql` no SQL Editor caso ainda exista erro `permission denied for table entitlements`.
+- Criar fluxo real de compra/liberacao: pagamento -> webhook/backend -> insert em `entitlements`.
+- Definir catalogo de especies extras, skins de meeple e portraits.
+- Criar loja dentro do jogo usando apenas dados que o backend confirma como liberados.
+- Criar missoes diarias, passe de batalha e pontos gratuitos usando `user_progress`/novas tabelas.
+- Melhorar email transacional do Supabase com dominio/remetente proprio quando sair de teste.
+
 ## 5. Arquitetura de Estado
 
 O modelo deve seguir o GDD:
