@@ -660,37 +660,133 @@ export class ForestPhaserScene extends Phaser.Scene {
         const w = this.worldOf(position);
         return { x: w.x, y: w.y + 28 };
       });
-      const line = this.add.graphics();
-      line.lineStyle(12, 0x08130f, 0.76);
+
+      const strokeAll = (g: Phaser.GameObjects.Graphics) => {
+        for (let i = 1; i < points.length; i += 1) {
+          g.lineBetween(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+        }
+      };
+
+      // Soft outer halo so the line reads as a ribbon of light, not a flat stroke.
+      const glow = this.add.graphics();
+      glow.lineStyle(20, item.color, 0.12);
+      strokeAll(glow);
+      glow.lineStyle(13, item.color, 0.2);
+      strokeAll(glow);
+      glow.setDepth(88);
+
+      // Dark casing gives contrast against busy card art.
+      const casing = this.add.graphics();
+      casing.lineStyle(11, 0x06110d, 0.82);
+      strokeAll(casing);
+      casing.setDepth(89);
+
+      // Bright core.
+      const core = this.add.graphics();
+      core.lineStyle(5, item.color, 1);
+      strokeAll(core);
+      core.setDepth(90);
+
+      // Round joints + capped endpoint nodes so corners stay clean.
+      const nodes = this.add.graphics();
+      points.forEach((p, idx) => {
+        const endpoint = idx === 0 || idx === points.length - 1;
+        nodes.fillStyle(0x06110d, 0.85);
+        nodes.fillCircle(p.x, p.y, endpoint ? 9 : 5.5);
+        nodes.fillStyle(item.color, 1);
+        nodes.fillCircle(p.x, p.y, endpoint ? 6.5 : 3.4);
+        if (endpoint) {
+          nodes.fillStyle(0xffffff, 0.92);
+          nodes.fillCircle(p.x, p.y, 2.4);
+        }
+      });
+      nodes.setDepth(90);
+
+      // Pre-compute segments so a spark can travel the whole polyline.
+      const segs: { ax: number; ay: number; bx: number; by: number; len: number }[] = [];
+      let total = 0;
       for (let i = 1; i < points.length; i += 1) {
-        line.lineBetween(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
+        const a = points[i - 1];
+        const b = points[i];
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        segs.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y, len });
+        total += len;
       }
-      line.lineStyle(6, item.color, 1);
-      for (let i = 1; i < points.length; i += 1) {
-        line.lineBetween(points[i - 1].x, points[i - 1].y, points[i].x, points[i].y);
-      }
+      const spark = this.add.graphics();
+      spark.setDepth(92);
+      const drawSpark = (x: number, y: number) => {
+        spark.clear();
+        spark.fillStyle(item.color, 0.35);
+        spark.fillCircle(x, y, 9);
+        spark.fillStyle(0xffffff, 0.95);
+        spark.fillCircle(x, y, 4);
+      };
+      drawSpark(points[0].x, points[0].y);
+      const progress = { t: 0 };
+      this.pulses.push(
+        this.tweens.add({
+          targets: progress,
+          t: 1,
+          duration: Math.max(900, total * 2.4),
+          repeat: -1,
+          ease: "Sine.easeInOut",
+          onUpdate: () => {
+            let dist = progress.t * total;
+            for (const s of segs) {
+              if (dist <= s.len) {
+                const r = dist / s.len;
+                drawSpark(s.ax + (s.bx - s.ax) * r, s.ay + (s.by - s.ay) * r);
+                return;
+              }
+              dist -= s.len;
+            }
+            const last = points[points.length - 1];
+            drawSpark(last.x, last.y);
+          }
+        })
+      );
+
+      // HUD-style pill badge: dark fill, colored rim, light label.
       const mid = points[Math.floor(points.length / 2)];
       const badge = this.add.container(mid.x, mid.y - 64);
+      const shadow = this.add.graphics();
+      shadow.fillStyle(0x000000, 0.32);
+      shadow.fillRoundedRect(-31, -13, 62, 38, 19);
       const bg = this.add.graphics();
-      bg.fillStyle(item.color, 0.94);
-      bg.fillRoundedRect(-28, -18, 56, 36, 18);
+      bg.fillStyle(0x06110d, 0.94);
+      bg.fillRoundedRect(-31, -18, 62, 36, 18);
+      bg.lineStyle(2, item.color, 1);
+      bg.strokeRoundedRect(-31, -18, 62, 36, 18);
+      const dot = this.add.graphics();
+      dot.fillStyle(item.color, 1);
+      dot.fillCircle(-15, 0, 4);
       const text = this.add
-        .text(0, 0, item.label, {
+        .text(5, 0, item.label, {
           fontFamily: "Outfit, sans-serif",
           fontSize: "17px",
           fontStyle: "900",
-          color: "#06110d"
+          color: "#f4fbf6"
         })
         .setOrigin(0.5);
-      badge.add([bg, text]);
-      line.setDepth(90);
-      badge.setDepth(91);
-      this.highlightLayer.add([line, badge]);
+      badge.add([shadow, bg, dot, text]);
+      badge.setDepth(93);
+
+      this.highlightLayer.add([glow, casing, core, nodes, spark, badge]);
       this.pulses.push(
         this.tweens.add({
-          targets: [line, badge],
-          alpha: { from: 0.68, to: 1 },
-          duration: 520,
+          targets: badge,
+          scale: { from: 0.94, to: 1.06 },
+          duration: 900,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut"
+        })
+      );
+      this.pulses.push(
+        this.tweens.add({
+          targets: glow,
+          alpha: { from: 0.55, to: 1 },
+          duration: 1100,
           yoyo: true,
           repeat: -1,
           ease: "Sine.easeInOut"
