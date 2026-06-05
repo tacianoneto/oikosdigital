@@ -624,29 +624,85 @@ export class ForestPhaserScene extends Phaser.Scene {
 
     for (const item of vm.scoringCardHighlights) {
       const w = this.worldOf(item.position);
-      const glow = this.add.graphics();
-      glow.fillStyle(item.color, 0.18);
-      glow.fillRoundedRect(-CARD / 2 - 7, -CARD / 2 - 7, CARD + 14, CARD + 14, RADIUS + 7);
-      glow.lineStyle(5, item.color, 0.96);
-      glow.strokeRoundedRect(-CARD / 2 - 7, -CARD / 2 - 7, CARD + 14, CARD + 14, RADIUS + 7);
-      const label = this.add
-        .text(0, -CARD / 2 - 22, item.label, {
+      const half = CARD / 2;
+
+      // Breathing halo behind the card so the highlight feels alive.
+      const halo = this.add.graphics();
+      halo.fillStyle(item.color, 0.16);
+      halo.fillRoundedRect(-half - 12, -half - 12, CARD + 24, CARD + 24, RADIUS + 12);
+      const haloCont = this.add.container(w.x, w.y, [halo]);
+      haloCont.setDepth(78);
+
+      // Double frame: dark casing under a bright colored border.
+      const frame = this.add.graphics();
+      frame.fillStyle(item.color, 0.1);
+      frame.fillRoundedRect(-half - 6, -half - 6, CARD + 12, CARD + 12, RADIUS + 6);
+      frame.lineStyle(7, 0x06110d, 0.8);
+      frame.strokeRoundedRect(-half - 6, -half - 6, CARD + 12, CARD + 12, RADIUS + 6);
+      frame.lineStyle(3.5, item.color, 1);
+      frame.strokeRoundedRect(-half - 6, -half - 6, CARD + 12, CARD + 12, RADIUS + 6);
+
+      // Corner brackets for a crisp "locked target" feel.
+      const corners = this.add.graphics();
+      corners.lineStyle(4, item.color, 1);
+      const o = half + 6;
+      const arm = 16;
+      const drawCorner = (cx: number, cy: number, sx: number, sy: number) => {
+        corners.beginPath();
+        corners.moveTo(cx, cy + sy * arm);
+        corners.lineTo(cx, cy);
+        corners.lineTo(cx + sx * arm, cy);
+        corners.strokePath();
+      };
+      drawCorner(-o, -o, 1, 1);
+      drawCorner(o, -o, -1, 1);
+      drawCorner(-o, o, 1, -1);
+      drawCorner(o, o, -1, -1);
+
+      // HUD-style pill badge floating above the card.
+      const bw = Math.max(44, item.label.length * 8 + 30);
+      const badge = this.add.container(0, -half - 26);
+      const shadow = this.add.graphics();
+      shadow.fillStyle(0x000000, 0.3);
+      shadow.fillRoundedRect(-bw / 2, -11, bw, 32, 16);
+      const bg = this.add.graphics();
+      bg.fillStyle(0x06110d, 0.94);
+      bg.fillRoundedRect(-bw / 2, -16, bw, 32, 16);
+      bg.lineStyle(2, item.color, 1);
+      bg.strokeRoundedRect(-bw / 2, -16, bw, 32, 16);
+      const dot = this.add.graphics();
+      dot.fillStyle(item.color, 1);
+      dot.fillCircle(-bw / 2 + 13, 0, 3.5);
+      const text = this.add
+        .text(6, 0, item.label, {
           fontFamily: "Outfit, sans-serif",
-          fontSize: "16px",
+          fontSize: "14px",
           fontStyle: "800",
-          color: "#fff7c7",
-          backgroundColor: "rgba(12, 23, 18, 0.82)",
-          padding: { x: 8, y: 4 }
+          color: "#f4fbf6"
         })
         .setOrigin(0.5);
-      const cont = this.add.container(w.x, w.y, [glow, label]);
+      badge.add([shadow, bg, dot, text]);
+
+      const cont = this.add.container(w.x, w.y, [frame, corners, badge]);
       cont.setDepth(80);
-      this.highlightLayer.add(cont);
+      this.highlightLayer.add([haloCont, cont]);
+
       this.pulses.push(
         this.tweens.add({
-          targets: cont,
-          alpha: { from: 0.62, to: 1 },
-          duration: 620,
+          targets: haloCont,
+          scale: { from: 0.96, to: 1.05 },
+          alpha: { from: 0.6, to: 1 },
+          duration: 1100,
+          yoyo: true,
+          repeat: -1,
+          ease: "Sine.easeInOut"
+        })
+      );
+      this.pulses.push(
+        this.tweens.add({
+          targets: badge,
+          scale: { from: 0.95, to: 1.06 },
+          duration: 900,
           yoyo: true,
           repeat: -1,
           ease: "Sine.easeInOut"
