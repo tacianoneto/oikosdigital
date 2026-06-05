@@ -38,7 +38,6 @@ export function AuthGate({ children }: AuthGateProps) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      setProgressReady(false);
     });
 
     return () => {
@@ -48,9 +47,17 @@ export function AuthGate({ children }: AuthGateProps) {
   }, []);
 
   useEffect(() => {
-    if (!session?.user.id) return;
+    if (!session?.user.id) {
+      setProgressReady(false);
+      return;
+    }
+
     let active = true;
-    loadTutorialProgress(session.user.id)
+    setProgressReady(false);
+    Promise.race([
+      loadTutorialProgress(session.user.id),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 4000))
+    ])
       .catch(() => {
         // Missing progress table should not block login.
       })
