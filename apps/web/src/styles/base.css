@@ -222,7 +222,8 @@ label {
 }
 
 .auth-submit,
-.auth-mode-toggle {
+.auth-mode-toggle,
+.auth-secondary-action {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -247,8 +248,15 @@ label {
   background: rgba(8, 16, 13, 0.58);
 }
 
+.auth-secondary-action {
+  min-height: 40px;
+  color: var(--paper);
+  background: rgba(79, 174, 110, 0.18);
+}
+
 .auth-submit svg,
-.auth-mode-toggle svg {
+.auth-mode-toggle svg,
+.auth-secondary-action svg {
   width: 18px;
   height: 18px;
 }
