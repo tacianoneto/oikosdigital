@@ -7944,6 +7944,110 @@
   font-weight: 800;
 }
 
+.tatu-share-panel {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(7px, 0.6vw, 11px);
+}
+
+.tatu-share-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(8px, 0.7vw, 13px);
+}
+
+.tatu-share-chip {
+  position: relative;
+  width: clamp(38px, 3vw, 50px);
+  height: clamp(38px, 3vw, 50px);
+  border-radius: 50%;
+  padding: 2px;
+  background: color-mix(in srgb, var(--species-color) 30%, rgba(0, 0, 0, 0.55));
+  box-shadow:
+    0 2px 7px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.18s ease;
+}
+
+.tatu-share-chip img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid color-mix(in srgb, var(--species-color) 65%, rgba(0, 0, 0, 0.4));
+}
+
+.tatu-share-chip.is-shared {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, #57c97a 75%, transparent),
+    0 4px 11px rgba(0, 0, 0, 0.5);
+}
+
+.tatu-share-chip.is-missing {
+  filter: grayscale(0.55) brightness(0.78);
+  opacity: 0.82;
+}
+
+.tatu-share-mark {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: clamp(16px, 1.25vw, 21px);
+  height: clamp(16px, 1.25vw, 21px);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid rgba(8, 16, 12, 0.92);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.tatu-share-chip.is-shared .tatu-share-mark {
+  background: linear-gradient(180deg, #6fe09a, #3da866);
+  color: #06150d;
+}
+
+.tatu-share-chip.is-missing .tatu-share-mark {
+  background: linear-gradient(180deg, #ef8a82, #c9483e);
+  color: #fff;
+}
+
+.tatu-share-mark svg {
+  width: 64%;
+  height: 64%;
+  stroke-width: 3.2;
+}
+
+.tatu-share-total {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(7px, 0.6vw, 12px);
+  padding: clamp(4px, 0.4vw, 7px) clamp(11px, 0.95vw, 17px);
+  border-radius: 999px;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(10px, 0.82vw, 13px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 250, 240, 0.92);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--action-accent) 30%, rgba(0, 0, 0, 0.5)),
+      color-mix(in srgb, var(--action-accent) 15%, rgba(0, 0, 0, 0.6)));
+  border: 1px solid color-mix(in srgb, var(--action-accent) 48%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.tatu-share-total strong {
+  font-size: clamp(14px, 1.1vw, 18px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
 .action-box-actions {
   display: flex;
   gap: clamp(8px, 0.7vw, 14px);
