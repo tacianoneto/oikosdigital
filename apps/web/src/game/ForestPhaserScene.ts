@@ -36,6 +36,9 @@ export interface ScoringCardHighlight {
   position: GridPosition;
   label: string;
   color: number;
+  // When set, the badge shows these species' meeple icons (used by the
+  // armadillo share highlight) instead of the plain text label.
+  speciesIds?: SpeciesId[];
 }
 
 export interface ScoringLineHighlight {
@@ -659,29 +662,60 @@ export class ForestPhaserScene extends Phaser.Scene {
       drawCorner(-o, o, 1, -1);
       drawCorner(o, o, -1, -1);
 
-      // HUD-style pill badge floating above the card.
-      const bw = Math.max(44, item.label.length * 8 + 30);
+      // HUD-style pill badge floating above the card. When the highlight
+      // carries species (armadillo share), it shows their meeple icons so the
+      // player sees exactly which species share the tile; otherwise plain text.
+      const speciesIcons = (item.speciesIds ?? []).filter((id) => this.textures.exists(`meeple:${id}`));
       const badge = this.add.container(0, -half - 26);
-      const shadow = this.add.graphics();
-      shadow.fillStyle(0x000000, 0.3);
-      shadow.fillRoundedRect(-bw / 2, -11, bw, 32, 16);
-      const bg = this.add.graphics();
-      bg.fillStyle(0x06110d, 0.94);
-      bg.fillRoundedRect(-bw / 2, -16, bw, 32, 16);
-      bg.lineStyle(2, item.color, 1);
-      bg.strokeRoundedRect(-bw / 2, -16, bw, 32, 16);
-      const dot = this.add.graphics();
-      dot.fillStyle(item.color, 1);
-      dot.fillCircle(-bw / 2 + 13, 0, 3.5);
-      const text = this.add
-        .text(6, 0, item.label, {
-          fontFamily: "Outfit, sans-serif",
-          fontSize: "14px",
-          fontStyle: "800",
-          color: "#f4fbf6"
-        })
-        .setOrigin(0.5);
-      badge.add([shadow, bg, dot, text]);
+      let bw: number;
+      if (speciesIcons.length > 0) {
+        const ICON = 22;
+        const gap = 3;
+        bw = Math.max(40, speciesIcons.length * (ICON + gap) + 14);
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.3);
+        shadow.fillRoundedRect(-bw / 2, -13, bw, 36, 18);
+        const bg = this.add.graphics();
+        bg.fillStyle(0x06110d, 0.94);
+        bg.fillRoundedRect(-bw / 2, -18, bw, 36, 18);
+        bg.lineStyle(2, item.color, 1);
+        bg.strokeRoundedRect(-bw / 2, -18, bw, 36, 18);
+        badge.add([shadow, bg]);
+        const rowW = speciesIcons.length * (ICON + gap) - gap;
+        let cx = -rowW / 2 + ICON / 2;
+        for (const id of speciesIcons) {
+          const disc = this.add.graphics();
+          disc.fillStyle(0x12211a, 1);
+          disc.fillCircle(cx, 0, ICON / 2 + 1);
+          disc.lineStyle(1.5, item.color, 0.9);
+          disc.strokeCircle(cx, 0, ICON / 2 + 1);
+          const icon = this.add.image(cx, 0, `meeple:${id}`).setDisplaySize(ICON - 4, ICON - 4);
+          badge.add([disc, icon]);
+          cx += ICON + gap;
+        }
+      } else {
+        bw = Math.max(44, item.label.length * 8 + 30);
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.3);
+        shadow.fillRoundedRect(-bw / 2, -11, bw, 32, 16);
+        const bg = this.add.graphics();
+        bg.fillStyle(0x06110d, 0.94);
+        bg.fillRoundedRect(-bw / 2, -16, bw, 32, 16);
+        bg.lineStyle(2, item.color, 1);
+        bg.strokeRoundedRect(-bw / 2, -16, bw, 32, 16);
+        const dot = this.add.graphics();
+        dot.fillStyle(item.color, 1);
+        dot.fillCircle(-bw / 2 + 13, 0, 3.5);
+        const text = this.add
+          .text(6, 0, item.label, {
+            fontFamily: "Outfit, sans-serif",
+            fontSize: "14px",
+            fontStyle: "800",
+            color: "#f4fbf6"
+          })
+          .setOrigin(0.5);
+        badge.add([shadow, bg, dot, text]);
+      }
 
       const cont = this.add.container(w.x, w.y, [frame, corners, badge]);
       cont.setDepth(80);
@@ -1643,7 +1677,7 @@ function viewSignature(vm: ForestViewModel): string {
     vm.selectedPieceId ?? "",
     vm.selectedPieceIds.join("|"),
     vm.selectablePieceIds.join("|"),
-    vm.scoringCardHighlights.map((item) => `${item.position.x},${item.position.y}:${item.label}:${item.color}`).join("|"),
+    vm.scoringCardHighlights.map((item) => `${item.position.x},${item.position.y}:${item.label}:${item.color}:${(item.speciesIds ?? []).join(",")}`).join("|"),
     vm.scoringLineHighlights
       .map((item) => `${item.positions.map((position) => `${position.x},${position.y}`).join(">")}:${item.label}:${item.color}`)
       .join("|")

@@ -1959,11 +1959,25 @@ export function OikosApp() {
 
     if (activeSpecies?.speciesId === "armadillo") {
       const armadillo = getArmadilloSharingDetails(room.game, room.game.activePlayerId);
+      // Map each shared tile to the rival species standing on it, so the board
+      // badge can show their meeple icons instead of a generic "compartilha".
+      const keyOf = (position: GridPosition) => `${position.x},${position.y}`;
+      const rivalSpeciesByTile = new Map<string, SpeciesId[]>();
+      for (const piece of room.game.pieces) {
+        if (!piece.location || piece.speciesId === "armadillo") continue;
+        const key = keyOf(piece.location);
+        const list = rivalSpeciesByTile.get(key) ?? [];
+        if (!list.includes(piece.speciesId)) {
+          list.push(piece.speciesId);
+          rivalSpeciesByTile.set(key, list);
+        }
+      }
       return {
         cardHighlights: armadillo.sharedPositions.map((position) => ({
           position,
           label: "compartilha",
-          color: 0xf2c14e
+          color: 0xf2c14e,
+          speciesIds: rivalSpeciesByTile.get(keyOf(position)) ?? []
         })),
         lineHighlights: [],
         lines: 0,
