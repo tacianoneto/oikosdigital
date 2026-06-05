@@ -138,6 +138,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     }
     for (const sp of Object.values(speciesDefinitions)) {
       this.load.image(`meeple:${sp.speciesId}`, versionedAsset(sp.meepleAsset));
+      this.load.image(`portrait:${sp.speciesId}`, encodeURI(sp.portraitAsset));
     }
     (Object.keys(resourceAssets) as Array<Resource | "point">).forEach((r) => {
       this.load.image(`res:${r}`, encodeURI(resourceAssets[r]));
@@ -665,57 +666,97 @@ export class ForestPhaserScene extends Phaser.Scene {
       // HUD-style pill badge floating above the card. When the highlight
       // carries species (armadillo share), it shows their meeple icons so the
       // player sees exactly which species share the tile; otherwise plain text.
-      const speciesIcons = (item.speciesIds ?? []).filter((id) => this.textures.exists(`meeple:${id}`));
-      const badge = this.add.container(0, -half - 26);
+      const speciesIcons = (item.speciesIds ?? []).filter(
+        (id) => this.textures.exists(`portrait:${id}`) || this.textures.exists(`meeple:${id}`)
+      );
       let bw: number;
       if (speciesIcons.length > 0) {
-        const ICON = 22;
-        const gap = 3;
-        bw = Math.max(40, speciesIcons.length * (ICON + gap) + 14);
+        const ICON = 44;
+        const gap = 8;
+        const padX = 12;
+        const bh = ICON + 14;
+        bw = Math.max(ICON + padX * 2, speciesIcons.length * (ICON + gap) - gap + padX * 2);
+        const badge = this.add.container(0, -half - bh / 2 - 8);
         const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.3);
-        shadow.fillRoundedRect(-bw / 2, -13, bw, 36, 18);
+        shadow.fillStyle(0x000000, 0.34);
+        shadow.fillRoundedRect(-bw / 2, -bh / 2 + 5, bw, bh, bh / 2);
         const bg = this.add.graphics();
         bg.fillStyle(0x06110d, 0.94);
-        bg.fillRoundedRect(-bw / 2, -18, bw, 36, 18);
+        bg.fillRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
         bg.lineStyle(2, item.color, 1);
-        bg.strokeRoundedRect(-bw / 2, -18, bw, 36, 18);
+        bg.strokeRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
         badge.add([shadow, bg]);
         const rowW = speciesIcons.length * (ICON + gap) - gap;
         let cx = -rowW / 2 + ICON / 2;
         for (const id of speciesIcons) {
+          const r = ICON / 2;
+          // Dark disc backs any portrait with transparency.
           const disc = this.add.graphics();
           disc.fillStyle(0x12211a, 1);
-          disc.fillCircle(cx, 0, ICON / 2 + 1);
-          disc.lineStyle(1.5, item.color, 0.9);
-          disc.strokeCircle(cx, 0, ICON / 2 + 1);
-          const icon = this.add.image(cx, 0, `meeple:${id}`).setDisplaySize(ICON - 4, ICON - 4);
-          badge.add([disc, icon]);
+          disc.fillCircle(cx, 0, r);
+          badge.add(disc);
+          const roundKey = this.createRoundPortraitTexture(id);
+          if (roundKey) {
+            const img = this.add.image(cx, 0, roundKey).setDisplaySize(ICON, ICON);
+            badge.add(img);
+          }
+          // Colored ring on top.
+          const ring = this.add.graphics();
+          ring.lineStyle(2.5, item.color, 1);
+          ring.strokeCircle(cx, 0, r);
+          badge.add(ring);
           cx += ICON + gap;
         }
-      } else {
-        bw = Math.max(44, item.label.length * 8 + 30);
-        const shadow = this.add.graphics();
-        shadow.fillStyle(0x000000, 0.3);
-        shadow.fillRoundedRect(-bw / 2, -11, bw, 32, 16);
-        const bg = this.add.graphics();
-        bg.fillStyle(0x06110d, 0.94);
-        bg.fillRoundedRect(-bw / 2, -16, bw, 32, 16);
-        bg.lineStyle(2, item.color, 1);
-        bg.strokeRoundedRect(-bw / 2, -16, bw, 32, 16);
-        const dot = this.add.graphics();
-        dot.fillStyle(item.color, 1);
-        dot.fillCircle(-bw / 2 + 13, 0, 3.5);
-        const text = this.add
-          .text(6, 0, item.label, {
-            fontFamily: "Outfit, sans-serif",
-            fontSize: "14px",
-            fontStyle: "800",
-            color: "#f4fbf6"
+        badge.setDepth(93);
+        const cont = this.add.container(w.x, w.y, [frame, corners, badge]);
+        cont.setDepth(80);
+        this.highlightLayer.add([haloCont, cont]);
+        this.pulses.push(
+          this.tweens.add({
+            targets: haloCont,
+            scale: { from: 0.96, to: 1.05 },
+            alpha: { from: 0.6, to: 1 },
+            duration: 1100,
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut"
           })
-          .setOrigin(0.5);
-        badge.add([shadow, bg, dot, text]);
+        );
+        this.pulses.push(
+          this.tweens.add({
+            targets: badge,
+            scale: { from: 0.97, to: 1.04 },
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: "Sine.easeInOut"
+          })
+        );
+        continue;
       }
+
+      const badge = this.add.container(0, -half - 26);
+      bw = Math.max(44, item.label.length * 8 + 30);
+      const shadow = this.add.graphics();
+      shadow.fillStyle(0x000000, 0.3);
+      shadow.fillRoundedRect(-bw / 2, -11, bw, 32, 16);
+      const bg = this.add.graphics();
+      bg.fillStyle(0x06110d, 0.94);
+      bg.fillRoundedRect(-bw / 2, -16, bw, 32, 16);
+      bg.lineStyle(2, item.color, 1);
+      bg.strokeRoundedRect(-bw / 2, -16, bw, 32, 16);
+      const dot = this.add.graphics();
+      dot.fillStyle(item.color, 1);
+      dot.fillCircle(-bw / 2 + 13, 0, 3.5);
+      const text = this.add
+        .text(6, 0, item.label, {
+          fontFamily: "Outfit, sans-serif",
+          fontSize: "14px",
+          fontStyle: "800",
+          color: "#f4fbf6"
+        })
+        .setOrigin(0.5);
+      badge.add([shadow, bg, dot, text]);
 
       const cont = this.add.container(w.x, w.y, [frame, corners, badge]);
       cont.setDepth(80);
@@ -1448,6 +1489,44 @@ export class ForestPhaserScene extends Phaser.Scene {
     trimmed.getContext("2d")?.drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
     this.textures.addCanvas(trimmedKey, trimmed);
     return trimmedKey;
+  }
+
+  // Bake a circular-cropped portrait into a cached texture so it can be used as
+  // a plain image (geometry masks misbehave inside panning/zooming containers).
+  private createRoundPortraitTexture(speciesId: SpeciesId): string | null {
+    const sourceKey = this.textures.exists(`portrait:${speciesId}`)
+      ? `portrait:${speciesId}`
+      : `meeple:${speciesId}`;
+    if (!this.textures.exists(sourceKey)) return null;
+    const roundKey = `portrait-round:${speciesId}`;
+    if (this.textures.exists(roundKey)) return roundKey;
+
+    const image = this.textures.get(sourceKey).getSourceImage() as CanvasImageSource & {
+      width?: number;
+      height?: number;
+    };
+    const iw = Math.max(1, Math.floor(image.width ?? 1));
+    const ih = Math.max(1, Math.floor(image.height ?? 1));
+    const size = 160;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return sourceKey;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    const scale = size / Math.min(iw, ih);
+    const dw = iw * scale;
+    const dh = ih * scale;
+    ctx.drawImage(image, (size - dw) / 2, (size - dh) / 2, dw, dh);
+    ctx.restore();
+
+    this.textures.addCanvas(roundKey, canvas);
+    return roundKey;
   }
 
   private buildPiece(piece: PieceState): Phaser.GameObjects.Container {
