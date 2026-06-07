@@ -15,11 +15,24 @@ const supabase = createClient(supabaseUrl, supabaseSecretKey, {
   }
 });
 
+// Supabase rejects with plain objects (PostgrestError / AuthError), not Error
+// instances. Wrap them so callers and the socket reply layer always see a real
+// Error with a readable message instead of "Erro desconhecido".
+function toError(value: unknown, fallback: string): Error {
+  if (value instanceof Error) {
+    return value;
+  }
+  if (value && typeof value === "object" && "message" in value && typeof (value as { message?: unknown }).message === "string") {
+    return new Error((value as { message: string }).message);
+  }
+  return new Error(fallback);
+}
+
 export async function getUserIdFromAccessToken(accessToken: string): Promise<string> {
   const { data, error } = await supabase.auth.getUser(accessToken);
 
   if (error || !data.user) {
-    throw error ?? new Error("Usuario Supabase nao encontrado.");
+    throw toError(error, "Usuario Supabase nao encontrado.");
   }
 
   return data.user.id;
@@ -29,7 +42,7 @@ export async function getUserEntitlements(userId: string): Promise<Record<string
   const { data, error } = await supabase.from("entitlements").select("*").eq("user_id", userId);
 
   if (error) {
-    throw error;
+    throw toError(error, "Falha ao consultar liberacoes de especie.");
   }
 
   return data ?? [];
