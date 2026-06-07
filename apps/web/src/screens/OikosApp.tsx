@@ -4247,12 +4247,14 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       data-visual-accessibility={visualAccessibility ? "true" : "false"}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
     >
-      <div className="account-badge">
-        <span>{authUser.email}</span>
-        <button type="button" onClick={onSignOut} aria-label="Sair da conta">
-          <LogOut aria-hidden="true" />
-        </button>
-      </div>
+      {!hasStartedGame && (
+        <div className="account-badge">
+          <span>{authUser.email}</span>
+          <button type="button" onClick={onSignOut} aria-label="Sair da conta">
+            <LogOut aria-hidden="true" />
+          </button>
+        </div>
+      )}
       {cacaIlegalPending && canResolveCacaIlegal && !cacaIlegalRemovalMode && (
         <div className="caatinga-choice-backdrop" role="presentation">
           <section className="caatinga-choice-modal caca-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caca-choice-title">
