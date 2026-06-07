@@ -1570,6 +1570,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       (activeSpecies?.speciesId === "coati" ||
         activeSpecies?.speciesId === "capuchin" ||
         activeSpecies?.speciesId === "macaw" ||
+        activeSpecies?.speciesId === "galo_de_campina" ||
         activeSpecies?.speciesId === "armadillo" ||
         activeSpecies?.speciesId === "maned_wolf") &&
       activeActionId === "A" &&
@@ -1585,6 +1586,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       (activeSpecies?.speciesId === "coati" ||
         activeSpecies?.speciesId === "capuchin" ||
         activeSpecies?.speciesId === "macaw" ||
+        activeSpecies?.speciesId === "galo_de_campina" ||
         activeSpecies?.speciesId === "armadillo" ||
         activeSpecies?.speciesId === "maned_wolf")
   );
