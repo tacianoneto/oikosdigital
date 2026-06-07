@@ -5935,12 +5935,14 @@
 .is-macaw-active .hud-dock,
 .is-capuchin-active .hud-dock,
 .is-coati-active .hud-dock,
+.is-galo-active .hud-dock,
 .is-jaguar-active .species-hud,
 .is-wolf-active .species-hud,
 .is-armadillo-active .species-hud,
 .is-macaw-active .species-hud,
 .is-capuchin-active .species-hud,
 .is-coati-active .species-hud,
+.is-galo-active .species-hud,
 .is-jaguar-active .table-hand,
 .is-jaguar-active .scenario-dock-toggle,
 .is-wolf-active .scenario-dock-toggle,
@@ -5948,18 +5950,21 @@
 .is-macaw-active .scenario-dock-toggle,
 .is-capuchin-active .scenario-dock-toggle,
 .is-coati-active .scenario-dock-toggle,
+.is-galo-active .scenario-dock-toggle,
 .is-jaguar-active .turn-recap,
 .is-wolf-active .turn-recap,
 .is-armadillo-active .turn-recap,
 .is-macaw-active .turn-recap,
 .is-capuchin-active .turn-recap,
 .is-coati-active .turn-recap,
+.is-galo-active .turn-recap,
 .is-jaguar-active .forest-recenter,
 .is-wolf-active .forest-recenter,
 .is-armadillo-active .forest-recenter,
 .is-macaw-active .forest-recenter,
 .is-capuchin-active .forest-recenter,
-.is-coati-active .forest-recenter {
+.is-coati-active .forest-recenter,
+.is-galo-active .forest-recenter {
   display: none !important;
 }
 
@@ -6550,7 +6555,8 @@
 .is-armadillo-active .table-hand,
 .is-macaw-active .table-hand,
 .is-capuchin-active .table-hand,
-.is-coati-active .table-hand {
+.is-coati-active .table-hand,
+.is-galo-active .table-hand {
   position: fixed !important;
   z-index: 9999 !important;
   bottom: 1% !important; 
@@ -6570,21 +6576,24 @@
 .is-armadillo-active .hand-card,
 .is-macaw-active .hand-card,
 .is-capuchin-active .hand-card,
-.is-coati-active .hand-card {
+.is-coati-active .hand-card,
+.is-galo-active .hand-card {
   transform: rotate(calc(var(--offset) * 0.8deg)) translateY(calc(var(--dist) * 1px)) !important;
 }
 .is-wolf-active .hand-card:hover,
 .is-armadillo-active .hand-card:hover,
 .is-macaw-active .hand-card:hover,
 .is-capuchin-active .hand-card:hover,
-.is-coati-active .hand-card:hover {
+.is-coati-active .hand-card:hover,
+.is-galo-active .hand-card:hover {
   transform: rotate(0deg) translateY(-16px) scale(1.07) !important;
 }
 .is-wolf-active .hand-card.selected,
 .is-armadillo-active .hand-card.selected,
 .is-macaw-active .hand-card.selected,
 .is-capuchin-active .hand-card.selected,
-.is-coati-active .hand-card.selected {
+.is-coati-active .hand-card.selected,
+.is-galo-active .hand-card.selected {
   transform: rotate(0deg) translateY(-22px) scale(1.09) !important;
 }
 
@@ -6592,7 +6601,8 @@
 .is-armadillo-active .table-hand .hand-header,
 .is-macaw-active .table-hand .hand-header,
 .is-capuchin-active .table-hand .hand-header,
-.is-coati-active .table-hand .hand-header {
+.is-coati-active .table-hand .hand-header,
+.is-galo-active .table-hand .hand-header {
   display: none !important;
 }
 
@@ -6600,7 +6610,8 @@
 .is-armadillo-active .table-hand .hand-sort-toggle,
 .is-macaw-active .table-hand .hand-sort-toggle,
 .is-capuchin-active .table-hand .hand-sort-toggle,
-.is-coati-active .table-hand .hand-sort-toggle {
+.is-coati-active .table-hand .hand-sort-toggle,
+.is-galo-active .table-hand .hand-sort-toggle {
   top: 145px;
   right: auto;
   left: -113px;
@@ -6610,7 +6621,8 @@
 .is-armadillo-active .table-hand .hand-rail,
 .is-macaw-active .table-hand .hand-rail,
 .is-capuchin-active .table-hand .hand-rail,
-.is-coati-active .table-hand .hand-rail {
+.is-coati-active .table-hand .hand-rail,
+.is-galo-active .table-hand .hand-rail {
   padding: 0 !important;
   pointer-events: auto !important;
 }

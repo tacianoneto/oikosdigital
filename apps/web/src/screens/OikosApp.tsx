@@ -4241,7 +4241,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         !isBasicTutorial && currentGamePlayer?.speciesId === "macaw" ? "is-macaw-active" : ""
       } ${!isBasicTutorial && currentGamePlayer?.speciesId === "capuchin" ? "is-capuchin-active" : ""} ${
         !isBasicTutorial && currentGamePlayer?.speciesId === "coati" ? "is-coati-active" : ""
-      } ${visualAccessibility ? "accessibility-visual-mode" : ""}`}
+      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "galo_de_campina" ? "is-galo-active" : ""} ${
+        visualAccessibility ? "accessibility-visual-mode" : ""
+      }`}
       data-visual-accessibility={visualAccessibility ? "true" : "false"}
       data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
     >
