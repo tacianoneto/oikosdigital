@@ -14,7 +14,7 @@ describe("species rules registry", () => {
   });
 
   it("keeps cross-rule capabilities centralized by species", () => {
-    const cardMovementSpecies: SpeciesId[] = ["coati", "capuchin", "macaw", "armadillo"];
+    const cardMovementSpecies: SpeciesId[] = ["coati", "capuchin", "macaw", "galo_de_campina", "armadillo"];
 
     expect(canSpeciesRemovePieceForCacaIlegal("jaguar")).toBe(false);
     expect(canSpeciesRemovePieceForCacaIlegal("maned_wolf")).toBe(true);

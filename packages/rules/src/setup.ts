@@ -593,6 +593,13 @@ export function getForestPositionsWithResource(game: GameState, resource: Resour
     .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
+export function getForestPositionsWithHabitat(game: GameState, habitat: Habitat): GridPosition[] {
+  return game.forest.cards
+    .filter((card) => getCardDefinitionOrNull(card.definitionId)?.habitat === habitat)
+    .map((card) => ({ x: card.x, y: card.y }))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
 export function createInitialGameState(
   gameId: string,
   roomPlayers: RoomPlayer[],
@@ -663,6 +670,7 @@ export function createInitialGameState(
     activePlayedForestCardId: null,
     pendingCoatiPairBonus: null,
     pendingMacawMovedPiece: null,
+    pendingGaloMovedPiece: null,
     pendingWolfMoves: null,
     pendingExtraTurnPlayerId: null,
     extraTurnPlayerId: null,
@@ -961,6 +969,7 @@ export function placeForestCard(
     (player.speciesId === "coati" ||
       player.speciesId === "capuchin" ||
       player.speciesId === "macaw" ||
+      player.speciesId === "galo_de_campina" ||
       player.speciesId === "armadillo" ||
       player.speciesId === "maned_wolf") &&
     getCurrentAction(game) !== "A"
@@ -972,6 +981,7 @@ export function placeForestCard(
     (player.speciesId === "coati" ||
       player.speciesId === "capuchin" ||
       player.speciesId === "macaw" ||
+      player.speciesId === "galo_de_campina" ||
       player.speciesId === "armadillo" ||
       player.speciesId === "maned_wolf") &&
     game.activePlayedForestCardId
@@ -983,6 +993,7 @@ export function placeForestCard(
     player.speciesId !== "coati" &&
     player.speciesId !== "capuchin" &&
     player.speciesId !== "macaw" &&
+    player.speciesId !== "galo_de_campina" &&
     player.speciesId !== "armadillo" &&
     player.speciesId !== "maned_wolf"
   ) {
@@ -1285,6 +1296,163 @@ export function resolveCoatiPairBonus(game: GameState, playerId: string, locatio
     advanceActiveAction(next);
   }
 
+  return next;
+}
+
+export function getGaloFieldPlacementPositions(game: GameState, playerId: string): GridPosition[] {
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return [];
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId !== "galo_de_campina" || getCurrentAction(game) !== "A" || !game.activePlayedForestCardId) {
+    return [];
+  }
+
+  if (player.reservePieces.length === 0) {
+    return [];
+  }
+
+  return getForestPositionsWithHabitat(game, "field");
+}
+
+export function addGaloForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
+  if (game.status !== "active") {
+    throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
+  }
+
+  if (game.pendingCoatiPairBonus) {
+    throw new Error("Resolva o bonus da dupla de quatis antes de continuar a acao.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "galo_de_campina") {
+    throw new Error("Adicao de peca implementada apenas para o Galo-de-campina nesta etapa.");
+  }
+
+  if (getCurrentAction(game) !== "A" || !game.activePlayedForestCardId) {
+    throw new Error("O Galo-de-campina adiciona peca durante a acao A depois de expandir a floresta.");
+  }
+
+  const pieceId = player.reservePieces[0];
+  if (!pieceId) {
+    throw new Error("Nao ha galos-de-campina na reserva para adicionar.");
+  }
+
+  const validPositions = getGaloFieldPlacementPositions(game, playerId);
+  const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
+  if (!isValidPosition) {
+    throw new Error("Escolha uma carta de campo para adicionar o Galo-de-campina.");
+  }
+
+  const targetCard = game.forest.cards.find((card) => card.x === location.x && card.y === location.y);
+  if (!targetCard) {
+    throw new Error("Carta alvo nao encontrada na floresta.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
+  if (!nextPiece) {
+    throw new Error("Peca nao encontrada.");
+  }
+
+  nextPiece.location = createPieceLocation(game, location, findFirstForestSiteWithHabitat(game, location, "field")?.siteId);
+  nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
+  nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location, "add");
+  next.log = [
+    ...next.log,
+    {
+      id: `add_galo_${pieceId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} adicionou 1 galo-de-campina em local de campo.`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: targetCard.instanceId,
+        cardDefinitionId: targetCard.definitionId,
+        habitat: getCardDefinitionOrNull(targetCard.definitionId)?.habitat ?? undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: "A"
+      }
+    }
+  ];
+
+  advanceActiveAction(next);
+  return next;
+}
+
+export function getGaloSeedCardScore(game: GameState, playerId: string): number {
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return 0;
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId !== "galo_de_campina" || getCurrentAction(game) !== "D") {
+    return 0;
+  }
+
+  return Math.floor(getGaloSeedCardPositions(game, playerId).length / 2);
+}
+
+export function getGaloSeedCardPositions(game: GameState, playerId: string): GridPosition[] {
+  const positions = new Map<string, GridPosition>();
+
+  for (const piece of game.pieces) {
+    if (piece.ownerId !== playerId || piece.speciesId !== "galo_de_campina" || !piece.location) {
+      continue;
+    }
+
+    const card = getForestCardAtPosition(game, piece.location);
+    const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
+    if (definition?.resource === "seed") {
+      positions.set(positionKey(piece.location), toGridPosition(piece.location));
+    }
+  }
+
+  return [...positions.values()].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+export function scoreGaloSeedCards(game: GameState, playerId: string): GameState {
+  if (game.status !== "active") {
+    throw new Error("Pontuacao so pode acontecer durante a fase ativa.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "galo_de_campina") {
+    throw new Error("Pontuacao por cartas de pinha implementada apenas para o Galo-de-campina nesta etapa.");
+  }
+
+  if (getCurrentAction(game) !== "D") {
+    throw new Error("O Galo-de-campina pontua cartas de pinha durante a acao D.");
+  }
+
+  const seedCards = getGaloSeedCardPositions(game, playerId);
+  const points = Math.floor(seedCards.length / 2);
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  nextPlayer.score += points;
+  next.log = [
+    ...next.log,
+    {
+      id: `galo_score_${playerId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} marcou ${points} ponto(s) por galos-de-campina em cartas diferentes de pinha.`,
+      createdAt: Date.now(),
+      payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
+    }
+  ];
+
+  advanceActiveAction(next);
   return next;
 }
 
@@ -2385,6 +2553,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     next.activePlayedForestCardId = null;
     next.pendingCoatiPairBonus = null;
     next.pendingMacawMovedPiece = null;
+    next.pendingGaloMovedPiece = null;
     next.pendingWolfMoves = null;
     queueEndgameChoiceOrFinalize(next);
     return next;
@@ -2494,6 +2663,43 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
 
       if (action === "D") {
         return scoreCapuchinHabitatPresence(game, playerId);
+      }
+    }
+
+    if (player.speciesId === "galo_de_campina") {
+      const action = getCurrentAction(game);
+      if (action === "A") {
+        if (game.activePlayedForestCardId) {
+          return completeActionWithoutOptionalAddition(game, playerId, action, "Galo-de-campina");
+        }
+
+        throw new Error("A acao A do Galo-de-campina e concluida ao adicionar 1 galo em local de campo.");
+      }
+
+      if (action === "B") {
+        throw new Error("A acao B do Galo-de-campina e concluida ao mover 1 galo.");
+      }
+
+      if (action === "C") {
+        const next = cloneGameState(game);
+        const nextPlayer = findPlayer(next, playerId);
+        next.pendingGaloMovedPiece = null;
+        next.log = [
+          ...next.log,
+          {
+            id: `complete_galo_C_${playerId}_${next.log.length + 1}`,
+            message: `${nextPlayer.name} concluiu a acao C sem gastar pinha.`,
+            createdAt: Date.now(),
+            payload: { kind: "skip", actorPlayerId: playerId, actionId: "C" }
+          }
+        ];
+        advanceActiveAction(next);
+        next.pendingGaloMovedPiece = null;
+        return next;
+      }
+
+      if (action === "D") {
+        return scoreGaloSeedCards(game, playerId);
       }
     }
 
@@ -2809,6 +3015,12 @@ export function getValidPieceMovementDestinations(game: GameState, playerId: str
     return [];
   }
 
+  if (player.speciesId === "galo_de_campina" && action === "C") {
+    if (player.resources.seed <= 0 || game.pendingGaloMovedPiece?.playerId !== playerId || game.pendingGaloMovedPiece.pieceId === pieceId) {
+      return [];
+    }
+  }
+
   return getDestinationsByPlayedCard(game, player.speciesId, piece.location);
 }
 
@@ -2934,11 +3146,34 @@ export function movePieceForCurrentAction(
     throw new Error("Destino invalido para o movimento conforme a carta jogada.");
   }
 
+  if (player.speciesId === "galo_de_campina" && action === "C") {
+    if (player.resources.seed <= 0) {
+      throw new Error("A acao C do Galo-de-campina exige gastar 1 pinha.");
+    }
+
+    if (game.pendingGaloMovedPiece?.playerId !== playerId) {
+      throw new Error("Mova 1 galo-de-campina na acao B antes de usar a acao C.");
+    }
+
+    if (game.pendingGaloMovedPiece.pieceId === pieceId) {
+      throw new Error("A acao C deve mover outro galo-de-campina.");
+    }
+  }
+
   const next = cloneGameState(game);
   pruneResolvedCoatiPairBonuses(next, playerId);
   const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
   if (!nextPiece) {
     throw new Error("Peca nao encontrada.");
+  }
+
+  const nextPlayer = findPlayer(next, playerId);
+  if (player.speciesId === "galo_de_campina" && action === "C") {
+    nextPlayer.resources = {
+      ...nextPlayer.resources,
+      seed: nextPlayer.resources.seed - 1
+    };
+    next.pendingGaloMovedPiece = null;
   }
 
   nextPiece.location = createPieceLocation(game, destination);
@@ -2971,6 +3206,10 @@ export function movePieceForCurrentAction(
       pieceId,
       location: destination
     };
+  }
+
+  if (player.speciesId === "galo_de_campina" && action === "B") {
+    next.pendingGaloMovedPiece = { playerId, pieceId };
   }
 
   if (player.speciesId === "coati" && queuePendingCoatiPairBonus(next, playerId, destination)) {
@@ -3179,6 +3418,7 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
     game.activePlayedForestCardId = null;
     game.pendingCoatiPairBonus = null;
     game.pendingMacawMovedPiece = null;
+    game.pendingGaloMovedPiece = null;
     game.pendingWolfMoves = null;
     game.extraTurnPlayerId = null;
     game.log = [
@@ -3203,6 +3443,7 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
   game.activePlayedForestCardId = null;
   game.pendingCoatiPairBonus = null;
   game.pendingMacawMovedPiece = null;
+  game.pendingGaloMovedPiece = null;
   game.pendingWolfMoves = null;
   game.cerradoPending = null;
   const startedNewRound = nextTurnIndex === 0;
@@ -3403,6 +3644,7 @@ export function resolveExtraTurnObjective(game: GameState, playerId: string, acc
   next.activePlayedForestCardId = null;
   next.pendingCoatiPairBonus = null;
   next.pendingMacawMovedPiece = null;
+  next.pendingGaloMovedPiece = null;
   next.pendingWolfMoves = null;
   next.log = [
     ...next.log,
@@ -3927,6 +4169,7 @@ function cloneGameState(game: GameState): GameState {
           location: { ...game.pendingMacawMovedPiece.location }
         }
       : null,
+    pendingGaloMovedPiece: game.pendingGaloMovedPiece ? { ...game.pendingGaloMovedPiece } : null,
     pendingWolfMoves: game.pendingWolfMoves
       ? {
           ...game.pendingWolfMoves,
@@ -4013,12 +4256,28 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
   }
 
   const player = findPlayer(game, playerId);
+  const galoSeedBonus = player.speciesId === "galo_de_campina" && resource === "seed";
   const cerradoActive = (game.activeScenarioIds ?? []).includes("cerrado");
   const cerradoTriggered =
     cerradoActive &&
     (game.cerradoTriggeredByPlayer ?? {})[playerId] !== game.round &&
     (player.resources[resource] ?? 0) === 0;
   if (cerradoTriggered) {
+    if (galoSeedBonus) {
+      player.resources = {
+        ...player.resources,
+        seed: (player.resources.seed ?? 0) + 1
+      };
+      game.log = [
+        ...game.log,
+        {
+          id: `galo_seed_bonus_${playerId}_${game.log.length + 1}`,
+          message: `${player.name} coletou +1 pinha extra pela passiva do Galo-de-campina.`,
+          createdAt: Date.now(),
+          payload: { kind: "move_piece", actorPlayerId: playerId, resources: ["seed"], count: 1 }
+        }
+      ];
+    }
     game.cerradoPending = {
       playerId,
       resource,
@@ -4030,8 +4289,20 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
 
   player.resources = {
     ...player.resources,
-    [resource]: (player.resources[resource] ?? 0) + 1
+    [resource]: (player.resources[resource] ?? 0) + (galoSeedBonus ? 2 : 1)
   };
+
+  if (galoSeedBonus) {
+    game.log = [
+      ...game.log,
+      {
+        id: `galo_seed_bonus_${playerId}_${game.log.length + 1}`,
+        message: `${player.name} coletou +1 pinha extra pela passiva do Galo-de-campina.`,
+        createdAt: Date.now(),
+        payload: { kind: "move_piece", actorPlayerId: playerId, resources: ["seed"], count: 1 }
+      }
+    ];
+  }
 
   return resource;
 }
@@ -4235,6 +4506,10 @@ function getWolfMovablePieceIdsForCurrentAction(game: GameState, playerId: strin
 
 function findFirstForestSiteWithResource(game: GameState, location: GridPosition, resource: Resource): ForestCardSiteDefinition | null {
   return getForestSitesAtPosition(game, location).find((siteState) => siteState.site.resource === resource)?.site ?? null;
+}
+
+function findFirstForestSiteWithHabitat(game: GameState, location: GridPosition, habitat: Habitat): ForestCardSiteDefinition | null {
+  return getForestSitesAtPosition(game, location).find((siteState) => siteState.site.habitat === habitat)?.site ?? null;
 }
 
 function createPieceLocation(game: GameState, location: GridPosition, siteId = defaultCardSiteId): PieceLocation {

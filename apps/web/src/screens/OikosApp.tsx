@@ -54,6 +54,7 @@ import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
+  addGaloForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   completeCurrentAction,
@@ -71,6 +72,9 @@ import {
   getCapuchinPlacementPositions,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
+  getGaloFieldPlacementPositions,
+  getGaloSeedCardScore,
+  getGaloSeedCardPositions,
   getAvailableForestExpansionPositions,
   getAvailableForestExpansionPositionsForCard,
   getMacawActionCTargets,
@@ -99,6 +103,7 @@ import {
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
+  scoreGaloSeedCards,
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints,
@@ -1734,10 +1739,27 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return getWolfRemovableBasePieceIds(room.game, room.game.activePlayerId);
     }
 
+    if (activeSpecies?.speciesId === "galo_de_campina" && activeActionId === "C" && room.game.activePlayerId) {
+      if ((activeGamePlayer?.resources.seed ?? 0) <= 0 || room.game.pendingGaloMovedPiece?.playerId !== room.game.activePlayerId) {
+        return [];
+      }
+
+      return room.game.pieces
+        .filter(
+          (piece) =>
+            piece.ownerId === room.game?.activePlayerId &&
+            piece.speciesId === "galo_de_campina" &&
+            piece.location &&
+            piece.pieceId !== room.game?.pendingGaloMovedPiece?.pieceId
+        )
+        .map((piece) => piece.pieceId);
+    }
+
     if (
       activeSpecies?.speciesId !== "coati" &&
       activeSpecies?.speciesId !== "capuchin" &&
       activeSpecies?.speciesId !== "macaw" &&
+      activeSpecies?.speciesId !== "galo_de_campina" &&
       activeSpecies?.speciesId !== "armadillo"
     ) {
       return [];
@@ -1756,7 +1778,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return room.game.pieces
       .filter((piece) => piece.ownerId === room.game?.activePlayerId && piece.speciesId === activeSpecies.speciesId && piece.location)
       .map((piece) => piece.pieceId);
-  }, [activeActionId, activeSpecies?.speciesId, cacaIlegalRemovalMode, canControlActivePlayer, controlledPlayerId, hasPendingCoatiPairBonus, room?.game]);
+  }, [
+    activeActionId,
+    activeGamePlayer?.resources.seed,
+    activeSpecies?.speciesId,
+    cacaIlegalRemovalMode,
+    canControlActivePlayer,
+    controlledPlayerId,
+    hasPendingCoatiPairBonus,
+    room?.game
+  ]);
   const requiredCoatiRemovalCount =
     room?.game && room.game.activePlayerId ? getRequiredCoatiRemovalCount(room.game, room.game.activePlayerId) : 0;
   const availableJaguarPointSpendCount =
@@ -1902,6 +1933,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     () => (activeActionId === "A" ? macawEggTargets : activeActionId === "C" ? macawActionCTargets : []),
     [activeActionId, macawActionCTargets, macawEggTargets]
   );
+  const galoFieldTargets = useMemo(() => {
+    if (!room?.game || activeSpecies?.speciesId !== "galo_de_campina" || !room.game.activePlayerId || !canControlActivePlayer) {
+      return [];
+    }
+
+    return getGaloFieldPlacementPositions(room.game, room.game.activePlayerId);
+  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
   const armadilloSeedTargets = useMemo(() => {
     if (!room?.game || activeSpecies?.speciesId !== "armadillo" || !room.game.activePlayerId || !canControlActivePlayer) {
       return [];
@@ -1922,12 +1960,22 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         ? capuchinPlacementTargets
         : activeSpecies?.speciesId === "macaw"
           ? macawAddTargets
+          : activeSpecies?.speciesId === "galo_de_campina"
+            ? galoFieldTargets
           : activeSpecies?.speciesId === "armadillo"
             ? armadilloSeedTargets
             : activeSpecies?.speciesId === "maned_wolf"
               ? wolfMeatTargets
           : coatiFruitTargets,
-    [activeSpecies?.speciesId, armadilloSeedTargets, capuchinPlacementTargets, coatiFruitTargets, macawAddTargets, wolfMeatTargets]
+    [
+      activeSpecies?.speciesId,
+      armadilloSeedTargets,
+      capuchinPlacementTargets,
+      coatiFruitTargets,
+      galoFieldTargets,
+      macawAddTargets,
+      wolfMeatTargets
+    ]
   );
   const displayAddPieceTargets = useMemo(() => {
     if (!tutorialActive || tutorialGate !== "addPiece" || !tutorialDef?.markedAddPieceTarget) {
@@ -1938,6 +1986,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   }, [addPieceTargets, tutorialActive, tutorialDef?.markedAddPieceTarget, tutorialGate]);
   const capuchinHabitatScore = room?.game && room.game.activePlayerId ? getCapuchinHabitatScore(room.game, room.game.activePlayerId) : 0;
   const macawLineScore = room?.game && room.game.activePlayerId ? getMacawLineScore(room.game, room.game.activePlayerId) : 0;
+  const galoSeedCardScore = room?.game && room.game.activePlayerId ? getGaloSeedCardScore(room.game, room.game.activePlayerId) : 0;
   const armadilloShareScore = room?.game && room.game.activePlayerId ? getArmadilloShareScore(room.game, room.game.activePlayerId) : 0;
   const scoringPreview = useMemo(() => {
     if (!room?.game || room.game.status !== "active" || !room.game.activePlayerId || activeActionId !== "D") {
@@ -1974,6 +2023,21 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         lineHighlights: [],
         lines: 0,
         habitats,
+        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
+      };
+    }
+
+    if (activeSpecies?.speciesId === "galo_de_campina") {
+      const positions = getGaloSeedCardPositions(room.game, room.game.activePlayerId);
+      return {
+        cardHighlights: positions.map((position) => ({
+          position,
+          label: "pinha",
+          color: 0xd94b3f
+        })),
+        lineHighlights: [],
+        lines: 0,
+        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
         armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
       };
     }
@@ -3025,6 +3089,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             ? addCapuchinForCurrentAction(room.game, room.game.activePlayerId, position)
             : activeSpecies?.speciesId === "macaw"
               ? addMacawForCurrentAction(room.game, room.game.activePlayerId, position)
+              : activeSpecies?.speciesId === "galo_de_campina"
+                ? addGaloForCurrentAction(room.game, room.game.activePlayerId, position)
               : activeSpecies?.speciesId === "armadillo"
                 ? addArmadilloForCurrentAction(room.game, room.game.activePlayerId, position)
                 : activeSpecies?.speciesId === "maned_wolf"
@@ -3044,6 +3110,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             ? "Macaco-prego adicionado."
             : activeSpecies?.speciesId === "macaw"
               ? "Arara adicionada."
+              : activeSpecies?.speciesId === "galo_de_campina"
+                ? "Galo-de-campina adicionado."
               : activeSpecies?.speciesId === "armadillo"
                 ? "Tatu-bola adicionado."
                 : activeSpecies?.speciesId === "maned_wolf"
@@ -3058,6 +3126,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           ? roomApi.addCapuchin(requireSocket(), room.roomId, position.x, position.y)
           : activeSpecies?.speciesId === "macaw"
             ? roomApi.addMacaw(requireSocket(), room.roomId, position.x, position.y)
+            : activeSpecies?.speciesId === "galo_de_campina"
+              ? roomApi.addGalo(requireSocket(), room.roomId, position.x, position.y)
             : activeSpecies?.speciesId === "armadillo"
               ? roomApi.addArmadillo(requireSocket(), room.roomId, position.x, position.y)
               : activeSpecies?.speciesId === "maned_wolf"
@@ -3293,6 +3363,33 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setMacawScoreAnim(null);
       finalize();
     }, 2400);
+  }, [canControlActivePlayer, isLocalRoom, room, socket]);
+
+  const handleScoreGalo = useCallback(() => {
+    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
+      return;
+    }
+
+    if (isLocalRoom) {
+      const nextGame = scoreGaloSeedCards(room.game, room.game.activePlayerId);
+      setRoom({
+        ...room,
+        status: nextGame.status === "active" ? "active" : room.status,
+        game: nextGame,
+        warnings: nextGame.contentWarnings
+      });
+      setSelectedHandCardId(null);
+      setSelectedPieceId(null);
+      setSelectedRemovalPieceIds([]);
+      setNotice("Galo-de-campina pontuado.");
+      return;
+    }
+
+    void run(() => roomApi.scoreGalo(requireSocket(), room.roomId)).then(() => {
+      setSelectedHandCardId(null);
+      setSelectedPieceId(null);
+      setSelectedRemovalPieceIds([]);
+    });
   }, [canControlActivePlayer, isLocalRoom, room, socket]);
 
   const handleHideArmadillo = useCallback(() => {
@@ -3895,7 +3992,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
     const species = activeSpecies?.speciesId;
-    if (species !== "capuchin" && species !== "macaw" && species !== "armadillo") {
+    if (species !== "capuchin" && species !== "macaw" && species !== "galo_de_campina" && species !== "armadillo") {
       return;
     }
     const key = `${room.game.activePlayerId}:${room.game.round}:${species}:D`;
@@ -3911,6 +4008,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         handleScoreCapuchin();
       } else if (species === "macaw") {
         handleScoreMacaw();
+      } else if (species === "galo_de_campina") {
+        handleScoreGalo();
       } else {
         handleScoreArmadillo();
       }
@@ -3923,6 +4022,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     canControlActivePlayer,
     handleScoreArmadillo,
     handleScoreCapuchin,
+    handleScoreGalo,
     handleScoreMacaw,
     hasPendingCoatiPairBonus,
     room?.game?.activePlayerId,
@@ -6461,6 +6561,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   ? "Adicionar macaco"
                   : activeSpecies?.speciesId === "macaw"
                     ? "Adicionar arara"
+                    : activeSpecies?.speciesId === "galo_de_campina"
+                      ? "Adicionar galo"
                     : activeSpecies?.speciesId === "armadillo"
                       ? "Adicionar tatu"
                       : activeSpecies?.speciesId === "maned_wolf"
@@ -6472,6 +6574,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   ? "Clique em uma carta destacada para adicionar 1 macaco"
                   : activeSpecies?.speciesId === "macaw"
                     ? "Clique em uma carta destacada para adicionar 1 arara"
+                    : activeSpecies?.speciesId === "galo_de_campina"
+                      ? "Clique em uma carta de campo para adicionar 1 galo"
                     : activeSpecies?.speciesId === "armadillo"
                       ? "Clique em uma carta com pinha para adicionar 1 tatu"
                       : activeSpecies?.speciesId === "maned_wolf"
@@ -7691,6 +7795,100 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               )}
               {activeThreatDefinition && (
                 <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
+                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "galo_de_campina" && (
+        <div className="hud-overlay-galo">
+          <div className="hud-top-galo">
+            <img src="/assets/interface/galo/UI_galodecampinaTOP.png" alt="" className="hud-top-galo-bg" />
+            <div className="hud-top-galo-score">
+              {currentGamePlayer.score ?? 0}
+            </div>
+            <div className="hud-top-galo-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
+              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.galo_de_campina.meepleAsset)}
+            </div>
+          </div>
+          <div className="hud-bottom-galo">
+            <img src="/assets/interface/galo/UI_galodecampina.png" alt="" className="hud-bottom-galo-bg" />
+            <div className="hud-bottom-galo-action-text">
+              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.galo_de_campina } as CSSProperties}>
+                <ActionStepsViewer
+                  speciesId="galo_de_campina"
+                  activeActionId={ownActiveActionId}
+                  accent={SPECIES_HEX.galo_de_campina}
+                />
+
+                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+                  <>
+                    {activeActionId === "A" && (
+                      <>
+                        <div className="action-box-hint">
+                          {room.game.activePlayedForestCardId
+                            ? "Clique em uma carta de campo destacada para abrigar 1 galo-de-campina."
+                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                        </div>
+                        {room.game.activePlayedForestCardId && (
+                          <div className="action-box-actions">
+                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                              Avançar sem adicionar
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {activeActionId === "B" && (
+                      <div className="action-box-hint">
+                        Selecione um Galo-de-campina e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
+                      </div>
+                    )}
+                    {activeActionId === "C" && (
+                      <>
+                        <div className="action-box-hint">
+                          {(currentGamePlayer.resources.seed ?? 0) <= 0
+                            ? "Sem pinha disponível: conclua a ação para seguir."
+                            : "Opcional: gaste 1 pinha ao mover outro galo-de-campina pelo padrão da carta jogada."}
+                        </div>
+                        <div className="action-box-actions">
+                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
+                            Concluir sem gastar
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {activeActionId === "D" && (
+                      <div className="action-box-hint">
+                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} por cartas de pinha ocupadas em pares.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="hud-bottom-galo-resources">
+              {renderHudResource("hud-bottom-galo-resource-item", "meat")}
+              {renderHudResource("hud-bottom-galo-resource-item", "fruit")}
+              {renderHudResource("hud-bottom-galo-resource-item", "egg")}
+              {renderHudResource("hud-bottom-galo-resource-item", "seed")}
+            </div>
+            <div className="hud-bottom-galo-expansions">
+              {objectivePreviewCard && (
+                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
+                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
+                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
+                </button>
+              )}
+              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
+                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                </button>
+              )}
+              {activeThreatDefinition && (
+                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
                   <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
                 </button>
               )}

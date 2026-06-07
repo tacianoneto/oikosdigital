@@ -3,6 +3,7 @@ import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
+  addGaloForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   collectCaatingaBonus,
@@ -21,6 +22,7 @@ import {
   getCapuchinPlacementPositions,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
+  getGaloFieldPlacementPositions,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawRelocatablePieceIds,
@@ -38,6 +40,7 @@ import {
   resolveCoatiPairBonus,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
+  scoreGaloSeedCards,
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
@@ -49,6 +52,7 @@ const resourcePreference: Record<SpeciesId, Resource[]> = {
   maned_wolf: ["meat", "fruit", "egg", "seed"],
   armadillo: ["seed", "fruit", "egg", "meat"],
   macaw: ["egg", "fruit", "seed", "meat"],
+  galo_de_campina: ["seed", "fruit", "egg", "meat"],
   capuchin: ["fruit", "egg", "seed", "meat"],
   coati: ["fruit", "seed", "egg", "meat"]
 };
@@ -143,6 +147,8 @@ export function playBotStep(game: GameState, playerId: string): GameState {
       return playCapuchin(game, playerId, action);
     case "macaw":
       return playMacaw(game, playerId, action);
+    case "galo_de_campina":
+      return playGalo(game, playerId, action);
     case "armadillo":
       return playArmadillo(game, playerId, action);
     case "maned_wolf":
@@ -245,6 +251,8 @@ export function playRandomStep(game: GameState, playerId: string): GameState {
       return randomCapuchin(game, playerId, action);
     case "macaw":
       return randomMacaw(game, playerId, action);
+    case "galo_de_campina":
+      return randomGalo(game, playerId, action);
     case "armadillo":
       return randomArmadillo(game, playerId, action);
     case "maned_wolf":
@@ -449,6 +457,34 @@ function randomMacaw(game: GameState, playerId: string, action: string): GameSta
   }
 
   return scoreMacawLines(game, playerId);
+}
+
+function randomGalo(game: GameState, playerId: string, action: string): GameState {
+  if (action === "A") {
+    const targets = getGaloFieldPlacementPositions(game, playerId);
+    if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
+      try {
+        return addGaloForCurrentAction(game, playerId, pickOne(targets));
+      } catch {
+        // fall through
+      }
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "B") {
+    return moveRandomOwned(game, playerId, "galo_de_campina");
+  }
+
+  if (action === "C") {
+    const player = game.players.find((candidate) => candidate.playerId === playerId);
+    if ((player?.resources.seed ?? 0) > 0 && maybe(0.6)) {
+      return moveRandomOwned(game, playerId, "galo_de_campina");
+    }
+    return completeOrSkip(game, playerId);
+  }
+
+  return scoreGaloSeedCards(game, playerId);
 }
 
 function randomArmadillo(game: GameState, playerId: string, action: string): GameState {
@@ -701,6 +737,34 @@ function playMacaw(game: GameState, playerId: string, action: string): GameState
   return scoreMacawLines(game, playerId);
 }
 
+function playGalo(game: GameState, playerId: string, action: string): GameState {
+  if (action === "A") {
+    if (hasReserve(game, playerId)) {
+      const targets = getGaloFieldPlacementPositions(game, playerId);
+      if (targets.length > 0) {
+        return addGaloForCurrentAction(game, playerId, pickPosition(game, "galo_de_campina", targets));
+      }
+    }
+
+    return completeOrSkip(game, playerId);
+  }
+
+  if (action === "B") {
+    return moveBestOwnedSpeciesPiece(game, playerId, "galo_de_campina");
+  }
+
+  if (action === "C") {
+    const player = game.players.find((candidate) => candidate.playerId === playerId);
+    if ((player?.resources.seed ?? 0) > 0) {
+      return moveBestOwnedSpeciesPiece(game, playerId, "galo_de_campina");
+    }
+
+    return completeOrSkip(game, playerId);
+  }
+
+  return scoreGaloSeedCards(game, playerId);
+}
+
 function playArmadillo(game: GameState, playerId: string, action: string): GameState {
   if (action === "A") {
     if (hasReserve(game, playerId)) {
@@ -883,6 +947,8 @@ function scoreSpeciesPlan(
   switch (speciesId) {
     case "macaw":
       return scoreMacawLinePotential(game, playerId, position);
+    case "galo_de_campina":
+      return getResourceAt(game, position) === "seed" ? 42 : 0;
     case "capuchin":
       return scoreCapuchinHabitatPotential(game, playerId, position, habitat);
     case "coati":

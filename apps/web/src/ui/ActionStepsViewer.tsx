@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { ActionId, SpeciesId } from "@oikos/shared";
 import { speciesDefinitions } from "@oikos/content";
-import { getActionDescription } from "./actionDescriptions";
+import { getActionDescription, getPassiveDescription } from "./actionDescriptions";
 
 interface ActionStepsViewerProps {
   speciesId: SpeciesId;
@@ -23,8 +23,10 @@ export function ActionStepsViewer({
 }: ActionStepsViewerProps) {
   const species = speciesDefinitions[speciesId];
   const actions = species.actions;
+  const passiveDescription = getPassiveDescription(speciesId);
+  const tabs: Array<ActionId | "*"> = passiveDescription ? ["*", ...actions] : actions;
   const fallback: ActionId = activeActionId ?? actions[0] ?? "A";
-  const [selected, setSelected] = useState<ActionId>(fallback);
+  const [selected, setSelected] = useState<ActionId | "*">(fallback);
 
   // Sync the preview to the active step whenever the turn advances or species
   // changes, so the panel snaps back to "what you must do now" by default.
@@ -41,7 +43,7 @@ export function ActionStepsViewer({
   return (
     <div className={`action-steps action-steps--${variant}`} style={style}>
       <div className="action-steps-tabs" role="tablist" aria-label="Ações da espécie">
-        {actions.map((id) => {
+        {tabs.map((id) => {
           const isActive = id === activeActionId;
           const isSelected = id === selected;
           const classes = [
@@ -59,7 +61,7 @@ export function ActionStepsViewer({
               aria-selected={isSelected}
               className={classes}
               onClick={() => setSelected(id)}
-              title={isActive ? `Ação em andamento: ${id}` : `Consultar ação ${id}`}
+              title={id === "*" ? "Consultar passiva" : isActive ? `Ação em andamento: ${id}` : `Consultar ação ${id}`}
             >
               <span className="action-steps-tab-letter">{id}</span>
               {isActive && <span className="action-steps-tab-dot" aria-hidden="true" />}
@@ -69,10 +71,12 @@ export function ActionStepsViewer({
       </div>
       <div className="action-steps-body">
         <span className="action-steps-eyebrow">
-          Ação {selected}
+          {selected === "*" ? "Passiva" : `Ação ${selected}`}
           {selected === activeActionId ? " · em andamento" : " · consulta"}
         </span>
-        <p className="action-steps-desc">{getActionDescription(speciesId, selected)}</p>
+        <p className="action-steps-desc">
+          {selected === "*" ? passiveDescription : getActionDescription(speciesId, selected)}
+        </p>
       </div>
     </div>
   );

@@ -51,6 +51,13 @@ export const speciesRules = {
     ],
     cacaIlegal: { canRemoveOwnPiece: true }
   },
+  galo_de_campina: {
+    speciesId: "galo_de_campina",
+    implemented: true,
+    pieceLogName: "galo-de-campina",
+    movementRules: [{ kind: "played_card", actions: ["B", "C"] }],
+    cacaIlegal: { canRemoveOwnPiece: true }
+  },
   capuchin: {
     speciesId: "capuchin",
     implemented: true,

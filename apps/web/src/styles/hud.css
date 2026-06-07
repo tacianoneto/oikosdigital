@@ -7440,7 +7440,8 @@
    QUATI HUD OVERLAY
    ========================================= */
 
-.hud-overlay-coati {
+.hud-overlay-coati,
+.hud-overlay-galo {
   position: fixed;
   top: 0;
   left: 0;
@@ -7454,7 +7455,8 @@
   overflow: hidden;
 }
 
-.hud-top-coati {
+.hud-top-coati,
+.hud-top-galo {
   position: absolute;
   top: 0;
   left: 0;
@@ -7462,14 +7464,16 @@
   pointer-events: none;
 }
 
-.hud-top-coati-bg {
+.hud-top-coati-bg,
+.hud-top-galo-bg {
   display: block;
   width: 100%;
   height: auto;
   pointer-events: none;
 }
 
-.hud-top-coati-score {
+.hud-top-coati-score,
+.hud-top-galo-score {
   position: absolute;
   top: 73%; 
   left: 32.5%;
@@ -7482,7 +7486,8 @@
   pointer-events: auto;
 }
 
-.hud-top-coati-meeples {
+.hud-top-coati-meeples,
+.hud-top-galo-meeples {
   position: absolute;
   top: 80%;
   left: 39%;
@@ -7495,13 +7500,15 @@
   transform: translateY(-50%);
 }
 
-.hud-top-coati-meeples img {
+.hud-top-coati-meeples img,
+.hud-top-galo-meeples img {
   width: clamp(32px, 4vw, 70px);
   height: auto;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
-.hud-top-coati-meeples img.is-in-forest {
+.hud-top-coati-meeples img.is-in-forest,
+.hud-top-galo-meeples img.is-in-forest {
   opacity: 0.7;
   filter: grayscale(0.55) saturate(0.7) brightness(0.95);
 }
@@ -7510,6 +7517,7 @@
 .hud-top-wolf-meeples,
 .hud-top-tatu-meeples,
 .hud-top-macaw-meeples,
+.hud-top-galo-meeples,
 .hud-top-capuchin-meeples,
 .hud-top-coati-meeples {
   position: fixed;
@@ -7531,6 +7539,7 @@
 .hud-top-wolf-meeples img,
 .hud-top-tatu-meeples img,
 .hud-top-macaw-meeples img,
+.hud-top-galo-meeples img,
 .hud-top-capuchin-meeples img,
 .hud-top-coati-meeples img {
   width: clamp(132px, 8vw, 172px);
@@ -7547,6 +7556,7 @@
 .hud-top-wolf-meeples img + img,
 .hud-top-tatu-meeples img + img,
 .hud-top-macaw-meeples img + img,
+.hud-top-galo-meeples img + img,
 .hud-top-capuchin-meeples img + img,
 .hud-top-coati-meeples img + img {
   margin-left: clamp(-78px, -4.1vw, -52px);
@@ -7561,6 +7571,7 @@
   .hud-top-wolf-meeples,
   .hud-top-tatu-meeples,
   .hud-top-macaw-meeples,
+  .hud-top-galo-meeples,
   .hud-top-capuchin-meeples,
   .hud-top-coati-meeples {
     left: 50%;
@@ -7574,6 +7585,7 @@
   .hud-top-wolf-meeples img,
   .hud-top-tatu-meeples img,
   .hud-top-macaw-meeples img,
+  .hud-top-galo-meeples img,
   .hud-top-capuchin-meeples img,
   .hud-top-coati-meeples img {
     width: 82px;
@@ -7585,6 +7597,7 @@
   .hud-top-wolf-meeples img + img,
   .hud-top-tatu-meeples img + img,
   .hud-top-macaw-meeples img + img,
+  .hud-top-galo-meeples img + img,
   .hud-top-capuchin-meeples img + img,
   .hud-top-coati-meeples img + img {
     margin-left: -38px;
@@ -7710,7 +7723,8 @@
   font-weight: 600;
 }
 
-.hud-bottom-coati {
+.hud-bottom-coati,
+.hud-bottom-galo {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -7718,14 +7732,16 @@
   pointer-events: none;
 }
 
-.hud-bottom-coati-bg {
+.hud-bottom-coati-bg,
+.hud-bottom-galo-bg {
   display: block;
   width: 100%;
   height: auto;
   pointer-events: none;
 }
 
-.hud-bottom-coati-action-text {
+.hud-bottom-coati-action-text,
+.hud-bottom-galo-action-text {
   position: absolute;
   bottom: 43%; 
   left: 1.5%;
@@ -7739,13 +7755,15 @@
   pointer-events: auto;
 }
 
-.hud-bottom-coati-resources {
+.hud-bottom-coati-resources,
+.hud-bottom-galo-resources {
   position: absolute;
   bottom: 0; left: 0; width: 100%; height: 100%;
   pointer-events: none;
 }
 
-.hud-bottom-coati-resource-item {
+.hud-bottom-coati-resource-item,
+.hud-bottom-galo-resource-item {
   position: absolute;
   font-family: "Edo SZ", "Londrina Solid", Outfit, sans-serif !important;
   font-size: clamp(24px, 3.2vw, 48px);
@@ -7769,7 +7787,8 @@
   height: auto;
 }
 
-.hud-bottom-coati-expansions {
+.hud-bottom-coati-expansions,
+.hud-bottom-galo-expansions {
   position: absolute;
   bottom: 3%;
   right: 13.5%;
@@ -7779,7 +7798,8 @@
   pointer-events: auto;
 }
 
-.hud-bottom-coati-expansion-btn {
+.hud-bottom-coati-expansion-btn,
+.hud-bottom-galo-expansion-btn {
   background: none;
   border: none;
   padding: 0;
@@ -7787,11 +7807,13 @@
   transition: transform 0.2s ease;
 }
 
-.hud-bottom-coati-expansion-btn:hover {
+.hud-bottom-coati-expansion-btn:hover,
+.hud-bottom-galo-expansion-btn:hover {
   transform: scale(1.1);
 }
 
-.hud-bottom-coati-expansion-btn img {
+.hud-bottom-coati-expansion-btn img,
+.hud-bottom-galo-expansion-btn img {
   width: clamp(32px, 4.5vw, 80px);
   height: auto;
   border-radius: 8px;

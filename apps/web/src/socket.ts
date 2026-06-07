@@ -160,6 +160,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "action:complete", { roomId }),
   addCoati: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "coati:add", { roomId, x, y }),
+  addGalo: (socket: OikosSocket, roomId: string, x: number, y: number) =>
+    emitWithReply<PublicRoomState>(socket, "galo:add", { roomId, x, y }),
   resolveCoatiPair: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "coati:resolve-pair", { roomId, x, y }),
   addCapuchin: (socket: OikosSocket, roomId: string, x: number, y: number) =>
@@ -180,6 +182,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "capuchin:score", { roomId }),
   scoreMacaw: (socket: OikosSocket, roomId: string) =>
     emitWithReply<PublicRoomState>(socket, "macaw:score", { roomId }),
+  scoreGalo: (socket: OikosSocket, roomId: string) =>
+    emitWithReply<PublicRoomState>(socket, "galo:score", { roomId }),
   hideArmadillo: (socket: OikosSocket, roomId: string, pieceId: string) =>
     emitWithReply<PublicRoomState>(socket, "armadillo:hide", { roomId, pieceId }),
   scoreArmadillo: (socket: OikosSocket, roomId: string) =>

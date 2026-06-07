@@ -30,6 +30,21 @@ const macawActionDescriptions: Partial<Record<ActionId, string>> = {
   D: "Marque 1 ponto por linha reta de 3 ou + araras na floresta (ortogonal ou diagonal)."
 };
 
+const galoActionDescriptions: Partial<Record<ActionId, string>> = {
+  A: "Expanda a floresta. Adicione 1 galo-de-campina em um local de campo.",
+  B: "Mova 1 galo-de-campina conforme a carta jogada.",
+  C: "Pode gastar 1 pinha para mover outro galo-de-campina conforme a carta jogada.",
+  D: "Marque 1 ponto para cada 2 galos-de-campina em cartas diferentes de pinha."
+};
+
+export function getPassiveDescription(speciesId: SpeciesId | null | undefined): string | null {
+  if (speciesId === "galo_de_campina") {
+    return "Sempre que se move para um local de pinha, coleta 1 pinha extra.";
+  }
+
+  return null;
+}
+
 const armadilloActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Adicione 1 tatu em um local de pinha.",
   B: "Mova 1 tatu conforme a carta jogada.",
@@ -63,6 +78,10 @@ export function getActionDescription(speciesId: SpeciesId | null | undefined, ac
 
   if (speciesId === "macaw") {
     return macawActionDescriptions[actionId] ?? "Ação da Arara-azul pendente de implementação.";
+  }
+
+  if (speciesId === "galo_de_campina") {
+    return galoActionDescriptions[actionId] ?? "Ação do Galo-de-campina pendente de implementação.";
   }
 
   if (speciesId === "armadillo") {

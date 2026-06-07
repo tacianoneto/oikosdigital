@@ -90,6 +90,25 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     portraitAsset: "/assets/portraits/arara.png",
     movementAsset: "/assets/movimentos/Movimentos_arara.png"
   },
+  galo_de_campina: {
+    speciesId: "galo_de_campina",
+    displayName: "Galo-de-campina",
+    scientificName: "Paroaria dominicana",
+    category: "middle",
+    totalPieces: 5,
+    initialPieces: 2,
+    usesForestCards: true,
+    actions: ["A", "B", "C", "D"],
+    movementPatternsByHabitat: {
+      forest: "diagonal",
+      field: "adjacent",
+      river: "knight_jump"
+    },
+    boardAsset: "/assets/interface/galo/UI_galodecampinaTOP.png",
+    meepleAsset: "/assets/meeples/galo de campina.png",
+    portraitAsset: "/assets/meeples/galo de campina.png",
+    movementAsset: "/assets/interface/galo/UI_galodecampina.png"
+  },
   capuchin: {
     speciesId: "capuchin",
     displayName: "Macaco-prego",
@@ -134,6 +153,7 @@ export const speciesOrderBySetup: SpeciesId[] = [
   "jaguar",
   "maned_wolf",
   "armadillo",
+  "galo_de_campina",
   "macaw",
   "capuchin",
   "coati"
@@ -143,6 +163,7 @@ export const speciesOrderByTurn: SpeciesId[] = [
   "coati",
   "capuchin",
   "macaw",
+  "galo_de_campina",
   "armadillo",
   "maned_wolf",
   "jaguar"

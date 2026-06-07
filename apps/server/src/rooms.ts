@@ -3,6 +3,7 @@ import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
+  addGaloForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   completeCurrentAction,
@@ -26,6 +27,7 @@ import {
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
+  scoreGaloSeedCards,
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
@@ -961,6 +963,20 @@ export function addCoati(roomId: string, playerId: string, x: number, y: number)
   return toPublicRoom(room);
 }
 
+export function addGalo(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (!room.game) {
+    throw new Error("A partida ainda não foi iniciada.");
+  }
+
+  room.game = addGaloForCurrentAction(room.game, playerId, { x, y });
+  room.status = "active";
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
 export function resolveCoatiPair(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
   const room = getRoom(roomId);
 
@@ -1075,6 +1091,24 @@ export function scoreMacaw(roomId: string, playerId: string): PublicRoomState {
   }
 
   room.game = scoreMacawLines(room.game, playerId);
+  room.status = room.game.status === "active" ? "active" : room.status;
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
+export function scoreGalo(roomId: string, playerId: string): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (!room.game) {
+    throw new Error("A partida ainda não foi iniciada.");
+  }
+
+  if (isStaleScoreRequest(room, playerId, "galo_de_campina")) {
+    return toPublicRoom(room);
+  }
+
+  room.game = scoreGaloSeedCards(room.game, playerId);
   room.status = room.game.status === "active" ? "active" : room.status;
   room.warnings = room.game.contentWarnings;
 
@@ -1250,7 +1284,8 @@ export function getAutomaticScorePlayer(roomId: string): string | null {
 
   const action = speciesDefinitions[speciesId].actions[room.game.activeActionIndex];
   const isAutomaticScoreAction =
-    action === "D" && (speciesId === "capuchin" || speciesId === "macaw" || speciesId === "armadillo");
+    action === "D" &&
+    (speciesId === "capuchin" || speciesId === "macaw" || speciesId === "galo_de_campina" || speciesId === "armadillo");
 
   return isAutomaticScoreAction ? activePlayer.playerId : null;
 }
@@ -1267,6 +1302,8 @@ export function advanceAutomaticScore(roomId: string): PublicRoomState | null {
     room.game = scoreCapuchinHabitatPresence(room.game, playerId);
   } else if (player?.speciesId === "macaw") {
     room.game = scoreMacawLines(room.game, playerId);
+  } else if (player?.speciesId === "galo_de_campina") {
+    room.game = scoreGaloSeedCards(room.game, playerId);
   } else if (player?.speciesId === "armadillo") {
     room.game = scoreArmadilloSharing(room.game, playerId);
   } else {

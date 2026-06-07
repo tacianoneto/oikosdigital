@@ -3,6 +3,7 @@ export type SpeciesId =
   | "maned_wolf"
   | "armadillo"
   | "macaw"
+  | "galo_de_campina"
   | "capuchin"
   | "coati";
 
@@ -260,6 +261,10 @@ export interface GameState {
     playerId: string;
     pieceId: string;
     location: GridPosition;
+  } | null;
+  pendingGaloMovedPiece: {
+    playerId: string;
+    pieceId: string;
   } | null;
   pendingWolfMoves: {
     playerId: string;

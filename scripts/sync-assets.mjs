@@ -27,6 +27,7 @@ const groups = [
   { from: join(root, "interface", "lobo guara"), to: join(publicAssets, "interface", "lobo") },
   { from: join(root, "interface", "tatu"), to: join(publicAssets, "interface", "tatu") },
   { from: join(root, "interface", "arara"), to: join(publicAssets, "interface", "arara") },
+  { from: join(root, "interface", "galo de campina"), to: join(publicAssets, "interface", "galo") },
   { from: join(root, "interface", "macaco prego"), to: join(publicAssets, "interface", "macaco") },
   { from: join(root, "interface", "quati"), to: join(publicAssets, "interface", "quati") },
   { from: join(root, "fonts"), to: join(publicAssets, "fonts"), extensions: [".ttf", ".otf", ".woff", ".woff2"] }

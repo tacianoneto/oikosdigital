@@ -5,6 +5,7 @@ import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
+  addGaloForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   completeCurrentAction,
@@ -26,6 +27,8 @@ import {
   getCapuchinScoringHabitats,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
+  getGaloFieldPlacementPositions,
+  getGaloSeedCardScore,
   getRequiredCoatiRemovalCount,
   getForestPositionsWithResource,
   getForestSiteOccupancy,
@@ -54,6 +57,7 @@ import {
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
+  scoreGaloSeedCards,
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
@@ -1405,6 +1409,79 @@ describe("setup placement", () => {
     expect(game.players.find((candidate) => candidate.playerId === "macaw")?.score).toBe(3);
   });
 
+  it("plays Galo-de-campina action A by expanding and adding a galo on a field card", () => {
+    let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "galo", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "galo", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 1 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 1 });
+    game = {
+      ...setActiveAction(game, "galo", 0),
+      players: game.players.map((candidate) => (candidate.playerId === "galo" ? { ...candidate, hand: ["campo_2"] } : candidate))
+    };
+
+    const reserveBefore = game.players.find((candidate) => candidate.playerId === "galo")!.reservePieces.length;
+    game = placeForestCard(game, "galo", "campo_2", { x: 2, y: 0 });
+
+    const fieldTargets = getGaloFieldPlacementPositions(game, "galo");
+    expect(fieldTargets).toContainEqual({ x: 2, y: 0 });
+
+    game = addGaloForCurrentAction(game, "galo", { x: 2, y: 0 });
+
+    const galo = game.players.find((candidate) => candidate.playerId === "galo");
+    expect(galo?.reservePieces).toHaveLength(reserveBefore - 1);
+    expect(game.pieces.filter((piece) => piece.ownerId === "galo" && piece.location?.x === 2 && piece.location.y === 0)).toHaveLength(1);
+    expect(game.activePlayerId).toBe("galo");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
+  it("gives Galo-de-campina an extra seed on seed movement and spends seed to move another galo in action C", () => {
+    let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "galo", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "galo", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: -1, y: 1 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 1 });
+    game = {
+      ...setActiveAction(game, "galo", 1),
+      activePlayedForestCardId: "campo_2"
+    };
+
+    const firstPieceId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === -1 && piece.location.y === -1)?.pieceId;
+    const secondPieceId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === 0 && piece.location.y === -1)?.pieceId;
+
+    expect(getValidPieceMovementDestinations(game, "galo", firstPieceId!)).toContainEqual({ x: -1, y: 0 });
+    game = movePieceForCurrentAction(game, "galo", firstPieceId!, { x: -1, y: 0 });
+
+    expect(game.players.find((candidate) => candidate.playerId === "galo")?.resources.seed).toBe(2);
+    expect(game.activeActionIndex).toBe(2);
+    expect(getValidPieceMovementDestinations(game, "galo", firstPieceId!)).toEqual([]);
+    expect(getValidPieceMovementDestinations(game, "galo", secondPieceId!)).toContainEqual({ x: 1, y: -1 });
+
+    game = movePieceForCurrentAction(game, "galo", secondPieceId!, { x: 1, y: -1 });
+
+    const galo = game.players.find((candidate) => candidate.playerId === "galo");
+    expect(galo?.resources.seed).toBe(1);
+    expect(galo?.resources.fruit).toBe(1);
+    expect(game.activeActionIndex).toBe(3);
+  });
+
+  it("scores Galo-de-campina action D by pairs of different seed cards", () => {
+    let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
+    game = placeInitialPiece(game, "galo", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "galo", { x: -1, y: 1 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 1 });
+    game = setActiveAction(game, "galo", 3);
+
+    expect(getGaloSeedCardScore(game, "galo")).toBe(1);
+
+    game = scoreGaloSeedCards(game, "galo");
+
+    expect(game.players.find((candidate) => candidate.playerId === "galo")?.score).toBe(1);
+    expect(game.players.find((candidate) => candidate.playerId === "galo")?.turnsTaken).toBe(1);
+    expect(game.activePlayerId).toBe("coati");
+  });
+
   it("plays Tatu-bola action A by expanding and adding an armadillo on a seed card", () => {
     let game = createTestGameState("room", [player("armadillo", "armadillo"), player("coati", "coati")]);
     game = placeInitialPiece(game, "armadillo", { x: -1, y: -1 });
@@ -2350,6 +2427,7 @@ function setActiveAction(game: ReturnType<typeof createInitialGameState>, player
     activePlayedForestCardId: null,
     pendingCoatiPairBonus: null,
     pendingMacawMovedPiece: null,
+    pendingGaloMovedPiece: null,
     pendingWolfMoves: null
   };
 }

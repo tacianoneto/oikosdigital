@@ -13,6 +13,7 @@ import {
   addArmadillo,
   addCapuchin,
   addCoati,
+  addGalo,
   addMacaw,
   addWolf,
   advanceAutomaticScore,
@@ -49,6 +50,7 @@ import {
   resolveCoatiPair,
   removeBots,
   scoreCapuchin,
+  scoreGalo,
   scoreArmadillo,
   scoreMacaw,
   selectSpecies,
@@ -694,6 +696,14 @@ io.on("connection", (socket) => {
     });
   });
 
+  socket.on("galo:add", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = addGalo(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
   socket.on("coati:resolve-pair", (payload: { roomId: string; x: number; y: number }, reply) => {
     withReply(reply, () => {
       const room = resolveCoatiPair(payload.roomId, playerId, payload.x, payload.y);
@@ -769,6 +779,14 @@ io.on("connection", (socket) => {
   socket.on("macaw:score", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
       const room = scoreMacaw(payload.roomId, playerId);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("galo:score", (payload: { roomId: string }, reply) => {
+    withReply(reply, () => {
+      const room = scoreGalo(payload.roomId, playerId);
       broadcastRoom(room);
       return room;
     });
