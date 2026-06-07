@@ -44,7 +44,7 @@ export const scenarioCards: ScenarioCardDefinition[] = [
     label: "Pantanal",
     imagePath: `${scenarioBasePath}/Cen6.png`,
     description:
-      "Ao final da última rodada (antes da contagem de pontos e maiorias), a carta que sobrar na mão de cada jogador deve ser revelada e 2 unidades do recurso dela adicionadas ao estoque desse jogador. Qualquer jogador que por alguma razão não tiver cartas na mão neste momento recebe 1."
+      "Ao final da última rodada (antes da contagem de pontos e maiorias), a carta que sobrar na mão de cada jogador deve ser revelada e 2 unidades do recurso dela adicionadas ao estoque desse jogador. Qualquer jogador que por alguma razão não tiver cartas na mão neste momento recebe 1 [seed]."
   }
 ];
 

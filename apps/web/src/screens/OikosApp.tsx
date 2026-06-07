@@ -150,6 +150,7 @@ import {
 import { ActionStepsViewer } from "../ui/ActionStepsViewer";
 import { EndgameCeremony } from "../ui/EndgameCeremony";
 import { SettingsModal } from "../ui/SettingsModal";
+import { ScenarioDescription } from "../ui/ScenarioDescription";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -697,7 +698,7 @@ function ActiveRulesDock({
                 <img src={encodeURI(scenario.imagePath)} alt="" />
                 <div>
                   <strong>{scenario.label}</strong>
-                  <p>{scenario.description}</p>
+                  <p><ScenarioDescription text={scenario.description} /></p>
                 </div>
               </article>
             ))}
@@ -5061,7 +5062,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                               <img src={encodeURI(scenario.imagePath)} alt="" />
                               <span>
                                 <strong>{scenario.label}</strong>
-                                <small>{scenario.description}</small>
+                                <small><ScenarioDescription text={scenario.description} /></small>
                               </span>
                               {selected && <Check aria-hidden="true" />}
                             </button>
@@ -5598,7 +5599,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                                       <img src={encodeURI(scenario.imagePath)} alt="" />
                                       <span>
                                         <strong>{scenario.label}</strong>
-                                        <small>{scenario.description}</small>
+                                        <small><ScenarioDescription text={scenario.description} /></small>
                                       </span>
                                       {selected && <Check aria-hidden="true" />}
                                     </button>
@@ -6142,19 +6143,23 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
 
             <div className="resource-bank">
-              {resourceOrder.map((resource) => (
+              {resourceOrder.map((resource) => {
+                const hasMajority = resourceLeaders[resource]?.has(hudGamePlayer.playerId) ?? false;
+                return (
                 <div
-                  className="resource-chip"
+                  className={`resource-chip${hasMajority ? " is-majority" : ""}`}
                   key={resource}
+                  data-resource={resource}
                   ref={(node) => setEffectTarget(`hud:${resource}`, node)}
-                  title={resourceLabels[resource]}
-                  aria-label={`${resourceLabels[resource]}: ${hudGamePlayer.resources[resource] ?? 0}`}
+                  title={hasMajority ? `${resourceLabels[resource]} — maioria` : resourceLabels[resource]}
+                  aria-label={`${resourceLabels[resource]}: ${hudGamePlayer.resources[resource] ?? 0}${hasMajority ? " (maioria)" : ""}`}
                 >
                   <img src={encodeURI(resourceAssets[resource])} alt="" />
                   <span>{resourceLabels[resource]}</span>
                   <strong><AnimatedNumber value={hudGamePlayer.resources[resource] ?? 0} /></strong>
                 </div>
-              ))}
+              );
+              })}
               {floatingGains.length > 0 && (
                 <div className="floating-gains" aria-hidden="true">
                   {floatingGains.map((gain) => (

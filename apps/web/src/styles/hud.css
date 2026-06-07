@@ -1303,8 +1303,47 @@
 .ceremony-seg {
   height: 100%;
   min-width: 0;
-  transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1), filter 160ms ease;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  cursor: help;
+}
+
+.ceremony-seg:hover {
+  filter: brightness(1.25);
+}
+
+.ceremony-seg-tooltip {
+  position: fixed;
+  z-index: 200;
+  transform: translate(-50%, calc(-100% - 12px));
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: rgba(8, 16, 12, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
+  color: var(--paper);
+  white-space: nowrap;
+  font-family: Outfit, sans-serif;
+}
+
+.ceremony-seg-tooltip strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.ceremony-seg-tooltip span {
+  font-size: 11px;
+  opacity: 0.78;
+}
+
+.ceremony-seg-tooltip b {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffd666;
 }
 
 .ceremony-seg:not(:last-child) {
@@ -8141,6 +8180,7 @@
 .hud-bottom-wolf-action-text,
 .hud-bottom-tatu-action-text,
 .hud-bottom-macaw-action-text,
+.hud-bottom-galo-action-text,
 .hud-bottom-capuchin-action-text,
 .hud-bottom-coati-action-text {
   position: absolute;
@@ -8322,6 +8362,7 @@
 .hud-bottom-wolf-resource-item.is-majority,
 .hud-bottom-tatu-resource-item.is-majority,
 .hud-bottom-macaw-resource-item.is-majority,
+.hud-bottom-galo-resource-item.is-majority,
 .hud-bottom-capuchin-resource-item.is-majority,
 .hud-bottom-coati-resource-item.is-majority,
 .res-meat.is-majority,
@@ -8367,6 +8408,7 @@
   .hud-bottom-wolf-resource-item.is-majority,
   .hud-bottom-tatu-resource-item.is-majority,
   .hud-bottom-macaw-resource-item.is-majority,
+  .hud-bottom-galo-resource-item.is-majority,
   .hud-bottom-capuchin-resource-item.is-majority,
   .hud-bottom-coati-resource-item.is-majority,
   .res-meat.is-majority,

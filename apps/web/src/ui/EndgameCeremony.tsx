@@ -63,7 +63,7 @@ export function EndgameCeremony({
     const list: Category[] = [
       { key: "base", label: "Pontos da partida", hint: "Conquistados ao longo do jogo", color: "#5fd08a", icon: Leaf, points: (e) => e.baseScore },
       { key: "majority", label: "Maioria de recursos", hint: "Carne, ovo e fruta dominados", color: "#f2c14e", icon: Trophy, points: (e) => e.resourceMajorityPoints },
-      { key: "seed", label: "Sementes", hint: "1 ponto a cada 2 sementes", color: "#4cc6e8", icon: Sprout, points: (e) => e.seedPoints }
+      { key: "seed", label: "Pinhas", hint: "1 ponto a cada 2 pinhas", color: "#4cc6e8", icon: Sprout, points: (e) => e.seedPoints }
     ];
     if (hasObjective) {
       list.push({ key: "objective", label: "Objetivos", hint: "Metas da mini-expansão", color: "#b98cff", icon: Target, points: (e) => e.objectivePoints });
@@ -103,6 +103,7 @@ export function EndgameCeremony({
   const [catStep, setCatStep] = useState(1);
   const [done, setDone] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [segTip, setSegTip] = useState<{ x: number; y: number; title: string; hint: string; points: number } | null>(null);
   const reduceMotion = useRef(false);
 
   useEffect(() => {
@@ -183,6 +184,8 @@ export function EndgameCeremony({
     return rows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, playerStep, catStep, done, categories, revealSeq, pointCap]);
+
+  const categoryByKey = useMemo(() => new Map(categories.map((c) => [c.key, c])), [categories]);
 
   const currentPlayerId = revealSeq[playerStep];
   const currentEntry = entries.find((e) => e.playerId === currentPlayerId) ?? null;
@@ -322,16 +325,27 @@ export function EndgameCeremony({
                     {species && <small>{species.displayName}</small>}
                   </div>
                   <div className="ceremony-bar" role="presentation">
-                    {segments.map((seg) => (
-                      <span
-                        key={seg.key}
-                        className={`ceremony-seg ${seg.active ? "is-active" : ""}`}
-                        style={{
-                          width: seg.revealed ? `${seg.widthPct}%` : "0%",
-                          background: seg.color
-                        }}
-                      />
-                    ))}
+                    {segments.map((seg) => {
+                      const cat = categoryByKey.get(seg.key);
+                      const showTip = (event: { clientX: number; clientY: number }) => {
+                        if (!cat) return;
+                        setSegTip({ x: event.clientX, y: event.clientY, title: cat.label, hint: cat.hint, points: seg.points });
+                      };
+                      return (
+                        <span
+                          key={seg.key}
+                          className={`ceremony-seg ${seg.active ? "is-active" : ""}`}
+                          aria-label={cat ? `${cat.label}: ${cat.hint}, ${seg.points} pontos` : undefined}
+                          onMouseEnter={showTip}
+                          onMouseMove={showTip}
+                          onMouseLeave={() => setSegTip(null)}
+                          style={{
+                            width: seg.revealed ? `${seg.widthPct}%` : "0%",
+                            background: seg.color
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
                 <span className="ceremony-points">
@@ -371,7 +385,7 @@ export function EndgameCeremony({
                   const isWinner = winnerPlayerIds.includes(entry.playerId);
                   const chips = categories
                     .map((c) => ({ key: c.key, label: c.label, icon: c.icon, color: c.color, value: c.points(entry) }))
-                    .filter((c) => c.key === "base" || c.value !== 0);
+                    .filter((c) => c.key === "base" || c.key === "seed" || c.value !== 0);
                   return (
                     <div
                       key={entry.playerId}
@@ -432,6 +446,18 @@ export function EndgameCeremony({
           </>
         )}
       </div>
+
+      {segTip && (
+        <div
+          className="ceremony-seg-tooltip"
+          role="tooltip"
+          style={{ left: segTip.x, top: segTip.y } as CSSProperties}
+        >
+          <strong>{segTip.title}</strong>
+          <span>{segTip.hint}</span>
+          <b>{segTip.points > 0 ? `+${segTip.points} pt${segTip.points > 1 ? "s" : ""}` : "0 pts"}</b>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { AlertTriangle, Copy, Eye, LogOut, Minus, Play, Plus, Settings, Users, Volume2, VolumeX, X } from "lucide-react";
 import type { AudioSettings } from "./audio";
 import { initAudioOnGesture, playClick } from "./audio";
+import { ScenarioDescription } from "./ScenarioDescription";
 
 interface TableScenarioInfo {
   id: string;
@@ -121,7 +122,7 @@ export function SettingsModal({
                     <img src={encodeURI(scenario.imagePath)} alt="" />
                     <div>
                       <strong>{scenario.label}</strong>
-                      <p>{scenario.description}</p>
+                      <p><ScenarioDescription text={scenario.description} /></p>
                     </div>
                   </article>
                 ))}
