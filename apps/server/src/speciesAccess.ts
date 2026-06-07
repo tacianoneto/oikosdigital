@@ -1,7 +1,7 @@
 import type { SpeciesId } from "@oikos/shared";
 import { getUserEntitlements } from "./auth";
 
-const baseSpeciesIds = new Set<string>(["jaguar", "maned_wolf", "armadillo", "macaw", "capuchin", "coati"]);
+const baseSpeciesIds = new Set<string>(["jaguar", "maned_wolf", "armadillo", "macaw", "galo_de_campina", "capuchin", "coati"]);
 
 const typeKeys = ["item_type", "entitlement_type", "type", "kind", "category"];
 const valueKeys = ["item_key", "entitlement_key", "key", "species_id", "item_id"];

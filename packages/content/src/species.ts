@@ -106,7 +106,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     },
     boardAsset: "/assets/interface/galo/UI_galodecampinaTOP.png",
     meepleAsset: "/assets/meeples/galo de campina.png",
-    portraitAsset: "/assets/meeples/galo de campina.png",
+    portraitAsset: "/assets/portraits/galo_de_campina.png",
     movementAsset: "/assets/interface/galo/UI_galodecampina.png"
   },
   capuchin: {
