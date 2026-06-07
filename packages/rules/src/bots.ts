@@ -4,6 +4,7 @@ import {
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
   addGaloForCurrentAction,
+  addGaloAdjacentForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   collectCaatingaBonus,
@@ -23,6 +24,7 @@ import {
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
   getGaloFieldPlacementPositions,
+  getGaloAdjacentAddPositions,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawRelocatablePieceIds,
@@ -477,6 +479,18 @@ function randomGalo(game: GameState, playerId: string, action: string): GameStat
   }
 
   if (action === "C") {
+    if (game.pendingGaloAdjacentAdd?.playerId === playerId) {
+      const targets = getGaloAdjacentAddPositions(game, playerId);
+      if (targets.length > 0) {
+        try {
+          return addGaloAdjacentForCurrentAction(game, playerId, pickOne(targets));
+        } catch {
+          // fall through to skip
+        }
+      }
+      return completeOrSkip(game, playerId);
+    }
+
     const player = game.players.find((candidate) => candidate.playerId === playerId);
     if ((player?.resources.seed ?? 0) > 0 && maybe(0.6)) {
       return moveRandomOwned(game, playerId, "galo_de_campina");
@@ -754,6 +768,15 @@ function playGalo(game: GameState, playerId: string, action: string): GameState 
   }
 
   if (action === "C") {
+    if (game.pendingGaloAdjacentAdd?.playerId === playerId) {
+      const targets = getGaloAdjacentAddPositions(game, playerId);
+      if (targets.length > 0) {
+        return addGaloAdjacentForCurrentAction(game, playerId, pickPosition(game, "galo_de_campina", targets));
+      }
+
+      return completeOrSkip(game, playerId);
+    }
+
     const player = game.players.find((candidate) => candidate.playerId === playerId);
     if ((player?.resources.seed ?? 0) > 0) {
       return moveBestOwnedSpeciesPiece(game, playerId, "galo_de_campina");

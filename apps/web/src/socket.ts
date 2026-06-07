@@ -162,6 +162,8 @@ export const roomApi = {
     emitWithReply<PublicRoomState>(socket, "coati:add", { roomId, x, y }),
   addGalo: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "galo:add", { roomId, x, y }),
+  addGaloAdjacent: (socket: OikosSocket, roomId: string, x: number, y: number) =>
+    emitWithReply<PublicRoomState>(socket, "galo:add-adjacent", { roomId, x, y }),
   resolveCoatiPair: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "coati:resolve-pair", { roomId, x, y }),
   addCapuchin: (socket: OikosSocket, roomId: string, x: number, y: number) =>

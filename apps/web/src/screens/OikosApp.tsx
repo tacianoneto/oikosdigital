@@ -55,6 +55,7 @@ import {
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
   addGaloForCurrentAction,
+  addGaloAdjacentForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   completeCurrentAction,
@@ -73,6 +74,7 @@ import {
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
   getGaloFieldPlacementPositions,
+  getGaloAdjacentAddPositions,
   getGaloSeedCardScore,
   getGaloSeedCardPositions,
   getAvailableForestExpansionPositions,
@@ -1943,6 +1945,17 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
     return getGaloFieldPlacementPositions(room.game, room.game.activePlayerId);
   }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
+  const galoAdjacentTargets = useMemo(() => {
+    if (!room?.game || activeSpecies?.speciesId !== "galo_de_campina" || !room.game.activePlayerId || !canControlActivePlayer) {
+      return [];
+    }
+
+    return getGaloAdjacentAddPositions(room.game, room.game.activePlayerId);
+  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
+  const galoAddTargets = useMemo(
+    () => (galoAdjacentTargets.length > 0 ? galoAdjacentTargets : galoFieldTargets),
+    [galoAdjacentTargets, galoFieldTargets]
+  );
   const armadilloSeedTargets = useMemo(() => {
     if (!room?.game || activeSpecies?.speciesId !== "armadillo" || !room.game.activePlayerId || !canControlActivePlayer) {
       return [];
@@ -1964,7 +1977,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         : activeSpecies?.speciesId === "macaw"
           ? macawAddTargets
           : activeSpecies?.speciesId === "galo_de_campina"
-            ? galoFieldTargets
+            ? galoAddTargets
           : activeSpecies?.speciesId === "armadillo"
             ? armadilloSeedTargets
             : activeSpecies?.speciesId === "maned_wolf"
@@ -1975,7 +1988,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       armadilloSeedTargets,
       capuchinPlacementTargets,
       coatiFruitTargets,
-      galoFieldTargets,
+      galoAddTargets,
       macawAddTargets,
       wolfMeatTargets
     ]
@@ -3075,6 +3088,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       if (!room?.game || !room.game.activePlayerId || addPieceTargets.length === 0) {
         return;
       }
+      const galoAdjacentPending = room.game.pendingGaloAdjacentAdd?.playerId === room.game.activePlayerId;
       // Some tutorials teach adding as part of action A; Lobo teaches it in D.
       if (tutorialActive && tutorialGate !== "placeCard" && tutorialGate !== "addPiece") return;
       if (
@@ -3093,7 +3107,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             : activeSpecies?.speciesId === "macaw"
               ? addMacawForCurrentAction(room.game, room.game.activePlayerId, position)
               : activeSpecies?.speciesId === "galo_de_campina"
-                ? addGaloForCurrentAction(room.game, room.game.activePlayerId, position)
+                ? galoAdjacentPending
+                  ? addGaloAdjacentForCurrentAction(room.game, room.game.activePlayerId, position)
+                  : addGaloForCurrentAction(room.game, room.game.activePlayerId, position)
               : activeSpecies?.speciesId === "armadillo"
                 ? addArmadilloForCurrentAction(room.game, room.game.activePlayerId, position)
                 : activeSpecies?.speciesId === "maned_wolf"
@@ -3130,7 +3146,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           : activeSpecies?.speciesId === "macaw"
             ? roomApi.addMacaw(requireSocket(), room.roomId, position.x, position.y)
             : activeSpecies?.speciesId === "galo_de_campina"
-              ? roomApi.addGalo(requireSocket(), room.roomId, position.x, position.y)
+              ? galoAdjacentPending
+                ? roomApi.addGaloAdjacent(requireSocket(), room.roomId, position.x, position.y)
+                : roomApi.addGalo(requireSocket(), room.roomId, position.x, position.y)
             : activeSpecies?.speciesId === "armadillo"
               ? roomApi.addArmadillo(requireSocket(), room.roomId, position.x, position.y)
               : activeSpecies?.speciesId === "maned_wolf"
@@ -7860,20 +7878,24 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "C" && (
                       <>
                         <div className="action-box-hint">
-                          {(currentGamePlayer.resources.seed ?? 0) <= 0
-                            ? "Sem pinha disponível: conclua a ação para seguir."
-                            : "Opcional: gaste 1 pinha ao mover outro galo-de-campina pelo padrão da carta jogada."}
+                          {room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
+                            ? "Clique em um local destacado adjacente ao galo movido para adicionar 1 galo-de-campina."
+                            : (currentGamePlayer.resources.seed ?? 0) <= 0
+                              ? "Sem pinha disponível: conclua a ação para seguir."
+                              : "Opcional: gaste 1 pinha ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."}
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            Concluir sem gastar
+                            {room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
+                              ? "Concluir sem adicionar"
+                              : "Concluir sem gastar"}
                           </button>
                         </div>
                       </>
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} por cartas de pinha ocupadas em pares.
+                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} — 1 para cada 3 galos-de-campina em cartas de pinha.
                       </div>
                     )}
                   </>

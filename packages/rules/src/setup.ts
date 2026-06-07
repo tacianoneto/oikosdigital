@@ -671,6 +671,7 @@ export function createInitialGameState(
     pendingCoatiPairBonus: null,
     pendingMacawMovedPiece: null,
     pendingGaloMovedPiece: null,
+    pendingGaloAdjacentAdd: null,
     pendingWolfMoves: null,
     pendingExtraTurnPlayerId: null,
     extraTurnPlayerId: null,
@@ -1388,6 +1389,105 @@ export function addGaloForCurrentAction(game: GameState, playerId: string, locat
   return next;
 }
 
+// Adjacent forest cards (orthogonal) around a location that still have a free
+// site to host a new galo. Used by action C's "add adjacent galo" step.
+function getGaloAdjacentTargetsForLocation(game: GameState, location: GridPosition): GridPosition[] {
+  const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
+  return getPotentialDestinations(location, "adjacent")
+    .filter((position) => forestPositions.has(positionKey(position)))
+    .filter((position) => getForestSitesAtPosition(game, position).some((site) => !site.isAtCapacity))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+export function getGaloAdjacentAddPositions(game: GameState, playerId: string): GridPosition[] {
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return [];
+  }
+
+  const pending = game.pendingGaloAdjacentAdd;
+  if (!pending || pending.playerId !== playerId) {
+    return [];
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (player?.speciesId !== "galo_de_campina" || player.reservePieces.length === 0) {
+    return [];
+  }
+
+  return getGaloAdjacentTargetsForLocation(game, pending.location);
+}
+
+export function addGaloAdjacentForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
+  if (game.status !== "active") {
+    throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "galo_de_campina") {
+    throw new Error("Adicao adjacente implementada apenas para o Galo-de-campina.");
+  }
+
+  const pending = game.pendingGaloAdjacentAdd;
+  if (!pending || pending.playerId !== playerId) {
+    throw new Error("Nao ha adicao adjacente pendente para o Galo-de-campina.");
+  }
+
+  const pieceId = player.reservePieces[0];
+  if (!pieceId) {
+    throw new Error("Nao ha galos-de-campina na reserva para adicionar.");
+  }
+
+  const validPositions = getGaloAdjacentAddPositions(game, playerId);
+  const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
+  if (!isValidPosition) {
+    throw new Error("Escolha um local adjacente ao galo-de-campina movido.");
+  }
+
+  const freeSite = getForestSitesAtPosition(game, location).find((site) => !site.isAtCapacity);
+  if (!freeSite) {
+    throw new Error("Local adjacente sem espaco livre.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
+  if (!nextPiece) {
+    throw new Error("Peca nao encontrada.");
+  }
+
+  nextPiece.location = createPieceLocation(game, location, freeSite.site.siteId);
+  nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
+  nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  next.pendingGaloAdjacentAdd = null;
+  applyCaatingaTrigger(next, playerId, location, "add");
+  const targetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
+  next.log = [
+    ...next.log,
+    {
+      id: `add_galo_adjacent_${pieceId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} adicionou 1 galo-de-campina em um local adjacente ao galo movido.`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: targetCard?.instanceId,
+        cardDefinitionId: targetCard?.definitionId,
+        habitat: targetCard ? getCardDefinitionOrNull(targetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: "C"
+      }
+    }
+  ];
+
+  advanceActiveAction(next);
+  return next;
+}
+
 export function getGaloSeedCardScore(game: GameState, playerId: string): number {
   if (game.status !== "active" || game.activePlayerId !== playerId) {
     return 0;
@@ -1398,7 +1498,27 @@ export function getGaloSeedCardScore(game: GameState, playerId: string): number 
     return 0;
   }
 
-  return Math.floor(getGaloSeedCardPositions(game, playerId).length / 2);
+  return Math.floor(getGaloSeedPieceCount(game, playerId) / 3);
+}
+
+// Counts every galo-de-campina piece sitting on a seed (pinha) card. Unlike the
+// distinct-card positions used for highlights, the same card can host more than
+// one galo and each one counts toward the score.
+export function getGaloSeedPieceCount(game: GameState, playerId: string): number {
+  let count = 0;
+  for (const piece of game.pieces) {
+    if (piece.ownerId !== playerId || piece.speciesId !== "galo_de_campina" || !piece.location) {
+      continue;
+    }
+
+    const card = getForestCardAtPosition(game, piece.location);
+    const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
+    if (definition?.resource === "seed") {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 export function getGaloSeedCardPositions(game: GameState, playerId: string): GridPosition[] {
@@ -1437,8 +1557,7 @@ export function scoreGaloSeedCards(game: GameState, playerId: string): GameState
     throw new Error("O Galo-de-campina pontua cartas de pinha durante a acao D.");
   }
 
-  const seedCards = getGaloSeedCardPositions(game, playerId);
-  const points = Math.floor(seedCards.length / 2);
+  const points = Math.floor(getGaloSeedPieceCount(game, playerId) / 3);
   const next = cloneGameState(game);
   const nextPlayer = findPlayer(next, playerId);
   nextPlayer.score += points;
@@ -1446,7 +1565,7 @@ export function scoreGaloSeedCards(game: GameState, playerId: string): GameState
     ...next.log,
     {
       id: `galo_score_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} marcou ${points} ponto(s) por galos-de-campina em cartas diferentes de pinha.`,
+      message: `${nextPlayer.name} marcou ${points} ponto(s): 1 por cada 3 galos-de-campina em cartas de pinha.`,
       createdAt: Date.now(),
       payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
     }
@@ -2554,6 +2673,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     next.pendingCoatiPairBonus = null;
     next.pendingMacawMovedPiece = null;
     next.pendingGaloMovedPiece = null;
+    next.pendingGaloAdjacentAdd = null;
     next.pendingWolfMoves = null;
     queueEndgameChoiceOrFinalize(next);
     return next;
@@ -2683,18 +2803,26 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
       if (action === "C") {
         const next = cloneGameState(game);
         const nextPlayer = findPlayer(next, playerId);
+        // Concluir a ação C pode acontecer em dois momentos: antes de gastar a
+        // pinha (não move ninguém) ou após mover o outro galo, pulando a adição
+        // adjacente opcional.
+        const skippedAdjacentAdd = next.pendingGaloAdjacentAdd?.playerId === playerId;
         next.pendingGaloMovedPiece = null;
+        next.pendingGaloAdjacentAdd = null;
         next.log = [
           ...next.log,
           {
             id: `complete_galo_C_${playerId}_${next.log.length + 1}`,
-            message: `${nextPlayer.name} concluiu a acao C sem gastar pinha.`,
+            message: skippedAdjacentAdd
+              ? `${nextPlayer.name} concluiu a acao C sem adicionar galo adjacente.`
+              : `${nextPlayer.name} concluiu a acao C sem gastar pinha.`,
             createdAt: Date.now(),
             payload: { kind: "skip", actorPlayerId: playerId, actionId: "C" }
           }
         ];
         advanceActiveAction(next);
         next.pendingGaloMovedPiece = null;
+        next.pendingGaloAdjacentAdd = null;
         return next;
       }
 
@@ -3212,6 +3340,27 @@ export function movePieceForCurrentAction(
     next.pendingGaloMovedPiece = { playerId, pieceId };
   }
 
+  // Galo action C: after moving the other galo, the player adds 1 galo from
+  // reserve adjacent to it. Stay in action C until the add (or skip) resolves;
+  // skip automatically when there is no reserve piece or no adjacent space.
+  if (player.speciesId === "galo_de_campina" && action === "C") {
+    const canAddAdjacent =
+      nextPlayer.reservePieces.length > 0 && getGaloAdjacentTargetsForLocation(next, destination).length > 0;
+    if (canAddAdjacent) {
+      next.pendingGaloAdjacentAdd = { playerId, pieceId, location: { x: destination.x, y: destination.y } };
+      next.log = [
+        ...next.log,
+        {
+          id: `galo_adjacent_pending_${pieceId}_${next.log.length + 1}`,
+          message: `${nextPlayer.name} pode adicionar 1 galo-de-campina em um local adjacente ao galo movido.`,
+          createdAt: Date.now(),
+          payload: { kind: "skip", actorPlayerId: playerId, actionId: "C" }
+        }
+      ];
+      return next;
+    }
+  }
+
   if (player.speciesId === "coati" && queuePendingCoatiPairBonus(next, playerId, destination)) {
     return next;
   }
@@ -3419,6 +3568,7 @@ function rotateToNextPlayer(game: GameState, player: PlayerState): void {
     game.pendingCoatiPairBonus = null;
     game.pendingMacawMovedPiece = null;
     game.pendingGaloMovedPiece = null;
+    game.pendingGaloAdjacentAdd = null;
     game.pendingWolfMoves = null;
     game.extraTurnPlayerId = null;
     game.log = [
@@ -4170,6 +4320,12 @@ function cloneGameState(game: GameState): GameState {
         }
       : null,
     pendingGaloMovedPiece: game.pendingGaloMovedPiece ? { ...game.pendingGaloMovedPiece } : null,
+    pendingGaloAdjacentAdd: game.pendingGaloAdjacentAdd
+      ? {
+          ...game.pendingGaloAdjacentAdd,
+          location: { ...game.pendingGaloAdjacentAdd.location }
+        }
+      : null,
     pendingWolfMoves: game.pendingWolfMoves
       ? {
           ...game.pendingWolfMoves,

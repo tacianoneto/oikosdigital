@@ -14,6 +14,7 @@ import {
   addCapuchin,
   addCoati,
   addGalo,
+  addGaloAdjacent,
   addMacaw,
   addWolf,
   advanceAutomaticScore,
@@ -699,6 +700,14 @@ io.on("connection", (socket) => {
   socket.on("galo:add", (payload: { roomId: string; x: number; y: number }, reply) => {
     withReply(reply, () => {
       const room = addGalo(payload.roomId, playerId, payload.x, payload.y);
+      broadcastRoom(room);
+      return room;
+    });
+  });
+
+  socket.on("galo:add-adjacent", (payload: { roomId: string; x: number; y: number }, reply) => {
+    withReply(reply, () => {
+      const room = addGaloAdjacent(payload.roomId, playerId, payload.x, payload.y);
       broadcastRoom(room);
       return room;
     });

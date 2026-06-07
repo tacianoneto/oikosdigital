@@ -94,9 +94,9 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     speciesId: "galo_de_campina",
     displayName: "Galo-de-campina",
     scientificName: "Paroaria dominicana",
-    category: "middle",
-    totalPieces: 5,
-    initialPieces: 2,
+    category: "base",
+    totalPieces: 7,
+    initialPieces: 3,
     usesForestCards: true,
     actions: ["A", "B", "C", "D"],
     movementPatternsByHabitat: {

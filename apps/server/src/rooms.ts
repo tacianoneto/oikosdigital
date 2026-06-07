@@ -4,6 +4,7 @@ import {
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
   addGaloForCurrentAction,
+  addGaloAdjacentForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   completeCurrentAction,
@@ -971,6 +972,20 @@ export function addGalo(roomId: string, playerId: string, x: number, y: number):
   }
 
   room.game = addGaloForCurrentAction(room.game, playerId, { x, y });
+  room.status = "active";
+  room.warnings = room.game.contentWarnings;
+
+  return toPublicRoom(room);
+}
+
+export function addGaloAdjacent(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
+  const room = getRoom(roomId);
+
+  if (!room.game) {
+    throw new Error("A partida ainda não foi iniciada.");
+  }
+
+  room.game = addGaloAdjacentForCurrentAction(room.game, playerId, { x, y });
   room.status = "active";
   room.warnings = room.game.contentWarnings;
 

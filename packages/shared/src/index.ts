@@ -266,6 +266,14 @@ export interface GameState {
     playerId: string;
     pieceId: string;
   } | null;
+  // Galo-de-campina action C: after spending 1 seed to move another galo, the
+  // player must add 1 galo from reserve adjacent to that moved galo. Holds the
+  // moved galo's id and new location until the add (or skip) resolves.
+  pendingGaloAdjacentAdd: {
+    playerId: string;
+    pieceId: string;
+    location: GridPosition;
+  } | null;
   pendingWolfMoves: {
     playerId: string;
     pieceIds: string[];
