@@ -1159,7 +1159,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
 
-  // Leader(s) per resource for the players panel. Seed (pinha) has no majority
+  // Leader(s) per resource for the players panel. Seed (semente) has no majority
   // in scoring, so it is excluded. Ties highlight every top holder. Count 0 = no
   // leader. Mirrors the endgame resource-majority rule (meat/egg/fruit only).
   const resourceLeaders = useMemo(() => {
@@ -2052,12 +2052,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         ...fieldPositions.map((position) => ({
           position,
           // A field+seed card counts for both bonuses; label it accordingly.
-          label: seedKeys.has(`${position.x},${position.y}`) ? "campina + pinha" : "campina",
+          label: seedKeys.has(`${position.x},${position.y}`) ? "campina + semente" : "campina",
           color: 0x6fae46
         })),
         ...seedPositions
           .filter((position) => !fieldPositions.some((field) => field.x === position.x && field.y === position.y))
-          .map((position) => ({ position, label: "pinha", color: 0xd94b3f }))
+          .map((position) => ({ position, label: "semente", color: 0xd94b3f }))
       ];
       return {
         cardHighlights,
@@ -6462,7 +6462,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   <>
                     <small>
                       {room.game.activePlayedForestCardId
-                        ? "Clique em uma carta com pinha destacada para adicionar 1 tatu, ou conclua sem adicionar."
+                        ? "Clique em uma carta com semente destacada para adicionar 1 tatu, ou conclua sem adicionar."
                         : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
                     </small>
                     {room.game.activePlayedForestCardId && (
@@ -6616,7 +6616,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     : activeSpecies?.speciesId === "galo_de_campina"
                       ? "Clique em uma carta de campo para adicionar 1 galo"
                     : activeSpecies?.speciesId === "armadillo"
-                      ? "Clique em uma carta com pinha para adicionar 1 tatu"
+                      ? "Clique em uma carta com semente para adicionar 1 tatu"
                       : activeSpecies?.speciesId === "maned_wolf"
                         ? "Clique em uma carta com carne para adicionar 1 lobo"
                     : "Clique em uma carta com fruta para adicionar 1 quati"
@@ -7667,7 +7667,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       <>
                         <div className="action-box-hint">
                           {room.game.activePlayedForestCardId
-                            ? "Clique em uma carta com pinha destacada para abrigar 1 tatu."
+                            ? "Clique em uma carta com semente destacada para abrigar 1 tatu."
                             : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
                         </div>
                         {room.game.activePlayedForestCardId && (
@@ -7891,8 +7891,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           {room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
                             ? "Clique em um local destacado adjacente ao galo movido para adicionar 1 galo-de-campina."
                             : (currentGamePlayer.resources.seed ?? 0) <= 0
-                              ? "Sem pinha disponível: conclua a ação para seguir."
-                              : "Opcional: gaste 1 pinha ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."}
+                              ? "Sem semente disponível: conclua a ação para seguir."
+                              : "Opcional: gaste 1 semente ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."}
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
@@ -7905,7 +7905,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} — +1 se presente em 3+ campinas, +1 se presente em 3+ locais de pinha.
+                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} — +1 se presente em 3+ campinas, +1 se presente em 3+ locais de semente.
                       </div>
                     )}
                   </>

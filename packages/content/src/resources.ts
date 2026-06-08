@@ -4,7 +4,7 @@ export const resourceLabels: Record<Resource, string> = {
   meat: "Carne",
   egg: "Ovo",
   fruit: "Fruta",
-  seed: "Pinha"
+  seed: "Semente"
 };
 
 export const resourceAssets: Record<Resource | "point", string> = {

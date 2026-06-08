@@ -32,7 +32,7 @@ export const threatCards: ThreatCardDefinition[] = [
     id: "threat_5",
     label: "Poluicao",
     imagePath: `${threatBasePath}/INF 5.png`,
-    description: "Nenhuma especie pode coletar pinha ate este turno terminar."
+    description: "Nenhuma especie pode coletar semente ate este turno terminar."
   },
   {
     id: "threat_6",

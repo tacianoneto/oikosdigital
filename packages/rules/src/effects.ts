@@ -74,7 +74,7 @@ const ruleEffects: RuleEffect[] = [
     source: "threat",
     active: (game) => game.activeThreatCardId === "threat_5",
     collectionBlockReason: (_game, context) =>
-      context.resource === "seed" ? "Poluicao bloqueia pinhas" : null
+      context.resource === "seed" ? "Poluicao bloqueia sementes" : null
   },
   {
     id: "threat_6_enchente",

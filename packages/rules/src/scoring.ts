@@ -49,7 +49,7 @@ function applyPantanalScenario(game: GameState, deps: FinalScoringDeps): void {
         ...game.log,
         {
           id: `pantanal_no_card_${player.playerId}_${game.log.length + 1}`,
-          message: `${player.name} sem cartas na mão (Pantanal): +1 pinha.`,
+          message: `${player.name} sem cartas na mão (Pantanal): +1 semente.`,
           createdAt: Date.now()
         }
       ];

@@ -33,20 +33,20 @@ const macawActionDescriptions: Partial<Record<ActionId, string>> = {
 const galoActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Adicione 1 galo-de-campina em um local de campo.",
   B: "Mova 1 galo-de-campina conforme a carta jogada.",
-  C: "Pode gastar 1 pinha para mover outro galo-de-campina conforme a carta jogada e adicionar 1 galo-de-campina em um local adjacente ao galo movido.",
-  D: "Marque 1 ponto se estiver presente em ao menos 3 campinas e 1 ponto se estiver presente em ao menos 3 locais de pinha."
+  C: "Pode gastar 1 semente para mover outro galo-de-campina conforme a carta jogada e adicionar 1 galo-de-campina em um local adjacente ao galo movido.",
+  D: "Marque 1 ponto se estiver presente em ao menos 3 campinas e 1 ponto se estiver presente em ao menos 3 locais de semente."
 };
 
 export function getPassiveDescription(speciesId: SpeciesId | null | undefined): string | null {
   if (speciesId === "galo_de_campina") {
-    return "Sempre que se move para um local de pinha, coleta 1 pinha extra.";
+    return "Sempre que se move para um local de semente, coleta 1 semente extra.";
   }
 
   return null;
 }
 
 const armadilloActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Expanda a floresta. Adicione 1 tatu em um local de pinha.",
+  A: "Expanda a floresta. Adicione 1 tatu em um local de semente.",
   B: "Mova 1 tatu conforme a carta jogada.",
   C: "Esconda qualquer um de seus tatus na floresta.",
   D: "Marque 3 pontos, -1 ponto por espécie que não divide local com nenhum tatu. (Mínimo 1 ponto.)"

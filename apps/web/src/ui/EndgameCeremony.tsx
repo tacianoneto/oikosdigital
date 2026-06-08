@@ -63,7 +63,7 @@ export function EndgameCeremony({
     const list: Category[] = [
       { key: "base", label: "Pontos da partida", hint: "Conquistados ao longo do jogo", color: "#5fd08a", icon: Leaf, points: (e) => e.baseScore },
       { key: "majority", label: "Maioria de recursos", hint: "Carne, ovo e fruta dominados", color: "#f2c14e", icon: Trophy, points: (e) => e.resourceMajorityPoints },
-      { key: "seed", label: "Pinhas", hint: "1 ponto a cada 2 pinhas", color: "#4cc6e8", icon: Sprout, points: (e) => e.seedPoints }
+      { key: "seed", label: "Sementes", hint: "1 ponto a cada 2 sementes", color: "#4cc6e8", icon: Sprout, points: (e) => e.seedPoints }
     ];
     if (hasObjective) {
       list.push({ key: "objective", label: "Objetivos", hint: "Metas da mini-expansão", color: "#b98cff", icon: Target, points: (e) => e.objectivePoints });

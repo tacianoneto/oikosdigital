@@ -105,7 +105,7 @@ interface ForestTemplate {
 }
 
 // Regra das mesas iniciais:
-//  - Sempre exatamente 3 cartas de rio: 1 de ovo, 1 de pinha (seed) e 1 de
+//  - Sempre exatamente 3 cartas de rio: 1 de ovo, 1 de semente (seed) e 1 de
 //    carne. Cada rio e de face dupla; a mesa usa a frente OU o verso, nunca os
 //    dois (ver RIVER_FACE_PAIRS).
 //  - Toda saida de rio (borda com agua) conecta com outra saida de rio OU
@@ -195,7 +195,7 @@ const FOREST_TEMPLATES: ForestTemplate[] = [
       { definitionId: RIVER_SEED_END, x: 1, y: 1, rotation: 270 }
     ]
   },
-  // L no centro: carne entra pelo topo, ovo vira em L, pinha fecha a leste.
+  // L no centro: carne entra pelo topo, ovo vira em L, semente fecha a leste.
   {
     name: "rio-L-centro-leste",
     river: [
@@ -204,7 +204,7 @@ const FOREST_TEMPLATES: ForestTemplate[] = [
       { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
     ]
   },
-  // Espelho do L: ovo vira a oeste e pinha fecha em lago a esquerda.
+  // Espelho do L: ovo vira a oeste e semente fecha em lago a esquerda.
   {
     name: "rio-L-centro-oeste",
     river: [
@@ -231,7 +231,7 @@ const FOREST_TEMPLATES: ForestTemplate[] = [
       { definitionId: RIVER_MEAT_END, x: 1, y: 0, rotation: 90 }
     ]
   },
-  // L pela base: carne sobe pela base, ovo vira a leste, pinha fecha a direita.
+  // L pela base: carne sobe pela base, ovo vira a leste, semente fecha a direita.
   {
     name: "rio-L-base-leste",
     river: [
@@ -240,7 +240,7 @@ const FOREST_TEMPLATES: ForestTemplate[] = [
       { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
     ]
   },
-  // Espelho: carne sobe pela base, ovo vira a oeste, pinha fecha a esquerda.
+  // Espelho: carne sobe pela base, ovo vira a oeste, semente fecha a esquerda.
   {
     name: "rio-L-base-oeste",
     river: [
@@ -267,7 +267,7 @@ const FOREST_TEMPLATES: ForestTemplate[] = [
       { definitionId: RIVER_SEED_END, x: 0, y: 0, rotation: 0 }
     ]
   },
-  // Zigue-zague: ovo desce pelo topo, pinha vira a leste, carne fecha.
+  // Zigue-zague: ovo desce pelo topo, semente vira a leste, carne fecha.
   {
     name: "rio-zigue-leste",
     river: [
@@ -305,7 +305,7 @@ const FOREST_TEMPLATES: ForestTemplate[] = [
   }
 ];
 
-// Garante a composicao de cada mesa: exatamente 3 rios (1 ovo, 1 pinha, 1
+// Garante a composicao de cada mesa: exatamente 3 rios (1 ovo, 1 semente, 1
 // carne), nunca as duas faces do mesmo rio, e exatamente 6 cartas de terra.
 function assertForestRiverComposition(cards: ForestCardState[], templateName: string): void {
   const riverCards = cards.filter((card) => RIVER_CARD_IDS.has(card.definitionId));
@@ -1505,7 +1505,7 @@ export function getGaloSeedCardScore(game: GameState, playerId: string): number 
 }
 
 // Action D score: +1 if the galo is present in at least 3 campinas (field cards)
-// and +1 if present in at least 3 seed (pinha) locations. Presence counts each
+// and +1 if present in at least 3 seed (semente) locations. Presence counts each
 // distinct card once, so max 2 points.
 export function getGaloScorePoints(game: GameState, playerId: string): number {
   const fieldBonus = getGaloFieldCardPositions(game, playerId).length >= GALO_PRESENCE_THRESHOLD ? 1 : 0;
@@ -1554,11 +1554,11 @@ export function scoreGaloSeedCards(game: GameState, playerId: string): GameState
 
   const player = findPlayer(game, playerId);
   if (player.speciesId !== "galo_de_campina") {
-    throw new Error("Pontuacao por cartas de pinha implementada apenas para o Galo-de-campina nesta etapa.");
+    throw new Error("Pontuacao por cartas de semente implementada apenas para o Galo-de-campina nesta etapa.");
   }
 
   if (getCurrentAction(game) !== "D") {
-    throw new Error("O Galo-de-campina pontua cartas de pinha durante a acao D.");
+    throw new Error("O Galo-de-campina pontua cartas de semente durante a acao D.");
   }
 
   const points = getGaloScorePoints(game, playerId);
@@ -1569,7 +1569,7 @@ export function scoreGaloSeedCards(game: GameState, playerId: string): GameState
     ...next.log,
     {
       id: `galo_score_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} marcou ${points} ponto(s): +1 presente em 3+ campinas, +1 presente em 3+ locais de pinha.`,
+      message: `${nextPlayer.name} marcou ${points} ponto(s): +1 presente em 3+ campinas, +1 presente em 3+ locais de semente.`,
       createdAt: Date.now(),
       payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
     }
@@ -2148,7 +2148,7 @@ export function addArmadilloForCurrentAction(game: GameState, playerId: string, 
   const validPositions = getArmadilloSeedPlacementPositions(game, playerId);
   const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
   if (!isValidPosition) {
-    throw new Error("Escolha uma carta com local de pinha para adicionar o tatu.");
+    throw new Error("Escolha uma carta com local de semente para adicionar o tatu.");
   }
 
   const next = cloneGameState(game);
@@ -2168,7 +2168,7 @@ export function addArmadilloForCurrentAction(game: GameState, playerId: string, 
     ...next.log,
     {
       id: `add_armadillo_${pieceId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} adicionou 1 tatu em local de pinha.`,
+      message: `${nextPlayer.name} adicionou 1 tatu em local de semente.`,
       createdAt: Date.now(),
       payload: {
         kind: "add_piece",
@@ -2808,7 +2808,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
         const next = cloneGameState(game);
         const nextPlayer = findPlayer(next, playerId);
         // Concluir a ação C pode acontecer em dois momentos: antes de gastar a
-        // pinha (não move ninguém) ou após mover o outro galo, pulando a adição
+        // semente (não move ninguém) ou após mover o outro galo, pulando a adição
         // adjacente opcional.
         const skippedAdjacentAdd = next.pendingGaloAdjacentAdd?.playerId === playerId;
         next.pendingGaloMovedPiece = null;
@@ -2819,7 +2819,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
             id: `complete_galo_C_${playerId}_${next.log.length + 1}`,
             message: skippedAdjacentAdd
               ? `${nextPlayer.name} concluiu a acao C sem adicionar galo adjacente.`
-              : `${nextPlayer.name} concluiu a acao C sem gastar pinha.`,
+              : `${nextPlayer.name} concluiu a acao C sem gastar semente.`,
             createdAt: Date.now(),
             payload: { kind: "skip", actorPlayerId: playerId, actionId: "C" }
           }
@@ -2867,7 +2867,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
           return completeActionWithoutOptionalAddition(game, playerId, action, "Tatu-bola");
         }
 
-        throw new Error("A acao A do Tatu-bola e concluida ao adicionar 1 tatu em local de pinha.");
+        throw new Error("A acao A do Tatu-bola e concluida ao adicionar 1 tatu em local de semente.");
       }
 
       if (action === "B") {
@@ -3280,7 +3280,7 @@ export function movePieceForCurrentAction(
 
   if (player.speciesId === "galo_de_campina" && action === "C") {
     if (player.resources.seed <= 0) {
-      throw new Error("A acao C do Galo-de-campina exige gastar 1 pinha.");
+      throw new Error("A acao C do Galo-de-campina exige gastar 1 semente.");
     }
 
     if (game.pendingGaloMovedPiece?.playerId !== playerId) {
@@ -4432,7 +4432,7 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
         ...game.log,
         {
           id: `galo_seed_bonus_${playerId}_${game.log.length + 1}`,
-          message: `${player.name} coletou +1 pinha extra pela passiva do Galo-de-campina.`,
+          message: `${player.name} coletou +1 semente extra pela passiva do Galo-de-campina.`,
           createdAt: Date.now(),
           payload: { kind: "move_piece", actorPlayerId: playerId, resources: ["seed"], count: 1 }
         }
@@ -4457,7 +4457,7 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
       ...game.log,
       {
         id: `galo_seed_bonus_${playerId}_${game.log.length + 1}`,
-        message: `${player.name} coletou +1 pinha extra pela passiva do Galo-de-campina.`,
+        message: `${player.name} coletou +1 semente extra pela passiva do Galo-de-campina.`,
         createdAt: Date.now(),
         payload: { kind: "move_piece", actorPlayerId: playerId, resources: ["seed"], count: 1 }
       }

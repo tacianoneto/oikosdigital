@@ -40,7 +40,7 @@ export const objectiveCards: ObjectiveCardDefinition[] = [
     3,
     ["predator"],
     { kind: "seed_spend", spendSeedCount: 3, points: 3 },
-    "Ao final da partida, voce pode gastar 3 pinhas para ganhar 3 pontos."
+    "Ao final da partida, voce pode gastar 3 sementes para ganhar 3 pontos."
   ),
   objectiveCard(
     4,
@@ -94,7 +94,7 @@ export const objectiveCards: ObjectiveCardDefinition[] = [
     13,
     ["base"],
     { kind: "resource_line", resource: "seed", minLength: 3, maxPoints: 2 },
-    "Ganhe 1 ponto por cada linha reta de 3 locais de pinha adjacentes. Maximo 2 pontos."
+    "Ganhe 1 ponto por cada linha reta de 3 locais de semente adjacentes. Maximo 2 pontos."
   ),
   objectiveCard(
     14,

@@ -80,13 +80,13 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Tabuleiro, habitat e recurso",
-    body: "A floresta é formada por cartas. Cada carta tem um habitat: bosque, campo ou rio. Cada carta também mostra um recurso: carne, ovo, fruta ou pinha.",
+    body: "A floresta é formada por cartas. Cada carta tem um habitat: bosque, campo ou rio. Cada carta também mostra um recurso: carne, ovo, fruta ou semente.",
     gate: "none",
     autoAdvance: false
   },
   {
     title: "Recursos importam no fim",
-    body: "Carne, ovo e fruta dão ponto por maioria no fim da partida. Quem empata na maior quantidade também recebe esse ponto. Pinha não tem maioria: cada 2 pinhas viram 1 ponto.",
+    body: "Carne, ovo e fruta dão ponto por maioria no fim da partida. Quem empata na maior quantidade também recebe esse ponto. Semente não tem maioria: cada 2 sementes viram 1 ponto.",
     gate: "none",
     autoAdvance: false
   },
@@ -127,7 +127,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Pontuação das sementes",
-    body: "Sementes, chamadas de pinhas no jogo, funcionam diferente: elas não disputam maioria. No fim, cada par de pinhas vale 1 ponto. Cinco pinhas, por exemplo, valem 2 pontos e sobra 1 pinha.",
+    body: "Sementes, chamadas de sementes no jogo, funcionam diferente: elas não disputam maioria. No fim, cada par de sementes vale 1 ponto. Cinco sementes, por exemplo, valem 2 pontos e sobra 1 semente.",
     gate: "none",
     autoAdvance: false
   },
@@ -285,7 +285,7 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação A: mover todos os lobos",
-    body: "Quando a carta é jogada, cada lobo com movimento legal precisa mover. Clique no segundo lobo destacado e mova para o bosque destacado; ele coleta uma pinha.",
+    body: "Quando a carta é jogada, cada lobo com movimento legal precisa mover. Clique no segundo lobo destacado e mova para o bosque destacado; ele coleta uma semente.",
     gate: "move",
     autoAdvance: true,
     markedMoveTarget: { x: 0, y: 1 },
@@ -302,7 +302,7 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Ação C: gastar recursos diferentes",
-    body: "Na ação C, para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto. Como há 2 lobos em campo, escolha ovo e pinha para marcar 2 pontos.",
+    body: "Na ação C, para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto. Como há 2 lobos em campo, escolha ovo e semente para marcar 2 pontos.",
     gate: "score",
     autoAdvance: true,
     completeWhenScoreAtLeast: 2,
@@ -341,7 +341,7 @@ const ARMADILLO_TUTORIAL_FOREST: ForestCardState[] = [
 const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Tatu-bola",
-    body: "Vamos aprender a jogar de Tatu-bola! Ele cresce perto de pinhas, pode se esconder e pontua dividindo locais com outras espécies. Dica: esconda os tatus para escapar do predador.",
+    body: "Vamos aprender a jogar de Tatu-bola! Ele cresce perto de sementes, pode se esconder e pontua dividindo locais com outras espécies. Dica: esconda os tatus para escapar do predador.",
     gate: "none",
     autoAdvance: false
   },
@@ -360,8 +360,8 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
     markedSlot: { x: 2, y: 0 }
   },
   {
-    title: "Ação A: adicionar em pinha",
-    body: "Depois de jogar a carta, o Tatu-bola pode adicionar 1 tatu da reserva em qualquer local com pinha. Clique na carta de pinha destacada para aumentar sua presença.",
+    title: "Ação A: adicionar em semente",
+    body: "Depois de jogar a carta, o Tatu-bola pode adicionar 1 tatu da reserva em qualquer local com semente. Clique na carta de semente destacada para aumentar sua presença.",
     gate: "addPiece",
     autoAdvance: true,
     markedAddPieceTarget: { x: 0, y: 1 },
@@ -401,7 +401,7 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Turno do Tatu-bola completo",
-    body: "Resumo: A joga carta e adiciona tatu em pinha; B move conforme o habitat da carta; C esconde um tatu; D pontua por compartilhar locais com outras espécies. Depois, a Onça mostrou por que esconder protege.",
+    body: "Resumo: A joga carta e adiciona tatu em semente; B move conforme o habitat da carta; C esconde um tatu; D pontua por compartilhar locais com outras espécies. Depois, a Onça mostrou por que esconder protege.",
     gate: "none",
     autoAdvance: false
   }

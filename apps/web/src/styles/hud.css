@@ -8369,7 +8369,7 @@
 /* =========================================================
    Maioria de recurso — pulsa o número no HUD inferior da
    especie quando o jogador controlado tem a maioria daquele
-   recurso (meat/egg/fruit). Pinha nunca qualifica.
+   recurso (meat/egg/fruit). Semente nunca qualifica.
    Mantem o translate(-50%,50%) que ancora o numero no centro.
    ========================================================= */
 .hud-bottom-jaguar-resource-item.is-majority,

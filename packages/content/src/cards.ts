@@ -75,7 +75,7 @@ function initialCard(
     connections,
     metadataStatus: "complete",
     notes:
-      "Carta inicial. O setup 3x3 usa 9 cartas: 3 rios de face dupla (ovo, pinha, carne) " +
+      "Carta inicial. O setup 3x3 usa 9 cartas: 3 rios de face dupla (ovo, semente, carne) " +
       "e 6 de terra (bosque/campo). Cada rio mostra a frente OU o verso, nunca os dois."
   };
 }
@@ -133,9 +133,9 @@ export const commonForestCards: ForestCardDefinition[] = [
 // As 9 cartas iniciais. Os 3 rios sao de face dupla (frente/verso): a mesma
 // carta fisica vira para mostrar uma boca diferente, entao a frente e o verso
 // de um rio nunca aparecem juntos na mesma floresta. Sempre ha exatamente 1 rio
-// de ovo, 1 de pinha (seed) e 1 de carne; as outras 6 sao de terra.
+// de ovo, 1 de semente (seed) e 1 de carne; as outras 6 sao de terra.
 //   Rio ovo   : frente initial_1 (canal N/S)  | verso initial_1_v (curva N/E)
-//   Rio pinha : frente initial_8 (curva N/E)   | verso initial_8_v (ponta N)
+//   Rio semente : frente initial_8 (curva N/E)   | verso initial_8_v (ponta N)
 //   Rio carne : frente initial_9 (canal N/S)   | verso initial_9_v (ponta N)
 export const initialForestCardCandidates: ForestCardDefinition[] = [
   initialCard("initial_1", "Inicial 1", "Inicial (1).png", "river", ["egg"], riverChannel),
