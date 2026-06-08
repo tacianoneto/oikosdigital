@@ -7825,15 +7825,17 @@
   line-height: 1;
 }
 
-.hud-bottom-coati-movements {
+.hud-bottom-coati-movements,
+.hud-bottom-galo-movements {
   position: absolute;
   bottom: 3%;
   right: 2.5%;
-  width: 10%; 
+  width: 10%;
   pointer-events: auto;
 }
 
-.hud-bottom-coati-movements img {
+.hud-bottom-coati-movements img,
+.hud-bottom-galo-movements img {
   width: 100%;
   height: auto;
 }

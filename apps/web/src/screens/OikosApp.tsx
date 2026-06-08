@@ -7918,6 +7918,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-galo-resource-item", "egg")}
               {renderHudResource("hud-bottom-galo-resource-item", "seed")}
             </div>
+            <div className="hud-bottom-galo-movements">
+              <img src="/assets/interface/galo/Movimentos_galodecampina.png" alt="Movimentos" />
+            </div>
             <div className="hud-bottom-galo-expansions">
               {objectivePreviewCard && (
                 <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
