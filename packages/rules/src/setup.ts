@@ -1488,6 +1488,9 @@ export function addGaloAdjacentForCurrentAction(game: GameState, playerId: strin
   return next;
 }
 
+// Threshold for each galo presence bonus (campinas / seed locations).
+const GALO_PRESENCE_THRESHOLD = 3;
+
 export function getGaloSeedCardScore(game: GameState, playerId: string): number {
   if (game.status !== "active" || game.activePlayerId !== playerId) {
     return 0;
@@ -1498,30 +1501,23 @@ export function getGaloSeedCardScore(game: GameState, playerId: string): number 
     return 0;
   }
 
-  return Math.floor(getGaloSeedPieceCount(game, playerId) / 3);
+  return getGaloScorePoints(game, playerId);
 }
 
-// Counts every galo-de-campina piece sitting on a seed (pinha) card. Unlike the
-// distinct-card positions used for highlights, the same card can host more than
-// one galo and each one counts toward the score.
-export function getGaloSeedPieceCount(game: GameState, playerId: string): number {
-  let count = 0;
-  for (const piece of game.pieces) {
-    if (piece.ownerId !== playerId || piece.speciesId !== "galo_de_campina" || !piece.location) {
-      continue;
-    }
-
-    const card = getForestCardAtPosition(game, piece.location);
-    const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
-    if (definition?.resource === "seed") {
-      count += 1;
-    }
-  }
-
-  return count;
+// Action D score: +1 if the galo is present in at least 3 campinas (field cards)
+// and +1 if present in at least 3 seed (pinha) locations. Presence counts each
+// distinct card once, so max 2 points.
+export function getGaloScorePoints(game: GameState, playerId: string): number {
+  const fieldBonus = getGaloFieldCardPositions(game, playerId).length >= GALO_PRESENCE_THRESHOLD ? 1 : 0;
+  const seedBonus = getGaloSeedCardPositions(game, playerId).length >= GALO_PRESENCE_THRESHOLD ? 1 : 0;
+  return fieldBonus + seedBonus;
 }
 
-export function getGaloSeedCardPositions(game: GameState, playerId: string): GridPosition[] {
+function getGaloPresencePositions(
+  game: GameState,
+  playerId: string,
+  matches: (definition: ReturnType<typeof getCardDefinitionOrNull>) => boolean
+): GridPosition[] {
   const positions = new Map<string, GridPosition>();
 
   for (const piece of game.pieces) {
@@ -1531,12 +1527,20 @@ export function getGaloSeedCardPositions(game: GameState, playerId: string): Gri
 
     const card = getForestCardAtPosition(game, piece.location);
     const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
-    if (definition?.resource === "seed") {
+    if (matches(definition)) {
       positions.set(positionKey(piece.location), toGridPosition(piece.location));
     }
   }
 
   return [...positions.values()].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+export function getGaloSeedCardPositions(game: GameState, playerId: string): GridPosition[] {
+  return getGaloPresencePositions(game, playerId, (definition) => definition?.resource === "seed");
+}
+
+export function getGaloFieldCardPositions(game: GameState, playerId: string): GridPosition[] {
+  return getGaloPresencePositions(game, playerId, (definition) => definition?.habitat === "field");
 }
 
 export function scoreGaloSeedCards(game: GameState, playerId: string): GameState {
@@ -1557,7 +1561,7 @@ export function scoreGaloSeedCards(game: GameState, playerId: string): GameState
     throw new Error("O Galo-de-campina pontua cartas de pinha durante a acao D.");
   }
 
-  const points = Math.floor(getGaloSeedPieceCount(game, playerId) / 3);
+  const points = getGaloScorePoints(game, playerId);
   const next = cloneGameState(game);
   const nextPlayer = findPlayer(next, playerId);
   nextPlayer.score += points;
@@ -1565,7 +1569,7 @@ export function scoreGaloSeedCards(game: GameState, playerId: string): GameState
     ...next.log,
     {
       id: `galo_score_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} marcou ${points} ponto(s): 1 por cada 3 galos-de-campina em cartas de pinha.`,
+      message: `${nextPlayer.name} marcou ${points} ponto(s): +1 presente em 3+ campinas, +1 presente em 3+ locais de pinha.`,
       createdAt: Date.now(),
       payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
     }

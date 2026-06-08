@@ -1416,6 +1416,7 @@ describe("setup placement", () => {
     game = placeInitialPiece(game, "galo", { x: -1, y: -1 });
     game = placeInitialPiece(game, "galo", { x: 0, y: -1 });
     game = placeInitialPiece(game, "galo", { x: 1, y: -1 });
+    game = placeInitialPiece(game, "galo", { x: 1, y: 0 });
     game = placeInitialPiece(game, "coati", { x: -1, y: 1 });
     game = placeInitialPiece(game, "coati", { x: 1, y: 1 });
     game = {
@@ -1443,6 +1444,7 @@ describe("setup placement", () => {
     game = placeInitialPiece(game, "galo", { x: -1, y: -1 });
     game = placeInitialPiece(game, "galo", { x: 0, y: -1 });
     game = placeInitialPiece(game, "galo", { x: 1, y: 1 });
+    game = placeInitialPiece(game, "galo", { x: 0, y: 0 });
     game = placeInitialPiece(game, "coati", { x: -1, y: 1 });
     game = placeInitialPiece(game, "coati", { x: 0, y: 1 });
     game = {
@@ -1484,21 +1486,33 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(3);
   });
 
-  it("scores Galo-de-campina action D one point for every 3 galos on seed cards", () => {
+  it("scores Galo-de-campina action D: +1 present in 3+ campinas, +1 present in 3+ seed locations", () => {
     let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
+    // Map: (-1,0) forest+seed, (-1,1) field+seed, (0,1) river+seed, (1,0) field+fruit, (1,1) field+meat.
     game = placeInitialPiece(game, "galo", { x: -1, y: 0 });
     game = placeInitialPiece(game, "galo", { x: -1, y: 1 });
     game = placeInitialPiece(game, "galo", { x: 0, y: 1 });
+    game = placeInitialPiece(game, "galo", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
     game = placeInitialPiece(game, "coati", { x: 1, y: -1 });
-    game = placeInitialPiece(game, "coati", { x: 1, y: 1 });
     game = setActiveAction(game, "galo", 3);
 
-    // 3 galos on seed cards (-1,0), (-1,1), (0,1) -> floor(3 / 3) = 1 point.
-    expect(getGaloSeedCardScore(game, "galo")).toBe(1);
+    // Need a 5th galo to reach both thresholds; drop a reserve piece onto (1,1).
+    const reserveGaloId = game.pieces.find((piece) => piece.ownerId === "galo" && !piece.location)!.pieceId;
+    game = {
+      ...game,
+      pieces: game.pieces.map((piece) =>
+        piece.pieceId === reserveGaloId ? { ...piece, location: { x: 1, y: 1, siteId: "main" } } : piece
+      )
+    };
+
+    // Seed locations: (-1,0), (-1,1), (0,1) -> 3 -> +1.
+    // Campinas (field): (-1,1), (1,0), (1,1) -> 3 -> +1. Total 2.
+    expect(getGaloSeedCardScore(game, "galo")).toBe(2);
 
     game = scoreGaloSeedCards(game, "galo");
 
-    expect(game.players.find((candidate) => candidate.playerId === "galo")?.score).toBe(1);
+    expect(game.players.find((candidate) => candidate.playerId === "galo")?.score).toBe(2);
     expect(game.players.find((candidate) => candidate.playerId === "galo")?.turnsTaken).toBe(1);
     expect(game.activePlayerId).toBe("coati");
   });

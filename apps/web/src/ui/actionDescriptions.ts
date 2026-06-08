@@ -34,7 +34,7 @@ const galoActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Adicione 1 galo-de-campina em um local de campo.",
   B: "Mova 1 galo-de-campina conforme a carta jogada.",
   C: "Pode gastar 1 pinha para mover outro galo-de-campina conforme a carta jogada e adicionar 1 galo-de-campina em um local adjacente ao galo movido.",
-  D: "Marque 1 ponto para cada 3 galos-de-campina em cartas de pinha."
+  D: "Marque 1 ponto se estiver presente em ao menos 3 campinas e 1 ponto se estiver presente em ao menos 3 locais de pinha."
 };
 
 export function getPassiveDescription(speciesId: SpeciesId | null | undefined): string | null {

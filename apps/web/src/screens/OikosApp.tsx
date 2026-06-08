@@ -77,6 +77,7 @@ import {
   getGaloAdjacentAddPositions,
   getGaloSeedCardScore,
   getGaloSeedCardPositions,
+  getGaloFieldCardPositions,
   getAvailableForestExpansionPositions,
   getAvailableForestExpansionPositionsForCard,
   getMacawActionCTargets,
@@ -2044,13 +2045,22 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }
 
     if (activeSpecies?.speciesId === "galo_de_campina") {
-      const positions = getGaloSeedCardPositions(room.game, room.game.activePlayerId);
-      return {
-        cardHighlights: positions.map((position) => ({
+      const seedPositions = getGaloSeedCardPositions(room.game, room.game.activePlayerId);
+      const fieldPositions = getGaloFieldCardPositions(room.game, room.game.activePlayerId);
+      const seedKeys = new Set(seedPositions.map((position) => `${position.x},${position.y}`));
+      const cardHighlights = [
+        ...fieldPositions.map((position) => ({
           position,
-          label: "pinha",
-          color: 0xd94b3f
+          // A field+seed card counts for both bonuses; label it accordingly.
+          label: seedKeys.has(`${position.x},${position.y}`) ? "campina + pinha" : "campina",
+          color: 0x6fae46
         })),
+        ...seedPositions
+          .filter((position) => !fieldPositions.some((field) => field.x === position.x && field.y === position.y))
+          .map((position) => ({ position, label: "pinha", color: 0xd94b3f }))
+      ];
+      return {
+        cardHighlights,
         lineHighlights: [],
         lines: 0,
         habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
@@ -7895,7 +7905,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} — 1 para cada 3 galos-de-campina em cartas de pinha.
+                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} — +1 se presente em 3+ campinas, +1 se presente em 3+ locais de pinha.
                       </div>
                     )}
                   </>

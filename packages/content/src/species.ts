@@ -96,7 +96,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
     scientificName: "Paroaria dominicana",
     category: "base",
     totalPieces: 7,
-    initialPieces: 3,
+    initialPieces: 4,
     usesForestCards: true,
     actions: ["A", "B", "C", "D"],
     movementPatternsByHabitat: {
