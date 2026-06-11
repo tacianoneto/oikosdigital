@@ -13,3 +13,9 @@ data/
 *.db
 *.db-shm
 *.db-wal
+
+# Dev reference images kept local-only
+BOARD_MOVIMENTOS_LEGENDAS_COMPLETAS.png
+forest_cards_contact_sheet.png
+initial_cards_contact_sheet.png
+
