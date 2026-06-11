@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import { Server } from "socket.io";
 import type { MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
 import { getUserIdFromAccessToken } from "./auth";
+import { projectRoomForViewer } from "./projection";
 import { canUseSpecies } from "./speciesAccess";
 import { purgeRoomsOlderThan, saveRoom } from "./store";
 import {
@@ -320,7 +321,7 @@ function scheduleScenarioVotingDeadline(room: PublicRoomState): void {
 
 function broadcastRoom(room: PublicRoomState): void {
   room.activeTurnStartedAt = trackActiveTurn(room);
-  io.to(room.roomId).emit("room:update", room);
+  emitRoomUpdateProjected(room);
   scheduleRoomSave(room);
   reconcileTurnTimer(room.roomId);
   if (room.status === "finished") {
@@ -339,6 +340,32 @@ function broadcastRoom(room: PublicRoomState): void {
   scheduleAutomaticScore(room.roomId);
   scheduleBotTurn(room.roomId);
   reconcileTurnPunishmentTimer(room.roomId);
+}
+
+// Emits "room:update" individually per connected socket so each player only
+// receives their own projection of the state (own hand, redacted decks). The
+// projection is cached per viewer because a player can have multiple sockets.
+function emitRoomUpdateProjected(room: PublicRoomState): void {
+  const socketIds = io.sockets.adapter.rooms.get(room.roomId);
+  if (!socketIds) {
+    return;
+  }
+
+  const viewCache = new Map<string | null, PublicRoomState>();
+  for (const socketId of socketIds) {
+    const target = io.sockets.sockets.get(socketId);
+    if (!target) {
+      continue;
+    }
+
+    const viewerId = typeof target.data.playerId === "string" ? target.data.playerId : null;
+    let view = viewCache.get(viewerId);
+    if (!view) {
+      view = projectRoomForViewer(room, viewerId);
+      viewCache.set(viewerId, view);
+    }
+    target.emit("room:update", view);
+  }
 }
 
 function scheduleRoomSave(room: PublicRoomState): void {
@@ -365,6 +392,12 @@ function flushPendingRoomSaves(): void {
 io.on("connection", (socket) => {
   const playerId = getPlayerId(socket);
   registerSocket(playerId, socket.id);
+
+  // Every handler below replies through these wrappers, which project
+  // room-shaped payloads for this player's eyes only.
+  const withReply = <T>(reply: unknown, fn: () => T): void => sendReply(reply, playerId, fn);
+  const withReplyAsync = <T>(reply: unknown, fn: () => Promise<T>): Promise<void> =>
+    sendReplyAsync(reply, playerId, fn);
 
   socket.emit("connected", { playerId });
 
@@ -845,21 +878,42 @@ io.on("connection", (socket) => {
   });
 });
 
-function withReply<T>(reply: unknown, fn: () => T): void {
+// Room-shaped reply payloads must go through the per-viewer projection so the
+// acknowledgement a player receives never leaks other players' hands or deck
+// order. Detected structurally because handlers return several payload types.
+function isPublicRoomState(value: unknown): value is PublicRoomState {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "roomId" in value &&
+    "players" in value &&
+    "game" in value
+  );
+}
+
+function projectReplyData<T>(data: T, viewerPlayerId: string): T {
+  if (isPublicRoomState(data)) {
+    return projectRoomForViewer(data, viewerPlayerId) as T;
+  }
+
+  return data;
+}
+
+function sendReply<T>(reply: unknown, viewerPlayerId: string, fn: () => T): void {
   const send = typeof reply === "function" ? reply : undefined;
 
   try {
-    send?.({ ok: true, data: fn() });
+    send?.({ ok: true, data: projectReplyData(fn(), viewerPlayerId) });
   } catch (error) {
     send?.({ ok: false, error: error instanceof Error ? error.message : "Erro desconhecido." });
   }
 }
 
-async function withReplyAsync<T>(reply: unknown, fn: () => Promise<T>): Promise<void> {
+async function sendReplyAsync<T>(reply: unknown, viewerPlayerId: string, fn: () => Promise<T>): Promise<void> {
   const send = typeof reply === "function" ? reply : undefined;
 
   try {
-    send?.({ ok: true, data: await fn() });
+    send?.({ ok: true, data: projectReplyData(await fn(), viewerPlayerId) });
   } catch (error) {
     send?.({ ok: false, error: error instanceof Error ? error.message : "Erro desconhecido." });
   }

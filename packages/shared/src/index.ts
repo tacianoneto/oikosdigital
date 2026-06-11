@@ -171,8 +171,14 @@ export interface PlayerState {
   score: number;
   resources: Record<Resource, number>;
   hand: string[];
+  // Set by the server-side per-viewer projection when `hand` was redacted
+  // (other players only learn how many cards someone holds, never which ones).
+  handCount?: number;
   objectiveChoices: string[];
   selectedObjectiveCardId: string | null;
+  // Set by the per-viewer projection when `selectedObjectiveCardId` was
+  // redacted, so the UI can still show that the player already chose one.
+  hasSelectedObjective?: boolean;
   discardedObjectiveCardId: string | null;
   reservePieces: string[];
   piecesInForest: string[];
@@ -296,6 +302,8 @@ export interface GameState {
   deck: {
     commonCardIds: string[];
     initialCandidateIds: string[];
+    // Set by the per-viewer projection when the deck order was redacted.
+    commonCardCount?: number;
   };
   log: GameLogEntry[];
   contentWarnings: string[];
@@ -304,6 +312,8 @@ export interface GameState {
   activeScenarioIds: ScenarioCardId[];
   activeThreatCardId: ThreatCardId | null;
   threatDeckIds: ThreatCardId[];
+  // Set by the per-viewer projection when the threat deck order was redacted.
+  threatDeckCount?: number;
   threatDiscardIds: ThreatCardId[];
   // Tracks per-round/per-turn scenario usage. Reset by round/turn boundaries.
   cerradoTriggeredByPlayer: Record<string, number>;
@@ -326,6 +336,9 @@ export interface GameState {
   // picks a card, it's removed from the owning pile and the next card becomes
   // the new top. Piles do not refill from the deck.
   mataAtlanticaPiles: string[][] | null;
+  // Set by the per-viewer projection when the piles were truncated to their
+  // top card: number of cards remaining in each pile.
+  mataAtlanticaPileCounts?: number[] | null;
   // Tracks per-player turnsTaken when they last manually discarded a card from
   // a Mata Atlântica pile. Used to avoid double-discard at turn end.
   mataAtlanticaDiscardByPlayer: Record<string, number>;
