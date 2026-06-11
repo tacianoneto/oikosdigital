@@ -393,11 +393,23 @@ io.on("connection", (socket) => {
   const playerId = getPlayerId(socket);
   registerSocket(playerId, socket.id);
 
-  // Every handler below replies through these wrappers, which project
-  // room-shaped payloads for this player's eyes only.
-  const withReply = <T>(reply: unknown, fn: () => T): void => sendReply(reply, playerId, fn);
-  const withReplyAsync = <T>(reply: unknown, fn: () => Promise<T>): Promise<void> =>
-    sendReplyAsync(reply, playerId, fn);
+  // Every handler below replies through these wrappers, which rate-limit the
+  // socket and project room-shaped payloads for this player's eyes only.
+  const allowEvent = createRateLimiter();
+  const withReply = <T>(reply: unknown, fn: () => T): void => {
+    if (!allowEvent()) {
+      sendRateLimited(reply);
+      return;
+    }
+    sendReply(reply, playerId, fn);
+  };
+  const withReplyAsync = async <T>(reply: unknown, fn: () => Promise<T>): Promise<void> => {
+    if (!allowEvent()) {
+      sendRateLimited(reply);
+      return;
+    }
+    await sendReplyAsync(reply, playerId, fn);
+  };
 
   socket.emit("connected", { playerId });
 
@@ -897,6 +909,30 @@ function projectReplyData<T>(data: T, viewerPlayerId: string): T {
   }
 
   return data;
+}
+
+// Token-bucket rate limiter, one per socket. Generous for human play (bursts
+// of clicks are fine) but stops a hostile client from flooding the server
+// with event spam. Bots run server-side and are unaffected.
+function createRateLimiter(capacity = 25, refillPerSecond = 10): () => boolean {
+  let tokens = capacity;
+  let lastRefill = Date.now();
+
+  return () => {
+    const now = Date.now();
+    tokens = Math.min(capacity, tokens + ((now - lastRefill) / 1000) * refillPerSecond);
+    lastRefill = now;
+    if (tokens < 1) {
+      return false;
+    }
+    tokens -= 1;
+    return true;
+  };
+}
+
+function sendRateLimited(reply: unknown): void {
+  const send = typeof reply === "function" ? reply : undefined;
+  send?.({ ok: false, error: "Muitas ações em sequência. Aguarde um instante." });
 }
 
 function sendReply<T>(reply: unknown, viewerPlayerId: string, fn: () => T): void {

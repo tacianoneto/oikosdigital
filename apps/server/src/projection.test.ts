@@ -98,6 +98,20 @@ describe("projectRoomForViewer", () => {
     expect(view.game!.deck.commonCardIds).toEqual(room.game!.deck.commonCardIds);
   });
 
+  it("caps the log sent on broadcasts while the game is running", () => {
+    const room = createTestRoom();
+    room.game!.log = Array.from({ length: 500 }, (_, i) => ({
+      id: `log-${i}`,
+      message: `event ${i}`,
+      createdAt: i
+    }));
+    const view = projectRoomForViewer(room, "wolf");
+
+    expect(view.game!.log).toHaveLength(200);
+    expect(view.game!.log[199]!.id).toBe("log-499");
+    expect(room.game!.log).toHaveLength(500);
+  });
+
   it("does not mutate the original room state", () => {
     const room = createTestRoom();
     const originalHand = [...room.game!.players[0]!.hand];

@@ -16,9 +16,15 @@ export function projectRoomForViewer(room: PublicRoomState, viewerPlayerId: stri
   };
 }
 
+// The in-game history panel only needs recent events; the full log keeps
+// growing server-side and is revealed whole when the game finishes. Capping
+// what travels on every broadcast keeps payloads flat over a long match.
+const MAX_LOG_ENTRIES = 200;
+
 function projectGameForViewer(game: GameState, viewerPlayerId: string | null): GameState {
   return {
     ...game,
+    log: game.log.length > MAX_LOG_ENTRIES ? game.log.slice(-MAX_LOG_ENTRIES) : game.log,
     players: game.players.map((player) => projectPlayerForViewer(player, viewerPlayerId)),
     deck: {
       commonCardIds: [],

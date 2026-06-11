@@ -179,15 +179,33 @@ for (const persisted of loadRooms()) {
 }
 
 function normalizePassword(password?: string | null): string | null {
-  const trimmed = typeof password === "string" ? password.trim() : "";
+  const trimmed = typeof password === "string" ? password.trim().slice(0, 64) : "";
   return trimmed.length > 0 ? trimmed : null;
 }
 
+const MAX_NAME_LENGTH = 24;
+const MAX_ACTIVE_ROOMS_PER_HOST = 4;
+
+function sanitizeName(raw: unknown, fallback: string): string {
+  const trimmed = typeof raw === "string" ? raw.trim().slice(0, MAX_NAME_LENGTH) : "";
+  return trimmed.length > 0 ? trimmed : fallback;
+}
+
 export function createRoom(hostSocketId: string, hostName: string, password?: string | null): PublicRoomState {
+  let hostedRooms = 0;
+  for (const existing of rooms.values()) {
+    if (existing.hostPlayerId === hostSocketId && existing.status !== "finished" && existing.game?.status !== "finished") {
+      hostedRooms += 1;
+    }
+  }
+  if (hostedRooms >= MAX_ACTIVE_ROOMS_PER_HOST) {
+    throw new Error(`Você já tem ${MAX_ACTIVE_ROOMS_PER_HOST} salas abertas. Encerre uma antes de criar outra.`);
+  }
+
   const roomId = createRoomId();
   const player: RoomPlayer = {
     playerId: hostSocketId,
-    name: hostName || "Jogador 1",
+    name: sanitizeName(hostName, "Jogador 1"),
     speciesId: null,
     ready: false,
     connected: true
@@ -271,7 +289,7 @@ export function joinRoom(roomId: string, playerId: string, playerName: string, p
   if (existing) {
     room.spectators.delete(playerId);
     existing.connected = true;
-    existing.name = playerName || existing.name;
+    existing.name = sanitizeName(playerName, existing.name);
     return toPublicRoom(room);
   }
 
@@ -284,7 +302,7 @@ export function joinRoom(roomId: string, playerId: string, playerName: string, p
   room.spectators.delete(playerId);
   room.players.push({
     playerId,
-    name: playerName || `Jogador ${room.players.length + 1}`,
+    name: sanitizeName(playerName, `Jogador ${room.players.length + 1}`),
     speciesId: null,
     ready: false,
     connected: true
