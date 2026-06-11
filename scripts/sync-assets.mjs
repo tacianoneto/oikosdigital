@@ -1,11 +1,16 @@
 // Cross-platform asset sync (used locally and by the Netlify build).
-// Mirrors scripts/sync-assets.ps1.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { dirname, join } from "node:path";
+// PNG sources are converted to WebP (much smaller, same visual quality) into
+// apps/web/public/assets; fonts are copied as-is. Conversion is incremental:
+// a target is only rebuilt when the source is newer.
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import { basename, dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const publicAssets = join(root, "apps", "web", "public", "assets");
+
+const WEBP_QUALITY = 82;
 
 const groups = [
   { from: join(root, "boards"), to: join(publicAssets, "boards") },
@@ -30,38 +35,84 @@ const groups = [
   { from: join(root, "interface", "galo de campina"), to: join(publicAssets, "interface", "galo") },
   { from: join(root, "interface", "macaco prego"), to: join(publicAssets, "interface", "macaco") },
   { from: join(root, "interface", "quati"), to: join(publicAssets, "interface", "quati") },
-  { from: join(root, "fonts"), to: join(publicAssets, "fonts"), extensions: [".ttf", ".otf", ".woff", ".woff2"] }
+  { from: join(root, "fonts"), to: join(publicAssets, "fonts"), extensions: [".ttf", ".otf", ".woff", ".woff2"], copy: true }
 ];
 
-const defaultExtensions = [".png"];
+// The login screen logo lives in the public root (referenced as /oikos-logo.webp).
+const extraConversions = [
+  { from: join(root, "logo", "Logo.png"), to: join(root, "apps", "web", "public", "oikos-logo.webp") }
+];
+
+function isUpToDate(source, target) {
+  if (!existsSync(target)) return false;
+  return statSync(target).mtimeMs >= statSync(source).mtimeMs;
+}
+
+function targetNameFor(sourceName, convert) {
+  if (!convert) return sourceName;
+  return `${basename(sourceName, extname(sourceName))}.webp`;
+}
+
+let converted = 0;
 let copied = 0;
+let skipped = 0;
+const jobs = [];
+
 for (const group of groups) {
   mkdirSync(group.to, { recursive: true });
-  const allowed = group.extensions ?? defaultExtensions;
-  const sourceFiles = new Set(
-    readdirSync(group.from, { withFileTypes: true })
-      .filter((entry) => entry.isFile() && allowed.some((ext) => entry.name.toLowerCase().endsWith(ext)))
-      .map((entry) => entry.name)
+  const convert = !group.copy;
+  const allowed = group.extensions ?? [".png"];
+  const sourceEntries = readdirSync(group.from, { withFileTypes: true }).filter(
+    (entry) => entry.isFile() && allowed.some((ext) => entry.name.toLowerCase().endsWith(ext))
   );
+  const expectedTargets = new Set(sourceEntries.map((entry) => targetNameFor(entry.name, convert)));
 
-  if (existsSync(group.to)) {
-    for (const entry of readdirSync(group.to, { withFileTypes: true })) {
-      if (
-        entry.isFile() &&
-        allowed.some((ext) => entry.name.toLowerCase().endsWith(ext)) &&
-        !sourceFiles.has(entry.name)
-      ) {
-        rmSync(join(group.to, entry.name));
-      }
+  // Drop stale outputs (renamed/removed sources and leftover .png copies).
+  for (const entry of readdirSync(group.to, { withFileTypes: true })) {
+    if (entry.isFile() && !expectedTargets.has(entry.name) && (convert ? /\.(png|webp)$/i : /./).test(entry.name)) {
+      rmSync(join(group.to, entry.name));
     }
   }
 
-  for (const entry of readdirSync(group.from, { withFileTypes: true })) {
-    if (entry.isFile() && allowed.some((ext) => entry.name.toLowerCase().endsWith(ext))) {
-      copyFileSync(join(group.from, entry.name), join(group.to, entry.name));
+  for (const entry of sourceEntries) {
+    const source = join(group.from, entry.name);
+    const target = join(group.to, targetNameFor(entry.name, convert));
+
+    if (isUpToDate(source, target)) {
+      skipped += 1;
+      continue;
+    }
+
+    if (convert) {
+      jobs.push(
+        sharp(source)
+          .webp({ quality: WEBP_QUALITY })
+          .toFile(target)
+          .then(() => {
+            converted += 1;
+          })
+      );
+    } else {
+      copyFileSync(source, target);
       copied += 1;
     }
   }
 }
 
-console.log(`Assets synced to ${publicAssets} (${copied} files)`);
+for (const extra of extraConversions) {
+  if (isUpToDate(extra.from, extra.to)) {
+    skipped += 1;
+    continue;
+  }
+  jobs.push(
+    sharp(extra.from)
+      .webp({ quality: WEBP_QUALITY })
+      .toFile(extra.to)
+      .then(() => {
+        converted += 1;
+      })
+  );
+}
+
+await Promise.all(jobs);
+console.log(`Assets synced to ${publicAssets} (${converted} converted, ${copied} copied, ${skipped} up-to-date)`);

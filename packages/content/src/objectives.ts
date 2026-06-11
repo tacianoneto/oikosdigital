@@ -1,7 +1,7 @@
-import type { ObjectiveCardDefinition, ObjectiveEligibilityCategory, ObjectiveRuleTier, Resource } from "@oikos/shared";
+﻿import type { ObjectiveCardDefinition, ObjectiveEligibilityCategory, ObjectiveRuleTier, Resource } from "@oikos/shared";
 
 const objectiveBasePath = "/assets/objective-cards";
-export const objectiveCardBackPath = `${objectiveBasePath}/Verso das cartas OBJ.png`;
+export const objectiveCardBackPath = `${objectiveBasePath}/Verso das cartas OBJ.webp`;
 
 const tierByCategory: Record<ObjectiveEligibilityCategory, ObjectiveRuleTier> = {
   predator: "red",
@@ -22,7 +22,7 @@ function objectiveCard(
   return {
     id: `objective_${number}`,
     label: `Objetivo ${number}`,
-    imagePath: `${objectiveBasePath}/${number}.png`,
+    imagePath: `${objectiveBasePath}/${number}.webp`,
     eligibleCategories,
     scoring,
     rules: rulesFor(eligibleCategories, ruleText)

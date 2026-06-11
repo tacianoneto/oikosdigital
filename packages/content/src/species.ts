@@ -1,9 +1,9 @@
-import type { Habitat, MovementKind, SpeciesDefinition, SpeciesId } from "@oikos/shared";
+﻿import type { Habitat, MovementKind, SpeciesDefinition, SpeciesId } from "@oikos/shared";
 
 export const habitatLabels: Record<Habitat, string> = {
   forest: "Bosque / Floresta",
   field: "Campo",
-  river: "Rio / Água"
+  river: "Rio / Ãgua"
 };
 
 export const movementLabels: Record<MovementKind, string> = {
@@ -16,7 +16,7 @@ export const movementLabels: Record<MovementKind, string> = {
 export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
   jaguar: {
     speciesId: "jaguar",
-    displayName: "Onça-pintada",
+    displayName: "OnÃ§a-pintada",
     scientificName: "Panthera onca",
     category: "predator",
     totalPieces: 1,
@@ -28,14 +28,14 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "diagonal",
       river: "straight_jump"
     },
-    boardAsset: "/assets/boards/1. Onça-pintada.png",
-    meepleAsset: "/assets/meeples/Onça.png",
-    portraitAsset: "/assets/portraits/onca.png",
-    movementAsset: "/assets/movimentos/Movimentos_onca.png"
+    boardAsset: "/assets/boards/1. OnÃ§a-pintada.webp",
+    meepleAsset: "/assets/meeples/OnÃ§a.webp",
+    portraitAsset: "/assets/portraits/onca.webp",
+    movementAsset: "/assets/movimentos/Movimentos_onca.webp"
   },
   maned_wolf: {
     speciesId: "maned_wolf",
-    displayName: "Lobo-guará",
+    displayName: "Lobo-guarÃ¡",
     scientificName: "Chrysocyon brachyurus",
     category: "subpredator",
     totalPieces: 3,
@@ -47,10 +47,10 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "adjacent",
       river: "diagonal"
     },
-    boardAsset: "/assets/boards/3. Lobo-guará.png",
-    meepleAsset: "/assets/meeples/Lobo.png",
-    portraitAsset: "/assets/portraits/lobo_guara.png",
-    movementAsset: "/assets/movimentos/Movimentos_lobo.png"
+    boardAsset: "/assets/boards/3. Lobo-guarÃ¡.webp",
+    meepleAsset: "/assets/meeples/Lobo.webp",
+    portraitAsset: "/assets/portraits/lobo_guara.webp",
+    movementAsset: "/assets/movimentos/Movimentos_lobo.webp"
   },
   armadillo: {
     speciesId: "armadillo",
@@ -66,10 +66,10 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "diagonal",
       river: "straight_jump"
     },
-    boardAsset: "/assets/boards/4. Tatu-bola.png",
-    meepleAsset: "/assets/meeples/Tatu.png",
-    portraitAsset: "/assets/portraits/tatu_bola.png",
-    movementAsset: "/assets/movimentos/Movimentos_tatu.png"
+    boardAsset: "/assets/boards/4. Tatu-bola.webp",
+    meepleAsset: "/assets/meeples/Tatu.webp",
+    portraitAsset: "/assets/portraits/tatu_bola.webp",
+    movementAsset: "/assets/movimentos/Movimentos_tatu.webp"
   },
   macaw: {
     speciesId: "macaw",
@@ -85,10 +85,10 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "adjacent",
       river: "straight_jump"
     },
-    boardAsset: "/assets/boards/6. Arara-azul.png",
-    meepleAsset: "/assets/meeples/Arara.png",
-    portraitAsset: "/assets/portraits/arara.png",
-    movementAsset: "/assets/movimentos/Movimentos_arara.png"
+    boardAsset: "/assets/boards/6. Arara-azul.webp",
+    meepleAsset: "/assets/meeples/Arara.webp",
+    portraitAsset: "/assets/portraits/arara.webp",
+    movementAsset: "/assets/movimentos/Movimentos_arara.webp"
   },
   galo_de_campina: {
     speciesId: "galo_de_campina",
@@ -104,10 +104,10 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "adjacent",
       river: "knight_jump"
     },
-    boardAsset: "/assets/interface/galo/UI_galodecampinaTOP.png",
-    meepleAsset: "/assets/meeples/galo de campina.png",
-    portraitAsset: "/assets/portraits/galo_de_campina.png",
-    movementAsset: "/assets/movimentos/Movimentos_galodecampina.png"
+    boardAsset: "/assets/interface/galo/UI_galodecampinaTOP.webp",
+    meepleAsset: "/assets/meeples/galo de campina.webp",
+    portraitAsset: "/assets/portraits/galo_de_campina.webp",
+    movementAsset: "/assets/movimentos/Movimentos_galodecampina.webp"
   },
   capuchin: {
     speciesId: "capuchin",
@@ -123,10 +123,10 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "knight_jump",
       river: "diagonal"
     },
-    boardAsset: "/assets/boards/7. Macaco-prego.png",
-    meepleAsset: "/assets/meeples/Macaco.png",
-    portraitAsset: "/assets/portraits/macaco.png",
-    movementAsset: "/assets/movimentos/Movimentos_macaco.png"
+    boardAsset: "/assets/boards/7. Macaco-prego.webp",
+    meepleAsset: "/assets/meeples/Macaco.webp",
+    portraitAsset: "/assets/portraits/macaco.webp",
+    movementAsset: "/assets/movimentos/Movimentos_macaco.webp"
   },
   coati: {
     speciesId: "coati",
@@ -142,10 +142,10 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "diagonal",
       river: "adjacent"
     },
-    boardAsset: "/assets/boards/8. Quati.png",
-    meepleAsset: "/assets/meeples/Quati.png",
-    portraitAsset: "/assets/portraits/quati.png",
-    movementAsset: "/assets/movimentos/Movimentos_quati.png"
+    boardAsset: "/assets/boards/8. Quati.webp",
+    meepleAsset: "/assets/meeples/Quati.webp",
+    portraitAsset: "/assets/portraits/quati.webp",
+    movementAsset: "/assets/movimentos/Movimentos_quati.webp"
   }
 };
 

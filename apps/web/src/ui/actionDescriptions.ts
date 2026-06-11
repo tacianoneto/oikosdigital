@@ -1,19 +1,19 @@
-import type { ActionId, SpeciesId } from "@oikos/shared";
+﻿import type { ActionId, SpeciesId } from "@oikos/shared";
 
 // Action descriptions transcribed verbatim from the printed species boards in
-// `/boards/*.png`. Do not paraphrase — these texts come straight from the
+// `/boards/*.webp`. Do not paraphrase â€” these texts come straight from the
 // physical board layout and must match the GDD wording.
 
 const coatiActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Adicione 1 quati em um local de fruta.",
   B: "Mova 1 quati conforme a carta jogada.",
-  C: "Se você tiver menos de 2 quatis em sua reserva, remova 2 quatis da floresta."
+  C: "Se vocÃª tiver menos de 2 quatis em sua reserva, remova 2 quatis da floresta."
 };
 
 const jaguarActionDescriptions: Partial<Record<ActionId, string>> = {
-  A: "Mova a onça para um local adjacente. Remova 1 peça no local que entrou.",
-  B: "Mova a onça conforme o local onde ela está. Remova 1 peça no local que entrou.",
-  C: "Gaste 1 carne para marcar 1 ponto (até 3 vezes)."
+  A: "Mova a onÃ§a para um local adjacente. Remova 1 peÃ§a no local que entrou.",
+  B: "Mova a onÃ§a conforme o local onde ela estÃ¡. Remova 1 peÃ§a no local que entrou.",
+  C: "Gaste 1 carne para marcar 1 ponto (atÃ© 3 vezes)."
 };
 
 const capuchinActionDescriptions: Partial<Record<ActionId, string>> = {
@@ -49,55 +49,55 @@ const armadilloActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Adicione 1 tatu em um local de semente.",
   B: "Mova 1 tatu conforme a carta jogada.",
   C: "Esconda qualquer um de seus tatus na floresta.",
-  D: "Marque 3 pontos, -1 ponto por espécie que não divide local com nenhum tatu. (Mínimo 1 ponto.)"
+  D: "Marque 3 pontos, -1 ponto por espÃ©cie que nÃ£o divide local com nenhum tatu. (MÃ­nimo 1 ponto.)"
 };
 
 const wolfActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Mova cada lobo conforme a carta jogada.",
-  B: "Remova 1 peça de base com algum lobo. Ambos coletam o recurso do local.",
+  B: "Remova 1 peÃ§a de base com algum lobo. Ambos coletam o recurso do local.",
   C: "Para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto.",
   D: "Adicione 1 lobo em um local de carne."
 };
 
 export function getActionDescription(speciesId: SpeciesId | null | undefined, actionId: ActionId | null): string {
   if (!speciesId || !actionId) {
-    return "Use a mão de cartas e os destaques da mesa para executar a ação atual.";
+    return "Use a mÃ£o de cartas e os destaques da mesa para executar a aÃ§Ã£o atual.";
   }
 
   if (speciesId === "coati") {
-    return coatiActionDescriptions[actionId] ?? "Ação do Quati pendente de implementação.";
+    return coatiActionDescriptions[actionId] ?? "AÃ§Ã£o do Quati pendente de implementaÃ§Ã£o.";
   }
 
   if (speciesId === "jaguar") {
-    return jaguarActionDescriptions[actionId] ?? "Ação da Onça pendente de implementação.";
+    return jaguarActionDescriptions[actionId] ?? "AÃ§Ã£o da OnÃ§a pendente de implementaÃ§Ã£o.";
   }
 
   if (speciesId === "capuchin") {
-    return capuchinActionDescriptions[actionId] ?? "Ação do Macaco-prego pendente de implementação.";
+    return capuchinActionDescriptions[actionId] ?? "AÃ§Ã£o do Macaco-prego pendente de implementaÃ§Ã£o.";
   }
 
   if (speciesId === "macaw") {
-    return macawActionDescriptions[actionId] ?? "Ação da Arara-azul pendente de implementação.";
+    return macawActionDescriptions[actionId] ?? "AÃ§Ã£o da Arara-azul pendente de implementaÃ§Ã£o.";
   }
 
   if (speciesId === "galo_de_campina") {
-    return galoActionDescriptions[actionId] ?? "Ação do Galo-de-campina pendente de implementação.";
+    return galoActionDescriptions[actionId] ?? "AÃ§Ã£o do Galo-de-campina pendente de implementaÃ§Ã£o.";
   }
 
   if (speciesId === "armadillo") {
-    return armadilloActionDescriptions[actionId] ?? "Ação do Tatu-bola pendente de implementação.";
+    return armadilloActionDescriptions[actionId] ?? "AÃ§Ã£o do Tatu-bola pendente de implementaÃ§Ã£o.";
   }
 
   if (speciesId === "maned_wolf") {
-    return wolfActionDescriptions[actionId] ?? "Ação do Lobo-guará pendente de implementação.";
+    return wolfActionDescriptions[actionId] ?? "AÃ§Ã£o do Lobo-guarÃ¡ pendente de implementaÃ§Ã£o.";
   }
 
-  return "Ações desta espécie ainda pendentes de implementação.";
+  return "AÃ§Ãµes desta espÃ©cie ainda pendentes de implementaÃ§Ã£o.";
 }
 
 export function getActionTitle(speciesId: SpeciesId | null | undefined, actionId: ActionId | null): string {
   if (!speciesId || !actionId) {
-    return "Ação atual";
+    return "AÃ§Ã£o atual";
   }
-  return `Ação ${actionId}`;
+  return `AÃ§Ã£o ${actionId}`;
 }

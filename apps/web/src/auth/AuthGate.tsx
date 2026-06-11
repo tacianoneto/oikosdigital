@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+﻿import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { Eye, EyeOff, Leaf, Lock, LogIn, Mail, UserPlus } from "lucide-react";
 import { supabase } from "./supabase";
@@ -150,7 +150,7 @@ export function AuthGate({ children }: AuthGateProps) {
     <main className="auth-screen">
       <section className="auth-card" aria-label="Entrar no Oikos Digital">
         <div className="auth-brand">
-          <img src="/oikos-logo.png" alt="" />
+          <img src="/oikos-logo.webp" alt="" />
           <div>
             <span>Oikos Digital</span>
             <strong>{mode === "signin" ? "Entrar" : "Criar conta"}</strong>

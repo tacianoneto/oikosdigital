@@ -1,4 +1,4 @@
-import type { Resource } from "@oikos/shared";
+﻿import type { Resource } from "@oikos/shared";
 
 export const resourceLabels: Record<Resource, string> = {
   meat: "Carne",
@@ -8,9 +8,9 @@ export const resourceLabels: Record<Resource, string> = {
 };
 
 export const resourceAssets: Record<Resource | "point", string> = {
-  meat: "/assets/resources/Carne.png",
-  egg: "/assets/resources/Ovo.png",
-  fruit: "/assets/resources/Fruta.png",
-  seed: "/assets/resources/Pinha.png",
-  point: "/assets/resources/Ponto.png"
+  meat: "/assets/resources/Carne.webp",
+  egg: "/assets/resources/Ovo.webp",
+  fruit: "/assets/resources/Fruta.webp",
+  seed: "/assets/resources/Pinha.webp",
+  point: "/assets/resources/Ponto.webp"
 };

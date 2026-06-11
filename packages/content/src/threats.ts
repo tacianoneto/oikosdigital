@@ -1,55 +1,55 @@
-import type { ThreatCardDefinition, ThreatCardId } from "@oikos/shared";
+﻿import type { ThreatCardDefinition, ThreatCardId } from "@oikos/shared";
 
 const threatBasePath = "/assets/threat-cards";
-export const threatCardBackPath = `${threatBasePath}/Verso das cartas INF.png`;
+export const threatCardBackPath = `${threatBasePath}/Verso das cartas INF.webp`;
 
 export const threatCards: ThreatCardDefinition[] = [
   {
     id: "threat_1",
     label: "Seca",
-    imagePath: `${threatBasePath}/INF 1.png`,
+    imagePath: `${threatBasePath}/INF 1.webp`,
     description: "Durante este turno, ninguem pode coletar em locais de rio."
   },
   {
     id: "threat_2",
     label: "Desmatamento",
-    imagePath: `${threatBasePath}/INF 2.png`,
+    imagePath: `${threatBasePath}/INF 2.webp`,
     description: "Qualquer carta adicionada neste turno deve ser posicionada sobre outra carta presente na floresta."
   },
   {
     id: "threat_3",
     label: "Queimada",
-    imagePath: `${threatBasePath}/INF 3.png`,
+    imagePath: `${threatBasePath}/INF 3.webp`,
     description: "Nenhuma especie pode coletar ovo ate este turno terminar."
   },
   {
     id: "threat_4",
     label: "Caca ilegal",
-    imagePath: `${threatBasePath}/INF 4.png`,
+    imagePath: `${threatBasePath}/INF 4.webp`,
     description: "Ao final do turno, o jogador escolhe remover 1 peca sua sem efeito ou gastar o recurso que mais possuir."
   },
   {
     id: "threat_5",
     label: "Poluicao",
-    imagePath: `${threatBasePath}/INF 5.png`,
+    imagePath: `${threatBasePath}/INF 5.webp`,
     description: "Nenhuma especie pode coletar semente ate este turno terminar."
   },
   {
     id: "threat_6",
     label: "Enchente",
-    imagePath: `${threatBasePath}/INF 6.png`,
+    imagePath: `${threatBasePath}/INF 6.webp`,
     description: "Neste turno, todos os movimentos sao transformados em movimento ortogonal."
   },
   {
     id: "threat_7",
     label: "Erosao",
-    imagePath: `${threatBasePath}/INF 7.png`,
+    imagePath: `${threatBasePath}/INF 7.webp`,
     description: "Nenhuma especie pode coletar fruta ate este turno terminar."
   },
   {
     id: "threat_8",
     label: "Infestacao",
-    imagePath: `${threatBasePath}/INF 8.png`,
+    imagePath: `${threatBasePath}/INF 8.webp`,
     description: "Durante este turno, cada jogador perde 1 ponto ao final de seu turno."
   }
 ];

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import type { Session, User } from "@supabase/supabase-js";
@@ -244,7 +244,7 @@ type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 // Selectable turn-timer durations for online rooms (ms).
 const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
 const DEFAULT_TURN_TIMER_MS = 60000;
-const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
+const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponÃ­vel. Inicie o servidor para testar lobby multiplayer.";
 const handHabitatOrder: Habitat[] = ["forest", "field", "river"];
 type HandSortMode = "habitat" | "resource";
 
@@ -273,7 +273,7 @@ const miniExpansionOptions: Array<{
   },
   {
     id: "scenarios",
-    label: "Cartas de cenário",
+    label: "Cartas de cenÃ¡rio",
     description:
       "Antes da partida, jogadores votam em 1 ou 2 cenarios (bioma do Brasil) que alteram regras durante todo o jogo.",
     iconPath: scenarioCardBackPath
@@ -307,7 +307,7 @@ const habitatAssetPrefix: Record<Habitat, string> = {
 };
 
 function movementArtPath(habitat: Habitat, kind: MovementKind): string {
-  return `/assets/movimentos/separados/${habitatAssetPrefix[habitat]}_${movementKindAssetSuffix[kind]}.png`;
+  return `/assets/movimentos/separados/${habitatAssetPrefix[habitat]}_${movementKindAssetSuffix[kind]}.webp`;
 }
 
 const movementGlyphOffsets: Record<MovementKind, Array<[number, number]>> = {
@@ -546,12 +546,12 @@ function ScenarioVotingOverlay({
   const selectedDefinitions = voting.selectedIds?.map((id) => scenarioCardsById.get(id)).filter(Boolean) ?? [];
 
   return (
-    <div className="scenario-vote-overlay" role="dialog" aria-label="Votação de cenários">
+    <div className="scenario-vote-overlay" role="dialog" aria-label="VotaÃ§Ã£o de cenÃ¡rios">
       <div className="scenario-vote-panel">
         <header className="scenario-vote-header">
           <div className="scenario-vote-copy">
-            <span className="scenario-vote-badge">Mini-expansão: Cenários</span>
-            <h2>Vote em {scenarioCount} carta{scenarioCount === 1 ? "" : "s"} de cenário</h2>
+            <span className="scenario-vote-badge">Mini-expansÃ£o: CenÃ¡rios</span>
+            <h2>Vote em {scenarioCount} carta{scenarioCount === 1 ? "" : "s"} de cenÃ¡rio</h2>
             <p>
               {scenarioCount === 1 ? "A mais votada altera" : "As mais votadas alteram"} regras durante toda esta partida.
             </p>
@@ -567,8 +567,8 @@ function ScenarioVotingOverlay({
 
         <div className="scenario-vote-status">
           <span>{votedPlayers}/{totalPlayers} jogadores votaram</span>
-          {isSpectator && <span>· Você está assistindo</span>}
-          {submitted && !isSpectator && <span>· Aguardando demais jogadores…</span>}
+          {isSpectator && <span>Â· VocÃª estÃ¡ assistindo</span>}
+          {submitted && !isSpectator && <span>Â· Aguardando demais jogadoresâ€¦</span>}
         </div>
 
         <ul className="scenario-vote-grid">
@@ -599,7 +599,7 @@ function ScenarioVotingOverlay({
                   </span>
                   {selected && (
                     <span className="scenario-vote-card-check" aria-hidden="true">
-                      ✓
+                      âœ“
                     </span>
                   )}
                 </button>
@@ -613,7 +613,7 @@ function ScenarioVotingOverlay({
 
         {voting.selectedIds && voting.selectedIds.length > 0 && (
           <div className="scenario-vote-result">
-            <strong>Cenários selecionados:</strong>
+            <strong>CenÃ¡rios selecionados:</strong>
             <div>
               {selectedDefinitions.map((def) =>
                 def ? <span key={def.id} className="scenario-vote-result-tag">{def.label}</span> : null
@@ -633,7 +633,7 @@ function ScenarioVotingOverlay({
               Confirmar voto ({localVotes.length}/{scenarioCount})
             </button>
           ) : isSpectator ? (
-            <span className="scenario-vote-hint">Espectadores não votam.</span>
+            <span className="scenario-vote-hint">Espectadores nÃ£o votam.</span>
           ) : (
             <span className="scenario-vote-hint">Voto registrado.</span>
           )}
@@ -1005,7 +1005,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             setNotice(
               isMissingRoomError(err)
                 ? "A sala anterior expirou no servidor gratuito. Crie uma nova sala para continuar."
-                : "Não foi possível reconectar a sala anterior."
+                : "NÃ£o foi possÃ­vel reconectar a sala anterior."
             );
           });
       }
@@ -1021,7 +1021,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setLandingMode("idle");
       autoScoredRef.current = null;
       clearRoomState();
-      setError("Você foi removido da sala pelo anfitrião.");
+      setError("VocÃª foi removido da sala pelo anfitriÃ£o.");
     });
 
     nextSocket.on("connect_error", () => {
@@ -1873,7 +1873,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }
     // Lock the board during a tutorial: only the exact piece the step asks for is
     // clickable. A marked piece restricts to it; an unmarked move step (e.g. the
-    // Onça's single meeple) keeps the engine's selectable set; every other gate
+    // OnÃ§a's single meeple) keeps the engine's selectable set; every other gate
     // (none/placeCard/score/addPiece/resolvePair) locks selection entirely.
     if (tutorialDef?.markedPieceId) {
       return ids.filter((pieceId) => pieceId === tutorialDef.markedPieceId);
@@ -2218,7 +2218,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const canSelectHandCards = Boolean(room?.game?.status === "active");
   // True while the player must click something on the board (place a card,
   // move/add a piece, pick a bonus, etc). On mobile we auto-close the
-  // Jogadores/Mão sheets when this turns on so the board is visible.
+  // Jogadores/MÃ£o sheets when this turns on so the board is visible.
   const boardChoiceActive =
     canPlaceSetupPiece ||
     Boolean(pendingPlacement) ||
@@ -2349,7 +2349,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     const sp = player?.speciesId ? speciesDefinitions[player.speciesId] : null;
     setTurnBanner({
       key: Date.now(),
-      label: sp?.displayName ?? player?.name ?? "Próximo jogador",
+      label: sp?.displayName ?? player?.name ?? "PrÃ³ximo jogador",
       speciesId: player?.speciesId ?? null
     });
   }, [room?.game?.activePlayerId, room?.game?.status, room?.game?.players]);
@@ -2591,7 +2591,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         clearOnlineSession();
         clearRoomState();
         setJoinCode("");
-        setNotice("Essa sala não existe mais no servidor gratuito. Crie uma nova sala para continuar.");
+        setNotice("Essa sala nÃ£o existe mais no servidor gratuito. Crie uma nova sala para continuar.");
         return;
       }
 
@@ -2603,7 +2603,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
   function requireSocket(): OikosSocket {
     if (!socket) {
-      throw new Error("Conexão com o servidor ainda não foi aberta.");
+      throw new Error("ConexÃ£o com o servidor ainda nÃ£o foi aberta.");
     }
 
     return socket;
@@ -2634,7 +2634,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         clearOnlineSession();
         clearRoomState();
         setJoinCode("");
-        setNotice("Essa sala não existe. Confira o código com o anfitrião.");
+        setNotice("Essa sala nÃ£o existe. Confira o cÃ³digo com o anfitriÃ£o.");
         return;
       }
 
@@ -2697,7 +2697,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
     void run(
       () => roomApi.setTurnTimer(requireSocket(), room.roomId, turnTimerMs ? null : DEFAULT_TURN_TIMER_MS),
-      turnTimerMs ? "Cronômetro de turno desligado." : "Cronômetro de turno ligado."
+      turnTimerMs ? "CronÃ´metro de turno desligado." : "CronÃ´metro de turno ligado."
     );
   }
 
@@ -2720,7 +2720,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     const enabled = !enabledMiniExpansions.includes(expansionId);
     void run(
       () => roomApi.setMiniExpansion(requireSocket(), room.roomId, expansionId, enabled),
-      enabled ? "Mini-expansão ligada." : "Mini-expansão desligada."
+      enabled ? "Mini-expansÃ£o ligada." : "Mini-expansÃ£o desligada."
     );
   }
 
@@ -2731,7 +2731,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
     void run(
       () => roomApi.setScenarioSelectionMode(requireSocket(), room.roomId, mode),
-      mode === "vote" ? "Cenários serão votados." : "Host escolherá os cenários."
+      mode === "vote" ? "CenÃ¡rios serÃ£o votados." : "Host escolherÃ¡ os cenÃ¡rios."
     );
   }
 
@@ -2755,7 +2755,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       !hostSelectedScenarioIds.includes(scenarioId) &&
       hostSelectedScenarioIds.some((id) => isExclusiveScenarioPair(id, scenarioId))
     ) {
-      setNotice("Pantanal e Mata Atlântica não podem ser jogados juntos.");
+      setNotice("Pantanal e Mata AtlÃ¢ntica nÃ£o podem ser jogados juntos.");
       return;
     }
 
@@ -2963,7 +2963,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         setSelectedRemovalPieceIds([]);
         setNotice(
           activeSpecies?.speciesId === "jaguar"
-            ? "Onça movida."
+            ? "OnÃ§a movida."
             : activeSpecies?.speciesId === "capuchin"
               ? "Macaco-prego movido."
               : activeSpecies?.speciesId === "macaw"
@@ -2973,7 +2973,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               : activeSpecies?.speciesId === "armadillo"
                 ? "Tatu-bola movido."
                 : activeSpecies?.speciesId === "maned_wolf"
-                  ? "Lobo-guará movido."
+                  ? "Lobo-guarÃ¡ movido."
                 : "Quati movido."
         );
         return;
@@ -3080,7 +3080,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         if (removablePieces.length > 1) {
           setSelectedJaguarDestination(position);
           setSelectedJaguarTargetPieceId(null);
-          setNotice("Escolha qual meeple a Onça deve remover neste local.");
+          setNotice("Escolha qual meeple a OnÃ§a deve remover neste local.");
           return;
         }
 
@@ -3144,7 +3144,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               : activeSpecies?.speciesId === "armadillo"
                 ? "Tatu-bola adicionado."
                 : activeSpecies?.speciesId === "maned_wolf"
-                  ? "Lobo-guará adicionado."
+                  ? "Lobo-guarÃ¡ adicionado."
               : "Quati adicionado em local de fruta."
         );
         return;
@@ -3262,7 +3262,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         return;
       }
       if (tutorialActive && tutorialDef?.requiredSpendCount && count !== tutorialDef.requiredSpendCount) {
-        setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} carnes para ver a pontuação completa.`);
+        setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} carnes para ver a pontuaÃ§Ã£o completa.`);
         return;
       }
 
@@ -3501,7 +3501,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setSelectedWolfTargetPieceId(null);
       setSelectedWolfResources([]);
       setSelectedRemovalPieceIds([]);
-      setNotice("Lobo-guará removeu peça de base.");
+      setNotice("Lobo-guarÃ¡ removeu peÃ§a de base.");
       return;
     }
 
@@ -3531,7 +3531,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       tutorialDef?.requiredSpendCount &&
       selectedWolfResources.length !== tutorialDef.requiredSpendCount
     ) {
-      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuação completa.`);
+      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuaÃ§Ã£o completa.`);
       return;
     }
 
@@ -3548,7 +3548,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setSelectedWolfTargetPieceId(null);
       setSelectedWolfResources([]);
       setSelectedRemovalPieceIds([]);
-      setNotice("Lobo-guará gastou recursos e marcou pontos.");
+      setNotice("Lobo-guarÃ¡ gastou recursos e marcou pontos.");
       return;
     }
 
@@ -3588,7 +3588,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setSelectedHandCardId(null);
       setSelectedPieceId(null);
       setSelectedRemovalPieceIds([]);
-      setNotice("Ação concluída.");
+      setNotice("AÃ§Ã£o concluÃ­da.");
       return;
     }
 
@@ -3710,7 +3710,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setNotice(null);
 
     if (localSpeciesIds.length < 2) {
-      setError("Escolha pelo menos 2 espécies para o teste local.");
+      setError("Escolha pelo menos 2 espÃ©cies para o teste local.");
       return;
     }
 
@@ -3968,7 +3968,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setPendingPlacement(null);
     clearRoomState();
     setLandingMode("tutorials");
-    setNotice(completed ? "Tutorial concluído!" : "Tutorial encerrado.");
+    setNotice(completed ? "Tutorial concluÃ­do!" : "Tutorial encerrado.");
   }
 
   function leaveTable() {
@@ -4249,9 +4249,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return (
       <main className="desktop-only-shell">
         <div className="desktop-only-card" role="status" aria-live="polite">
-          <img className="desktop-only-logo" src="/oikos-logo.png" alt="Oikos Digital" />
+          <img className="desktop-only-logo" src="/oikos-logo.webp" alt="Oikos Digital" />
           <AlertTriangle aria-hidden="true" />
-          <h1>Oikos Digital é apenas para desktop</h1>
+          <h1>Oikos Digital Ã© apenas para desktop</h1>
           <p>
             A HUD atual foi desenhada para telas grandes. Use um computador ou aumente a janela para pelo menos
             1024px de largura.
@@ -4363,15 +4363,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caatinga-choice-title">
             <div className="caatinga-choice-head">
               <AlertTriangle aria-hidden="true" />
-              <span>Cenário Caatinga</span>
+              <span>CenÃ¡rio Caatinga</span>
             </div>
             <h2 id="caatinga-choice-title">
-              {caatingaPending.trigger === "remove" ? "Você removeu uma peça" : "Você adicionou uma peça"}
+              {caatingaPending.trigger === "remove" ? "VocÃª removeu uma peÃ§a" : "VocÃª adicionou uma peÃ§a"}
             </h2>
             <p>
               {caatingaGamePlayer?.name ?? "Jogador"}, escolha o efeito no local:{" "}
               <strong>{resourceLabels[caatingaPending.resource]}</strong>.
-              Você só pode usar Caatinga uma vez nesta rodada.
+              VocÃª sÃ³ pode usar Caatinga uma vez nesta rodada.
             </p>
             <div className="caatinga-choice-resource">
               <img src={encodeURI(resourceAssets[caatingaPending.resource])} alt="" />
@@ -4397,7 +4397,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 className="caatinga-collect-btn caatinga-collect-btn--skip"
                 onClick={() => resolveCaatingaChoice("skip")}
               >
-                Agora não
+                Agora nÃ£o
               </button>
             </div>
           </section>
@@ -4408,11 +4408,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="cerrado-choice-title">
             <div className="caatinga-choice-head">
               <Leaf aria-hidden="true" />
-              <span>Cenário Cerrado</span>
+              <span>CenÃ¡rio Cerrado</span>
             </div>
-            <h2 id="cerrado-choice-title">Você encontrou um novo recurso</h2>
+            <h2 id="cerrado-choice-title">VocÃª encontrou um novo recurso</h2>
             <p>
-              {cerradoGamePlayer?.name ?? "Jogador"}, você ainda não possui{" "}
+              {cerradoGamePlayer?.name ?? "Jogador"}, vocÃª ainda nÃ£o possui{" "}
               <strong>{resourceLabels[cerradoPending.resource]}</strong>. Ative o Cerrado agora para coletar 2,
               ou deixe para tentar em outro momento desta rodada.
             </p>
@@ -4430,7 +4430,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 className="caatinga-collect-btn caatinga-collect-btn--skip"
                 onClick={() => resolveCerradoChoice("skip")}
               >
-                Agora não
+                Agora nÃ£o
               </button>
             </div>
           </section>
@@ -4510,11 +4510,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           <section className="caatinga-choice-modal mata-discard-modal" role="dialog" aria-modal="true" aria-labelledby="mata-discard-title">
             <div className="caatinga-choice-head">
               <Leaf aria-hidden="true" />
-              <span>Cenário Mata Atlântica</span>
+              <span>CenÃ¡rio Mata AtlÃ¢ntica</span>
             </div>
             <h2 id="mata-discard-title">Escolha 1 carta para descartar</h2>
             <p>
-              {currentGamePlayer?.name ?? "Jogador"}, sua espécie não usa cartas. No início do turno você deve
+              {currentGamePlayer?.name ?? "Jogador"}, sua espÃ©cie nÃ£o usa cartas. No inÃ­cio do turno vocÃª deve
               descartar 1 carta aberta de uma das 3 pilhas.
             </p>
             <div className="mata-discard-grid">
@@ -4604,7 +4604,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
       {!hasStartedGame && !room && landingMode === "idle" && (
         <div className="forest-menu" role="main">
-          <span className="forest-version">v0.1 · beta</span>
+          <span className="forest-version">v0.1 Â· beta</span>
 
           <div className="forest-menu-content">
             {/* Title sign hanging from the top branch */}
@@ -4613,7 +4613,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <span className="forest-title-rope forest-title-rope-r" aria-hidden="true" />
               <div className="forest-title-sign">
                 <span className="forest-title-vine" aria-hidden="true" />
-                <img src="/oikos-logo.png" alt="Oikos Digital" />
+                <img src="/oikos-logo.webp" alt="Oikos Digital" />
               </div>
             </div>
 
@@ -4632,8 +4632,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <div className="forest-actions">
                 {[
                   { mode: "create" as const, icon: Play, title: "Criar Sala", sub: "Hospede uma partida online", primary: true },
-                  { mode: "join" as const, icon: LogIn, title: "Entrar em Sala", sub: "Sala aberta ou código", primary: false },
-                  { mode: "local" as const, icon: MapPin, title: "Teste Local", sub: "Controle 2-6 espécies nesta tela", primary: false },
+                  { mode: "join" as const, icon: LogIn, title: "Entrar em Sala", sub: "Sala aberta ou cÃ³digo", primary: false },
+                  { mode: "local" as const, icon: MapPin, title: "Teste Local", sub: "Controle 2-6 espÃ©cies nesta tela", primary: false },
                   { mode: "tutorials" as const, icon: GraduationCap, title: "Tutoriais", sub: "Aprenda a jogar passo a passo", primary: false }
                 ].map(({ mode, icon: Icon, title, sub, primary }) => (
                   <button
@@ -4663,8 +4663,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <Settings aria-hidden="true" />
                   </span>
                   <span className="forest-btn-text">
-                    <strong>Configurações</strong>
-                    <small>Som e preferências</small>
+                    <strong>ConfiguraÃ§Ãµes</strong>
+                    <small>Som e preferÃªncias</small>
                   </span>
                 </button>
               </div>
@@ -4673,8 +4673,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
           <footer className="forest-footer">
             <span>Oikos Digital</span>
-            <span className="forest-footer-sep">·</span>
-            <span>Servidor autoritativo · Socket.IO</span>
+            <span className="forest-footer-sep">Â·</span>
+            <span>Servidor autoritativo Â· Socket.IO</span>
           </footer>
         </div>
       )}
@@ -4707,7 +4707,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <span>Voltar</span>
             </button>
             <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
             </div>
             <span className="flow-spacer" aria-hidden="true" />
           </header>
@@ -4718,7 +4718,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
             <h2 className="flow-title">Criar Sala</h2>
             <p className="flow-subtitle">
-              Hospede uma partida online. Deixe a senha em branco para uma sala pública.
+              Hospede uma partida online. Deixe a senha em branco para uma sala pÃºblica.
             </p>
 
             <form
@@ -4759,8 +4759,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </button>
               <small className="flow-spectate-hint">
                 {createPassword
-                  ? "Sala privada: só entra quem tiver o código e a senha."
-                  : "Sala pública: aparece na lista de salas abertas."}
+                  ? "Sala privada: sÃ³ entra quem tiver o cÃ³digo e a senha."
+                  : "Sala pÃºblica: aparece na lista de salas abertas."}
               </small>
             </form>
           </div>
@@ -4785,7 +4785,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <span>Voltar</span>
             </button>
             <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
             </div>
             <span className="flow-spacer" aria-hidden="true" />
           </header>
@@ -4796,7 +4796,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
             <h2 className="flow-title">Entrar em Sala</h2>
             <p className="flow-subtitle">
-              Escolha uma sala aberta na lista ou digite o código compartilhado pelo anfitrião.
+              Escolha uma sala aberta na lista ou digite o cÃ³digo compartilhado pelo anfitriÃ£o.
             </p>
 
             <div className="flow-card flow-rooms-card">
@@ -4824,7 +4824,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
               {openRooms.length === 0 ? (
                 <p className="flow-rooms-empty">
-                  {roomsLoading ? "Procurando salas…" : "Nenhuma sala aberta no momento. Crie uma ou use um código."}
+                  {roomsLoading ? "Procurando salasâ€¦" : "Nenhuma sala aberta no momento. Crie uma ou use um cÃ³digo."}
                 </p>
               ) : (
                 <ul className="flow-rooms-list">
@@ -4865,9 +4865,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                             <span className={`flow-room-status ${summary.status}`}>
                               {summary.status === "lobby"
                                 ? full
-                                  ? "Cheia · assistir"
+                                  ? "Cheia Â· assistir"
                                   : "Aguardando"
-                                : "Em jogo · assistir"}
+                                : "Em jogo Â· assistir"}
                             </span>
                           </span>
                         </button>
@@ -4901,7 +4901,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </label>
 
               <div className="flow-code-field">
-                <span className="flow-code-label">Código da sala</span>
+                <span className="flow-code-label">CÃ³digo da sala</span>
                 <input
                   className="landing-code-input flow-code-input"
                   value={joinCode}
@@ -4942,7 +4942,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 Entrar como Espectador
               </button>
               <small className="flow-spectate-hint">
-                Espectador assiste à partida sem ocupar uma vaga de jogador.
+                Espectador assiste Ã  partida sem ocupar uma vaga de jogador.
               </small>
             </form>
           </div>
@@ -4967,7 +4967,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <span>Voltar</span>
             </button>
             <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
             </div>
             <span className="flow-spacer" aria-hidden="true" />
           </header>
@@ -4978,12 +4978,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
             <h2 className="flow-title">Teste Local</h2>
             <p className="flow-subtitle">
-              Controle de 2 a 6 espécies nesta mesma tela. Ideal para aprender as regras e testar estratégias.
+              Controle de 2 a 6 espÃ©cies nesta mesma tela. Ideal para aprender as regras e testar estratÃ©gias.
             </p>
 
             <div className="flow-card flow-card-local">
               <div className="flow-card-header">
-                <span>Escolha as espécies</span>
+                <span>Escolha as espÃ©cies</span>
                 <span className="flow-counter">
                   {localSpeciesIds.length}/6
                 </span>
@@ -5112,8 +5112,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 <button
                   type="button"
                   className="icon-button compact"
-                  title="Bots mais rápidos"
-                  aria-label="Bots mais rápidos"
+                  title="Bots mais rÃ¡pidos"
+                  aria-label="Bots mais rÃ¡pidos"
                   onClick={() => adjustLocalBotSpeed(-botTurnDelayStepMs)}
                 >
                   <Minus aria-hidden="true" />
@@ -5137,10 +5137,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 disabled={localSpeciesIds.length < 2}
               >
                 <Play aria-hidden="true" />
-                Iniciar Partida ({localSpeciesIds.length} espécies)
+                Iniciar Partida ({localSpeciesIds.length} espÃ©cies)
               </button>
               {localSpeciesIds.length < 2 && (
-                <small className="flow-hint">Mínimo 2 espécies para iniciar.</small>
+                <small className="flow-hint">MÃ­nimo 2 espÃ©cies para iniciar.</small>
               )}
             </div>
           </div>
@@ -5166,14 +5166,14 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <span>Voltar</span>
             </button>
             <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
             </div>
             <span className="flow-spacer" aria-hidden="true" />
           </header>
 
           <div className="flow-body">
             <h2 className="flow-title">Tutoriais</h2>
-            <p className="flow-subtitle">Escolha um capítulo. Comece pelo tutorial básico.</p>
+            <p className="flow-subtitle">Escolha um capÃ­tulo. Comece pelo tutorial bÃ¡sico.</p>
 
             <div className="tutorial-chapters">
               <button
@@ -5185,16 +5185,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   <GraduationCap aria-hidden="true" />
                 </span>
                 <span className="tutorial-chapter-text">
-                  <strong>Tutorial básico</strong>
-                  <small>Meeples, cartas, rios, rotação, movimento e pontuação final.</small>
+                  <strong>Tutorial bÃ¡sico</strong>
+                  <small>Meeples, cartas, rios, rotaÃ§Ã£o, movimento e pontuaÃ§Ã£o final.</small>
                 </span>
                 {isTutorialInitialDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
+                    <Check aria-hidden="true" /> ConcluÃ­do
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
+                    <Play aria-hidden="true" /> ComeÃ§ar
                   </span>
                 )}
               </button>
@@ -5210,15 +5210,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.jaguar.displayName}</strong>
-                  <small>Aprenda a jogar com esta espécie.</small>
+                  <small>Aprenda a jogar com esta espÃ©cie.</small>
                 </span>
                 {isTutorialJaguarDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
+                    <Check aria-hidden="true" /> ConcluÃ­do
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
+                    <Play aria-hidden="true" /> ComeÃ§ar
                   </span>
                 )}
               </button>
@@ -5234,15 +5234,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.maned_wolf.displayName}</strong>
-                  <small>Aprenda a jogar com esta espécie.</small>
+                  <small>Aprenda a jogar com esta espÃ©cie.</small>
                 </span>
                 {isTutorialWolfDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
+                    <Check aria-hidden="true" /> ConcluÃ­do
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
+                    <Play aria-hidden="true" /> ComeÃ§ar
                   </span>
                 )}
               </button>
@@ -5258,15 +5258,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.armadillo.displayName}</strong>
-                  <small>Aprenda a jogar com esta espécie.</small>
+                  <small>Aprenda a jogar com esta espÃ©cie.</small>
                 </span>
                 {isTutorialArmadilloDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
+                    <Check aria-hidden="true" /> ConcluÃ­do
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
+                    <Play aria-hidden="true" /> ComeÃ§ar
                   </span>
                 )}
               </button>
@@ -5282,15 +5282,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.macaw.displayName}</strong>
-                  <small>Aprenda a jogar com esta espécie.</small>
+                  <small>Aprenda a jogar com esta espÃ©cie.</small>
                 </span>
                 {isTutorialMacawDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
+                    <Check aria-hidden="true" /> ConcluÃ­do
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
+                    <Play aria-hidden="true" /> ComeÃ§ar
                   </span>
                 )}
               </button>
@@ -5306,15 +5306,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.capuchin.displayName}</strong>
-                  <small>Aprenda a jogar com esta espécie.</small>
+                  <small>Aprenda a jogar com esta espÃ©cie.</small>
                 </span>
                 {isTutorialCapuchinDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
+                    <Check aria-hidden="true" /> ConcluÃ­do
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
+                    <Play aria-hidden="true" /> ComeÃ§ar
                   </span>
                 )}
               </button>
@@ -5330,15 +5330,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.coati.displayName}</strong>
-                  <small>Aprenda a jogar com esta espécie.</small>
+                  <small>Aprenda a jogar com esta espÃ©cie.</small>
                 </span>
                 {isTutorialCoatiDone() ? (
                   <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
+                    <Check aria-hidden="true" /> ConcluÃ­do
                   </span>
                 ) : (
                   <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
+                    <Play aria-hidden="true" /> ComeÃ§ar
                   </span>
                 )}
               </button>
@@ -5355,7 +5355,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </span>
                   <span className="tutorial-chapter-text">
                     <strong>{species.displayName}</strong>
-                    <small>Aprenda a jogar com esta espécie.</small>
+                    <small>Aprenda a jogar com esta espÃ©cie.</small>
                   </span>
                   <span className="tutorial-chapter-badge locked">
                     <Lock aria-hidden="true" /> Em breve
@@ -5387,7 +5387,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <span>Sair</span>
             </button>
             <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.png" alt="Oikos" />
+              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
             </div>
             <span className="flow-spacer" aria-hidden="true" />
           </header>
@@ -5418,16 +5418,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </div>
               {!isLocalRoom && (
                 <div className="lobby-code-card">
-                  <span className="lobby-code-label">Código da Sala</span>
+                  <span className="lobby-code-label">CÃ³digo da Sala</span>
                   <div className="lobby-code-display">
                     <span className="lobby-code-value">{room.roomId}</span>
                     <button
                       type="button"
                       className="lobby-code-copy"
-                      title="Copiar código"
+                      title="Copiar cÃ³digo"
                       onClick={() => {
                         void navigator.clipboard?.writeText(room.roomId);
-                        setNotice("Código copiado.");
+                        setNotice("CÃ³digo copiado.");
                       }}
                     >
                       <Copy aria-hidden="true" />
@@ -5477,13 +5477,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         <div className="lobby-player-text">
                           <strong>
                             {player.name || "Jogador"}
-                            {isYou && <span className="lobby-tag lobby-tag-you">Você</span>}
+                            {isYou && <span className="lobby-tag lobby-tag-you">VocÃª</span>}
                             {isThisHost && !isLocalRoom && <span className="lobby-tag lobby-tag-host">Host</span>}
                             {player.isBot && <span className="lobby-tag lobby-tag-bot">Bot</span>}
                           </strong>
                           <small>
-                            {species ? species.displayName : "Sem espécie"}
-                            {player.ready && " · Pronto"}
+                            {species ? species.displayName : "Sem espÃ©cie"}
+                            {player.ready && " Â· Pronto"}
                           </small>
                         </div>
                         {player.ready && (
@@ -5499,7 +5499,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                             title="Renomear"
                             aria-label="Renomear"
                           >
-                            ✎
+                            âœŽ
                           </button>
                         )}
                         {!isLocalRoom && isHost && !isYou && !player.isBot && (
@@ -5510,7 +5510,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                             title="Remover jogador"
                             aria-label="Remover jogador"
                           >
-                            ✕
+                            âœ•
                           </button>
                         )}
                       </li>
@@ -5524,7 +5524,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 <section className="lobby-card lobby-settings">
                   <header className="lobby-card-header">
                     <Settings aria-hidden="true" />
-                    <h3>Configuração da Mesa</h3>
+                    <h3>ConfiguraÃ§Ã£o da Mesa</h3>
                     {isHost ? <span className="lobby-count">Host</span> : <span className="lobby-count">Leitura</span>}
                   </header>
 
@@ -5533,10 +5533,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       <span>
                         <strong>Regras da partida</strong>
                         <small>
-                          {enabledMiniExpansions.length} mini-expansão
+                          {enabledMiniExpansions.length} mini-expansÃ£o
                           {enabledMiniExpansions.length === 1 ? "" : "es"} ativa
-                          {enabledMiniExpansions.length === 1 ? "" : "s"} ·{" "}
-                          {turnTimerMs ? formatTurnTimer(turnTimerMs) : "sem cronômetro"}
+                          {enabledMiniExpansions.length === 1 ? "" : "s"} Â·{" "}
+                          {turnTimerMs ? formatTurnTimer(turnTimerMs) : "sem cronÃ´metro"}
                         </small>
                       </span>
                       <ChevronDown aria-hidden="true" />
@@ -5545,7 +5545,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   <div className="lobby-setting-list">
                     <div className="lobby-expansions-block">
                       <div className="lobby-expansions-head">
-                        <strong>Mini-expansões</strong>
+                        <strong>Mini-expansÃµes</strong>
                         <span className="lobby-expansions-count">
                           {enabledMiniExpansions.filter((id) => miniExpansionOptions.some((opt) => opt.id === id)).length}/{miniExpansionOptions.length}
                         </span>
@@ -5586,21 +5586,21 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         <div className="lobby-scenario-picker">
                           <div className="lobby-scenario-picker-head">
                             <div>
-                              <strong>Cenários</strong>
+                              <strong>CenÃ¡rios</strong>
                               <small>
                                 {scenarioSelectionMode === "vote"
                                   ? "Jogadores votam em 1 carta antes do setup."
                                   : `Definido pelo host (${hostSelectedScenarioIds.length}/1).`}
                               </small>
                             </div>
-                            <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenários">
+                            <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenÃ¡rios">
                               <button
                                 type="button"
                                 className={scenarioSelectionMode === "vote" ? "is-active" : ""}
                                 disabled={!isHost || room.status !== "lobby"}
                                 onClick={() => setScenarioMode("vote")}
                               >
-                                Votação
+                                VotaÃ§Ã£o
                               </button>
                               <button
                                 type="button"
@@ -5648,7 +5648,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
                     <div className="lobby-setting-row">
                       <div className="lobby-setting-copy">
-                        <strong>Cronômetro</strong>
+                        <strong>CronÃ´metro</strong>
                         <small>{turnTimerMs ? `${formatTurnTimer(turnTimerMs)} por turno` : "Sem limite por turno."}</small>
                       </div>
                       <div className="lobby-setting-actions">
@@ -5707,7 +5707,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           <button
                             type="button"
                             className="icon-button compact"
-                            title="Bots mais rápidos"
+                            title="Bots mais rÃ¡pidos"
                             disabled={!isHost}
                             onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
                           >
@@ -5741,8 +5741,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   <div className="lobby-spectator-note">
                     <Eye aria-hidden="true" />
                     <p>
-                      Você está assistindo a esta sala. Quando o anfitrião iniciar, a partida
-                      aparecerá aqui automaticamente.
+                      VocÃª estÃ¡ assistindo a esta sala. Quando o anfitriÃ£o iniciar, a partida
+                      aparecerÃ¡ aqui automaticamente.
                     </p>
                   </div>
                 </section>
@@ -5750,7 +5750,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <section className="lobby-card lobby-species">
                 <header className="lobby-card-header">
                   <ShieldCheck aria-hidden="true" />
-                  <h3>Escolha sua Espécie</h3>
+                  <h3>Escolha sua EspÃ©cie</h3>
                 </header>
                 <div className="lobby-species-grid">
                   {speciesList.map((species) => {
@@ -5892,8 +5892,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         <button
           type="button"
           className="hud-config-btn"
-          title="Mesa e configurações"
-          aria-label="Mesa e configurações"
+          title="Mesa e configuraÃ§Ãµes"
+          aria-label="Mesa e configuraÃ§Ãµes"
           onClick={() => setConfigOpen(true)}
         >
           <Settings aria-hidden="true" />
@@ -6083,7 +6083,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   className="primary-button"
                   onClick={() => setTutorialStep((step) => (step === null ? step : step + 1))}
                 >
-                  Próximo
+                  PrÃ³ximo
                 </button>
               ))}
           </div>
@@ -6154,7 +6154,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className="species-hud-toggle"
                 onClick={() => setHudSpeciesCollapsed((value) => !value)}
-                aria-label={hudSpeciesCollapsed ? "Expandir painel da espécie" : "Recolher painel da espécie"}
+                aria-label={hudSpeciesCollapsed ? "Expandir painel da espÃ©cie" : "Recolher painel da espÃ©cie"}
                 title={hudSpeciesCollapsed ? "Expandir" : "Recolher"}
               >
                 {hudSpeciesCollapsed ? <ChevronDown aria-hidden="true" /> : <ChevronUp aria-hidden="true" />}
@@ -6170,7 +6170,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 className="hud-piece-track"
                 ref={(node) => setEffectTarget("hud:reserve", node)}
                 title={`${hudGamePlayer.reservePieces.length} na reserva`}
-                aria-label={`${hudGamePlayer.reservePieces.length} peças na reserva`}
+                aria-label={`${hudGamePlayer.reservePieces.length} peÃ§as na reserva`}
               >
                 {renderReserveMeeples(hudGamePlayer, hudSpecies.meepleAsset)}
               </div>
@@ -6185,7 +6185,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   key={resource}
                   data-resource={resource}
                   ref={(node) => setEffectTarget(`hud:${resource}`, node)}
-                  title={hasMajority ? `${resourceLabels[resource]} — maioria` : resourceLabels[resource]}
+                  title={hasMajority ? `${resourceLabels[resource]} â€” maioria` : resourceLabels[resource]}
                   aria-label={`${resourceLabels[resource]}: ${hudGamePlayer.resources[resource] ?? 0}${hasMajority ? " (maioria)" : ""}`}
                 >
                   <img src={encodeURI(resourceAssets[resource])} alt="" />
@@ -6225,11 +6225,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <h2>Setup</h2>
             </div>
             <p>
-              Vez de <strong>{setupActivePlayer?.name ?? "jogador"}</strong> posicionar peças iniciais.
+              Vez de <strong>{setupActivePlayer?.name ?? "jogador"}</strong> posicionar peÃ§as iniciais.
             </p>
             {currentGamePlayer && (
               <div className="setup-meter">
-                <span>Suas peças iniciais</span>
+                <span>Suas peÃ§as iniciais</span>
                 <strong>
                   {setupPlaced}/{setupNeeded}
                 </strong>
@@ -6316,7 +6316,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <small>
                       {room.game.activePlayedForestCardId
                         ? "Escolha uma carta com fruta para adicionar 1 quati, ou conclua sem adicionar."
-                        : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
+                        : "Selecione uma carta na mÃ£o e coloque em um espaÃ§o vazio destacado."}
                     </small>
                     {room.game.activePlayedForestCardId && !tutorialActive && (
                       <button className="secondary-button" onClick={handleCompleteAction}>
@@ -6335,7 +6335,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   !tutorialActive &&
                   requiredCoatiRemovalCount === 0 && (
                   <button className="secondary-button" onClick={handleCompleteAction}>
-                    Concluir ação {activeActionId}
+                    Concluir aÃ§Ã£o {activeActionId}
                   </button>
                 )}
                 {activeSpecies.speciesId === "coati" &&
@@ -6363,10 +6363,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <>
                       <small>
                         {canSkipJaguarMove
-                          ? "Não há destino válido para mover nesta ação."
+                          ? "NÃ£o hÃ¡ destino vÃ¡lido para mover nesta aÃ§Ã£o."
                           : selectedJaguarDestination
-                            ? "Escolha qual meeple a Onça deve remover no destino selecionado."
-                            : "Selecione a Onça e clique em um destino destacado. Com 1 meeple no destino, a remoção é automática; com mais de 1, escolha qual remover depois."}
+                            ? "Escolha qual meeple a OnÃ§a deve remover no destino selecionado."
+                            : "Selecione a OnÃ§a e clique em um destino destacado. Com 1 meeple no destino, a remoÃ§Ã£o Ã© automÃ¡tica; com mais de 1, escolha qual remover depois."}
                       </small>
                       {canSkipJaguarMove && (
                         <button className="secondary-button" onClick={handleCompleteAction}>
@@ -6386,9 +6386,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <>
                       <small>
                         {!room.game.activePlayedForestCardId
-                          ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
+                          ? "Selecione uma carta na mÃ£o e coloque em um espaÃ§o vazio destacado."
                           : capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                            ? "Sem macacos na reserva. Conclua a ação para seguir."
+                            ? "Sem macacos na reserva. Conclua a aÃ§Ã£o para seguir."
                             : `Clique na carta jogada destacada para adicionar 1 macaco, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
                       </small>
                       {canSkipAdd && (
@@ -6407,8 +6407,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <>
                       <small>
                         {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                          ? "Sem macaco na reserva ou sem local válido. Conclua a ação para pontuar."
-                          : `Clique em um local destacado que já tenha outro Macaco-prego, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
+                          ? "Sem macaco na reserva ou sem local vÃ¡lido. Conclua a aÃ§Ã£o para pontuar."
+                          : `Clique em um local destacado que jÃ¡ tenha outro Macaco-prego, ou conclua sem adicionar. Reserva: ${capuchinReserveCount}.`}
                       </small>
                       <button className="secondary-button" onClick={handleCompleteAction}>
                         Concluir sem adicionar
@@ -6417,7 +6417,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   );
                 })()}
                 {activeSpecies.speciesId === "capuchin" && activeActionId === "D" && canControlActivePlayer && (
-                  <small>Pontuação automática: +{capuchinHabitatScore} ponto(s) por habitat com macacos.</small>
+                  <small>PontuaÃ§Ã£o automÃ¡tica: +{capuchinHabitatScore} ponto(s) por habitat com macacos.</small>
                 )}
                 {activeSpecies.speciesId === "macaw" && activeActionId === "A" && canControlActivePlayer && (() => {
                   const reserveCount = activeGamePlayer?.reservePieces.length ?? 0;
@@ -6427,11 +6427,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <>
                       <small>
                         {!room.game.activePlayedForestCardId
-                          ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
+                          ? "Selecione uma carta na mÃ£o e coloque em um espaÃ§o vazio destacado."
                           : noReserve
-                            ? "Sem araras na reserva. Conclua a ação para seguir."
+                            ? "Sem araras na reserva. Conclua a aÃ§Ã£o para seguir."
                             : noEggTargets
-                              ? "Nenhuma carta com ovo disponível. Conclua a ação para seguir."
+                              ? "Nenhuma carta com ovo disponÃ­vel. Conclua a aÃ§Ã£o para seguir."
                               : `Clique em uma carta com ovo destacada para adicionar 1 arara, ou conclua sem adicionar. Reserva: ${reserveCount}.`}
                       </small>
                       {room.game.activePlayedForestCardId && (
@@ -6456,14 +6456,14 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </>
                 )}
                 {activeSpecies.speciesId === "macaw" && activeActionId === "D" && canControlActivePlayer && (
-                  <small>Pontuação automática: +{macawLineScore} ponto(s) por linha de 3 araras.</small>
+                  <small>PontuaÃ§Ã£o automÃ¡tica: +{macawLineScore} ponto(s) por linha de 3 araras.</small>
                 )}
                 {activeSpecies.speciesId === "armadillo" && activeActionId === "A" && canControlActivePlayer && (
                   <>
                     <small>
                       {room.game.activePlayedForestCardId
                         ? "Clique em uma carta com semente destacada para adicionar 1 tatu, ou conclua sem adicionar."
-                        : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
+                        : "Selecione uma carta na mÃ£o e coloque em um espaÃ§o vazio destacado."}
                     </small>
                     {room.game.activePlayedForestCardId && (
                       <button className="secondary-button" onClick={handleCompleteAction}>
@@ -6477,40 +6477,40 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 )}
                 {activeSpecies.speciesId === "armadillo" && activeActionId === "C" && canControlActivePlayer && (
                   <>
-                    <small>Selecione um Tatu-bola visível próprio para esconder.</small>
+                    <small>Selecione um Tatu-bola visÃ­vel prÃ³prio para esconder.</small>
                     {selectedPieceId ? (
                       <button className="secondary-button" onClick={handleHideArmadillo}>
                         Esconder Tatu-bola
                       </button>
                     ) : getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length === 0 ? (
                       <button className="secondary-button" onClick={handleCompleteAction}>
-                        Concluir ação {activeActionId}
+                        Concluir aÃ§Ã£o {activeActionId}
                       </button>
                     ) : null}
                   </>
                 )}
                 {activeSpecies.speciesId === "armadillo" && activeActionId === "D" && canControlActivePlayer && (
-                  <small>Pontuação automática: +{armadilloShareScore} ponto(s) por compartilhamento.</small>
+                  <small>PontuaÃ§Ã£o automÃ¡tica: +{armadilloShareScore} ponto(s) por compartilhamento.</small>
                 )}
                 {activeSpecies.speciesId === "maned_wolf" && activeActionId === "A" && canControlActivePlayer && (
                   <small>
                     {room.game.activePlayedForestCardId
                       ? `Mova os lobos destacados. Pendentes: ${room.game.pendingWolfMoves?.pieceIds.length ?? 0}.`
-                      : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
+                      : "Selecione uma carta na mÃ£o e coloque em um espaÃ§o vazio destacado."}
                   </small>
                 )}
                 {activeSpecies.speciesId === "maned_wolf" && activeActionId === "B" && canControlActivePlayer && (
                   <div className="wolf-base-panel">
                     <div className="wolf-base-summary">
-                      <span>Alvos válidos</span>
+                      <span>Alvos vÃ¡lidos</span>
                       <strong>{wolfRemovableBasePieceIds.length}</strong>
                     </div>
                     <small>
                       {wolfRemovableBasePieceIds.length > 0
                         ? selectedWolfTargetPieceId
-                          ? "Peça de base selecionada. Remova ou cancele a ação."
-                          : "Clique em uma peça de base que esteja no mesmo local de um lobo."
-                        : "Nenhuma peça de base divide local com lobo."}
+                          ? "PeÃ§a de base selecionada. Remova ou cancele a aÃ§Ã£o."
+                          : "Clique em uma peÃ§a de base que esteja no mesmo local de um lobo."
+                        : "Nenhuma peÃ§a de base divide local com lobo."}
                     </small>
                     <div className="wolf-base-actions">
                       <button
@@ -6519,7 +6519,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         onClick={handleRemoveWolfBasePiece}
                       >
                         <X aria-hidden="true" />
-                        Remover peça
+                        Remover peÃ§a
                       </button>
                       <button className="wolf-skip-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                         <Check aria-hidden="true" />
@@ -6534,7 +6534,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 {activeSpecies.speciesId === "maned_wolf" && activeActionId === "D" && canControlActivePlayer && (
                   <>
                     <small>
-                      Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais válidos: {wolfMeatTargets.length}.
+                      Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais vÃ¡lidos: {wolfMeatTargets.length}.
                     </small>
                     <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                       Concluir sem adicionar
@@ -6644,13 +6644,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       </section>
 
         {!cleanBoardMode && showHandDuringGame && currentGamePlayer && (
-          <section className={`table-hand ${handCollapsed ? "collapsed" : ""}`} aria-label="Mão de cartas">
+          <section className={`table-hand ${handCollapsed ? "collapsed" : ""}`} aria-label="MÃ£o de cartas">
             {handCards.length > 0 && (
               <button
                 type="button"
                 className="hand-sort-toggle"
                 title={`Organizar por ${nextHandSortLabel}`}
-                aria-label={`Mão organizada por ${handSortLabel}. Clique para organizar por ${nextHandSortLabel}.`}
+                aria-label={`MÃ£o organizada por ${handSortLabel}. Clique para organizar por ${nextHandSortLabel}.`}
                 onClick={() => setHandSortMode(nextHandSortMode)}
               >
                 <ListFilter aria-hidden="true" />
@@ -6660,13 +6660,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             )}
             <div className="hand-header">
               <div>
-                <span>Mão · {handCards.length} cartas</span>
+                <span>MÃ£o Â· {handCards.length} cartas</span>
                 <strong>
                   {isBasicTutorial
                     ? "Cartas do tutorial"
                     : currentGamePlayer.speciesId
                       ? speciesDefinitions[currentGamePlayer.speciesId].displayName
-                      : "Espécie"}
+                      : "EspÃ©cie"}
                 </strong>
               </div>
               <div className="hand-header-side">
@@ -6674,7 +6674,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   type="button"
                   className="hand-toggle"
                   title={handCollapsed ? "Expandir" : "Recolher"}
-                  aria-label={handCollapsed ? "Expandir mão de cartas" : "Recolher mão de cartas"}
+                  aria-label={handCollapsed ? "Expandir mÃ£o de cartas" : "Recolher mÃ£o de cartas"}
                   onClick={() => setHandCollapsed((value) => !value)}
                 >
                   {handCollapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
@@ -6749,18 +6749,18 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           <div className="card-rotate" onClick={(event) => event.stopPropagation()}>
                             <button
                               type="button"
-                              title="Girar à esquerda (Q)"
-                              aria-label="Girar à esquerda"
+                              title="Girar Ã  esquerda (Q)"
+                              aria-label="Girar Ã  esquerda"
                               onClick={() => rotateSelectedCard(-1)}
                             >
                               <RotateCcw aria-hidden="true" />
                               <kbd>Q</kbd>
                             </button>
-                            <span>{selectedCardRotation}°</span>
+                            <span>{selectedCardRotation}Â°</span>
                             <button
                               type="button"
-                              title="Girar à direita (E)"
-                              aria-label="Girar à direita"
+                              title="Girar Ã  direita (E)"
+                              aria-label="Girar Ã  direita"
                               onClick={() => rotateSelectedCard(1)}
                             >
                               <RotateCw aria-hidden="true" />
@@ -6783,7 +6783,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                             <button
                               type="button"
                               className="mata-discard-btn"
-                              title="Descartar (Mata Atlântica)"
+                              title="Descartar (Mata AtlÃ¢ntica)"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 if (isLocalRoom) {
@@ -6812,8 +6812,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               ) : (
                 <p className="empty-state">
                   {currentGamePlayer.speciesId === "jaguar"
-                    ? "Esta espécie não usa cartas de floresta na mão."
-                    : "Sem cartas de floresta na mão."}
+                    ? "Esta espÃ©cie nÃ£o usa cartas de floresta na mÃ£o."
+                    : "Sem cartas de floresta na mÃ£o."}
                 </p>
               ))}
           </section>
@@ -6827,7 +6827,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 <Trophy aria-hidden="true" /> Carta de objetivo
               </span>
               <h2>Escolha seu objetivo</h2>
-              <p>Fique com 1 carta. A outra será descartada.</p>
+              <p>Fique com 1 carta. A outra serÃ¡ descartada.</p>
             </header>
             <div className="objective-choice-grid">
               {objectiveChoices.map((card, index) => {
@@ -6926,7 +6926,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 style={speciesVar(player.speciesId)}
                 data-species={player.speciesId ?? undefined}
                 title={species ? `Ver ${species.displayName}` : player.name}
-                aria-label={species ? `Ver informações de ${species.displayName}` : `Ver informações de ${player.name}`}
+                aria-label={species ? `Ver informaÃ§Ãµes de ${species.displayName}` : `Ver informaÃ§Ãµes de ${player.name}`}
                 aria-pressed={selectedOpponentPlayerId === player.playerId}
                 onClick={() =>
                   setSelectedOpponentPlayerId((current) => (current === player.playerId ? null : player.playerId))
@@ -6996,7 +6996,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       className={`opponent-resource ${isLeader ? "is-leader" : ""}`}
                       data-resource={resource}
                       key={resource}
-                      title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
+                      title={isLeader ? `${resourceLabels[resource]} Â· maioria` : resourceLabels[resource]}
                       ref={(node) => setEffectTarget(`${selectedOpponentEntry.gamePlayer!.playerId}:${resource}`, node)}
                     >
                       <img src={encodeURI(resourceAssets[resource])} alt="" />
@@ -7015,7 +7015,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       key={habitat}
                       role="listitem"
                       className={`opponent-movement is-${habitat}`}
-                      title={`${habitatLabels[habitat]} · ${movementKindLabels[kind]}`}
+                      title={`${habitatLabels[habitat]} Â· ${movementKindLabels[kind]}`}
                     >
                       <img
                         src={movementArtPath(habitat, kind)}
@@ -7088,7 +7088,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   ) : null}
                   {species && <img className="player-portrait" src={encodeURI(species.portraitAsset)} alt="" />}
                   <div>
-                    <strong>{species?.displayName ?? "Sem espécie"}</strong>
+                    <strong>{species?.displayName ?? "Sem espÃ©cie"}</strong>
                     {!player.isBot && player.name && player.name !== species?.displayName && (
                       <span>{player.name}</span>
                     )}
@@ -7119,7 +7119,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           <span
                             className={`mini-resource ${isLeader ? "is-leader" : ""}`}
                             data-resource={resource}
-                            title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
+                            title={isLeader ? `${resourceLabels[resource]} Â· maioria` : resourceLabels[resource]}
                             key={resource}
                             ref={(node) => setEffectTarget(`${gamePlayer.playerId}:${resource}`, node)}
                           >
@@ -7170,18 +7170,18 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               className="choice-modal"
               role="dialog"
               aria-modal="true"
-              aria-label="Onça-pintada — gastar carne"
+              aria-label="OnÃ§a-pintada â€” gastar carne"
               style={speciesVar("jaguar")}
             >
               <header className="choice-modal-head">
                 <img src={encodeURI(speciesDefinitions.jaguar.meepleAsset)} alt="" />
                 <div>
-                  <span>Onça-pintada · Ação C</span>
+                  <span>OnÃ§a-pintada Â· AÃ§Ã£o C</span>
                   <h2>Gastar carne para pontuar</h2>
                 </div>
               </header>
               <p className="choice-modal-desc">
-                Gaste 1 carne para marcar 1 ponto, até 3 vezes. Carnes disponíveis: {availableJaguarPointSpendCount}.
+                Gaste 1 carne para marcar 1 ponto, atÃ© 3 vezes. Carnes disponÃ­veis: {availableJaguarPointSpendCount}.
               </p>
               <div className="choice-count-grid">
                 {[1, 2, 3].map((count) => (
@@ -7231,13 +7231,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               className="choice-modal"
               role="dialog"
               aria-modal="true"
-              aria-label="Lobo-guará — gastar recursos"
+              aria-label="Lobo-guarÃ¡ â€” gastar recursos"
               style={speciesVar("maned_wolf")}
             >
               <header className="choice-modal-head">
                 <img src={encodeURI(speciesDefinitions.maned_wolf.meepleAsset)} alt="" />
                 <div>
-                  <span>Lobo-guará · Ação C</span>
+                  <span>Lobo-guarÃ¡ Â· AÃ§Ã£o C</span>
                   <h2>Gastar recursos para pontuar</h2>
                 </div>
               </header>
@@ -7246,7 +7246,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </p>
               <div className="wolf-spend-summary">
                 <div>
-                  <span>Seleção</span>
+                  <span>SeleÃ§Ã£o</span>
                   <strong>
                     {selectedWolfResources.length}/{availableWolfPointSpendCount}
                   </strong>
@@ -7418,12 +7418,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {isMobile && hasStartedGame && !cleanBoardMode && (
-        <nav className="mobile-tabbar" aria-label="Painéis do jogo">
+        <nav className="mobile-tabbar" aria-label="PainÃ©is do jogo">
           {([
-            { id: "acao", label: "Ação", icon: Play, available: true },
+            { id: "acao", label: "AÃ§Ã£o", icon: Play, available: true },
             {
               id: "mao",
-              label: "Mão",
+              label: "MÃ£o",
               icon: Leaf,
               available: showHandDuringGame && Boolean(currentGamePlayer)
             },
@@ -7464,14 +7464,14 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "jaguar" && (
         <div className="hud-overlay-jaguar">
           <div className="hud-top-jaguar">
-            <img src="/assets/interface/onça/UI_oncaTOP.png" alt="" className="hud-top-jaguar-bg" />
+            <img src="/assets/interface/onÃ§a/UI_oncaTOP.webp" alt="" className="hud-top-jaguar-bg" />
             <div className="hud-top-jaguar-score">{currentGamePlayer.score}</div>
             <div className="hud-top-jaguar-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.jaguar.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-jaguar">
-            <img src="/assets/interface/onça/UI_oncaDOWN.png" alt="" className="hud-bottom-jaguar-bg" />
+            <img src="/assets/interface/onÃ§a/UI_oncaDOWN.webp" alt="" className="hud-bottom-jaguar-bg" />
             <div className="hud-bottom-jaguar-action-text">
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.jaguar } as CSSProperties}>
                 <ActionStepsViewer
@@ -7485,10 +7485,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {(activeActionId === "A" || activeActionId === "B") && (
                       <div className="action-box-hint">
                         {canSkipJaguarMove
-                          ? "Nenhum destino válido — conclua a ação para seguir."
+                          ? "Nenhum destino vÃ¡lido â€” conclua a aÃ§Ã£o para seguir."
                           : selectedJaguarDestination
                             ? "Escolha qual meeple remover no destino selecionado."
-                            : "Selecione a Onça e clique em um destino destacado."}
+                            : "Selecione a OnÃ§a e clique em um destino destacado."}
                       </div>
                     )}
                     {activeActionId === "C" && (
@@ -7515,7 +7515,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-jaguar-resource-item", "seed")}
             </div>
             <div className="hud-bottom-jaguar-movements">
-              <img src="/assets/interface/onça/Movimentos_onca.png" alt="Movimentos" />
+              <img src="/assets/interface/onÃ§a/Movimentos_onca.webp" alt="Movimentos" />
             </div>
             <div className="hud-bottom-jaguar-expansions">
               {objectivePreviewCard && (
@@ -7525,13 +7525,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver CenÃ¡rios">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="CenÃ¡rios" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver AmeaÃ§a">
+                  <img src={encodeURI(threatCardBackPath)} alt="AmeaÃ§as" />
                 </button>
               )}
             </div>
@@ -7541,14 +7541,14 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "maned_wolf" && (
         <div className="hud-overlay-wolf">
           <div className="hud-top-wolf">
-            <img src="/assets/interface/lobo/UI_loboTOP.png" alt="" className="hud-top-wolf-bg" />
+            <img src="/assets/interface/lobo/UI_loboTOP.webp" alt="" className="hud-top-wolf-bg" />
             <div className="hud-top-wolf-score">{currentGamePlayer.score}</div>
             <div className="hud-top-wolf-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
               {renderReserveMeeples(currentGamePlayer, speciesDefinitions.maned_wolf.meepleAsset)}
             </div>
           </div>
           <div className="hud-bottom-wolf">
-            <img src="/assets/interface/lobo/UI_lobo.png" alt="" className="hud-bottom-wolf-bg" />
+            <img src="/assets/interface/lobo/UI_lobo.webp" alt="" className="hud-bottom-wolf-bg" />
             <div className="hud-bottom-wolf-action-text">
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.maned_wolf } as CSSProperties}>
                 <ActionStepsViewer
@@ -7562,8 +7562,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "A" && (
                       <div className="action-box-hint">
                         {room.game.activePlayedForestCardId
-                          ? <>Conduza os lobos destacados pelo padrão da carta. Pendentes: <strong>{room.game.pendingWolfMoves?.pieceIds.length ?? 0}</strong>.</>
-                          : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                          ? <>Conduza os lobos destacados pelo padrÃ£o da carta. Pendentes: <strong>{room.game.pendingWolfMoves?.pieceIds.length ?? 0}</strong>.</>
+                          : "Escolha uma carta da sua mÃ£o e posicione-a em um espaÃ§o vazio destacado."}
                       </div>
                     )}
                     {activeActionId === "B" && (
@@ -7571,9 +7571,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         <div className="action-box-hint">
                           {wolfRemovableBasePieceIds.length > 0
                             ? selectedWolfTargetPieceId
-                              ? "Peça de base selecionada — confirme a remoção ou cancele a ação."
-                              : "Clique em uma peça de base que divida local com um lobo."
-                            : "Nenhuma peça de base partilha local com lobo."}
+                              ? "PeÃ§a de base selecionada â€” confirme a remoÃ§Ã£o ou cancele a aÃ§Ã£o."
+                              : "Clique em uma peÃ§a de base que divida local com um lobo."
+                            : "Nenhuma peÃ§a de base partilha local com lobo."}
                         </div>
                         <div className="action-box-actions">
                           <button
@@ -7581,7 +7581,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                             disabled={!selectedWolfTargetPieceId}
                             onClick={handleRemoveWolfBasePiece}
                           >
-                            Remover peça
+                            Remover peÃ§a
                           </button>
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
                             Concluir
@@ -7597,7 +7597,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "D" && (
                       <>
                         <div className="action-box-hint">
-                          Clique em uma carta de carne para abrigar 1 lobo. Locais válidos: <strong>{wolfMeatTargets.length}</strong>.
+                          Clique em uma carta de carne para abrigar 1 lobo. Locais vÃ¡lidos: <strong>{wolfMeatTargets.length}</strong>.
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
@@ -7617,7 +7617,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-wolf-resource-item", "seed")}
             </div>
             <div className="hud-bottom-wolf-movements">
-              <img src="/assets/interface/lobo/Movimentos_lobo.png" alt="Movimentos" />
+              <img src="/assets/interface/lobo/Movimentos_lobo.webp" alt="Movimentos" />
             </div>
             <div className="hud-bottom-wolf-expansions">
               {objectivePreviewCard && (
@@ -7627,13 +7627,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver CenÃ¡rios">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="CenÃ¡rios" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver AmeaÃ§a">
+                  <img src={encodeURI(threatCardBackPath)} alt="AmeaÃ§as" />
                 </button>
               )}
             </div>
@@ -7643,7 +7643,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "armadillo" && (
         <div className="hud-overlay-tatu">
           <div className="hud-top-tatu">
-            <img src="/assets/interface/tatu/UI_tatuTOP.png" alt="" className="hud-top-tatu-bg" />
+            <img src="/assets/interface/tatu/UI_tatuTOP.webp" alt="" className="hud-top-tatu-bg" />
             <div className="hud-top-tatu-score">
               {currentGamePlayer.score ?? 0}
             </div>
@@ -7652,7 +7652,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
           </div>
           <div className="hud-bottom-tatu">
-            <img src="/assets/interface/tatu/UI_tatu.png" alt="" className="hud-bottom-tatu-bg" />
+            <img src="/assets/interface/tatu/UI_tatu.webp" alt="" className="hud-bottom-tatu-bg" />
             <div className="hud-bottom-tatu-action-text">
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.armadillo } as CSSProperties}>
                 <ActionStepsViewer
@@ -7668,12 +7668,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         <div className="action-box-hint">
                           {room.game.activePlayedForestCardId
                             ? "Clique em uma carta com semente destacada para abrigar 1 tatu."
-                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                            : "Escolha uma carta da sua mÃ£o e posicione-a em um espaÃ§o vazio destacado."}
                         </div>
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
+                              AvanÃ§ar sem adicionar
                             </button>
                           </div>
                         )}
@@ -7681,13 +7681,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "B" && (
                       <div className="action-box-hint">
-                        Selecione um Tatu-bola e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
+                        Selecione um Tatu-bola e clique em um destino destacado para conduzi-lo pelo padrÃ£o da carta jogada.
                       </div>
                     )}
                     {activeActionId === "C" && (
                       <>
                         <div className="action-box-hint">
-                          Selecione um Tatu-bola visível para recolhê-lo em sua carapaça.
+                          Selecione um Tatu-bola visÃ­vel para recolhÃª-lo em sua carapaÃ§a.
                         </div>
                         {selectedPieceId ? (
                           <div className="action-box-actions">
@@ -7698,7 +7698,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         ) : getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length === 0 ? (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Concluir ação
+                              Concluir aÃ§Ã£o
                             </button>
                           </div>
                         ) : null}
@@ -7707,7 +7707,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "D" && (
                       <>
                         <div className="action-box-hint">
-                          Cada espécie no mesmo local de um Tatu-bola conta como compartilhamento.
+                          Cada espÃ©cie no mesmo local de um Tatu-bola conta como compartilhamento.
                         </div>
                         {scoringPreview.armadillo && <ArmadilloSharePanel details={scoringPreview.armadillo} />}
                       </>
@@ -7723,7 +7723,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-tatu-resource-item", "seed")}
             </div>
             <div className="hud-bottom-tatu-movements">
-              <img src="/assets/interface/tatu/Movimentos_tatu.png" alt="Movimentos" />
+              <img src="/assets/interface/tatu/Movimentos_tatu.webp" alt="Movimentos" />
             </div>
             <div className="hud-bottom-tatu-expansions">
               {objectivePreviewCard && (
@@ -7733,13 +7733,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver CenÃ¡rios">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="CenÃ¡rios" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver AmeaÃ§a">
+                  <img src={encodeURI(threatCardBackPath)} alt="AmeaÃ§as" />
                 </button>
               )}
             </div>
@@ -7749,7 +7749,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "macaw" && (
         <div className="hud-overlay-macaw">
           <div className="hud-top-macaw">
-            <img src="/assets/interface/arara/UI_araraTOP.png" alt="" className="hud-top-macaw-bg" />
+            <img src="/assets/interface/arara/UI_araraTOP.webp" alt="" className="hud-top-macaw-bg" />
             <div className="hud-top-macaw-score">
               {currentGamePlayer.score ?? 0}
             </div>
@@ -7758,7 +7758,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
           </div>
           <div className="hud-bottom-macaw">
-            <img src="/assets/interface/arara/UI_arara.png" alt="" className="hud-bottom-macaw-bg" />
+            <img src="/assets/interface/arara/UI_arara.webp" alt="" className="hud-bottom-macaw-bg" />
             <div className="hud-bottom-macaw-action-text">
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.macaw } as CSSProperties}>
                 <ActionStepsViewer
@@ -7774,12 +7774,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         <div className="action-box-hint">
                           {room.game.activePlayedForestCardId
                             ? "Clique em uma carta com ovo destacada para abrigar 1 arara."
-                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                            : "Escolha uma carta da sua mÃ£o e posicione-a em um espaÃ§o vazio destacado."}
                         </div>
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
+                              AvanÃ§ar sem adicionar
                             </button>
                           </div>
                         )}
@@ -7787,7 +7787,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "B" && (
                       <div className="action-box-hint">
-                        Selecione uma Arara-azul e clique em um destino destacado para conduzi-la pelo padrão da carta jogada.
+                        Selecione uma Arara-azul e clique em um destino destacado para conduzi-la pelo padrÃ£o da carta jogada.
                       </div>
                     )}
                     {activeActionId === "C" && (
@@ -7797,14 +7797,14 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            {macawActionCTargets.length === 0 && !selectedPieceId ? "Concluir (sem espaço válido)" : "Avançar sem adicionar"}
+                            {macawActionCTargets.length === 0 && !selectedPieceId ? "Concluir (sem espaÃ§o vÃ¡lido)" : "AvanÃ§ar sem adicionar"}
                           </button>
                         </div>
                       </>
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{macawLineScore}</strong> {macawLineScore === 1 ? "ponto" : "pontos"} pelas formações lineares.
+                        PontuaÃ§Ã£o automÃ¡tica: <strong>+{macawLineScore}</strong> {macawLineScore === 1 ? "ponto" : "pontos"} pelas formaÃ§Ãµes lineares.
                       </div>
                     )}
                   </>
@@ -7818,7 +7818,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-macaw-resource-item", "seed")}
             </div>
             <div className="hud-bottom-macaw-movements">
-              <img src="/assets/interface/arara/Movimentos_arara.png" alt="Movimentos" />
+              <img src="/assets/interface/arara/Movimentos_arara.webp" alt="Movimentos" />
             </div>
             <div className="hud-bottom-macaw-expansions">
               {objectivePreviewCard && (
@@ -7828,13 +7828,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver CenÃ¡rios">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="CenÃ¡rios" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver AmeaÃ§a">
+                  <img src={encodeURI(threatCardBackPath)} alt="AmeaÃ§as" />
                 </button>
               )}
             </div>
@@ -7844,7 +7844,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "galo_de_campina" && (
         <div className="hud-overlay-galo">
           <div className="hud-top-galo">
-            <img src="/assets/interface/galo/UI_galodecampinaTOP.png" alt="" className="hud-top-galo-bg" />
+            <img src="/assets/interface/galo/UI_galodecampinaTOP.webp" alt="" className="hud-top-galo-bg" />
             <div className="hud-top-galo-score">
               {currentGamePlayer.score ?? 0}
             </div>
@@ -7853,7 +7853,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
           </div>
           <div className="hud-bottom-galo">
-            <img src="/assets/interface/galo/UI_galodecampina.png" alt="" className="hud-bottom-galo-bg" />
+            <img src="/assets/interface/galo/UI_galodecampina.webp" alt="" className="hud-bottom-galo-bg" />
             <div className="hud-bottom-galo-action-text">
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.galo_de_campina } as CSSProperties}>
                 <ActionStepsViewer
@@ -7869,12 +7869,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         <div className="action-box-hint">
                           {room.game.activePlayedForestCardId
                             ? "Clique em uma carta de campo destacada para abrigar 1 galo-de-campina."
-                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                            : "Escolha uma carta da sua mÃ£o e posicione-a em um espaÃ§o vazio destacado."}
                         </div>
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
+                              AvanÃ§ar sem adicionar
                             </button>
                           </div>
                         )}
@@ -7882,7 +7882,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "B" && (
                       <div className="action-box-hint">
-                        Selecione um Galo-de-campina e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
+                        Selecione um Galo-de-campina e clique em um destino destacado para conduzi-lo pelo padrÃ£o da carta jogada.
                       </div>
                     )}
                     {activeActionId === "C" && (
@@ -7891,8 +7891,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           {room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
                             ? "Clique em um local destacado adjacente ao galo movido para adicionar 1 galo-de-campina."
                             : (currentGamePlayer.resources.seed ?? 0) <= 0
-                              ? "Sem semente disponível: conclua a ação para seguir."
-                              : "Opcional: gaste 1 semente ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."}
+                              ? "Sem semente disponÃ­vel: conclua a aÃ§Ã£o para seguir."
+                              : "Opcional: gaste 1 semente ao mover outro galo-de-campina pelo padrÃ£o da carta jogada e adicione 1 galo em um local adjacente a ele."}
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
@@ -7905,7 +7905,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} — +1 se presente em 3+ campinas, +1 se presente em 3+ locais de semente.
+                        PontuaÃ§Ã£o automÃ¡tica: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} â€” +1 se presente em 3+ campinas, +1 se presente em 3+ locais de semente.
                       </div>
                     )}
                   </>
@@ -7919,7 +7919,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-galo-resource-item", "seed")}
             </div>
             <div className="hud-bottom-galo-movements">
-              <img src="/assets/interface/galo/Movimentos_galodecampina.png" alt="Movimentos" />
+              <img src="/assets/interface/galo/Movimentos_galodecampina.webp" alt="Movimentos" />
             </div>
             <div className="hud-bottom-galo-expansions">
               {objectivePreviewCard && (
@@ -7929,13 +7929,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver CenÃ¡rios">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="CenÃ¡rios" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver AmeaÃ§a">
+                  <img src={encodeURI(threatCardBackPath)} alt="AmeaÃ§as" />
                 </button>
               )}
             </div>
@@ -7945,7 +7945,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "capuchin" && (
         <div className="hud-overlay-capuchin">
           <div className="hud-top-capuchin">
-            <img src="/assets/interface/macaco/UI_macacoTOP.png" alt="" className="hud-top-capuchin-bg" />
+            <img src="/assets/interface/macaco/UI_macacoTOP.webp" alt="" className="hud-top-capuchin-bg" />
             <div className="hud-top-capuchin-score">
               {currentGamePlayer.score ?? 0}
             </div>
@@ -7954,7 +7954,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
           </div>
           <div className="hud-bottom-capuchin">
-            <img src="/assets/interface/macaco/UI_macaco.png" alt="" className="hud-bottom-capuchin-bg" />
+            <img src="/assets/interface/macaco/UI_macaco.webp" alt="" className="hud-bottom-capuchin-bg" />
             <div className="hud-bottom-capuchin-action-text">
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.capuchin } as CSSProperties}>
                 <ActionStepsViewer
@@ -7969,13 +7969,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       <>
                         <div className="action-box-hint">
                           {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                            ? "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
-                            : <>Clique na carta recém-revelada para abrigar 1 macaco. Reserva disponível: <strong>{capuchinReserveCount}</strong>.</>}
+                            ? "Escolha uma carta da sua mÃ£o e posicione-a em um espaÃ§o vazio destacado."
+                            : <>Clique na carta recÃ©m-revelada para abrigar 1 macaco. Reserva disponÃ­vel: <strong>{capuchinReserveCount}</strong>.</>}
                         </div>
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
                             <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
+                              AvanÃ§ar sem adicionar
                             </button>
                           </div>
                         )}
@@ -7983,26 +7983,26 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "B" && (
                       <div className="action-box-hint">
-                        Selecione um Macaco-prego e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
+                        Selecione um Macaco-prego e clique em um destino destacado para conduzi-lo pelo padrÃ£o da carta jogada.
                       </div>
                     )}
                     {activeActionId === "C" && (
                       <>
                         <div className="action-box-hint">
                           {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                            ? "Sem locais elegíveis ou reserva esgotada — conclua a ação para seguir."
-                            : <>Clique em um local com macaco já estabelecido para reforçar o bando. Reserva: <strong>{capuchinReserveCount}</strong>.</>}
+                            ? "Sem locais elegÃ­veis ou reserva esgotada â€” conclua a aÃ§Ã£o para seguir."
+                            : <>Clique em um local com macaco jÃ¡ estabelecido para reforÃ§ar o bando. Reserva: <strong>{capuchinReserveCount}</strong>.</>}
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            {capuchinPlacementTargets.length === 0 ? "Concluir ação" : "Avançar sem reforçar"}
+                            {capuchinPlacementTargets.length === 0 ? "Concluir aÃ§Ã£o" : "AvanÃ§ar sem reforÃ§ar"}
                           </button>
                         </div>
                       </>
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{capuchinHabitatScore}</strong> {capuchinHabitatScore === 1 ? "ponto" : "pontos"} pelos habitats dominados.
+                        PontuaÃ§Ã£o automÃ¡tica: <strong>+{capuchinHabitatScore}</strong> {capuchinHabitatScore === 1 ? "ponto" : "pontos"} pelos habitats dominados.
                       </div>
                     )}
                   </>
@@ -8016,7 +8016,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-capuchin-resource-item", "seed")}
             </div>
             <div className="hud-bottom-capuchin-movements">
-              <img src="/assets/interface/macaco/Movimentos_macaco.png" alt="Movimentos" />
+              <img src="/assets/interface/macaco/Movimentos_macaco.webp" alt="Movimentos" />
             </div>
             <div className="hud-bottom-capuchin-expansions">
               {objectivePreviewCard && (
@@ -8026,13 +8026,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver CenÃ¡rios">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="CenÃ¡rios" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver AmeaÃ§a">
+                  <img src={encodeURI(threatCardBackPath)} alt="AmeaÃ§as" />
                 </button>
               )}
             </div>
@@ -8042,7 +8042,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "coati" && (
         <div className="hud-overlay-coati">
           <div className="hud-top-coati">
-            <img src="/assets/interface/quati/UI_quatiTOP.png" alt="" className="hud-top-coati-bg" />
+            <img src="/assets/interface/quati/UI_quatiTOP.webp" alt="" className="hud-top-coati-bg" />
             <div className="hud-top-coati-score">
               {currentGamePlayer.score ?? 0}
             </div>
@@ -8051,7 +8051,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </div>
           </div>
           <div className="hud-bottom-coati">
-            <img src="/assets/interface/quati/UI_quati.png" alt="" className="hud-bottom-coati-bg" />
+            <img src="/assets/interface/quati/UI_quati.webp" alt="" className="hud-bottom-coati-bg" />
             <div className="hud-bottom-coati-action-text">
               <div className="action-box" style={{ "--action-accent": SPECIES_HEX.coati } as CSSProperties}>
                 <ActionStepsViewer
@@ -8072,12 +8072,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           <div className="action-box-hint">
                             {room.game.activePlayedForestCardId
                               ? "Clique em uma carta com fruta destacada para abrigar 1 quati."
-                              : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                              : "Escolha uma carta da sua mÃ£o e posicione-a em um espaÃ§o vazio destacado."}
                           </div>
                           {room.game.activePlayedForestCardId && !tutorialActive && (
                             <div className="action-box-actions">
                               <button className="action-box-btn is-secondary" onClick={handleCompleteAction}>
-                                Avançar sem adicionar
+                                AvanÃ§ar sem adicionar
                               </button>
                             </div>
                           )}
@@ -8085,7 +8085,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       )}
                       {activeActionId === "B" && (
                         <div className="action-box-hint">
-                          Selecione um quati no tabuleiro e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
+                          Selecione um quati no tabuleiro e clique em um destino destacado para conduzi-lo pelo padrÃ£o da carta jogada.
                         </div>
                       )}
                       {activeActionId === "C" && (
@@ -8093,7 +8093,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           {requiredCoatiRemovalCount === 0 ? (
                             <div className="action-box-actions">
                               <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                                Concluir ação
+                                Concluir aÃ§Ã£o
                               </button>
                             </div>
                           ) : (
@@ -8126,7 +8126,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               {renderHudResource("hud-bottom-coati-resource-item", "seed")}
             </div>
             <div className="hud-bottom-coati-movements">
-              <img src="/assets/interface/quati/Movimentos_quati.png" alt="Movimentos" />
+              <img src="/assets/interface/quati/Movimentos_quati.webp" alt="Movimentos" />
             </div>
             <div className="hud-bottom-coati-expansions">
               {objectivePreviewCard && (
@@ -8136,13 +8136,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               )}
               {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
+                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver CenÃ¡rios">
+                  <img src={encodeURI(scenarioCardBackPath)} alt="CenÃ¡rios" />
                 </button>
               )}
               {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
+                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver AmeaÃ§a">
+                  <img src={encodeURI(threatCardBackPath)} alt="AmeaÃ§as" />
                 </button>
               )}
             </div>
