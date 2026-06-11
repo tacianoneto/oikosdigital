@@ -149,7 +149,7 @@ export const initialForestCardCandidates: ForestCardDefinition[] = [
   initialCard("initial_8", "Inicial 8", "Inicial (8).webp", "river", ["seed"], riverBend),
   initialCard("initial_8_v", "Inicial 8 V", "Inicial (8) V.webp", "river", ["seed"], riverEnd),
   initialCard("initial_9", "Inicial 9", "Inicial (9).webp", "river", ["meat"], riverChannel),
-  initialCard("initial_9_v", "Inicial 9 V", "Inicial (9) v.webp", "river", ["meat"], riverEnd)
+  initialCard("initial_9_v", "Inicial 9 V", "Inicial (9) V.webp", "river", ["meat"], riverEnd)
 ];
 
 export const forestCardsById = new Map(

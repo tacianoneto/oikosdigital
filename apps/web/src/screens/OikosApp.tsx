@@ -4604,8 +4604,22 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
       {!hasStartedGame && !room && landingMode === "idle" && (
         <div className="forest-menu" role="main">
+          {/* Layered ambience: gradient sky, light beams, fireflies, vignette */}
+          <div className="forest-menu-bg" aria-hidden="true">
+            <span className="fm-beam fm-beam-1" />
+            <span className="fm-beam fm-beam-2" />
+            <span className="fm-beam fm-beam-3" />
+            <span className="fm-firefly fm-firefly-1" />
+            <span className="fm-firefly fm-firefly-2" />
+            <span className="fm-firefly fm-firefly-3" />
+            <span className="fm-firefly fm-firefly-4" />
+            <span className="fm-firefly fm-firefly-5" />
+            <span className="fm-firefly fm-firefly-6" />
+            <span className="fm-vignette" />
+          </div>
           <span className="forest-version">v0.1 · beta</span>
 
+          <div className="forest-menu-layout">
           <div className="forest-menu-content">
             {/* Title sign hanging from the top branch */}
             <div className="forest-title">
@@ -4669,6 +4683,27 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Rotating species showcase beside the menu on wide screens */}
+          <aside className="forest-hero" aria-hidden="true">
+            <div className="forest-hero-frame">
+              {Object.values(speciesDefinitions).map((species, index) => (
+                <figure
+                  key={species.speciesId}
+                  className="forest-hero-slide"
+                  style={{ animationDelay: `${index * 6}s` } as CSSProperties}
+                >
+                  <img src={encodeURI(species.portraitAsset)} alt="" loading="lazy" />
+                  <figcaption>
+                    <strong>{species.displayName}</strong>
+                    <small>{species.scientificName}</small>
+                  </figcaption>
+                </figure>
+              ))}
+              <span className="forest-hero-glint" />
+            </div>
+          </aside>
           </div>
 
           <footer className="forest-footer">

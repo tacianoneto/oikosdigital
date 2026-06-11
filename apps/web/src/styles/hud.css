@@ -2196,6 +2196,11 @@
   padding: 24px clamp(20px, 4vw, 56px);
   overflow: hidden auto;
   scrollbar-width: none;
+  /* Same forest ambience as the main menu, for visual continuity */
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(64, 112, 64, 0.3), transparent 60%),
+    radial-gradient(90% 70% at 85% 110%, rgba(28, 64, 44, 0.45), transparent 65%),
+    linear-gradient(180deg, #122a1d 0%, #0c1e15 45%, #081209 100%);
 }
 
 .flow-screen::-webkit-scrollbar {
