@@ -1,9 +1,9 @@
-﻿import type { Habitat, MovementKind, SpeciesDefinition, SpeciesId } from "@oikos/shared";
+import type { Habitat, MovementKind, SpeciesDefinition, SpeciesId } from "@oikos/shared";
 
 export const habitatLabels: Record<Habitat, string> = {
   forest: "Bosque / Floresta",
   field: "Campo",
-  river: "Rio / Ãgua"
+  river: "Rio / Água"
 };
 
 export const movementLabels: Record<MovementKind, string> = {
@@ -16,7 +16,7 @@ export const movementLabels: Record<MovementKind, string> = {
 export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
   jaguar: {
     speciesId: "jaguar",
-    displayName: "OnÃ§a-pintada",
+    displayName: "Onça-pintada",
     scientificName: "Panthera onca",
     category: "predator",
     totalPieces: 1,
@@ -28,14 +28,14 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "diagonal",
       river: "straight_jump"
     },
-    boardAsset: "/assets/boards/1. OnÃ§a-pintada.webp",
-    meepleAsset: "/assets/meeples/OnÃ§a.webp",
+    boardAsset: "/assets/boards/1. Onça-pintada.webp",
+    meepleAsset: "/assets/meeples/Onça.webp",
     portraitAsset: "/assets/portraits/onca.webp",
     movementAsset: "/assets/movimentos/Movimentos_onca.webp"
   },
   maned_wolf: {
     speciesId: "maned_wolf",
-    displayName: "Lobo-guarÃ¡",
+    displayName: "Lobo-guará",
     scientificName: "Chrysocyon brachyurus",
     category: "subpredator",
     totalPieces: 3,
@@ -47,7 +47,7 @@ export const speciesDefinitions: Record<SpeciesId, SpeciesDefinition> = {
       field: "adjacent",
       river: "diagonal"
     },
-    boardAsset: "/assets/boards/3. Lobo-guarÃ¡.webp",
+    boardAsset: "/assets/boards/3. Lobo-guará.webp",
     meepleAsset: "/assets/meeples/Lobo.webp",
     portraitAsset: "/assets/portraits/lobo_guara.webp",
     movementAsset: "/assets/movimentos/Movimentos_lobo.webp"

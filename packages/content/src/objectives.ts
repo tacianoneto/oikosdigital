@@ -1,4 +1,4 @@
-﻿import type { ObjectiveCardDefinition, ObjectiveEligibilityCategory, ObjectiveRuleTier, Resource } from "@oikos/shared";
+import type { ObjectiveCardDefinition, ObjectiveEligibilityCategory, ObjectiveRuleTier, Resource } from "@oikos/shared";
 
 const objectiveBasePath = "/assets/objective-cards";
 export const objectiveCardBackPath = `${objectiveBasePath}/Verso das cartas OBJ.webp`;

@@ -1,4 +1,4 @@
-﻿import type { Resource } from "@oikos/shared";
+import type { Resource } from "@oikos/shared";
 
 export const resourceLabels: Record<Resource, string> = {
   meat: "Carne",

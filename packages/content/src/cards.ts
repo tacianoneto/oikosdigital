@@ -1,4 +1,4 @@
-﻿import type { CardConnections, ForestCardDefinition, Habitat } from "@oikos/shared";
+import type { CardConnections, ForestCardDefinition, Habitat } from "@oikos/shared";
 
 const commonBasePath = "/assets/forest-cards";
 const initialBasePath = "/assets/forest-cards/initial";

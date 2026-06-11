@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { Eye, EyeOff, Leaf, Lock, LogIn, Mail, UserPlus } from "lucide-react";
 import { supabase } from "./supabase";

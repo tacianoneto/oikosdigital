@@ -1,4 +1,4 @@
-﻿import type { ThreatCardDefinition, ThreatCardId } from "@oikos/shared";
+import type { ThreatCardDefinition, ThreatCardId } from "@oikos/shared";
 
 const threatBasePath = "/assets/threat-cards";
 export const threatCardBackPath = `${threatBasePath}/Verso das cartas INF.webp`;
