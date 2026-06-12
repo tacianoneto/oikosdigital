@@ -2236,7 +2236,7 @@
 
 .flow-back:hover {
   transform: translateX(-2px);
-  border-color: var(--amber);
+  border-color: rgba(52, 210, 123, 0.5);
   background: rgba(22, 39, 31, 0.92);
 }
 
@@ -2457,7 +2457,7 @@
 }
 
 .flow-room-row:hover {
-  border-color: var(--amber);
+  border-color: rgba(52, 210, 123, 0.5);
   transform: translateY(-1px);
 }
 
