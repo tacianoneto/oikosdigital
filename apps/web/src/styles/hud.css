@@ -3081,9 +3081,10 @@
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
 
@@ -3098,7 +3099,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 9px;
+  border-radius: 50%;
+  transform: scale(1.16);
   filter: none;
 }
 
@@ -3682,18 +3684,24 @@
 }
 
 .lobby-species-thumb {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 66px;
-  height: 66px;
+  width: 74px;
+  height: 74px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: box-shadow 140ms ease;
 }
 
 .lobby-species-card.selected .lobby-species-thumb {
-  background: color-mix(in srgb, var(--species-color, var(--amber)) 30%, rgba(0, 0, 0, 0.35));
-  border-color: var(--species-color, var(--amber));
+  box-shadow:
+    inset 0 0 0 2px var(--species-color, var(--amber)),
+    0 0 14px color-mix(in srgb, var(--species-color, var(--amber)) 50%, transparent);
 }
 
 .lobby-species-thumb img {
@@ -3703,11 +3711,14 @@
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55));
 }
 
+/* Portrait art is a circular badge; scale it up slightly so its own painted
+   rim becomes the avatar edge instead of floating inside a dark disc. */
 .lobby-species-thumb img.is-portrait {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
+  transform: scale(1.16);
   filter: none;
 }
 
