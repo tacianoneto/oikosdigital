@@ -4615,12 +4615,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             <span className="fm-vignette" />
           </div>
 
-          <div className="forest-menu-layout">
           <div className="forest-menu-content">
             <div className="menu-brand">
               <img src="/oikos-logo.webp" alt="Oikos Digital" />
               <p className="menu-brand-tagline">
-                Jogo de tabuleiro multiplayer · 2–6 jogadores
+                Jogo de tabuleiro multiplayer
                 <span className="menu-brand-badge">v0.1 beta</span>
               </p>
             </div>
@@ -4658,6 +4657,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       <strong>{title}</strong>
                       <small>{sub}</small>
                     </span>
+                    <ChevronRight className="forest-btn-chevron" aria-hidden="true" />
                   </button>
                 ))}
 
@@ -4674,30 +4674,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <strong>Configurações</strong>
                     <small>Som e preferências</small>
                   </span>
+                  <ChevronRight className="forest-btn-chevron" aria-hidden="true" />
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Rotating species showcase beside the menu on wide screens */}
-          <aside className="forest-hero" aria-hidden="true">
-            <div className="forest-hero-frame">
-              {Object.values(speciesDefinitions).map((species, index) => (
-                <figure
-                  key={species.speciesId}
-                  className="forest-hero-slide"
-                  style={{ animationDelay: `${index * 6}s` } as CSSProperties}
-                >
-                  <img src={encodeURI(species.portraitAsset)} alt="" loading="lazy" />
-                  <figcaption>
-                    <strong>{species.displayName}</strong>
-                    <small>{species.scientificName}</small>
-                  </figcaption>
-                </figure>
-              ))}
-              <span className="forest-hero-glint" />
-            </div>
-          </aside>
           </div>
 
           <footer className="forest-footer">
