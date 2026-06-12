@@ -682,17 +682,23 @@
 }
 
 .opponent-inspector {
-  --opponent-button-size: 86px;
-  --opponent-button-gap: 18px;
-  --opponent-arrow-offset: 38px;
+  --opponent-button-size: clamp(58px, 10vh, 86px);
+  --opponent-button-gap: clamp(6px, 1.7vh, 18px);
+  --opponent-frame-size: calc(var(--opponent-button-size) - 12px);
+  --opponent-arrow-offset: calc(var(--opponent-button-size) * 0.44);
   position: fixed;
   z-index: 105;
   top: clamp(40px, 8vh, 90px);
-  right: 40px;
+  right: clamp(10px, 2.1vw, 40px);
   display: flex;
   align-items: flex-start;
   gap: 12px;
   pointer-events: none;
+}
+
+.opponent-inspector:has(.opponent-rail > :nth-child(6)) {
+  --opponent-button-size: clamp(52px, 8.5vh, 86px);
+  --opponent-button-gap: clamp(5px, 1vh, 14px);
 }
 
 .right-panel.hud-right {
@@ -701,14 +707,14 @@
 
 .opponent-rail {
   display: grid;
-  gap: 18px;
+  gap: var(--opponent-button-gap);
   pointer-events: auto;
 }
 
 .opponent-portrait-btn {
   position: relative;
-  width: 86px;
-  height: 86px;
+  width: var(--opponent-button-size);
+  height: var(--opponent-button-size);
   display: grid;
   place-items: center;
   padding: 0;
@@ -789,19 +795,24 @@
 }
 
 .opponent-portrait-frame {
-  width: 74px;
-  height: 74px;
+  position: relative;
+  width: var(--opponent-frame-size);
+  height: var(--opponent-frame-size);
   display: grid;
   place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
 }
 
 .opponent-portrait-frame img {
-  max-width: 74px;
-  max-height: 74px;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  border-radius: 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  border-radius: 50%;
   display: block;
   filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.42));
   pointer-events: none;
