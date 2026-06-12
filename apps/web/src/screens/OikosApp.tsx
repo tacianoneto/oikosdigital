@@ -50,6 +50,7 @@ import {
   resourceLabels,
   speciesDefinitions
 } from "@oikos/content";
+import { MAX_PLAYERS } from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
@@ -3691,14 +3692,26 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   );
 
   function toggleLocalSpecies(speciesId: SpeciesId) {
+    const speciesAlreadySelected = localSpeciesIds.includes(speciesId);
+    if (!speciesAlreadySelected && localSpeciesIds.length >= MAX_PLAYERS) {
+      setError(`O máximo é ${MAX_PLAYERS} espécies por partida.`);
+      return;
+    }
+    setError(null);
     setLocalSpeciesIds((current) =>
-      current.includes(speciesId) ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
+      speciesAlreadySelected ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
     );
     // Dropping a species also clears its bot flag.
     setLocalBotSpeciesIds((current) => current.filter((candidate) => candidate !== speciesId));
   }
 
   function toggleLocalBot(speciesId: SpeciesId) {
+    const speciesAlreadySelected = localSpeciesIds.includes(speciesId);
+    if (!speciesAlreadySelected && localSpeciesIds.length >= MAX_PLAYERS) {
+      setError(`O máximo é ${MAX_PLAYERS} espécies por partida.`);
+      return;
+    }
+    setError(null);
     setLocalSpeciesIds((current) => (current.includes(speciesId) ? current : [...current, speciesId]));
     setLocalBotSpeciesIds((current) =>
       current.includes(speciesId) ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
@@ -3711,6 +3724,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
     if (localSpeciesIds.length < 2) {
       setError("Escolha pelo menos 2 espécies para o teste local.");
+      return;
+    }
+    if (localSpeciesIds.length > MAX_PLAYERS) {
+      setError(`O máximo é ${MAX_PLAYERS} espécies por partida.`);
       return;
     }
 
@@ -4994,13 +5011,14 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <div className="flow-card-header">
                 <span>Escolha as espécies</span>
                 <span className="flow-counter">
-                  {localSpeciesIds.length}/6
+                  {localSpeciesIds.length}/{MAX_PLAYERS}
                 </span>
               </div>
               <div className="flow-species-grid">
                 {speciesList.map((species) => {
                   const selected = localSpeciesIds.includes(species.speciesId);
                   const isBotSlot = localBotSpeciesIds.includes(species.speciesId);
+                  const selectionLimitReached = localSpeciesIds.length >= MAX_PLAYERS && !selected;
                   return (
                     <div
                       key={species.speciesId}
@@ -5012,6 +5030,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         type="button"
                         className={`flow-species-card ${selected ? "selected" : ""}`}
                         onClick={() => toggleLocalSpecies(species.speciesId)}
+                        disabled={selectionLimitReached}
+                        title={selectionLimitReached ? `Máximo de ${MAX_PLAYERS} espécies atingido` : undefined}
                       >
                         <div className="flow-species-thumb">
                           <img src={encodeURI(species.meepleAsset)} alt="" />
@@ -5038,6 +5058,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         title={isBotSlot ? "Controlar manualmente" : "Controlar por bot"}
                         aria-label={isBotSlot ? "Controlar manualmente" : "Controlar por bot"}
                         onClick={() => toggleLocalBot(species.speciesId)}
+                        disabled={selectionLimitReached}
                       >
                         {isBotSlot ? <X aria-hidden="true" /> : <Bot aria-hidden="true" />}
                       </button>
@@ -5143,13 +5164,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className="flow-submit"
                 onClick={startLocalTest}
-                disabled={localSpeciesIds.length < 2}
+                disabled={localSpeciesIds.length < 2 || localSpeciesIds.length > MAX_PLAYERS}
               >
                 <Play aria-hidden="true" />
                 Iniciar Partida ({localSpeciesIds.length} espécies)
               </button>
               {localSpeciesIds.length < 2 && (
                 <small className="flow-hint">Mínimo 2 espécies para iniciar.</small>
+              )}
+              {localSpeciesIds.length === MAX_PLAYERS && (
+                <small className="flow-hint">Limite de {MAX_PLAYERS} espécies atingido.</small>
               )}
             </div>
           </div>
@@ -5413,7 +5437,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 <div className="lobby-status-strip" aria-label="Status da sala">
                   <span>
                     <Users aria-hidden="true" />
-                    {room.players.length}/6 jogadores
+                    {room.players.length}/{MAX_PLAYERS} jogadores
                   </span>
                   <span>
                     <Check aria-hidden="true" />

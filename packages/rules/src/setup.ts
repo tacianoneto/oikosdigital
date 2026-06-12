@@ -8,6 +8,7 @@ import {
   speciesOrderByTurn,
   threatCards
 } from "@oikos/content";
+import { MAX_PLAYERS } from "@oikos/shared";
 import type {
   ActionId,
   CardConnections,
@@ -607,6 +608,10 @@ export function createInitialGameState(
   initialForest?: ForestCardState[],
   options?: { enabledMiniExpansions?: MiniExpansionId[]; activeScenarioIds?: ScenarioCardId[] }
 ): GameState {
+  if (roomPlayers.length > MAX_PLAYERS) {
+    throw new Error(`O máximo é ${MAX_PLAYERS} jogadores por partida.`);
+  }
+
   const enabledMiniExpansions = options?.enabledMiniExpansions ?? [];
   const activeScenarioIds = options?.activeScenarioIds ?? [];
   const threatCardIds = activeScenarioIds.includes("pampa")

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { commonForestCards, initialForestCardCandidates, objectiveCardsById, speciesDefinitions } from "@oikos/content";
-import type { ForestCardState, RoomPlayer } from "@oikos/shared";
+import { MAX_PLAYERS } from "@oikos/shared";
+import type { ForestCardState, RoomPlayer, SpeciesId } from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
@@ -84,6 +85,30 @@ function createTestGameState(gameId: string, roomPlayers: RoomPlayer[]) {
   }
   return game;
 }
+
+describe("player limit", () => {
+  const allSpecies: SpeciesId[] = [
+    "jaguar",
+    "maned_wolf",
+    "armadillo",
+    "macaw",
+    "galo_de_campina",
+    "capuchin",
+    "coati"
+  ];
+
+  it("allows up to six species", () => {
+    const roomPlayers = allSpecies.slice(0, MAX_PLAYERS).map((speciesId) => player(speciesId, speciesId));
+    expect(() => createInitialGameState("six-player-game", roomPlayers)).not.toThrow();
+  });
+
+  it("rejects seven species", () => {
+    const roomPlayers = allSpecies.map((speciesId) => player(speciesId, speciesId));
+    expect(() => createInitialGameState("seven-player-game", roomPlayers)).toThrow(
+      `O máximo é ${MAX_PLAYERS} jogadores por partida.`
+    );
+  });
+});
 
 describe("setup placement", () => {
   it("has habitat and resource metadata for every forest card", () => {

@@ -7,6 +7,8 @@ export type SpeciesId =
   | "capuchin"
   | "coati";
 
+export const MAX_PLAYERS = 6;
+
 export type SpeciesCategory = "predator" | "subpredator" | "middle" | "base";
 export type Habitat = "forest" | "field" | "river";
 export type Resource = "meat" | "egg" | "fruit" | "seed";

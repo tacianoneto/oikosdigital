@@ -1,4 +1,5 @@
 import { commonForestCards, speciesDefinitions, speciesOrderBySetup } from "@oikos/content";
+import { MAX_PLAYERS } from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
@@ -256,7 +257,7 @@ export function listOpenRooms(): RoomSummary[] {
       hostName: host?.name ?? "Sala",
       status: room.status,
       playerCount: room.players.length,
-      maxPlayers: 6,
+      maxPlayers: MAX_PLAYERS,
       spectatorCount: room.spectators.size
     });
   }
@@ -295,8 +296,8 @@ export function joinRoom(roomId: string, playerId: string, playerName: string, p
 
   assertPassword(room, playerId, password);
 
-  if (room.players.length >= 6) {
-    throw new Error("A sala já tem 6 jogadores.");
+  if (room.players.length >= MAX_PLAYERS) {
+    throw new Error(`A sala já tem ${MAX_PLAYERS} jogadores.`);
   }
 
   room.spectators.delete(playerId);
@@ -453,7 +454,7 @@ export function addBots(roomId: string, playerId: string): PublicRoomState {
   const missingSpecies = speciesOrderBySetup.filter((speciesId) => !selectedSpecies.has(speciesId));
 
   for (const speciesId of missingSpecies) {
-    if (room.players.length >= 6) {
+    if (room.players.length >= MAX_PLAYERS) {
       break;
     }
 
@@ -482,7 +483,7 @@ export function addBotForSpecies(roomId: string, playerId: string, speciesId: Sp
   const room = getRoom(roomId);
   assertHostCanManageBots(room, playerId);
 
-  if (room.players.length >= 6) {
+  if (room.players.length >= MAX_PLAYERS) {
     throw new Error("Sala já está cheia.");
   }
 
@@ -685,8 +686,8 @@ export function startGame(roomId: string, playerId: string): PublicRoomState {
     throw new Error("O mínimo para iniciar é 2 jogadores.");
   }
 
-  if (room.players.length > 6) {
-    throw new Error("O máximo é 6 jogadores.");
+  if (room.players.length > MAX_PLAYERS) {
+    throw new Error(`O máximo é ${MAX_PLAYERS} jogadores.`);
   }
 
   if (room.players.some((player) => !player.speciesId)) {
