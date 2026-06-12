@@ -455,6 +455,10 @@ label {
   background: rgba(18, 35, 29, 0.92);
 }
 
+body:has(.app-shell.game-active) .profile-launcher {
+  display: none;
+}
+
 .profile-launcher svg {
   width: 18px;
   height: 18px;
