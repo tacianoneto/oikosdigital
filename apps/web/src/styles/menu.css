@@ -1450,15 +1450,15 @@ input:focus {
   align-items: center;
   justify-content: center;
   isolation: isolate;
-  background:
-    radial-gradient(120% 90% at 50% -10%, rgba(64, 112, 64, 0.35), transparent 60%),
-    radial-gradient(90% 70% at 85% 110%, rgba(28, 64, 44, 0.5), transparent 65%),
-    linear-gradient(180deg, #122a1d 0%, #0c1e15 45%, #081209 100%);
-  --wood-1: #6b4a2a;
-  --wood-2: #4a3019;
-  --wood-edge: #87603a;
-  --glow-green: #9fe07a;
-  --glow-gold: #f2cf6b;
+  background: linear-gradient(165deg, #0d1f17 0%, #0a1812 50%, #070f0b 100%);
+  --menu-accent: #34d27b;
+  --menu-accent-soft: rgba(52, 210, 123, 0.16);
+  --menu-amber: #f2c14e;
+  --menu-ink: #eef5ef;
+  --menu-ink-dim: rgba(238, 245, 239, 0.62);
+  --menu-line: rgba(255, 255, 255, 0.08);
+  --menu-surface: rgba(255, 255, 255, 0.04);
+  --menu-surface-hover: rgba(255, 255, 255, 0.07);
 }
 
 /* --- Ambient background layers ---------------------------- */
@@ -1469,48 +1469,48 @@ input:focus {
   pointer-events: none;
   overflow: hidden;
 }
-.fm-beam {
+.fm-glow {
   position: absolute;
-  top: -20%;
-  width: clamp(120px, 16vw, 260px);
-  height: 130%;
-  background: linear-gradient(180deg, rgba(214, 236, 170, 0.1), rgba(214, 236, 170, 0.02) 55%, transparent 80%);
-  transform: skewX(-14deg);
-  filter: blur(6px);
-  animation: fm-beam-breathe 9s ease-in-out infinite;
+  border-radius: 50%;
+  filter: blur(80px);
 }
-.fm-beam-1 { left: 8%; animation-delay: 0s; }
-.fm-beam-2 { left: 38%; width: clamp(80px, 10vw, 170px); animation-delay: 3s; opacity: 0.8; }
-.fm-beam-3 { right: 12%; animation-delay: 5.5s; opacity: 0.65; }
-@keyframes fm-beam-breathe {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
+.fm-glow-green {
+  width: 56vw;
+  height: 56vw;
+  left: -14vw;
+  top: -22vw;
+  background: radial-gradient(circle, rgba(38, 142, 86, 0.28), transparent 65%);
+}
+.fm-glow-amber {
+  width: 44vw;
+  height: 44vw;
+  right: -12vw;
+  bottom: -18vw;
+  background: radial-gradient(circle, rgba(242, 193, 78, 0.1), transparent 65%);
 }
 .fm-firefly {
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff6c0, rgba(244, 217, 106, 0));
-  box-shadow: 0 0 10px 3px rgba(244, 217, 106, 0.55);
-  animation: fm-firefly-drift 11s ease-in-out infinite;
+  background: radial-gradient(circle, #ffefb8, rgba(244, 217, 106, 0));
+  box-shadow: 0 0 8px 2px rgba(244, 217, 106, 0.4);
+  animation: fm-firefly-drift 14s ease-in-out infinite;
 }
-.fm-firefly-1 { left: 12%; top: 68%; animation-delay: 0s; }
-.fm-firefly-2 { left: 22%; top: 34%; animation-delay: 2.2s; animation-duration: 13s; }
-.fm-firefly-3 { left: 56%; top: 76%; animation-delay: 4s; }
-.fm-firefly-4 { left: 72%; top: 28%; animation-delay: 1.4s; animation-duration: 15s; }
-.fm-firefly-5 { left: 86%; top: 58%; animation-delay: 5.6s; }
-.fm-firefly-6 { left: 40%; top: 16%; animation-delay: 7s; animation-duration: 12s; }
+.fm-firefly-1 { left: 14%; top: 70%; animation-delay: 0s; }
+.fm-firefly-2 { left: 30%; top: 26%; animation-delay: 3.5s; animation-duration: 17s; }
+.fm-firefly-3 { left: 64%; top: 78%; animation-delay: 6s; }
+.fm-firefly-4 { left: 82%; top: 30%; animation-delay: 9s; animation-duration: 19s; }
 @keyframes fm-firefly-drift {
   0%, 100% { opacity: 0; transform: translate(0, 0) scale(0.7); }
-  20% { opacity: 1; }
-  50% { opacity: 0.85; transform: translate(26px, -42px) scale(1); }
-  80% { opacity: 0.3; }
+  20% { opacity: 0.9; }
+  50% { opacity: 0.7; transform: translate(30px, -48px) scale(1); }
+  80% { opacity: 0.2; }
 }
 .fm-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(115% 95% at 50% 42%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  background: radial-gradient(120% 100% at 50% 40%, transparent 58%, rgba(0, 0, 0, 0.5) 100%);
 }
 
 /* Side-by-side layout: menu column + species showcase */
@@ -1530,208 +1530,157 @@ input:focus {
   z-index: 10;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: clamp(16px, 3.2vh, 34px);
+  align-items: flex-start;
+  gap: clamp(14px, 2.6vh, 28px);
   width: 100%;
-  max-width: 520px;
+  max-width: 480px;
 }
 
-/* --- Title sign hanging from the branch ------------------- */
-.forest-title {
-  position: relative;
+/* --- Brand block ------------------------------------------ */
+.menu-brand {
   display: flex;
-  justify-content: center;
-  padding-top: 18px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  animation: menu-fade-up 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.forest-title-rope {
-  position: absolute;
-  top: -6px;
-  width: 3px;
-  height: 38px;
-  background: linear-gradient(#caa46a, #6b4a2a);
-  transform-origin: top center;
-}
-.forest-title-rope-l { left: 22%; transform: rotate(14deg); }
-.forest-title-rope-r { right: 22%; transform: rotate(-14deg); }
-
-.forest-title-sign {
-  position: relative;
-  padding: clamp(12px, 2.2vh, 22px) clamp(22px, 5vw, 48px);
-  border-radius: 22px 18px 24px 16px;
-  background:
-    repeating-linear-gradient(92deg, rgba(0, 0, 0, 0.06) 0 7px, rgba(255, 255, 255, 0.03) 7px 14px),
-    linear-gradient(160deg, #7a5430, #4d3119);
-  border: 2px solid var(--wood-edge);
-  box-shadow:
-    0 16px 30px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 3px rgba(40, 26, 14, 0.5),
-    inset 0 2px 10px rgba(255, 220, 160, 0.12);
-  transform-origin: top center;
-  animation: forest-sign-swing 6s ease-in-out infinite;
-}
-@keyframes forest-sign-swing {
-  0%, 100% { transform: rotate(-1.2deg); }
-  50% { transform: rotate(1.2deg); }
-}
-.forest-title-sign img {
+.menu-brand img {
   display: block;
-  width: clamp(170px, 34vw, 300px);
+  width: clamp(150px, 17vw, 200px);
   height: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
 }
-/* Decorative vine/leaves draped over the sign corner */
-.forest-title-sign .forest-title-vine {
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  width: 70px;
-  height: 70px;
-  background:
-    radial-gradient(circle at 30% 30%, #4f8a45 0 6px, transparent 7px),
-    radial-gradient(circle at 60% 55%, #3c6b40 0 8px, transparent 9px),
-    radial-gradient(circle at 20% 70%, #4f8a45 0 5px, transparent 6px);
-  border-top: 4px solid #2c4a30;
-  border-left: 4px solid #2c4a30;
-  border-radius: 60% 0 0 0;
-  pointer-events: none;
+.menu-brand-tagline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+  color: var(--menu-ink-dim);
+}
+.menu-brand-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--menu-line);
+  background: var(--menu-surface);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--menu-accent);
+}
+@keyframes menu-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* --- Wooden panel + buttons ------------------------------ */
 .forest-panel {
   width: 100%;
-  max-width: 460px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  animation: menu-fade-up 600ms cubic-bezier(0.22, 1, 0.36, 1) 90ms both;
 }
 
 .forest-name-field {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 12px;
+  padding: 0 16px;
   height: 46px;
-  border-radius: 14px 12px 16px 10px;
-  background: linear-gradient(160deg, rgba(30, 44, 30, 0.82), rgba(18, 30, 20, 0.88));
-  border: 1px solid rgba(159, 224, 122, 0.28);
-  box-shadow: inset 0 1px 8px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(3px);
+  border-radius: 14px;
+  background: var(--menu-surface);
+  border: 1px solid var(--menu-line);
+  backdrop-filter: blur(12px);
+  transition: border-color 160ms ease, background 160ms ease;
 }
-.forest-name-field svg { width: 18px; height: 18px; color: var(--glow-green); }
+.forest-name-field:focus-within {
+  border-color: rgba(52, 210, 123, 0.5);
+  background: var(--menu-surface-hover);
+}
+.forest-name-field svg { width: 18px; height: 18px; color: var(--menu-accent); }
 .forest-name-field input {
   flex: 1;
   background: none;
   border: none;
   outline: none;
-  color: var(--paper);
-  font-family: var(--font-display);
+  color: var(--menu-ink);
   font-size: 0.95rem;
   letter-spacing: 0.01em;
 }
-.forest-name-field input::placeholder { color: rgba(238, 226, 200, 0.5); }
+.forest-name-field input::placeholder { color: var(--menu-ink-dim); }
 
 .forest-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* Wooden plank button */
+/* Modern glass action row */
 .forest-btn {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   width: 100%;
-  padding: 15px 20px;
+  padding: 12px 16px;
   text-align: left;
   cursor: pointer;
-  color: #f4ead2;
-  border: 2px solid var(--wood-edge);
-  border-radius: 18px 14px 20px 12px;
-  background:
-    repeating-linear-gradient(91deg, rgba(0, 0, 0, 0.05) 0 6px, rgba(255, 255, 255, 0.025) 6px 12px),
-    linear-gradient(160deg, var(--wood-1) 0%, var(--wood-2) 70%, #3c2712 100%);
-  box-shadow:
-    0 12px 22px rgba(0, 0, 0, 0.42),
-    inset 0 0 0 2px rgba(36, 24, 12, 0.45),
-    inset 0 2px 6px rgba(255, 220, 160, 0.14),
-    inset 0 -3px 8px rgba(0, 0, 0, 0.3);
-  transform: translateY(0) scale(1);
-  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease;
+  color: var(--menu-ink);
+  border: 1px solid var(--menu-line);
+  border-radius: 16px;
+  background: var(--menu-surface);
+  backdrop-filter: blur(12px);
+  transform: translateY(0);
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), border-color 160ms ease,
+    background 160ms ease, box-shadow 160ms ease;
   overflow: hidden;
 }
-/* Hover glow halo (leaves/fireflies feel) */
+
+/* Soft accent wash on hover */
 .forest-btn-glow {
   position: absolute;
-  inset: -2px;
+  inset: 0;
   border-radius: inherit;
-  background: radial-gradient(80% 120% at 50% 50%, rgba(159, 224, 122, 0.35), transparent 70%);
+  background: linear-gradient(100deg, var(--menu-accent-soft), transparent 55%);
   opacity: 0;
-  transition: opacity 200ms ease;
+  transition: opacity 180ms ease;
   pointer-events: none;
 }
 
 .forest-btn:hover,
 .forest-btn:focus-visible {
-  transform: translateY(-2px) scale(1.035);
-  border-color: var(--glow-gold);
-  box-shadow:
-    0 16px 28px rgba(0, 0, 0, 0.46),
-    0 0 22px rgba(242, 207, 107, 0.4),
-    inset 0 0 0 2px rgba(36, 24, 12, 0.45);
+  transform: translateY(-2px);
+  border-color: rgba(52, 210, 123, 0.45);
+  background: var(--menu-surface-hover);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
   outline: none;
 }
 .forest-btn:hover .forest-btn-glow,
 .forest-btn:focus-visible .forest-btn-glow { opacity: 1; }
 
-/* Firefly sparks that drift up on hover */
-.forest-btn::before,
-.forest-btn::after {
-  content: "";
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff6c0, rgba(244, 217, 106, 0));
-  box-shadow: 0 0 8px 2px rgba(244, 217, 106, 0.7);
-  opacity: 0;
-  pointer-events: none;
-}
-.forest-btn::before { left: 16%; bottom: 18%; }
-.forest-btn::after { right: 22%; bottom: 30%; }
-.forest-btn:hover::before { animation: forest-spark 1.3s ease-out infinite; }
-.forest-btn:hover::after { animation: forest-spark 1.6s ease-out 0.3s infinite; }
-@keyframes forest-spark {
-  0% { opacity: 0; transform: translateY(0) scale(0.6); }
-  30% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-26px) scale(1.1); }
-}
-
-/* Click: sink + a quick particle burst via the glow layer */
 .forest-btn:active {
-  transform: translateY(2px) scale(0.99);
-  box-shadow:
-    0 5px 12px rgba(0, 0, 0, 0.5),
-    inset 0 3px 10px rgba(0, 0, 0, 0.4);
-}
-.forest-btn:active .forest-btn-glow {
-  opacity: 1;
-  animation: forest-btn-burst 420ms ease-out;
-}
-@keyframes forest-btn-burst {
-  0% { transform: scale(0.6); opacity: 0.9; }
-  100% { transform: scale(1.25); opacity: 0; }
+  transform: translateY(0) scale(0.99);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
+/* Primary call-to-action: filled gradient */
 .forest-btn.is-primary {
-  --wood-1: #7c5226;
-  --wood-2: #553414;
-  border-color: var(--glow-gold);
-  box-shadow:
-    0 12px 24px rgba(0, 0, 0, 0.45),
-    0 0 16px rgba(242, 207, 107, 0.28),
-    inset 0 0 0 2px rgba(36, 24, 12, 0.45);
+  border-color: rgba(52, 210, 123, 0.55);
+  background: linear-gradient(135deg, #2fae68 0%, #1d7a4a 100%);
+  box-shadow: 0 14px 36px rgba(31, 138, 84, 0.35);
+}
+.forest-btn.is-primary:hover,
+.forest-btn.is-primary:focus-visible {
+  border-color: rgba(110, 231, 160, 0.8);
+  background: linear-gradient(135deg, #36c476 0%, #228a55 100%);
+  box-shadow: 0 18px 44px rgba(31, 138, 84, 0.45);
+}
+.forest-btn.is-primary .forest-btn-glow {
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.16), transparent 55%);
 }
 
 .forest-btn-icon {
@@ -1740,32 +1689,36 @@ input:focus {
   flex: none;
   width: 42px;
   height: 42px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #356845, #1e3a26);
-  border: 1px solid rgba(159, 224, 122, 0.4);
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  background: var(--menu-accent-soft);
+  border: 1px solid rgba(52, 210, 123, 0.25);
 }
-.forest-btn-icon svg { width: 20px; height: 20px; color: var(--glow-green); }
-.forest-btn.is-primary .forest-btn-icon svg { color: var(--glow-gold); }
+.forest-btn-icon svg { width: 20px; height: 20px; color: var(--menu-accent); }
+.forest-btn.is-primary .forest-btn-icon {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.forest-btn.is-primary .forest-btn-icon svg { color: #ffffff; }
 
 .forest-btn-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .forest-btn-text strong {
-  font-family: var(--font-display);
-  font-size: 1.08rem;
-  letter-spacing: 0.015em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.005em;
 }
 .forest-btn-text small {
   font-size: 0.78rem;
-  color: rgba(238, 226, 200, 0.75);
+  color: var(--menu-ink-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.forest-btn.is-primary .forest-btn-text small { color: rgba(255, 255, 255, 0.75); }
 
 .forest-footer {
   position: absolute;
-  bottom: 12px;
+  bottom: 14px;
   left: 0;
   right: 0;
   z-index: 10;
@@ -1773,8 +1726,8 @@ input:focus {
   justify-content: center;
   gap: 8px;
   font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  color: rgba(238, 226, 200, 0.5);
+  letter-spacing: 0.05em;
+  color: rgba(238, 245, 239, 0.35);
 }
 .forest-footer-sep { opacity: 0.6; }
 
@@ -1784,20 +1737,20 @@ input:focus {
   z-index: 10;
   flex: none;
   display: block;
+  animation: menu-fade-up 600ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both;
 }
 .forest-hero-frame {
   position: relative;
-  width: clamp(280px, 26vw, 380px);
+  width: clamp(300px, 27vw, 400px);
   aspect-ratio: 3 / 4;
-  border-radius: 24px 18px 26px 16px;
-  border: 3px solid var(--wood-edge);
-  background: linear-gradient(160deg, #2a3d2a, #15241a);
+  border-radius: 24px;
+  border: 1px solid var(--menu-line);
+  background: var(--menu-surface);
   box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 3px rgba(40, 26, 14, 0.5),
-    0 0 40px rgba(159, 224, 122, 0.08);
+    0 32px 64px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 0 80px rgba(38, 142, 86, 0.12);
   overflow: hidden;
-  transform: rotate(1.2deg);
 }
 .forest-hero-slide {
   position: absolute;
@@ -1819,20 +1772,21 @@ input:focus {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 18px 20px 14px;
-  background: linear-gradient(180deg, transparent, rgba(8, 16, 10, 0.88) 60%);
+  gap: 3px;
+  padding: 26px 22px 18px;
+  background: linear-gradient(180deg, transparent, rgba(7, 13, 9, 0.92) 70%);
 }
 .forest-hero-slide figcaption strong {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  color: #f4ead2;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--menu-ink);
 }
 .forest-hero-slide figcaption small {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-style: italic;
-  color: rgba(238, 226, 200, 0.7);
+  color: var(--menu-ink-dim);
 }
 /* 7 slides x 6s each = 42s loop; each slide is visible for its 1/7 slice */
 @keyframes forest-hero-cycle {
@@ -1842,34 +1796,32 @@ input:focus {
   15.5% { opacity: 0; transform: scale(1.02); }
   100% { opacity: 0; }
 }
+/* Thin inner highlight along the top edge of the frame */
 .forest-hero-glint {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(120deg, transparent 30%, rgba(255, 246, 192, 0.08) 45%, transparent 60%);
-  background-size: 250% 100%;
-  animation: forest-hero-glint 7s ease-in-out infinite;
-}
-@keyframes forest-hero-glint {
-  0%, 60%, 100% { background-position: 120% 0; }
-  30% { background-position: -40% 0; }
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 18%);
 }
 
 @media (max-width: 1100px) {
   .forest-hero { display: none; }
+  .forest-menu-content { align-items: center; }
+  .menu-brand { align-items: center; }
 }
 
 @media (max-width: 560px) {
-  .forest-menu-content { gap: 14px; }
+  .forest-menu-content { gap: 16px; }
   .forest-menu-layout { padding: 0 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .forest-title-sign,
   .forest-btn,
-  .fm-beam,
   .fm-firefly,
-  .forest-hero-glint { animation: none !important; }
+  .menu-brand,
+  .forest-panel,
+  .forest-hero { animation: none !important; }
   .forest-hero-slide { animation-duration: 0s !important; }
   .forest-hero-slide:first-child { opacity: 1; }
 }

@@ -4604,31 +4604,25 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
       {!hasStartedGame && !room && landingMode === "idle" && (
         <div className="forest-menu" role="main">
-          {/* Layered ambience: gradient sky, light beams, fireflies, vignette */}
+          {/* Ambient backdrop: gradient glows, soft grid, drifting fireflies */}
           <div className="forest-menu-bg" aria-hidden="true">
-            <span className="fm-beam fm-beam-1" />
-            <span className="fm-beam fm-beam-2" />
-            <span className="fm-beam fm-beam-3" />
+            <span className="fm-glow fm-glow-green" />
+            <span className="fm-glow fm-glow-amber" />
             <span className="fm-firefly fm-firefly-1" />
             <span className="fm-firefly fm-firefly-2" />
             <span className="fm-firefly fm-firefly-3" />
             <span className="fm-firefly fm-firefly-4" />
-            <span className="fm-firefly fm-firefly-5" />
-            <span className="fm-firefly fm-firefly-6" />
             <span className="fm-vignette" />
           </div>
-          <span className="forest-version">v0.1 · beta</span>
 
           <div className="forest-menu-layout">
           <div className="forest-menu-content">
-            {/* Title sign hanging from the top branch */}
-            <div className="forest-title">
-              <span className="forest-title-rope forest-title-rope-l" aria-hidden="true" />
-              <span className="forest-title-rope forest-title-rope-r" aria-hidden="true" />
-              <div className="forest-title-sign">
-                <span className="forest-title-vine" aria-hidden="true" />
-                <img src="/oikos-logo.webp" alt="Oikos Digital" />
-              </div>
+            <div className="menu-brand">
+              <img src="/oikos-logo.webp" alt="Oikos Digital" />
+              <p className="menu-brand-tagline">
+                Jogo de tabuleiro multiplayer · 2–6 jogadores
+                <span className="menu-brand-badge">v0.1 beta</span>
+              </p>
             </div>
 
             <div className="forest-panel">
