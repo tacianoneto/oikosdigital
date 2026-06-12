@@ -8451,3 +8451,111 @@
     text-shadow: 0 0 5px rgba(255, 214, 102, 0.55), 0 1px 2px rgba(0, 0, 0, 0.62);
   }
 }
+
+/* Compact desktop layout
+   Browser chrome can leave a 1366x768 display with only ~600px of usable
+   height. Keep the themed HUD, hand and forest in separate vertical bands. */
+@media (min-width: 1024px) and (max-width: 1600px) and (max-height: 800px) {
+  .hud-top-jaguar,
+  .hud-top-wolf,
+  .hud-top-tatu,
+  .hud-top-macaw,
+  .hud-top-capuchin,
+  .hud-top-coati,
+  .hud-top-galo {
+    width: min(44vw, 82vh);
+  }
+
+  .hud-bottom-jaguar,
+  .hud-bottom-wolf,
+  .hud-bottom-tatu,
+  .hud-bottom-macaw,
+  .hud-bottom-capuchin,
+  .hud-bottom-coati,
+  .hud-bottom-galo {
+    height: min(150px, 24vh);
+  }
+
+  .hud-bottom-jaguar-bg,
+  .hud-bottom-wolf-bg,
+  .hud-bottom-tatu-bg,
+  .hud-bottom-macaw-bg,
+  .hud-bottom-capuchin-bg,
+  .hud-bottom-coati-bg,
+  .hud-bottom-galo-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+
+  .is-wolf-active .table-hand,
+  .is-armadillo-active .table-hand,
+  .is-macaw-active .table-hand,
+  .is-capuchin-active .table-hand,
+  .is-coati-active .table-hand,
+  .is-galo-active .table-hand {
+    bottom: 0.5% !important;
+    width: 46vw !important;
+  }
+
+  .is-wolf-active .table-hand .hand-rail,
+  .is-armadillo-active .table-hand .hand-rail,
+  .is-macaw-active .table-hand .hand-rail,
+  .is-capuchin-active .table-hand .hand-rail,
+  .is-coati-active .table-hand .hand-rail,
+  .is-galo-active .table-hand .hand-rail {
+    height: clamp(100px, 18vh, 122px);
+    margin-top: 0;
+  }
+
+  .is-wolf-active .hand-card,
+  .is-armadillo-active .hand-card,
+  .is-macaw-active .hand-card,
+  .is-capuchin-active .hand-card,
+  .is-coati-active .hand-card,
+  .is-galo-active .hand-card {
+    margin-left: -14px;
+    border-width: 2px;
+    border-radius: 9px;
+  }
+
+  .is-wolf-active .hand-card:hover,
+  .is-armadillo-active .hand-card:hover,
+  .is-macaw-active .hand-card:hover,
+  .is-capuchin-active .hand-card:hover,
+  .is-coati-active .hand-card:hover,
+  .is-galo-active .hand-card:hover {
+    transform: rotate(0deg) translateY(-10px) scale(1.04) !important;
+  }
+
+  .is-wolf-active .hand-card.selected,
+  .is-armadillo-active .hand-card.selected,
+  .is-macaw-active .hand-card.selected,
+  .is-capuchin-active .hand-card.selected,
+  .is-coati-active .hand-card.selected,
+  .is-galo-active .hand-card.selected {
+    transform: rotate(0deg) translateY(-14px) scale(1.06) !important;
+  }
+
+  .is-wolf-active .table-hand .hand-sort-toggle,
+  .is-armadillo-active .table-hand .hand-sort-toggle,
+  .is-macaw-active .table-hand .hand-sort-toggle,
+  .is-capuchin-active .table-hand .hand-sort-toggle,
+  .is-coati-active .table-hand .hand-sort-toggle,
+  .is-galo-active .table-hand .hand-sort-toggle {
+    top: 92px;
+    left: -100px;
+    transform: scale(0.88);
+    transform-origin: right center;
+  }
+
+  .action-steps-body,
+  .action-steps-desc {
+    min-height: 0;
+  }
+
+  .action-steps-desc {
+    font-size: clamp(10px, 0.82vw, 12px);
+    line-height: 1.3;
+  }
+}

@@ -186,9 +186,11 @@ export class ForestPhaserScene extends Phaser.Scene {
     this.spawnAmbient();
 
     this.scale.on("resize", () => {
-      if (!this.userAdjusted) this.fitCamera(true);
       const w = this.scale.gameSize.width || this.cameras.main.width;
       const h = this.scale.gameSize.height || this.cameras.main.height;
+      // Short desktop viewports need a fresh fit because the HUD reserves a
+      // significant part of the usable height.
+      if (!this.userAdjusted || (w >= 1024 && w <= 1600 && h <= 800)) this.fitCamera(true);
       this.ambientCamera?.setSize(w, h);
       this.reflowAmbient();
     });
@@ -1606,15 +1608,25 @@ export class ForestPhaserScene extends Phaser.Scene {
     if (!this.vm) return;
     const b = this.contentBounds(this.vm);
     const cam = this.cameras.main;
-    const cw = this.scale.gameSize.width || cam.width;
-    const ch = this.scale.gameSize.height || cam.height;
-    if (cw < 4 || ch < 4) {
+    const fullWidth = this.scale.gameSize.width || cam.width;
+    const fullHeight = this.scale.gameSize.height || cam.height;
+    if (fullWidth < 4 || fullHeight < 4) {
       this.time.delayedCall(60, () => this.fitCamera(immediate));
       return;
     }
-    const pad = 120;
+
+    const compactDesktop = fullWidth >= 1024 && fullWidth <= 1600 && fullHeight <= 800;
+    const topInset = compactDesktop ? Math.min(120, Math.round(fullHeight * 0.2)) : 0;
+    const bottomInset = compactDesktop ? Math.min(150, Math.round(fullHeight * 0.24)) : 0;
+    const viewportHeight = Math.max(240, fullHeight - topInset - bottomInset);
+    cam.setViewport(0, topInset, fullWidth, viewportHeight);
+
+    const pad = compactDesktop ? 60 : 120;
     const zoom = Phaser.Math.Clamp(
-      Math.min(cw / (b.width + pad * 2), ch / (b.height + pad * 2)),
+      Math.min(
+        fullWidth / (b.width + pad * 2),
+        viewportHeight / (b.height + pad * 2)
+      ),
       0.28,
       1
     );
