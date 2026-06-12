@@ -4,15 +4,11 @@ import { isTutorialProgressDone, markTutorialProgressDone } from "../auth/tutori
 import { localRoomId } from "./gameConstants";
 
 // --- Tutorials --------------------------------------------------------------
+// The species tutorials (jaguar, wolf, armadillo, ...) were removed on purpose:
+// they are being rebuilt from scratch, one species at a time. The TutorialId
+// union keeps the species names so the rest of the app (progress storage, board
+// highlighting) stays type-stable until each species tutorial is rebuilt.
 export type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw" | "capuchin" | "coati";
-
-const TUTORIAL_INITIAL_DONE_KEY = "oikos-tutorial-initial";
-const TUTORIAL_JAGUAR_DONE_KEY = "oikos-tutorial-jaguar";
-const TUTORIAL_WOLF_DONE_KEY = "oikos-tutorial-wolf";
-const TUTORIAL_ARMADILLO_DONE_KEY = "oikos-tutorial-armadillo";
-const TUTORIAL_MACAW_DONE_KEY = "oikos-tutorial-macaw";
-const TUTORIAL_CAPUCHIN_DONE_KEY = "oikos-tutorial-capuchin";
-const TUTORIAL_COATI_DONE_KEY = "oikos-tutorial-coati";
 
 // Each scripted step locks the board to a single taught interaction:
 //   none      -> read-only, advance with the coach button
@@ -55,7 +51,7 @@ const INITIAL_TUTORIAL_PLAYER_ID = "local_basic_tutorial";
 
 // Deterministic 3x3 starting forest (coords -1..1). The river card at (1,0) has
 // a single mouth facing east into the empty cell (2,0). The player extends the
-// forest at (0,-2) with a non-river card, then continues the river at (2,0),
+// forest at (-2,0) with a non-river card, then continues the river at (2,0),
 // which only connects after rotating the river card.
 const TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "tut_0", definitionId: "bosque_2", x: -1, y: -1, rotation: 0, isInitial: true },
@@ -69,44 +65,71 @@ const TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "tut_8", definitionId: "campo_4", x: 1, y: 1, rotation: 0, isInitial: true }
 ];
 
-// The initial tutorial uses the real rules engine, but teaches only universal
-// verbs: setup, playing cards, river rotation, movement and final scoring.
+// The basic tutorial uses the real rules engine, but teaches only the universal
+// verbs every species shares: setup, playing cards, river rotation, movement and
+// final scoring. Species powers are taught later in their own chapters. The flow
+// alternates short read-only explanations ("none") with a single hands-on action
+// per step, so the player learns each rule by doing it once.
 const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Tutorial básico",
-    body: "Este capítulo ensina só as regras comuns do jogo. Aqui não vamos falar de poderes individuais: o foco é tabuleiro, cartas, meeples, recursos e pontuação final.",
+    title: "Bem-vindo a Oikos",
+    body: "Oikos é um jogo sobre construir uma floresta e espalhar a sua espécie por ela. Este primeiro capítulo ensina só as regras que valem para todo mundo: tabuleiro, cartas, meeples, recursos e pontuação. Os poderes de cada espécie ficam para os próximos capítulos. Toque em Próximo para começar.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Tabuleiro, habitat e recurso",
-    body: "A floresta é formada por cartas. Cada carta tem um habitat: bosque, campo ou rio. Cada carta também mostra um recurso: carne, ovo, fruta ou semente.",
+    title: "A floresta e os habitats",
+    body: "A floresta no centro da tela é feita de cartas. Cada carta tem um habitat, e existem três: bosque (mata fechada), campo (área aberta) e rio (água). Olhe o tabuleiro e repare nos três tipos de carta. O habitat importa porque define como cada espécie se movimenta — você vê isso nos capítulos de espécie.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Recursos importam no fim",
-    body: "Carne, ovo e fruta dão ponto por maioria no fim da partida. Quem empata na maior quantidade também recebe esse ponto. Semente não tem maioria: cada 2 sementes viram 1 ponto.",
+    title: "Os quatro recursos",
+    body: "Cada carta também oferece um recurso: carne, ovo, fruta ou semente. O desenho na carta mostra qual é. Você junta recursos ao colocar e mover meeples, e eles decidem a pontuação no fim da partida. Guarde essa ideia: recurso = ponto no final.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Posicione meeples iniciais",
-    body: "No setup, clique em cartas da floresta para colocar seus meeples iniciais. Ao posicionar no setup, você coleta o recurso do local onde entrou.",
+    title: "Seus meeples",
+    body: "Meeples são as suas peças na floresta. Cada espécie começa com um número fixo deles. Eles ocupam locais, coletam recursos e disputam território com as outras espécies. No próximo passo você coloca os seus.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Setup: posicione seus meeples",
+    body: "Comece colocando seus meeples iniciais. Clique em cartas da floresta para posicioná-los — você tem dois para colocar. Importante: ao entrar em um local, você coleta na hora o recurso daquele local. Coloque os dois para continuar.",
     gate: "setup",
     autoAdvance: true
   },
   {
-    title: "Jogue uma carta comum",
-    body: "Clique na carta destacada da sua mão e depois no espaço destacado do tabuleiro. Cartas sem rio podem entrar em qualquer espaço livre adjacente à floresta.",
+    title: "Você já coletou recursos",
+    body: "Pronto! Cada meeple que você posicionou rendeu o recurso do local onde entrou. Olhe o seu painel no canto: os recursos coletados já estão somados ali. Essa é a regra de ouro — entrar num local sempre coleta o recurso dele.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "O turno: ações em ordem",
+    body: "Agora começa o seu turno. No jogo, cada espécie executa ações em ordem (A, B, C...). A ação A quase sempre é expandir a floresta jogando uma carta da sua mão. Vamos fazer isso agora.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Jogue uma carta de terra",
+    body: "Clique na carta destacada da sua mão e depois no espaço destacado do tabuleiro. Cartas de bosque e campo (terra) entram em qualquer espaço vazio que encoste na floresta atual.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_NONRIVER_CARD,
     markedSlot: { x: -2, y: 0 }
   },
   {
-    title: "Rios precisam encaixar",
-    body: "Cartas de rio obedecem à água desenhada. Água conecta com água ou sai pela borda; ela não pode encostar em mata. Use Q/E ou os botões de giro até a carta encaixar no espaço destacado.",
+    title: "Regra da adjacência",
+    body: "Repare que a carta só pôde entrar encostada na floresta. A floresta cresce sempre de forma conectada: nenhuma carta fica solta, longe das outras. Isso vale para todas as espécies.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Cartas de rio precisam encaixar",
+    body: "Cartas de rio têm água desenhada e seguem uma regra extra: água conecta com água ou sai pela borda do tabuleiro, e nunca pode encostar em mata. Use Q/E (ou os botões de giro) para rotacionar a carta até a água encaixar no espaço destacado, então jogue-a.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_RIVER_CARD,
@@ -114,549 +137,45 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     requiresRiver: true
   },
   {
+    title: "Rios formam caminhos",
+    body: "Você acabou de estender o rio. Conectar a água certa é o que mantém o rio contínuo. Se a rotação estiver errada, o jogo não deixa jogar a carta ali — então gire com calma até encaixar.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
     title: "Mova um meeple",
-    body: "Depois de jogar carta, chega a etapa de movimento. Clique em um meeple seu e escolha um destino destacado. Quando um meeple se move, você coleta o recurso do local de destino.",
+    body: "Depois de jogar a carta vem o movimento. Clique em um meeple seu e escolha um destino destacado. Lembre da regra de ouro: ao chegar no destino, você coleta o recurso daquele local.",
     gate: "move",
     autoAdvance: true
   },
   {
-    title: "Pontuação por maioria",
-    body: "No fim da partida, compare os recursos de todos os jogadores. A maior quantidade de carne vale 1 ponto, a maior de ovo vale 1 ponto e a maior de fruta vale 1 ponto. Se houver empate pela maior quantidade, todos empatados pontuam.",
+    title: "Movimento e coleta",
+    body: "Cada espécie se move de um jeito diferente conforme o habitat (adjacente, diagonal, salto reto, salto em curva). Você aprende o padrão de cada uma no capítulo dela. O que vale para todos: mover-se coleta o recurso do local de destino, igual ao setup.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Pontuação das sementes",
-    body: "Sementes, chamadas de sementes no jogo, funcionam diferente: elas não disputam maioria. No fim, cada par de sementes vale 1 ponto. Cinco sementes, por exemplo, valem 2 pontos e sobra 1 semente.",
+    title: "Pontuação final: maioria",
+    body: "Quando a partida acaba, comparam-se os recursos de todos os jogadores. Quem tiver mais carne ganha 1 ponto; o mesmo para ovo e para fruta. Em caso de empate na maior quantidade, todos os empatados pontuam. Ter a maioria de um recurso é o caminho mais direto para pontos.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Você aprendeu o básico",
-    body: "Resumo: coloque meeples no setup, jogue cartas adjacentes, respeite rios e rotação, mova meeples para coletar recursos e guarde recursos pensando na pontuação final.",
-    gate: "none",
-    autoAdvance: false
-  }
-];
-
-const JAGUAR_TUTORIAL_PLAYER_ID = "local_jaguar";
-const JAGUAR_TUTORIAL_COATI_ID = "local_coati";
-const JAGUAR_TUTORIAL_CAPUCHIN_ID = "local_capuchin";
-const WOLF_TUTORIAL_PLAYER_ID = "local_maned_wolf";
-const WOLF_TUTORIAL_COATI_ID = "local_wolf_coati";
-const WOLF_TUTORIAL_CAPUCHIN_ID = "local_wolf_capuchin";
-const WOLF_TUTORIAL_CARD = "campo_3_copy";
-const WOLF_TUTORIAL_FIRST_WOLF_ID = `${WOLF_TUTORIAL_PLAYER_ID}_piece_1`;
-const WOLF_TUTORIAL_SECOND_WOLF_ID = `${WOLF_TUTORIAL_PLAYER_ID}_piece_2`;
-const WOLF_TUTORIAL_BASE_TARGET_ID = `${WOLF_TUTORIAL_COATI_ID}_piece_1`;
-const ARMADILLO_TUTORIAL_PLAYER_ID = "local_armadillo_species";
-const ARMADILLO_TUTORIAL_COATI_ID = "local_armadillo_coati";
-const ARMADILLO_TUTORIAL_CAPUCHIN_ID = "local_armadillo_capuchin";
-const ARMADILLO_TUTORIAL_JAGUAR_ID = "local_armadillo_jaguar";
-const ARMADILLO_TUTORIAL_CARD = "bosque_4_copy";
-const ARMADILLO_TUTORIAL_MOVE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_1`;
-const ARMADILLO_TUTORIAL_HIDE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
-const ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE = `${ARMADILLO_TUTORIAL_JAGUAR_ID}_piece_1`;
-const MACAW_TUTORIAL_PLAYER_ID = "local_macaw_species";
-const MACAW_TUTORIAL_CARD = "campo_2_copy";
-const MACAW_TUTORIAL_MOVE_ID = `${MACAW_TUTORIAL_PLAYER_ID}_piece_1`;
-const CAPUCHIN_TUTORIAL_PLAYER_ID = "local_capuchin_species";
-const CAPUCHIN_TUTORIAL_CARD = "bosque_4_copy";
-const CAPUCHIN_TUTORIAL_MOVE_ID = `${CAPUCHIN_TUTORIAL_PLAYER_ID}_piece_3`;
-const COATI_TUTORIAL_PLAYER_ID = "local_coati_species";
-const COATI_TUTORIAL_CARD = "campo_2_copy_2";
-const COATI_TUTORIAL_MOVE_ID = `${COATI_TUTORIAL_PLAYER_ID}_piece_3`;
-
-const JAGUAR_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "jag_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "jag_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
-];
-
-const JAGUAR_TUTORIAL_STEPS: TutorialStepDef[] = [
-  {
-    title: "Onça-pintada",
-    body: "Vamos aprender a jogar de Onça-pintada! Ela é o predador: 1 meeple, sem cartas na mão, caça e remove peças adversárias para ganhar carne e pontuar. Dica: só captura peças à vista — as escondidas escapam.",
+    title: "Pontuação final: sementes",
+    body: "A semente é a exceção: ela não disputa maioria. No fim, cada 2 sementes valem 1 ponto. Por exemplo, 5 sementes valem 2 pontos e sobra 1 semente. Vale a pena acumular sementes mesmo sem ser o líder.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Cenário preparado",
-    body: "Vamos treinar como se a partida já estivesse no segundo turno: a floresta está montada, há outras espécies em campo e a Onça já está pronta para caçar.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Ação A: mover adjacente",
-    body: "Na ação A, a Onça sempre move 1 casa adjacente. Clique na Onça e depois no local destacado com uma peça de outra espécie. Ao entrar ali, ela remove 1 peça e ganha 1 carne.",
-    gate: "move",
-    autoAdvance: true,
-    markedMoveTarget: { x: 0, y: 0 },
-    completeWhenActionIndex: 1
-  },
-  {
-    title: "Primeira caça",
-    body: "A peça removida voltou para a reserva do dono e a Onça ganhou 1 carne. Ela também coleta o recurso do local onde terminou o movimento.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Ação B: mover pelo habitat",
-    body: "Na ação B, a Onça usa o movimento indicado pelo habitat onde está. Consulte o guia de movimentos no HUD da Onça. Ela está em campo, então vai mover na diagonal para o local destacado com carne e outra peça.",
-    gate: "move",
-    autoAdvance: true,
-    markedMoveTarget: { x: 1, y: 1 },
-    completeWhenActionIndex: 2,
-    highlightMovementGuideSpecies: "jaguar"
-  },
-  {
-    title: "Três carnes disponíveis",
-    body: "Neste segundo movimento, a Onça removeu outra peça (+1 carne) e caiu em uma carta de carne (+1 carne). Somando com a primeira caça, agora ela tem 3 carnes.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Ação C: gastar carne",
-    body: "Na ação C, a Onça pode gastar de 1 a 3 carnes para marcar a mesma quantidade de pontos. Escolha gastar 3 carnes para marcar 3 pontos.",
-    gate: "score",
-    autoAdvance: true,
-    completeWhenScoreAtLeast: 3,
-    requiredSpendCount: 3
-  },
-  {
-    title: "Turno da Onça completo",
-    body: "Resumo: A moveu adjacente e caçou; B moveu pelo habitat, caçou e coletou carne; C gastou 3 carnes para fazer 3 pontos. Esse é o ciclo principal da Onça.",
-    gate: "none",
-    autoAdvance: false
-  }
-];
-
-const WOLF_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "wolf_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "wolf_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
-];
-
-const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
-  {
-    title: "Lobo-guará",
-    body: "Vamos aprender a jogar de Lobo-guará! Subpredador que age em matilha: expande a floresta, remove peças de base sob seus lobos e gasta recursos diferentes para pontuar. Dica: cace espécies de base e acumule recursos variados — quanto mais lobos na floresta, mais recursos você pode gastar por pontos.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Cenário preparado",
-    body: "Vamos treinar como se a partida já estivesse no segundo turno: a floresta está pronta, dois lobos já estão em campo, um lobo está na reserva e há espécies de base para interagir.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Ação A: jogar carta",
-    body: "Na ação A, o Lobo expande a floresta com uma carta. Clique na carta de campo destacada e depois no espaço destacado no tabuleiro. O habitat da carta jogada define como todos os lobos pendentes vão se mover.",
-    gate: "placeCard",
-    autoAdvance: true,
-    requiredCardId: WOLF_TUTORIAL_CARD,
-    markedSlot: { x: 2, y: -1 }
-  },
-  {
-    title: "Ação A: mover primeiro lobo",
-    body: "Campo dá ao Lobo movimento adjacente. Consulte o guia de movimentos no HUD do Lobo. Agora clique no lobo destacado e mova para o Quati destacado; ele coleta o ovo do local.",
-    gate: "move",
-    autoAdvance: true,
-    markedMoveTarget: { x: 1, y: 0 },
-    markedPieceId: WOLF_TUTORIAL_FIRST_WOLF_ID,
-    highlightMovementGuideSpecies: "maned_wolf"
-  },
-  {
-    title: "Ação A: mover todos os lobos",
-    body: "Quando a carta é jogada, cada lobo com movimento legal precisa mover. Clique no segundo lobo destacado e mova para o bosque destacado; ele coleta uma semente.",
-    gate: "move",
-    autoAdvance: true,
-    markedMoveTarget: { x: 0, y: 1 },
-    markedPieceId: WOLF_TUTORIAL_SECOND_WOLF_ID,
-    completeWhenActionIndex: 1
-  },
-  {
-    title: "Ação B: remover espécie de base",
-    body: "Na ação B, o Lobo pode remover 1 peça de espécie de base que esteja no mesmo local de um lobo. Selecione o Quati destacado e clique em Remover peça. O Lobo e o Quati coletam o recurso desse local.",
-    gate: "removeBase",
-    autoAdvance: true,
-    markedPieceId: WOLF_TUTORIAL_BASE_TARGET_ID,
-    completeWhenActionIndex: 2
-  },
-  {
-    title: "Ação C: gastar recursos diferentes",
-    body: "Na ação C, para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto. Como há 2 lobos em campo, escolha ovo e semente para marcar 2 pontos.",
-    gate: "score",
-    autoAdvance: true,
-    completeWhenScoreAtLeast: 2,
-    requiredSpendCount: 2
-  },
-  {
-    title: "Ação D: adicionar lobo",
-    body: "Na ação D, adicione 1 lobo da reserva em um local com carne. Clique na carta de carne destacada para colocar o terceiro lobo e encerrar o turno.",
-    gate: "addPiece",
-    autoAdvance: true,
-    markedAddPieceTarget: { x: -2, y: 0 },
-    completeWhenRoundAtLeast: 3
-  },
-  {
-    title: "Turno do Lobo completo",
-    body: "Resumo: A joga carta e move todos os lobos; B remove uma espécie de base junto de um lobo; C gasta recursos diferentes para pontuar; D adiciona lobo em carne. Esse é o ciclo principal do Lobo-guará.",
-    gate: "none",
-    autoAdvance: false
-  }
-];
-
-const ARMADILLO_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "arm_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
-];
-
-const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
-  {
-    title: "Tatu-bola",
-    body: "Vamos aprender a jogar de Tatu-bola! Ele cresce perto de sementes, pode se esconder e pontua dividindo locais com outras espécies. Dica: esconda os tatus para escapar do predador.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Cenário preparado",
-    body: "Vamos treinar como se a partida já estivesse no segundo turno: há quatis e macacos na floresta, dois tatus em campo e dois tatus ainda na reserva.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Ação A: jogar carta",
-    body: "Na ação A, o Tatu-bola expande a floresta com uma carta da mão. Clique na carta de bosque destacada e depois no espaço destacado no tabuleiro. O habitat dessa carta vai definir o movimento da ação B.",
-    gate: "placeCard",
-    autoAdvance: true,
-    requiredCardId: ARMADILLO_TUTORIAL_CARD,
-    markedSlot: { x: 2, y: 0 }
-  },
-  {
-    title: "Ação A: adicionar em semente",
-    body: "Depois de jogar a carta, o Tatu-bola pode adicionar 1 tatu da reserva em qualquer local com semente. Clique na carta de semente destacada para aumentar sua presença.",
-    gate: "addPiece",
-    autoAdvance: true,
-    markedAddPieceTarget: { x: 0, y: 1 },
-    completeWhenActionIndex: 1
-  },
-  {
-    title: "Ação B: mover pelo habitat jogado",
-    body: "A carta jogada foi um bosque. Para o Tatu-bola, bosque permite movimento adjacente. Clique no tatu destacado e mova para o macaco-prego destacado para preparar a pontuação por compartilhamento.",
-    gate: "move",
-    autoAdvance: true,
-    markedPieceId: ARMADILLO_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: 0, y: -1 },
-    highlightMovementGuideSpecies: "armadillo",
-    completeWhenActionIndex: 2
-  },
-  {
-    title: "Ação C: esconder",
-    body: "Na ação C, o Tatu-bola pode se esconder. Escolha o tatu sozinho destacado, perto da Onça, e clique em Esconder Tatu-bola. Ele continua ocupando o local, mas fica protegido.",
-    gate: "score",
-    autoAdvance: true,
-    markedPieceId: ARMADILLO_TUTORIAL_HIDE_ID,
-    completeWhenActionIndex: 3
-  },
-  {
-    title: "Ação D: pontuar compartilhamento",
-    body: "Na ação D, o Tatu-bola pontua por ter tatus em locais compartilhados com outras espécies. Aqui ele divide local com Quati e Macaco-prego, então marca 2 pontos automaticamente.",
-    gate: "score",
-    autoAdvance: true,
-    completeWhenScoreAtLeast: 2
-  },
-  {
-    title: "Turno da Onça: ataque bloqueado",
-    body: "Agora é como se fosse o turno da Onça. Ela entrou no local do Tatu-bola escondido, mas não consegue removê-lo. Enquanto estiver escondido, ele continua protegido. Se esse tatu se mover em uma ação futura, ele deixa de ficar escondido.",
-    gate: "none",
-    autoAdvance: false,
-    jaguarProbeTarget: { x: -1, y: 0 }
-  },
-  {
-    title: "Turno do Tatu-bola completo",
-    body: "Resumo: A joga carta e adiciona tatu em semente; B move conforme o habitat da carta; C esconde um tatu; D pontua por compartilhar locais com outras espécies. Depois, a Onça mostrou por que esconder protege.",
-    gate: "none",
-    autoAdvance: false
-  }
-];
-
-const MACAW_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "mac_tut_0", definitionId: "bosque_2", x: -2, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_1", definitionId: "campo_4", x: -1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_2", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_3", definitionId: "campo_3", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_4", definitionId: "bosque_4", x: -2, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_5", definitionId: "bosque_1", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_6", definitionId: "campo_1", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_7", definitionId: "bosque_2_copy", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_8", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_9", definitionId: "bosque_3_copy", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "mac_tut_10", definitionId: "campo_2", x: 1, y: 1, rotation: 0, isInitial: true }
-];
-
-const MACAW_TUTORIAL_STEPS: TutorialStepDef[] = [
-  {
-    title: "Arara-azul",
-    body: "Vamos aprender a jogar de Arara-azul! Ela pontua formando linhas retas de 3 araras: horizontal, vertical ou diagonal. Dica: posicione sempre pensando na próxima linha.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Cenário preparado",
-    body: "Este é um treinamento do tutorial da Arara: quatro araras estão na floresta e duas estão na reserva. O objetivo é montar 3 linhas de uma vez para marcar 3 pontos.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Ação A: jogar carta",
-    body: "Na ação A, a Arara expande a floresta com uma carta. Clique na carta de campo destacada e depois no espaço destacado no tabuleiro. O habitat da carta jogada define o movimento da ação B.",
-    gate: "placeCard",
-    autoAdvance: true,
-    requiredCardId: MACAW_TUTORIAL_CARD,
-    markedSlot: { x: 2, y: 0 }
-  },
-  {
-    title: "Ação A: adicionar em ovo",
-    body: "Depois de jogar a carta, a Arara pode adicionar 1 peça da reserva em qualquer local com ovo. Clique na carta de ovo destacada: ela vira a ponta da linha de cima e da diagonal.",
-    gate: "addPiece",
-    autoAdvance: true,
-    markedAddPieceTarget: { x: -1, y: -1 },
-    completeWhenActionIndex: 1
-  },
-  {
-    title: "Ação B: mover pela carta jogada",
-    body: "A carta jogada foi de campo. Para a Arara, campo permite movimento adjacente. Mova a arara destacada para o centro: ela conecta a coluna central e a diagonal.",
-    gate: "move",
-    autoAdvance: true,
-    markedPieceId: MACAW_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: 0, y: 0 },
-    highlightMovementGuideSpecies: "macaw",
-    completeWhenActionIndex: 2
-  },
-  {
-    title: "Ação C: reforçar ao redor",
-    body: "Na ação C, você pode adicionar 1 arara da reserva ao redor da arara que acabou de mover, ou realocar outra arara para um desses espaços. Adicione abaixo do centro para fechar a terceira linha.",
-    gate: "addPiece",
-    autoAdvance: true,
-    markedAddPieceTarget: { x: 0, y: 1 },
-    completeWhenActionIndex: 3
-  },
-  {
-    title: "Ação D: pontuar linhas",
-    body: "Na ação D, a Arara marca 1 ponto por cada linha reta de 3 araras. Agora há 3 linhas: a linha de cima, a coluna central e a diagonal. São 3 pontos.",
-    gate: "score",
-    autoAdvance: true,
-    completeWhenScoreAtLeast: 3
-  },
-  {
-    title: "Turno da Arara completo",
-    body: "Resumo: A joga carta e adiciona em ovo; B move para conectar linhas; C adiciona ao redor da arara movida; D pontua cada linha reta de 3. A Arara consegue fazer 3 pontos quando uma jogada fecha várias linhas.",
-    gate: "none",
-    autoAdvance: false
-  }
-];
-
-// 3x3 com 2 rios (margens viradas para a borda do grid), bosques e campos.
-// Macacos pre-posicionados em 2 rios + 2 bosques + 1 campo; a carta jogada
-// entra em (2,0). A acao B salta um macaco de bosque para o campo em (1,0),
-// fechando duplas em rio, bosque e campo = 3 pontos.
-const CAPUCHIN_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "cap_tut_0", definitionId: "rio_4", x: -1, y: -1, rotation: 0, isInitial: true }, // boca norte -> borda
-  { instanceId: "cap_tut_1", definitionId: "bosque_2", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_2", definitionId: "campo_1", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_3", definitionId: "bosque_3", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_4", definitionId: "bosque_1", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_5", definitionId: "campo_2", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_6", definitionId: "rio_7", x: -1, y: 1, rotation: 180, isInitial: true }, // boca sul -> borda
-  { instanceId: "cap_tut_7", definitionId: "campo_3", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "cap_tut_8", definitionId: "bosque_4", x: 1, y: 1, rotation: 0, isInitial: true }
-];
-
-const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
-  {
-    title: "Macaco-prego",
-    body: "Vamos aprender a jogar de Macaco-prego! Ele pontua cada habitat (rio, bosque, campo) onde tiver 2 ou mais macacos em cartas diferentes. Dica: espalhe pares por habitats variados em vez de amontoar num só.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Jogue a carta",
-    body: "Ação A: clique na carta de bosque destacada e depois no espaço destacado no tabuleiro.",
-    gate: "placeCard",
-    autoAdvance: true,
-    requiredCardId: CAPUCHIN_TUTORIAL_CARD,
-    markedSlot: { x: 2, y: 0 }
-  },
-  {
-    title: "Adicione um macaco",
-    body: "Depois de jogar a carta, clique no local destacado para pôr 1 macaco nela.",
-    gate: "addPiece",
-    autoAdvance: true,
-    markedAddPieceTarget: { x: 2, y: 0 },
-    completeWhenActionIndex: 1
-  },
-  {
-    title: "Salte para o campo",
-    body: "A carta jogada foi um bosque. Para o Macaco-prego, bosque permite salto reto. Mova o macaco destacado para o campo destacado.",
-    gate: "move",
-    autoAdvance: true,
-    markedPieceId: CAPUCHIN_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: 1, y: 0 },
-    highlightMovementGuideSpecies: "capuchin",
-    completeWhenActionIndex: 2
-  },
-  {
-    title: "Reforce",
-    body: "Na ação C, clique no local destacado para adicionar mais 1 macaco e reforçar o par de bosque.",
-    gate: "addPiece",
-    autoAdvance: true,
-    markedAddPieceTarget: { x: 2, y: 0 },
-    completeWhenActionIndex: 3
-  },
-  {
-    title: "+3 pontos!",
-    body: "2 rios, 2 bosques e 2 campos: 3 habitats com par, 3 pontos.",
-    gate: "score",
-    autoAdvance: true,
-    completeWhenScoreAtLeast: 3
-  },
-  {
-    title: "Pegou a ideia",
-    body: "Cada habitat com 2+ macacos em cartas diferentes = 1 ponto. Espalhe em mais habitats para pontuar mais.",
-    gate: "none",
-    autoAdvance: false
-  }
-];
-
-// 3x3. Macacos... digo, quatis pre-posicionados em F=(-1,0) e L1=(-1,-1) para a
-// cadeia da acao A; mover em (1,1) e par-alvo em (0,0) para a acao B. A carta de
-// campo entra em (2,0). A cadeia de pares marca 3 pontos e esvazia a reserva,
-// forcando a remocao de 2 quatis na acao C.
-const COATI_TUTORIAL_FOREST: ForestCardState[] = [
-  { instanceId: "coa_tut_0", definitionId: "bosque_2", x: -1, y: -1, rotation: 0, isInitial: true }, // L1 (Q_b)
-  { instanceId: "coa_tut_1", definitionId: "bosque_3", x: 0, y: -1, rotation: 0, isInitial: true }, // L2 (resolve2)
-  { instanceId: "coa_tut_2", definitionId: "campo_4", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_3", definitionId: "campo_3", x: -1, y: 0, rotation: 0, isInitial: true }, // F fruta (Q_a)
-  { instanceId: "coa_tut_4", definitionId: "bosque_4", x: 0, y: 0, rotation: 0, isInitial: true }, // M (Q_d)
-  { instanceId: "coa_tut_5", definitionId: "campo_1", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_6", definitionId: "campo_2", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "coa_tut_7", definitionId: "bosque_2_copy", x: 0, y: 1, rotation: 0, isInitial: true }, // L3 (resolve3)
-  { instanceId: "coa_tut_8", definitionId: "campo_4_copy", x: 1, y: 1, rotation: 0, isInitial: true } // mover (Q_c)
-];
-
-const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
-  {
-    title: "Quati",
-    body: "Vamos aprender a jogar de Quati! Quando ele forma um par exato de 2 quatis, adiciona 1 quati da reserva num local vizinho e só então marca 1 ponto. Ou seja: formar o par não basta — sem adicionar o quati (sem reserva ou sem espaço), não há ponto. Dica: encadeie pares para fazer combos.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "O plano",
-    body: "Você vai disparar uma cadeia de pares e marcar 3 pontos neste turno. No fim, sua reserva esvazia e a ação C te obriga a remover 2 quatis. Bora jogar.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Jogue a carta",
-    body: "Ação A: clique na carta de campo destacada e depois no espaço destacado no tabuleiro.",
-    gate: "placeCard",
-    autoAdvance: true,
-    requiredCardId: COATI_TUTORIAL_CARD,
-    markedSlot: { x: 2, y: 0 }
-  },
-  {
-    title: "Forme o primeiro par",
-    body: "Adicione 1 quati na carta de fruta destacada, onde já há um quati seu. Isso forma um par e dispara a passiva.",
-    gate: "addPiece",
-    autoAdvance: true,
-    markedAddPieceTarget: { x: -1, y: 0 },
-    completeWhenCoatiPairPending: true
-  },
-  {
-    title: "Resolva o par (+1)",
-    body: "Clique no local vizinho destacado para adicionar 1 quati e marcar 1 ponto. Ele cai ao lado de outro quati e forma um novo par!",
-    gate: "resolvePair",
-    autoAdvance: true,
-    markedPairTarget: { x: -1, y: -1 },
-    completeWhenScoreAtLeast: 1
-  },
-  {
-    title: "Combo! (+1)",
-    body: "O par encadeou. Clique no vizinho destacado para resolver de novo e marcar mais 1 ponto. Já são 2.",
-    gate: "resolvePair",
-    autoAdvance: true,
-    markedPairTarget: { x: 0, y: -1 },
-    completeWhenScoreAtLeast: 2
-  },
-  {
-    title: "Mova e forme outro par",
-    body: "Ação B: campo = movimento diagonal. Mova o quati destacado para o local destacado, onde já há um quati. Forma mais um par.",
-    gate: "move",
-    autoAdvance: true,
-    markedPieceId: COATI_TUTORIAL_MOVE_ID,
-    markedMoveTarget: { x: 0, y: 0 },
-    highlightMovementGuideSpecies: "coati",
-    completeWhenCoatiPairPending: true
-  },
-  {
-    title: "Terceiro ponto (+1)",
-    body: "Clique no vizinho destacado para resolver o par. 3 pontos no turno!",
-    gate: "resolvePair",
-    autoAdvance: true,
-    markedPairTarget: { x: 0, y: 1 },
-    completeWhenScoreAtLeast: 3
-  },
-  {
-    title: "Ação C: remova 2 quatis",
-    body: "Sua reserva ficou abaixo de 2, então a ação C obriga remover 2 quatis da floresta. Clique em 2 quatis seus e confirme a remoção.",
-    gate: "removeCoati",
-    autoAdvance: true,
-    completeWhenRoundAtLeast: 3
-  },
-  {
-    title: "Turno do Quati completo",
-    body: "Pares geram combos: cada par fecha com 1 quati adicionado e 1 ponto. Sem reserva, a ação C cobra o preço de 2 quatis. Equilibre crescer e gastar.",
+    title: "Você aprendeu o básico!",
+    body: "Resumo: monte sua presença no setup, expanda a floresta jogando cartas conectadas (e encaixe os rios), mova meeples para coletar recursos e mire na pontuação final — maioria de carne, ovo e fruta, mais pares de semente. Agora escolha um capítulo de espécie para aprender os poderes dela.",
     gate: "none",
     autoAdvance: false
   }
 ];
 
 function getTutorialDoneKey(tutorialId: TutorialId): string {
-  if (tutorialId === "jaguar") return TUTORIAL_JAGUAR_DONE_KEY;
-  if (tutorialId === "wolf") return TUTORIAL_WOLF_DONE_KEY;
-  if (tutorialId === "armadillo") return TUTORIAL_ARMADILLO_DONE_KEY;
-  if (tutorialId === "macaw") return TUTORIAL_MACAW_DONE_KEY;
-  if (tutorialId === "capuchin") return TUTORIAL_CAPUCHIN_DONE_KEY;
-  if (tutorialId === "coati") return TUTORIAL_COATI_DONE_KEY;
-  return TUTORIAL_INITIAL_DONE_KEY;
+  return `oikos-tutorial-${tutorialId}`;
 }
 
 export function isTutorialDone(tutorialId: TutorialId): boolean {
@@ -682,490 +201,13 @@ export function isTutorialInitialDone(): boolean {
   return isTutorialDone("initial");
 }
 
-export function isTutorialJaguarDone(): boolean {
-  return isTutorialDone("jaguar");
-}
-
-export function isTutorialWolfDone(): boolean {
-  return isTutorialDone("wolf");
-}
-
-export function isTutorialArmadilloDone(): boolean {
-  return isTutorialDone("armadillo");
-}
-
-export function isTutorialMacawDone(): boolean {
-  return isTutorialDone("macaw");
-}
-
-export function isTutorialCapuchinDone(): boolean {
-  return isTutorialDone("capuchin");
-}
-
-export function isTutorialCoatiDone(): boolean {
-  return isTutorialDone("coati");
-}
-
-function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  const pieceId = `${playerId}_piece_${pieceNumber}`;
-  const piece = game.pieces.find((candidate) => candidate.pieceId === pieceId);
-  if (!player || !piece) {
-    return;
-  }
-
-  piece.location = { ...location, siteId: "main" };
-  player.reservePieces = player.reservePieces.filter((candidate) => candidate !== pieceId);
-  if (!player.piecesInForest.includes(pieceId)) {
-    player.piecesInForest = [...player.piecesInForest, pieceId];
-  }
-}
-
-export function createJaguarTutorialRoom(): PublicRoomState {
-  const tutorialPlayers: RoomPlayer[] = [
-    {
-      playerId: JAGUAR_TUTORIAL_PLAYER_ID,
-      name: "Tutorial Onça",
-      speciesId: "jaguar",
-      ready: true,
-      connected: true
-    },
-    {
-      playerId: JAGUAR_TUTORIAL_COATI_ID,
-      name: "Quati de treino",
-      speciesId: "coati",
-      ready: true,
-      connected: true
-    },
-    {
-      playerId: JAGUAR_TUTORIAL_CAPUCHIN_ID,
-      name: "Macaco de treino",
-      speciesId: "capuchin",
-      ready: true,
-      connected: true
-    }
-  ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, JAGUAR_TUTORIAL_FOREST, {
-    enabledMiniExpansions: []
-  });
-
-  for (const player of game.players) {
-    player.score = 0;
-    player.turnsTaken = player.playerId === JAGUAR_TUTORIAL_PLAYER_ID ? 1 : 0;
-    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
-  }
-
-  placeTutorialPiece(game, JAGUAR_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
-  placeTutorialPiece(game, JAGUAR_TUTORIAL_COATI_ID, 1, { x: 0, y: 0 });
-  placeTutorialPiece(game, JAGUAR_TUTORIAL_COATI_ID, 2, { x: 1, y: 0 });
-  placeTutorialPiece(game, JAGUAR_TUTORIAL_CAPUCHIN_ID, 1, { x: 1, y: 1 });
-  placeTutorialPiece(game, JAGUAR_TUTORIAL_CAPUCHIN_ID, 2, { x: -2, y: -1 });
-
-  game.status = "active";
-  game.round = 2;
-  game.activePlayerId = JAGUAR_TUTORIAL_PLAYER_ID;
-  game.activeActionIndex = 0;
-  game.activePlayedForestCardId = null;
-  game.pendingCoatiPairBonus = null;
-  game.pendingMacawMovedPiece = null;
-  game.pendingWolfMoves = null;
-  game.setupActivePlayerId = null;
-  game.turnOrder = [JAGUAR_TUTORIAL_PLAYER_ID];
-  game.log = [
-    {
-      id: "jaguar_tutorial_ready",
-      message: "Tutorial da Onça preparado no segundo turno.",
-      createdAt: Date.now()
-    }
-  ];
-
-  return {
-    roomId: localRoomId,
-    status: "active",
-    hostPlayerId: "local_host",
-    players: tutorialPlayers,
-    enabledMiniExpansions: game.enabledMiniExpansions,
-    game,
-    warnings: game.contentWarnings
-  };
-}
-
-export function createWolfTutorialRoom(): PublicRoomState {
-  const tutorialPlayers: RoomPlayer[] = [
-    {
-      playerId: WOLF_TUTORIAL_PLAYER_ID,
-      name: "Tutorial Lobo",
-      speciesId: "maned_wolf",
-      ready: true,
-      connected: true
-    },
-    {
-      playerId: WOLF_TUTORIAL_COATI_ID,
-      name: "Quati de treino",
-      speciesId: "coati",
-      ready: true,
-      connected: true
-    },
-    {
-      playerId: WOLF_TUTORIAL_CAPUCHIN_ID,
-      name: "Macaco de treino",
-      speciesId: "capuchin",
-      ready: true,
-      connected: true
-    }
-  ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, WOLF_TUTORIAL_FOREST, {
-    enabledMiniExpansions: []
-  });
-
-  for (const player of game.players) {
-    player.score = 0;
-    player.turnsTaken = player.playerId === WOLF_TUTORIAL_PLAYER_ID ? 1 : 0;
-    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
-    if (player.playerId === WOLF_TUTORIAL_PLAYER_ID) {
-      player.hand = [WOLF_TUTORIAL_CARD];
-    }
-  }
-
-  placeTutorialPiece(game, WOLF_TUTORIAL_PLAYER_ID, 1, { x: 0, y: 0 });
-  placeTutorialPiece(game, WOLF_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 1 });
-  placeTutorialPiece(game, WOLF_TUTORIAL_COATI_ID, 1, { x: 1, y: 0 });
-  placeTutorialPiece(game, WOLF_TUTORIAL_COATI_ID, 2, { x: 1, y: 1 });
-  placeTutorialPiece(game, WOLF_TUTORIAL_CAPUCHIN_ID, 1, { x: -2, y: -1 });
-
-  game.status = "active";
-  game.round = 2;
-  game.activePlayerId = WOLF_TUTORIAL_PLAYER_ID;
-  game.activeActionIndex = 0;
-  game.activePlayedForestCardId = null;
-  game.pendingCoatiPairBonus = null;
-  game.pendingMacawMovedPiece = null;
-  game.pendingWolfMoves = null;
-  game.setupActivePlayerId = null;
-  game.turnOrder = [WOLF_TUTORIAL_PLAYER_ID];
-  game.log = [
-    {
-      id: "wolf_tutorial_ready",
-      message: "Tutorial do Lobo-guará preparado no segundo turno.",
-      createdAt: Date.now()
-    }
-  ];
-
-  return {
-    roomId: localRoomId,
-    status: "active",
-    hostPlayerId: "local_host",
-    players: tutorialPlayers,
-    enabledMiniExpansions: game.enabledMiniExpansions,
-    game,
-    warnings: game.contentWarnings
-  };
-}
-
-export function createArmadilloTutorialRoom(): PublicRoomState {
-  const tutorialPlayers: RoomPlayer[] = [
-    {
-      playerId: ARMADILLO_TUTORIAL_PLAYER_ID,
-      name: "Tutorial Tatu",
-      speciesId: "armadillo",
-      ready: true,
-      connected: true
-    },
-    {
-      playerId: ARMADILLO_TUTORIAL_COATI_ID,
-      name: "Quati de treino",
-      speciesId: "coati",
-      ready: true,
-      connected: true
-    },
-    {
-      playerId: ARMADILLO_TUTORIAL_CAPUCHIN_ID,
-      name: "Macaco de treino",
-      speciesId: "capuchin",
-      ready: true,
-      connected: true
-    },
-    {
-      playerId: ARMADILLO_TUTORIAL_JAGUAR_ID,
-      name: "Onça de treino",
-      speciesId: "jaguar",
-      ready: true,
-      connected: true
-    }
-  ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, ARMADILLO_TUTORIAL_FOREST, {
-    enabledMiniExpansions: []
-  });
-
-  for (const player of game.players) {
-    player.score = 0;
-    player.turnsTaken = player.playerId === ARMADILLO_TUTORIAL_PLAYER_ID ? 1 : 0;
-    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
-    if (player.playerId === ARMADILLO_TUTORIAL_PLAYER_ID) {
-      player.hand = [ARMADILLO_TUTORIAL_CARD];
-    }
-  }
-
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 1, { x: 0, y: 0 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 0 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 1, { x: 0, y: 1 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 2, { x: 1, y: 0 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 1, { x: 0, y: -1 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 2, { x: 1, y: -1 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_JAGUAR_ID, 1, { x: -2, y: 0 });
-
-  game.status = "active";
-  game.round = 2;
-  game.activePlayerId = ARMADILLO_TUTORIAL_PLAYER_ID;
-  game.activeActionIndex = 0;
-  game.activePlayedForestCardId = null;
-  game.pendingCoatiPairBonus = null;
-  game.pendingMacawMovedPiece = null;
-  game.pendingWolfMoves = null;
-  game.setupActivePlayerId = null;
-  game.turnOrder = [ARMADILLO_TUTORIAL_PLAYER_ID, ARMADILLO_TUTORIAL_JAGUAR_ID];
-  game.log = [
-    {
-      id: "armadillo_tutorial_ready",
-      message: "Tutorial do Tatu-bola preparado no segundo turno.",
-      createdAt: Date.now()
-    }
-  ];
-
-  return {
-    roomId: localRoomId,
-    status: "active",
-    hostPlayerId: "local_host",
-    players: tutorialPlayers,
-    enabledMiniExpansions: game.enabledMiniExpansions,
-    game,
-    warnings: game.contentWarnings
-  };
-}
-
-export function moveArmadilloTutorialJaguarProbe(game: GameState, target: GridPosition): GameState {
-  const jaguar = game.pieces.find((piece) => piece.pieceId === ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE);
-  if (!jaguar || (jaguar.location?.x === target.x && jaguar.location.y === target.y)) {
-    return game;
-  }
-
-  return {
-    ...game,
-    pieces: game.pieces.map((piece) =>
-      piece.pieceId === ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE
-        ? { ...piece, location: { ...target, siteId: "main" } }
-        : piece
-    ),
-    log: game.log.some((entry) => entry.id === "armadillo_tutorial_jaguar_probe")
-      ? game.log
-      : [
-          ...game.log,
-          {
-            id: "armadillo_tutorial_jaguar_probe",
-            message: "A Onça entrou no local do Tatu-bola escondido, mas não conseguiu removê-lo.",
-            createdAt: Date.now(),
-            payload: {
-              kind: "move_piece",
-              actorPlayerId: ARMADILLO_TUTORIAL_JAGUAR_ID,
-              location: target,
-              pieceIds: [ARMADILLO_TUTORIAL_JAGUAR_ID_PIECE]
-            }
-          }
-        ]
-  };
-}
-
-export function createMacawTutorialRoom(): PublicRoomState {
-  const tutorialPlayers: RoomPlayer[] = [
-    {
-      playerId: MACAW_TUTORIAL_PLAYER_ID,
-      name: "Tutorial Arara",
-      speciesId: "macaw",
-      ready: true,
-      connected: true
-    }
-  ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, MACAW_TUTORIAL_FOREST, {
-    enabledMiniExpansions: []
-  });
-
-  const player = game.players.find((candidate) => candidate.playerId === MACAW_TUTORIAL_PLAYER_ID);
-  if (player) {
-    player.score = 0;
-    player.turnsTaken = 1;
-    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
-    player.hand = [MACAW_TUTORIAL_CARD];
-  }
-
-  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
-  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 2, { x: 0, y: -1 });
-  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 3, { x: 1, y: -1 });
-  placeTutorialPiece(game, MACAW_TUTORIAL_PLAYER_ID, 4, { x: 1, y: 1 });
-
-  game.status = "active";
-  game.round = 2;
-  game.activePlayerId = MACAW_TUTORIAL_PLAYER_ID;
-  game.activeActionIndex = 0;
-  game.activePlayedForestCardId = null;
-  game.pendingCoatiPairBonus = null;
-  game.pendingMacawMovedPiece = null;
-  game.pendingWolfMoves = null;
-  game.setupActivePlayerId = null;
-  game.turnOrder = [MACAW_TUTORIAL_PLAYER_ID];
-  game.log = [
-    {
-      id: "macaw_tutorial_ready",
-      message: "Tutorial da Arara-azul preparado no segundo turno.",
-      createdAt: Date.now()
-    }
-  ];
-
-  return {
-    roomId: localRoomId,
-    status: "active",
-    hostPlayerId: "local_host",
-    players: tutorialPlayers,
-    enabledMiniExpansions: game.enabledMiniExpansions,
-    game,
-    warnings: game.contentWarnings
-  };
-}
-
-export function createCapuchinTutorialRoom(): PublicRoomState {
-  const tutorialPlayers: RoomPlayer[] = [
-    {
-      playerId: CAPUCHIN_TUTORIAL_PLAYER_ID,
-      name: "Tutorial Macaco",
-      speciesId: "capuchin",
-      ready: true,
-      connected: true
-    }
-  ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, CAPUCHIN_TUTORIAL_FOREST, {
-    enabledMiniExpansions: []
-  });
-
-  const player = game.players.find((candidate) => candidate.playerId === CAPUCHIN_TUTORIAL_PLAYER_ID);
-  if (player) {
-    player.score = 0;
-    player.turnsTaken = 1;
-    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
-    player.hand = [CAPUCHIN_TUTORIAL_CARD];
-  }
-
-  // 2 macacos em rios (-1,-1) e (-1,1); 2 em bosques (0,-1) e (-1,0); 1 em campo (0,1).
-  // O macaco em (-1,0) (piece_3) e o que salta para o campo na acao B.
-  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 1, { x: -1, y: -1 });
-  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 1 });
-  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 3, { x: -1, y: 0 });
-  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 4, { x: 0, y: -1 });
-  placeTutorialPiece(game, CAPUCHIN_TUTORIAL_PLAYER_ID, 5, { x: 0, y: 1 });
-
-  game.status = "active";
-  game.round = 2;
-  game.activePlayerId = CAPUCHIN_TUTORIAL_PLAYER_ID;
-  game.activeActionIndex = 0;
-  game.activePlayedForestCardId = null;
-  game.pendingCoatiPairBonus = null;
-  game.pendingMacawMovedPiece = null;
-  game.pendingWolfMoves = null;
-  game.setupActivePlayerId = null;
-  game.turnOrder = [CAPUCHIN_TUTORIAL_PLAYER_ID];
-  game.log = [
-    {
-      id: "capuchin_tutorial_ready",
-      message: "Tutorial do Macaco-prego preparado no segundo turno.",
-      createdAt: Date.now()
-    }
-  ];
-
-  return {
-    roomId: localRoomId,
-    status: "active",
-    hostPlayerId: "local_host",
-    players: tutorialPlayers,
-    enabledMiniExpansions: game.enabledMiniExpansions,
-    game,
-    warnings: game.contentWarnings
-  };
-}
-
-export function createCoatiTutorialRoom(): PublicRoomState {
-  const tutorialPlayers: RoomPlayer[] = [
-    {
-      playerId: COATI_TUTORIAL_PLAYER_ID,
-      name: "Tutorial Quati",
-      speciesId: "coati",
-      ready: true,
-      connected: true
-    }
-  ];
-  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, COATI_TUTORIAL_FOREST, {
-    enabledMiniExpansions: []
-  });
-
-  const player = game.players.find((candidate) => candidate.playerId === COATI_TUTORIAL_PLAYER_ID);
-  if (player) {
-    player.score = 0;
-    player.turnsTaken = 1;
-    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
-    player.hand = [COATI_TUTORIAL_CARD];
-  }
-
-  // Q_a em F=(-1,0) fruta; Q_b em L1=(-1,-1); Q_c (mover) em (1,1); Q_d em M=(0,0).
-  // 4 na floresta + 4 na reserva: a cadeia de 3 pares consome 4 da reserva
-  // (add da acao A + 3 bonus), zerando a reserva para forcar a remocao na acao C.
-  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
-  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 2, { x: -1, y: -1 });
-  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 3, { x: 1, y: 1 });
-  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 4, { x: 0, y: 0 });
-
-  game.status = "active";
-  game.round = 2;
-  game.activePlayerId = COATI_TUTORIAL_PLAYER_ID;
-  game.activeActionIndex = 0;
-  game.activePlayedForestCardId = null;
-  game.pendingCoatiPairBonus = null;
-  game.pendingMacawMovedPiece = null;
-  game.pendingWolfMoves = null;
-  game.setupActivePlayerId = null;
-  game.turnOrder = [COATI_TUTORIAL_PLAYER_ID];
-  game.log = [
-    {
-      id: "coati_tutorial_ready",
-      message: "Tutorial do Quati preparado no segundo turno.",
-      createdAt: Date.now()
-    }
-  ];
-
-  return {
-    roomId: localRoomId,
-    status: "active",
-    hostPlayerId: "local_host",
-    players: tutorialPlayers,
-    enabledMiniExpansions: game.enabledMiniExpansions,
-    game,
-    warnings: game.contentWarnings
-  };
-}
-
-export function getTutorialSteps(tutorialId: TutorialId | null): TutorialStepDef[] {
-  if (tutorialId === "jaguar") return JAGUAR_TUTORIAL_STEPS;
-  if (tutorialId === "wolf") return WOLF_TUTORIAL_STEPS;
-  if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_STEPS;
-  if (tutorialId === "macaw") return MACAW_TUTORIAL_STEPS;
-  if (tutorialId === "capuchin") return CAPUCHIN_TUTORIAL_STEPS;
-  if (tutorialId === "coati") return COATI_TUTORIAL_STEPS;
+export function getTutorialSteps(_tutorialId: TutorialId | null): TutorialStepDef[] {
+  // Only the basic tutorial exists right now; species chapters are rebuilt later.
   return INITIAL_TUTORIAL_STEPS;
 }
 
 export function getTutorialPlayerId(tutorialId: TutorialId | null, fallback: string | null): string | null {
-  if (tutorialId === "jaguar") return JAGUAR_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "wolf") return WOLF_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "macaw") return MACAW_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "capuchin") return CAPUCHIN_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "coati") return COATI_TUTORIAL_PLAYER_ID;
+  if (tutorialId === "initial") return INITIAL_TUTORIAL_PLAYER_ID;
   return fallback;
 }
 
@@ -1195,4 +237,9 @@ export function createInitialTutorialRoom(): PublicRoomState {
     game,
     warnings: game.contentWarnings
   };
+}
+
+// Kept exported for the (rebuilt) armadillo chapter; currently unused.
+export function moveArmadilloTutorialJaguarProbe(game: GameState, _target: GridPosition): GameState {
+  return game;
 }
