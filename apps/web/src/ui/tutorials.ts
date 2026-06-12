@@ -79,7 +79,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "A floresta e os habitats",
-    body: "A floresta no centro da tela é feita de cartas. Cada carta tem um habitat, e existem três: bosque (mata fechada), campo (área aberta) e rio (água). Olhe o tabuleiro e repare nos três tipos de carta. O habitat importa porque define como cada espécie se movimenta — você vê isso nos capítulos de espécie.",
+    body: "A floresta no centro da tela é feita de cartas. Cada carta tem um habitat, e existem três: bosque (mata fechada), campo (área aberta) e rio (água). Olhe o tabuleiro e repare nos três tipos de carta. O habitat importa porque define como cada espécie se movimenta. Você vê isso nos capítulos de espécie.",
     gate: "none",
     autoAdvance: false
   },
@@ -97,13 +97,13 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Setup: posicione seus meeples",
-    body: "Comece colocando seus meeples iniciais. Clique em cartas da floresta para posicioná-los — você tem dois para colocar. Importante: ao entrar em um local, você coleta na hora o recurso daquele local. Coloque os dois para continuar.",
+    body: "Comece colocando seus meeples iniciais. Clique em cartas da floresta para posicioná-los. Você tem dois para colocar. Importante: ao entrar em um local, você coleta na hora o recurso daquele local. Coloque os dois para continuar.",
     gate: "setup",
     autoAdvance: true
   },
   {
     title: "Você já coletou recursos",
-    body: "Pronto! Cada meeple que você posicionou rendeu o recurso do local onde entrou. Olhe o seu painel no canto: os recursos coletados já estão somados ali. Essa é a regra de ouro — entrar num local sempre coleta o recurso dele.",
+    body: "Pronto! Cada meeple que você posicionou rendeu o recurso do local onde entrou. Olhe o seu painel no canto: os recursos coletados já estão somados ali. Essa é a regra de ouro: entrar num local sempre coleta o recurso dele.",
     gate: "none",
     autoAdvance: false
   },
@@ -138,7 +138,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Rios formam caminhos",
-    body: "Você acabou de estender o rio. Conectar a água certa é o que mantém o rio contínuo. Se a rotação estiver errada, o jogo não deixa jogar a carta ali — então gire com calma até encaixar.",
+    body: "Você acabou de estender o rio. Conectar a água certa é o que mantém o rio contínuo. Se a rotação estiver errada, o jogo não deixa jogar a carta ali, então gire com calma até encaixar.",
     gate: "none",
     autoAdvance: false
   },
@@ -168,7 +168,7 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Você aprendeu o básico!",
-    body: "Resumo: monte sua presença no setup, expanda a floresta jogando cartas conectadas (e encaixe os rios), mova meeples para coletar recursos e mire na pontuação final — maioria de carne, ovo e fruta, mais pares de semente. Agora escolha um capítulo de espécie para aprender os poderes dela.",
+    body: "Resumo: monte sua presença no setup, expanda a floresta jogando cartas conectadas (e encaixe os rios), mova meeples para coletar recursos e mire na pontuação final: maioria de carne, ovo e fruta, mais pares de semente. Agora escolha um capítulo de espécie para aprender os poderes dela.",
     gate: "none",
     autoAdvance: false
   }
