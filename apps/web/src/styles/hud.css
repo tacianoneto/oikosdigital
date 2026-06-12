@@ -3077,6 +3077,7 @@
 }
 
 .lobby-player-avatar {
+  position: relative;
   display: grid;
   place-items: center;
   width: 38px;
@@ -3096,11 +3097,12 @@
 }
 
 .lobby-player-avatar img.is-portrait {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  transform: scale(1.16);
   filter: none;
 }
 
@@ -3711,14 +3713,15 @@
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55));
 }
 
-/* Portrait art is a circular badge; scale it up slightly so its own painted
-   rim becomes the avatar edge instead of floating inside a dark disc. */
+/* Portrait files already include a painted circular rim. Keep the natural
+   centered crop; extra scaling cuts the rim and animal details. */
 .lobby-species-thumb img.is-portrait {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 50%;
-  transform: scale(1.16);
   filter: none;
 }
 
