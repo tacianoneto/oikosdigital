@@ -23,6 +23,7 @@ import {
   getAvailableForestExpansionPositionsForCard,
   getArmadilloHidePieceIds,
   getArmadilloSeedPlacementPositions,
+  getArmadilloSharingDetails,
   getArmadilloShareScore,
   getCapuchinHabitatScore,
   getCapuchinPlacementPositions,
@@ -1655,6 +1656,42 @@ describe("setup placement", () => {
     expect(game.players.find((candidate) => candidate.playerId === "armadillo")?.score).toBe(2);
     expect(game.players.find((candidate) => candidate.playerId === "armadillo")?.turnsTaken).toBe(1);
     expect(game.activePlayerId).toBe("coati");
+  });
+
+  it("counts a hidden Tatu-bola when sharing with three rival species", () => {
+    let game = createTestGameState("room", [
+      player("armadillo", "armadillo"),
+      player("capuchin", "capuchin"),
+      player("coati", "coati"),
+      player("macaw", "macaw")
+    ]);
+    game = placeInitialPiece(game, "armadillo", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "armadillo", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 1, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 1, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "capuchin", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 1 });
+    game = setActiveAction(game, "armadillo", 2);
+
+    const hiddenPieceId = game.pieces.find(
+      (piece) => piece.ownerId === "armadillo" && piece.location?.x === -1 && piece.location.y === -1
+    )?.pieceId;
+    game = hideArmadilloForCurrentAction(game, "armadillo", hiddenPieceId!);
+
+    expect(game.pieces.find((piece) => piece.pieceId === hiddenPieceId)?.state.hidden).toBe(true);
+    expect(getArmadilloShareScore(game, "armadillo")).toBe(3);
+    expect(getArmadilloSharingDetails(game, "armadillo")).toMatchObject({
+      points: 3,
+      sharedSpecies: expect.arrayContaining(["capuchin", "coati", "macaw"]),
+      missingSpecies: []
+    });
+
+    game = scoreArmadilloSharing(game, "armadillo");
+    expect(game.players.find((candidate) => candidate.playerId === "armadillo")?.score).toBe(3);
   });
 
   it("scores zero for Tatu-bola only when it shares no location with another species", () => {

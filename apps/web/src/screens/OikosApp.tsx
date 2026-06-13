@@ -182,16 +182,17 @@ import {
 import { speciesVar } from "../ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "../ui/turnSummary";
 import {
+  createArmadilloTutorialRoom,
   createInitialTutorialRoom,
   createJaguarTutorialRoom,
   createWolfTutorialRoom,
   getTutorialPlayerId,
   getTutorialSteps,
+  isTutorialArmadilloDone,
   isTutorialInitialDone,
   isTutorialJaguarDone,
   isTutorialWolfDone,
   markTutorialDone,
-  moveArmadilloTutorialJaguarProbe,
   TUTORIAL_NONRIVER_CARD,
   type TutorialGate,
   type TutorialId
@@ -1408,13 +1409,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setBoardSpecies(def.openBoard);
     } else {
       setBoardSpecies(null);
-    }
-    if (tutorialId === "armadillo" && def?.jaguarProbeTarget) {
-      setRoom((current) =>
-        current?.game
-          ? { ...current, game: moveArmadilloTutorialJaguarProbe(current.game, def.jaguarProbeTarget!) }
-          : current
-      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tutorialId, tutorialStep, tutorialSteps]);
@@ -3900,7 +3894,23 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setTutorialId("wolf");
   }
 
-  // Other species tutorials (armadillo, macaw, capuchin, coati) are being
+  function startArmadilloTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createArmadilloTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("armadillo");
+  }
+
+  // Other species tutorials (macaw, capuchin, coati) are being
   // rebuilt from scratch and will get their own start functions then.
 
   function exitTutorial(completed: boolean) {
@@ -5206,7 +5216,34 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </span>
                 )}
               </button>
-              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf").map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialArmadilloDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.armadillo } as CSSProperties}
+                onClick={startArmadilloTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.armadillo.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.armadillo.displayName}</strong>
+                  <small>Adicione, mova e esconda tatus para compartilhar locais e pontuar.</small>
+                </span>
+                {isTutorialArmadilloDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+              {speciesList.filter((species) =>
+                species.speciesId !== "jaguar" &&
+                species.speciesId !== "maned_wolf" &&
+                species.speciesId !== "armadillo"
+              ).map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"

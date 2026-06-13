@@ -20,7 +20,8 @@ export type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw" |
 //   addPiece   -> add a species piece to a highlighted card
 //   resolvePair -> resolve the Coati pair passive on an adjacent highlighted card
 //   removeCoati -> select own Coatis and confirm the action-C removal
-export type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece" | "resolvePair" | "removeCoati";
+//   hidePiece -> select an Armadillo and confirm hiding it
+export type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece" | "resolvePair" | "removeCoati" | "hidePiece";
 
 // A small icon + caption shown under the coach text, used to teach resources
 // and scoring visually instead of with a wall of text.
@@ -59,7 +60,6 @@ export interface TutorialStepDef {
   markedPairTarget?: GridPosition; // the only adjacent cell taught for the Coati pair bonus
   markedPieceId?: string;
   highlightMovementGuideSpecies?: SpeciesId;
-  jaguarProbeTarget?: GridPosition;
   requiresRiver?: boolean; // the marked slot continues an existing river
   openBoard?: SpeciesId; // open this species board when the step starts
   completeWhenActionIndex?: number;
@@ -405,6 +405,105 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+// --- Tatu-bola (armadillo) chapter -----------------------------------------
+// A scripted full turn against three rival species. Each rival ends the turn
+// sharing a location with at least one armadillo, which yields the maximum
+// three points. The newly added armadillo is hidden in action C to demonstrate
+// that protection does not stop it from counting toward sharing in action D.
+const ARMADILLO_TUTORIAL_PLAYER_ID = "local_armadillo";
+const ARMADILLO_TUTORIAL_CAPUCHIN_ID = "local_armadillo_capuchin";
+const ARMADILLO_TUTORIAL_COATI_ID = "local_armadillo_coati";
+const ARMADILLO_TUTORIAL_MACAW_ID = "local_armadillo_macaw";
+const ARMADILLO_TUTORIAL_CARD = "bosque_1_copy";
+const ARMADILLO_TUTORIAL_MOVING_PIECE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
+const ARMADILLO_TUTORIAL_HIDING_PIECE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_3`;
+
+const ARMADILLO_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "arm_tut_0", definitionId: "bosque_2", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_1", definitionId: "bosque_4", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_2", definitionId: "bosque_1", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_3", definitionId: "campo_3", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_4", definitionId: "campo_4", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_5", definitionId: "campo_2", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_6", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_7", definitionId: "bosque_3", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_8", definitionId: "campo_1", x: 1, y: 1, rotation: 0, isInitial: true }
+];
+
+const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Tatu-bola",
+    body: "O Tatu-bola é uma espécie de meio com 4 peças. Ele começa com 2 tatus, adiciona novos animais em locais de semente, pode se esconder contra predadores e pontua ao compartilhar locais com espécies diferentes.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "O plano do turno",
+    body: "Já existe um tatu dividindo local com o Macaco-prego. Na ação A, você adicionará outro junto da Arara-azul. Na B, moverá um tatu até o Quati. Na C, esconderá o tatu recém-adicionado. Assim, as três espécies compartilharão locais e a ação D renderá 3 pontos, o máximo.",
+    gate: "none",
+    autoAdvance: false,
+    resourceIcons: [
+      { resource: "seed", caption: "Sementes recebem novos tatus" },
+      { resource: "point", caption: "3 espécies compartilhadas: 3 pontos" }
+    ]
+  },
+  {
+    title: "Ação A: expanda a floresta",
+    body: "Jogue a carta de bosque destacada no espaço marcado. Além de expandir a floresta, o habitat da carta jogada define como um tatu poderá se mover na ação B. Para o Tatu-bola, bosque significa mover 1 local adjacente.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: ARMADILLO_TUTORIAL_CARD,
+    markedSlot: { x: 0, y: 2 },
+    highlightMovementGuideSpecies: "armadillo"
+  },
+  {
+    title: "Ação A: adicione um tatu",
+    body: "Depois de expandir, adicione 1 tatu da reserva em um local de semente. Clique no local destacado, onde está a Arara-azul. Espécies diferentes podem compartilhar o mesmo local.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: 0, y: 1 },
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Ação B: mova um tatu",
+    body: "Selecione o tatu destacado e mova-o ao local do Quati. Como a carta jogada foi de bosque, o movimento é para um local adjacente. O tatu também coleta o recurso do destino.",
+    gate: "move",
+    autoAdvance: true,
+    markedPieceId: ARMADILLO_TUTORIAL_MOVING_PIECE_ID,
+    markedMoveTarget: { x: 1, y: -1 },
+    completeWhenActionIndex: 2,
+    highlightMovementGuideSpecies: "armadillo"
+  },
+  {
+    title: "Ação C: esconda um tatu",
+    body: "Selecione o tatu que acabou de entrar junto da Arara-azul e confirme em Esconder Tatu-bola. Um tatu escondido não pode ser removido pela Onça-pintada, mas continua ocupando e compartilhando o local.",
+    gate: "hidePiece",
+    autoAdvance: true,
+    markedPieceId: ARMADILLO_TUTORIAL_HIDING_PIECE_ID,
+    completeWhenActionIndex: 3
+  },
+  {
+    title: "Três espécies compartilhadas",
+    body: "Agora seus tatus dividem locais com Macaco-prego, Quati e Arara-azul. A pontuação considera espécies diferentes, não o número de peças rivais. O tatu escondido junto da Arara ainda conta normalmente.",
+    gate: "none",
+    autoAdvance: false,
+    resourceIcons: [{ resource: "point", caption: "Nenhuma espécie ausente: 3 pontos" }]
+  },
+  {
+    title: "Ação D: marque 3 pontos",
+    body: "A pontuação começa em 3 e perde 1 para cada espécie rival que não compartilha local com nenhum tatu. Como todas as três espécies estão compartilhando, aguarde a contagem automática de 3 pontos.",
+    gate: "score",
+    autoAdvance: true,
+    completeWhenScoreAtLeast: 3
+  },
+  {
+    title: "Turno do Tatu-bola completo!",
+    body: "Você expandiu a floresta, adicionou um tatu em semente, moveu outro, protegeu uma peça ao escondê-la e marcou o máximo de 3 pontos. O ciclo ideal é espalhar os tatus entre espécies diferentes e usar a carapaça sem perder compartilhamentos.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
 function getTutorialDoneKey(tutorialId: TutorialId): string {
   return `oikos-tutorial-${tutorialId}`;
 }
@@ -440,9 +539,14 @@ export function isTutorialWolfDone(): boolean {
   return isTutorialDone("wolf");
 }
 
+export function isTutorialArmadilloDone(): boolean {
+  return isTutorialDone("armadillo");
+}
+
 export function getTutorialSteps(tutorialId: TutorialId | null): TutorialStepDef[] {
   if (tutorialId === "jaguar") return JAGUAR_TUTORIAL_STEPS;
   if (tutorialId === "wolf") return WOLF_TUTORIAL_STEPS;
+  if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_STEPS;
   // Other species chapters are rebuilt later; default to the basic tutorial.
   return INITIAL_TUTORIAL_STEPS;
 }
@@ -451,6 +555,7 @@ export function getTutorialPlayerId(tutorialId: TutorialId | null, fallback: str
   if (tutorialId === "initial") return INITIAL_TUTORIAL_PLAYER_ID;
   if (tutorialId === "jaguar") return JAGUAR_TUTORIAL_PLAYER_ID;
   if (tutorialId === "wolf") return WOLF_TUTORIAL_PLAYER_ID;
+  if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_PLAYER_ID;
   return fallback;
 }
 
@@ -664,7 +769,84 @@ export function createWolfTutorialRoom(): PublicRoomState {
   };
 }
 
-// Kept exported for the (rebuilt) armadillo chapter; currently unused.
-export function moveArmadilloTutorialJaguarProbe(game: GameState, _target: GridPosition): GameState {
-  return game;
+export function createArmadilloTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: ARMADILLO_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Tatu-bola",
+      speciesId: "armadillo",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: ARMADILLO_TUTORIAL_CAPUCHIN_ID,
+      name: "Macaco de treino",
+      speciesId: "capuchin",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: ARMADILLO_TUTORIAL_COATI_ID,
+      name: "Quati de treino",
+      speciesId: "coati",
+      ready: true,
+      connected: true
+    },
+    {
+      playerId: ARMADILLO_TUTORIAL_MACAW_ID,
+      name: "Arara de treino",
+      speciesId: "macaw",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, ARMADILLO_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
+
+  for (const player of game.players) {
+    player.score = 0;
+    player.turnsTaken = player.playerId === ARMADILLO_TUTORIAL_PLAYER_ID ? 1 : 0;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+  }
+
+  const armadillo = game.players.find((player) => player.playerId === ARMADILLO_TUTORIAL_PLAYER_ID);
+  if (armadillo) {
+    armadillo.hand = [ARMADILLO_TUTORIAL_CARD];
+  }
+
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 2, { x: 1, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 1, { x: -1, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 1, { x: 1, y: -1 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_MACAW_ID, 1, { x: 0, y: 1 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = ARMADILLO_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.setupOrder = [];
+  game.turnOrder = [ARMADILLO_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "armadillo_tutorial_ready",
+      message: "Tutorial do Tatu-bola preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
+    game,
+    warnings: game.contentWarnings
+  };
 }
