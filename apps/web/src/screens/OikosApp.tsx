@@ -5948,7 +5948,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   key={resource}
                   data-resource={resource}
                   ref={(node) => setEffectTarget(`hud:${resource}`, node)}
-                  title={hasMajority ? `${resourceLabels[resource]} — maioria` : resourceLabels[resource]}
+                  title={hasMajority ? `${resourceLabels[resource]}: maioria` : resourceLabels[resource]}
                   aria-label={`${resourceLabels[resource]}: ${hudGamePlayer.resources[resource] ?? 0}${hasMajority ? " (maioria)" : ""}`}
                 >
                   <img src={encodeURI(resourceAssets[resource])} alt="" />
@@ -6933,7 +6933,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               className="choice-modal"
               role="dialog"
               aria-modal="true"
-              aria-label="Onça-pintada — gastar carne"
+              aria-label="Onça-pintada: gastar carne"
               style={speciesVar("jaguar")}
             >
               <header className="choice-modal-head">
@@ -6994,7 +6994,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               className="choice-modal"
               role="dialog"
               aria-modal="true"
-              aria-label="Lobo-guará — gastar recursos"
+              aria-label="Lobo-guará: gastar recursos"
               style={speciesVar("maned_wolf")}
             >
               <header className="choice-modal-head">
@@ -7248,7 +7248,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {(activeActionId === "A" || activeActionId === "B") && (
                       <div className="action-box-hint">
                         {canSkipJaguarMove
-                          ? "Nenhum destino válido — conclua a ação para seguir."
+                          ? "Nenhum destino válido. Conclua a ação para seguir."
                           : selectedJaguarDestination
                             ? "Escolha qual meeple remover no destino selecionado."
                             : "Selecione a Onça e clique em um destino destacado."}
@@ -7334,7 +7334,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         <div className="action-box-hint">
                           {wolfRemovableBasePieceIds.length > 0
                             ? selectedWolfTargetPieceId
-                              ? "Peça de base selecionada — confirme a remoção ou cancele a ação."
+                              ? "Peça de base selecionada. Confirme a remoção ou cancele a ação."
                               : "Clique em uma peça de base que divida local com um lobo."
                             : "Nenhuma peça de base partilha local com lobo."}
                         </div>
@@ -7668,7 +7668,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"} — +1 se presente em 3+ campinas, +1 se presente em 3+ locais de semente.
+                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"}: +1 se presente em 3+ campinas, +1 se presente em 3+ locais de semente.
                       </div>
                     )}
                   </>
@@ -7753,7 +7753,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       <>
                         <div className="action-box-hint">
                           {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                            ? "Sem locais elegíveis ou reserva esgotada — conclua a ação para seguir."
+                            ? "Sem locais elegíveis ou reserva esgotada. Conclua a ação para seguir."
                             : <>Clique em um local com macaco já estabelecido para reforçar o bando. Reserva: <strong>{capuchinReserveCount}</strong>.</>}
                         </div>
                         <div className="action-box-actions">

@@ -271,7 +271,7 @@ export function EndgameCeremony({
                     : currentCategory.key === "majority" && wonResourceLabelsByPlayer.has(currentEntry.playerId)
                       ? `Maioria: ${wonResourceLabelsByPlayer.get(currentEntry.playerId)}`
                       : currentCategory.label}
-                  <b>{catPoints > 0 ? `+${catPoints}` : "—"}</b>
+                  <b>{catPoints > 0 ? `+${catPoints}` : "0"}</b>
                 </small>
               </div>
               <div className="ceremony-stage-step">
