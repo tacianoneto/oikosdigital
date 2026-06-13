@@ -1,5 +1,5 @@
 import { createInitialGameState } from "@oikos/rules";
-import type { ForestCardState, GameState, GridPosition, PublicRoomState, RoomPlayer, SpeciesId } from "@oikos/shared";
+import type { ForestCardState, GameState, GridPosition, PublicRoomState, Resource, RoomPlayer, SpeciesId } from "@oikos/shared";
 import { isTutorialProgressDone, markTutorialProgressDone } from "../auth/tutorialProgress";
 import { localRoomId } from "./gameConstants";
 
@@ -22,11 +22,19 @@ export type TutorialId = "initial" | "jaguar" | "wolf" | "armadillo" | "macaw" |
 //   removeCoati -> select own Coatis and confirm the action-C removal
 export type TutorialGate = "none" | "setup" | "placeCard" | "move" | "removeBase" | "score" | "addPiece" | "resolvePair" | "removeCoati";
 
+// A small icon + caption shown under the coach text, used to teach resources
+// and scoring visually instead of with a wall of text.
+export interface TutorialResourceIcon {
+  resource: Resource | "point";
+  caption: string;
+}
+
 export interface TutorialStepDef {
   title: string;
   body: string;
   gate: TutorialGate;
   autoAdvance: boolean;
+  resourceIcons?: TutorialResourceIcon[];
   requiredCardId?: string; // the only hand card the player may place this step
   markedSlot?: GridPosition; // the only slot where the card may be placed
   markedMoveTarget?: GridPosition; // the only board destination taught this step
@@ -85,9 +93,15 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Os quatro recursos",
-    body: "Cada carta também oferece um recurso: carne, ovo, fruta ou semente. O desenho na carta mostra qual é. Você junta recursos ao colocar e mover meeples, e eles decidem a pontuação no fim da partida. Guarde essa ideia: recurso = ponto no final.",
+    body: "Existem 4 tipos de recursos: carne, ovo, fruta e semente. O desenho na carta mostra qual ela oferece, e você junta recursos ao colocar e mover meeples. Eles também valem pontos no fim da partida: para carne, ovo e fruta, quem tiver a maior quantidade de cada um recebe 1 ponto de vitória. A semente é diferente: a cada 2 sementes você ganha 1 ponto.",
     gate: "none",
-    autoAdvance: false
+    autoAdvance: false,
+    resourceIcons: [
+      { resource: "meat", caption: "Carne: maioria vale 1 ponto" },
+      { resource: "egg", caption: "Ovo: maioria vale 1 ponto" },
+      { resource: "fruit", caption: "Fruta: maioria vale 1 ponto" },
+      { resource: "seed", caption: "Semente: 2 valem 1 ponto" }
+    ]
   },
   {
     title: "Seus meeples",
@@ -155,16 +169,22 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     autoAdvance: false
   },
   {
-    title: "Pontuação final: maioria",
-    body: "Quando a partida acaba, comparam-se os recursos de todos os jogadores. Quem tiver mais carne ganha 1 ponto; o mesmo para ovo e para fruta. Em caso de empate na maior quantidade, todos os empatados pontuam. Ter a maioria de um recurso é o caminho mais direto para pontos.",
+    title: "Maioria de recursos",
+    body: "No fim da partida, para cada recurso (exceto semente) o jogador com a maior quantidade daquele recurso recebe 1 ponto de vitória. Em caso de empate na maior quantidade, todos os empatados pontuam. Ter a maioria de carne, ovo ou fruta é o caminho mais direto para pontos.",
     gate: "none",
-    autoAdvance: false
+    autoAdvance: false,
+    resourceIcons: [
+      { resource: "meat", caption: "Maioria de carne: 1 ponto" },
+      { resource: "egg", caption: "Maioria de ovo: 1 ponto" },
+      { resource: "fruit", caption: "Maioria de fruta: 1 ponto" }
+    ]
   },
   {
-    title: "Pontuação final: sementes",
-    body: "A semente é a exceção: ela não disputa maioria. No fim, cada 2 sementes valem 1 ponto. Por exemplo, 5 sementes valem 2 pontos e sobra 1 semente. Vale a pena acumular sementes mesmo sem ser o líder.",
+    title: "Pontos de semente",
+    body: "A semente não disputa maioria. No fim, você pode gastar 2 sementes para ganhar 1 ponto, quantas vezes conseguir. Por exemplo, 5 sementes valem 2 pontos e sobra 1 semente. Vale a pena acumular sementes mesmo sem ser o líder de nenhum recurso.",
     gate: "none",
-    autoAdvance: false
+    autoAdvance: false,
+    resourceIcons: [{ resource: "seed", caption: "A cada 2 sementes: 1 ponto" }]
   },
   {
     title: "Você aprendeu o básico!",

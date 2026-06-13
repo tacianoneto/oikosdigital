@@ -5830,6 +5830,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             </span>
             <h3>{tutorialDef.title}</h3>
             <p>{tutorialDef.body}</p>
+            {tutorialDef.resourceIcons && tutorialDef.resourceIcons.length > 0 && (
+              <ul className="tutorial-coach-resources">
+                {tutorialDef.resourceIcons.map((icon) => (
+                  <li key={`${icon.resource}-${icon.caption}`}>
+                    <img src={encodeURI(resourceAssets[icon.resource])} alt="" />
+                    <span>{icon.caption}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="tutorial-coach-actions">
             <button type="button" className="tutorial-coach-exit" onClick={() => exitTutorial(false)}>
