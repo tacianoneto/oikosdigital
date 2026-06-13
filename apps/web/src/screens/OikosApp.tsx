@@ -183,9 +183,11 @@ import { speciesVar } from "../ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "../ui/turnSummary";
 import {
   createInitialTutorialRoom,
+  createJaguarTutorialRoom,
   getTutorialPlayerId,
   getTutorialSteps,
   isTutorialInitialDone,
+  isTutorialJaguarDone,
   markTutorialDone,
   moveArmadilloTutorialJaguarProbe,
   TUTORIAL_NONRIVER_CARD,
@@ -3849,7 +3851,25 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setTutorialId("initial");
   }
 
-  // Species tutorials (jaguar, wolf, armadillo, macaw, capuchin, coati) are being
+  // Launch the scripted Onça-pintada (jaguar) chapter on a real local game.
+  function startJaguarTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setPendingPlacement(null);
+    setRoom(createJaguarTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("jaguar");
+  }
+
+  // Other species tutorials (wolf, armadillo, macaw, capuchin, coati) are being
   // rebuilt from scratch and will get their own start functions then.
 
   function exitTutorial(completed: boolean) {
@@ -5109,7 +5129,30 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </span>
                 )}
               </button>
-              {speciesList.map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialJaguarDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.jaguar } as CSSProperties}
+                onClick={startJaguarTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.jaguar.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.jaguar.displayName}</strong>
+                  <small>O predador: cace peças e gaste carne por pontos.</small>
+                </span>
+                {isTutorialJaguarDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+              {speciesList.filter((species) => species.speciesId !== "jaguar").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
