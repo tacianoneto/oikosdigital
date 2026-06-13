@@ -73,77 +73,65 @@ const TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "tut_8", definitionId: "campo_4", x: 1, y: 1, rotation: 0, isInitial: true }
 ];
 
-// The basic tutorial uses the real rules engine, but teaches only the universal
-// verbs every species shares: setup, playing cards, river rotation, movement and
-// final scoring. Species powers are taught later in their own chapters. The flow
-// alternates short read-only explanations ("none") with a single hands-on action
-// per step, so the player learns each rule by doing it once.
+// The basic tutorial follows the rulebook section by section: introdução,
+// objetivo, preparação, termos, como jogar, expandir a floresta (the hands-on
+// part, where the player plays a land card and a river card) and pontuação. The
+// scenario starts already active so the card placement works without a setup
+// phase. Texts stay close to the manual and avoid em-dashes.
 const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
-    title: "Bem-vindo a Oikos",
-    body: "Oikos é um jogo sobre construir uma floresta e espalhar a sua espécie por ela. Este primeiro capítulo ensina só as regras que valem para todo mundo: tabuleiro, cartas, meeples, recursos e pontuação. Os poderes de cada espécie ficam para os próximos capítulos. Toque em Próximo para começar.",
+    title: "Introdução",
+    body: "Em Oikos, você estará no controle da população de uma espécie nativa do Brasil. Neste jogo assimétrico cheio de interações, cada espécie tem seus próprios objetivos para alcançar a vitória, interagindo de formas diferentes com as demais espécies e habitats.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "A floresta e os habitats",
-    body: "A floresta no centro da tela é feita de cartas. Cada carta tem um habitat, e existem três: bosque (mata fechada), campo (área aberta) e rio (água). Olhe o tabuleiro e repare nos três tipos de carta. O habitat importa porque define como cada espécie se movimenta. Você vê isso nos capítulos de espécie.",
+    title: "Objetivo",
+    body: "O objetivo é ser a espécie com mais pontos de vitória ao final da partida. Como as espécies são diferentes, cada uma conquista pontos de formas alternativas durante as rodadas, e no fim há também uma pontuação baseada nos recursos coletados. Em caso de empate, vence quem tiver mais recursos restantes; se o empate persistir, vence a espécie de maior valor de população.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Os quatro recursos",
-    body: "Existem 4 tipos de recursos: carne, ovo, fruta e semente. O desenho na carta mostra qual ela oferece, e você junta recursos ao colocar e mover meeples. Eles também valem pontos no fim da partida: para carne, ovo e fruta, quem tiver a maior quantidade de cada um recebe 1 ponto de vitória. A semente é diferente: a cada 2 sementes você ganha 1 ponto.",
-    gate: "none",
-    autoAdvance: false,
-    resourceIcons: [
-      { resource: "meat", caption: "Carne: maioria vale 1 ponto" },
-      { resource: "egg", caption: "Ovo: maioria vale 1 ponto" },
-      { resource: "fruit", caption: "Fruta: maioria vale 1 ponto" },
-      { resource: "seed", caption: "Semente: 2 valem 1 ponto" }
-    ]
-  },
-  {
-    title: "Seus meeples",
-    body: "Meeples são as suas peças na floresta. Cada espécie começa com um número fixo deles. Eles ocupam locais, coletam recursos e disputam território com as outras espécies. No próximo passo você coloca os seus.",
+    title: "Preparação",
+    body: "Cada jogador escolhe uma espécie para jogar. Cada espécie joga e pontua de uma forma diferente.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "Setup: posicione seus meeples",
-    body: "Comece colocando seus meeples iniciais. Clique em cartas da floresta para posicioná-los. Você tem dois para colocar. Importante: este setup é a única vez na partida em que adicionar uma peça coleta o recurso do local. Coloque os dois para continuar.",
-    gate: "setup",
-    autoAdvance: true
-  },
-  {
-    title: "Você já coletou recursos",
-    body: "Pronto! Cada meeple que você posicionou rendeu o recurso do local onde entrou. Olhe o seu painel no canto: os recursos coletados já estão somados ali. Atenção: isso só vale aqui no setup. Durante a partida, adicionar uma peça da reserva não coleta recurso. A partir daí você coleta recurso ao mover seus meeples.",
+    title: "Preparação: tipos de espécie",
+    body: "As espécies se dividem em tipos. Predador (obrigatório): remove peças de outras espécies; cada partida tem exatamente 1. Espécie de base (obrigatória): preenche a floresta; cada partida tem de 1 a 2. Espécie de meio: mecânicas variadas, completa o número de jogadores depois das obrigatórias. Subpredador: conta como de meio, mas também remove peças de espécies de base.",
     gate: "none",
     autoAdvance: false
   },
   {
-    title: "O turno: ações em ordem",
-    body: "Agora começa o seu turno. No jogo, cada espécie executa ações em ordem (A, B, C...). A ação A quase sempre é expandir a floresta jogando uma carta da sua mão. Vamos fazer isso agora.",
+    title: "Termos importantes",
+    body: "Peça: cada espécie tem uma quantidade diferente; representam seus animais na floresta. Local: cada carta na floresta é um local, com até 4 locais adjacentes ou até 8 ao redor (contando as diagonais). Recurso: existem 4 tipos: carne, ovo, fruta e semente. Floresta: o conjunto de cartas conectadas na mesa; a floresta inicial são 9 cartas, com uma rosa dos ventos ao centro. Habitat: 3 tipos, que também são os naipes das cartas: bosque, campo e rio.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Como jogar",
+    body: "A partida dura 5 rodadas. Em cada rodada, todos jogam seu turno realizando as ações em ordem e passam adiante; a rodada termina depois do último jogador. A ordem dos turnos segue o valor de população das espécies, do maior para o menor. No seu turno, você segue as etapas do tabuleiro da sua espécie, sempre na ordem em que aparecem. Espécies suporte agem dentro do turno de quem as controla.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Expandir ou reduzir a floresta",
+    body: "Na maioria dos turnos você expande a floresta: pegue uma carta da mão e adicione ao conjunto de cartas na mesa, podendo girá-la de 90 em 90 graus quantas vezes quiser. Também é possível reduzir a floresta, retirando um local da mesa de volta para a mão. Vamos expandir agora, com duas cartas.",
     gate: "none",
     autoAdvance: false
   },
   {
     title: "Jogue uma carta de terra",
-    body: "Clique na carta destacada da sua mão e depois no espaço destacado do tabuleiro. Cartas de bosque e campo (terra) entram em qualquer espaço vazio que encoste na floresta atual.",
+    body: "Clique na carta de terra destacada da sua mão e depois no espaço destacado do tabuleiro. Cartas de bosque e campo entram em qualquer espaço vazio que encoste na floresta atual.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_NONRIVER_CARD,
     markedSlot: { x: -2, y: 0 }
   },
   {
-    title: "Regra da adjacência",
-    body: "Repare que a carta só pôde entrar encostada na floresta. A floresta cresce sempre de forma conectada: nenhuma carta fica solta, longe das outras. Isso vale para todas as espécies.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Cartas de rio precisam encaixar",
-    body: "Cartas de rio têm água desenhada e seguem uma regra extra: água conecta com água ou sai pela borda do tabuleiro, e nunca pode encostar em mata. Use Q/E (ou os botões de giro) para rotacionar a carta até a água encaixar no espaço destacado, então jogue-a.",
+    title: "Agora uma carta de rio",
+    body: "Cartas de rio têm água desenhada e seguem uma regra extra: a água conecta com água ou sai pela borda, e nunca pode encostar em mata. Use Q/E (ou os botões de giro) para girar a carta até a água encaixar no espaço destacado, então jogue-a.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: TUTORIAL_RIVER_CARD,
@@ -151,26 +139,20 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     requiresRiver: true
   },
   {
-    title: "Rios formam caminhos",
-    body: "Você acabou de estender o rio. Conectar a água certa é o que mantém o rio contínuo. Se a rotação estiver errada, o jogo não deixa jogar a carta ali, então gire com calma até encaixar.",
+    title: "Maioria de recursos",
+    body: "No fim da partida, para cada recurso (exceto semente) o jogador com a maior quantidade daquele recurso recebe 1 ponto de vitória; em caso de empate na maior quantidade, todos os empatados pontuam. Por fim, você ainda pode gastar 2 sementes para ganhar 1 ponto, quantas vezes conseguir.",
     gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "Mova um meeple",
-    body: "Depois de jogar a carta vem o movimento. Clique em um meeple seu e escolha um destino destacado. Lembre da regra de ouro: ao chegar no destino, você coleta o recurso daquele local.",
-    gate: "move",
-    autoAdvance: true
-  },
-  {
-    title: "Movimento e coleta",
-    body: "Cada espécie se move de um jeito diferente conforme o habitat (adjacente, diagonal, salto reto, salto em curva). Você aprende o padrão de cada uma no capítulo dela. O que vale para todos: mover-se coleta o recurso do local de destino, igual ao setup.",
-    gate: "none",
-    autoAdvance: false
+    autoAdvance: false,
+    resourceIcons: [
+      { resource: "meat", caption: "Maioria de carne: 1 ponto" },
+      { resource: "egg", caption: "Maioria de ovo: 1 ponto" },
+      { resource: "fruit", caption: "Maioria de fruta: 1 ponto" },
+      { resource: "seed", caption: "A cada 2 sementes: 1 ponto" }
+    ]
   },
   {
     title: "Você aprendeu o básico!",
-    body: "Resumo: monte sua presença no setup, expanda a floresta jogando cartas conectadas (e encaixe os rios), mova meeples para coletar recursos e mire na pontuação final: maioria de carne, ovo e fruta, mais pares de semente. Agora escolha um capítulo de espécie para aprender os poderes dela.",
+    body: "Você já conhece o essencial de Oikos: escolher uma espécie, expandir a floresta com cartas conectadas (encaixando os rios) e pontuar no fim pela maioria de recursos e pelas sementes. Agora escolha um capítulo de espécie para aprender os poderes dela e começar a jogar.",
     gate: "none",
     autoAdvance: false
   }
@@ -213,6 +195,21 @@ export function getTutorialPlayerId(tutorialId: TutorialId | null, fallback: str
   return fallback;
 }
 
+function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  const pieceId = `${playerId}_piece_${pieceNumber}`;
+  const piece = game.pieces.find((candidate) => candidate.pieceId === pieceId);
+  if (!player || !piece) {
+    return;
+  }
+
+  piece.location = { ...location, siteId: "main" };
+  player.reservePieces = player.reservePieces.filter((candidate) => candidate !== pieceId);
+  if (!player.piecesInForest.includes(pieceId)) {
+    player.piecesInForest = [...player.piecesInForest, pieceId];
+  }
+}
+
 export function createInitialTutorialRoom(): PublicRoomState {
   const tutorialPlayers: RoomPlayer[] = [
     {
@@ -226,13 +223,42 @@ export function createInitialTutorialRoom(): PublicRoomState {
   const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, TUTORIAL_FOREST, {
     enabledMiniExpansions: []
   });
-  if (game.players[0]) {
-    game.players[0].hand = [TUTORIAL_NONRIVER_CARD, TUTORIAL_RIVER_CARD];
+
+  // Start already active so the player goes straight to expanding the forest
+  // (the only hands-on part); the rulebook reading steps come before it. Two of
+  // the armadillo's meeples are pre-placed so the board looks like a real game.
+  const player = game.players[0];
+  if (player) {
+    player.hand = [TUTORIAL_NONRIVER_CARD, TUTORIAL_RIVER_CARD];
+    player.score = 0;
+    player.turnsTaken = 1;
+    player.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
   }
+  placeTutorialPiece(game, INITIAL_TUTORIAL_PLAYER_ID, 1, { x: -1, y: -1 });
+  placeTutorialPiece(game, INITIAL_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 1 });
+
+  game.status = "active";
+  game.round = 1;
+  game.activePlayerId = INITIAL_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.setupOrder = [];
+  game.turnOrder = [INITIAL_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "basic_tutorial_ready",
+      message: "Tutorial basico preparado.",
+      createdAt: Date.now()
+    }
+  ];
 
   return {
     roomId: localRoomId,
-    status: "setup",
+    status: "active",
     hostPlayerId: "local_host",
     players: tutorialPlayers,
     enabledMiniExpansions: game.enabledMiniExpansions,
