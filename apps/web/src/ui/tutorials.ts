@@ -169,24 +169,6 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
     autoAdvance: false
   },
   {
-    title: "Maioria de recursos",
-    body: "No fim da partida, para cada recurso (exceto semente) o jogador com a maior quantidade daquele recurso recebe 1 ponto de vitória. Em caso de empate na maior quantidade, todos os empatados pontuam. Ter a maioria de carne, ovo ou fruta é o caminho mais direto para pontos.",
-    gate: "none",
-    autoAdvance: false,
-    resourceIcons: [
-      { resource: "meat", caption: "Maioria de carne: 1 ponto" },
-      { resource: "egg", caption: "Maioria de ovo: 1 ponto" },
-      { resource: "fruit", caption: "Maioria de fruta: 1 ponto" }
-    ]
-  },
-  {
-    title: "Pontos de semente",
-    body: "A semente não disputa maioria. No fim, você pode gastar 2 sementes para ganhar 1 ponto, quantas vezes conseguir. Por exemplo, 5 sementes valem 2 pontos e sobra 1 semente. Vale a pena acumular sementes mesmo sem ser o líder de nenhum recurso.",
-    gate: "none",
-    autoAdvance: false,
-    resourceIcons: [{ resource: "seed", caption: "A cada 2 sementes: 1 ponto" }]
-  },
-  {
     title: "Você aprendeu o básico!",
     body: "Resumo: monte sua presença no setup, expanda a floresta jogando cartas conectadas (e encaixe os rios), mova meeples para coletar recursos e mire na pontuação final: maioria de carne, ovo e fruta, mais pares de semente. Agora escolha um capítulo de espécie para aprender os poderes dela.",
     gate: "none",
