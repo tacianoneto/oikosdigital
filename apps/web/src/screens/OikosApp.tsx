@@ -6038,7 +6038,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           </section>
         )}
 
-        {room?.game?.status === "active" && activeGamePlayer && (
+        {room?.game?.status === "active" && activeGamePlayer && !isBasicTutorial && (
           <section className="panel-block active-turn-block" style={speciesVar(activeGamePlayer.speciesId)}>
             <div className="section-title">
               <Play aria-hidden="true" />
