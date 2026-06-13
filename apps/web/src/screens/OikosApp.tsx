@@ -1385,6 +1385,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setSelectedHandCardId(def.requiredCardId);
       setSelectedCardRotation(0);
       setPendingPlacement(null);
+    } else {
+      // Read-only step: no card selected, so no rotation/placement affordances.
+      setSelectedHandCardId(null);
+      setSelectedCardRotation(0);
+      setPendingPlacement(null);
     }
     if (def?.openBoard) {
       setBoardSpecies(def.openBoard);
@@ -1677,16 +1682,20 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   }, [tutorialPlaceStep, tutorialDef?.markedSlot]);
 
   const displayExpansionTargets = useMemo(() => {
+    // Outside a placeCard step, the tutorial board is read-only: never show the
+    // "colocar carta" slots.
+    if (tutorialActive && !tutorialPlaceStep) return [];
     if (!tutorialPlaceStep || !tutorialMarkedSlot) return expansionTargets;
     return expansionTargets.filter((p) => p.x === tutorialMarkedSlot.x && p.y === tutorialMarkedSlot.y);
-  }, [tutorialPlaceStep, tutorialMarkedSlot, expansionTargets]);
+  }, [tutorialActive, tutorialPlaceStep, tutorialMarkedSlot, expansionTargets]);
 
   const displayRotateFitTargets = useMemo(() => {
+    if (tutorialActive && !tutorialPlaceStep) return [];
     if (!tutorialPlaceStep || !tutorialMarkedSlot) return rotateFitTargets;
     return rotateFitTargets.filter(
       (t) => t.position.x === tutorialMarkedSlot.x && t.position.y === tutorialMarkedSlot.y
     );
-  }, [tutorialPlaceStep, tutorialMarkedSlot, rotateFitTargets]);
+  }, [tutorialActive, tutorialPlaceStep, tutorialMarkedSlot, rotateFitTargets]);
 
   // Keep a ref of the current drop targets so async drag handlers always see the
   // set for the latest rotation (the pointermove closure is captured once).
