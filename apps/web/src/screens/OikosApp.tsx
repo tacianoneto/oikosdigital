@@ -184,10 +184,12 @@ import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "
 import {
   createInitialTutorialRoom,
   createJaguarTutorialRoom,
+  createWolfTutorialRoom,
   getTutorialPlayerId,
   getTutorialSteps,
   isTutorialInitialDone,
   isTutorialJaguarDone,
+  isTutorialWolfDone,
   markTutorialDone,
   moveArmadilloTutorialJaguarProbe,
   TUTORIAL_NONRIVER_CARD,
@@ -1324,6 +1326,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
 
+    if (def.gate === "move" && def.markedPieceId && def.markedMoveTarget) {
+      const piece = game.pieces.find((candidate) => candidate.pieceId === def.markedPieceId);
+      if (piece?.location && sameGridPosition(piece.location, def.markedMoveTarget)) {
+        tutorialMoveLogLenRef.current = null;
+        setTutorialStep((step) => (step === null ? step : step + 1));
+      }
+      return;
+    }
+
     if (def.completeWhenCoatiPairPending) {
       if (game.activePlayerId === tutorialPlayerId && game.pendingCoatiPairBonus?.playerId === tutorialPlayerId) {
         tutorialMoveLogLenRef.current = null;
@@ -1989,6 +2000,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     ]
   );
   const displayAddPieceTargets = useMemo(() => {
+    if (tutorialActive && tutorialGate !== "addPiece" && tutorialGate !== "placeCard") {
+      return [];
+    }
     if (!tutorialActive || tutorialGate !== "addPiece" || !tutorialDef?.markedAddPieceTarget) {
       return addPieceTargets;
     }
@@ -3869,7 +3883,24 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setTutorialId("jaguar");
   }
 
-  // Other species tutorials (wolf, armadillo, macaw, capuchin, coati) are being
+  function startWolfTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+    setPendingPlacement(null);
+    setRoom(createWolfTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("wolf");
+  }
+
+  // Other species tutorials (armadillo, macaw, capuchin, coati) are being
   // rebuilt from scratch and will get their own start functions then.
 
   function exitTutorial(completed: boolean) {
@@ -5152,7 +5183,30 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </span>
                 )}
               </button>
-              {speciesList.filter((species) => species.speciesId !== "jaguar").map((species) => (
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialWolfDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.maned_wolf } as CSSProperties}
+                onClick={startWolfTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.maned_wolf.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.maned_wolf.displayName}</strong>
+                  <small>Mova a alcateia, remova espécies de base e converta recursos em pontos.</small>
+                </span>
+                {isTutorialWolfDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
+              {speciesList.filter((species) => species.speciesId !== "jaguar" && species.speciesId !== "maned_wolf").map((species) => (
                 <div
                   key={species.speciesId}
                   className="tutorial-chapter is-locked"
