@@ -29,12 +29,21 @@ export interface TutorialResourceIcon {
   caption: string;
 }
 
+// A species-type card shown with a colored population-pyramid icon, mirroring
+// the "tipos de espécie" page of the rulebook.
+export interface TutorialCategoryCard {
+  label: string;
+  color: string; // hex used for the pyramid icon and accent
+  body: string;
+}
+
 export interface TutorialStepDef {
   title: string;
   body: string;
   gate: TutorialGate;
   autoAdvance: boolean;
   resourceIcons?: TutorialResourceIcon[];
+  categoryCards?: TutorialCategoryCard[];
   requiredCardId?: string; // the only hand card the player may place this step
   markedSlot?: GridPosition; // the only slot where the card may be placed
   markedMoveTarget?: GridPosition; // the only board destination taught this step
@@ -99,9 +108,31 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Preparação: tipos de espécie",
-    body: "As espécies se dividem em tipos. Predador (obrigatório): remove peças de outras espécies; cada partida tem exatamente 1. Espécie de base (obrigatória): preenche a floresta; cada partida tem de 1 a 2. Espécie de meio: mecânicas variadas, completa o número de jogadores depois das obrigatórias. Subpredador: conta como de meio, mas também remove peças de espécies de base.",
+    body: "As espécies se dividem em quatro tipos, indicados pela pirâmide colorida de cada uma:",
     gate: "none",
-    autoAdvance: false
+    autoAdvance: false,
+    categoryCards: [
+      {
+        label: "Predador (obrigatório)",
+        color: "#e06457",
+        body: "Remove peças de outras espécies. Cada partida tem exatamente 1."
+      },
+      {
+        label: "Espécie de base (obrigatória)",
+        color: "#5a9bd8",
+        body: "Preenche a floresta. Cada partida tem de 1 a 2."
+      },
+      {
+        label: "Espécie de meio",
+        color: "#e8c14f",
+        body: "Mecânicas variadas. Completa o número de jogadores depois das obrigatórias."
+      },
+      {
+        label: "Subpredador",
+        color: "#e8954e",
+        body: "Conta como de meio, mas também remove peças de espécies de base."
+      }
+    ]
   },
   {
     title: "Termos importantes",

@@ -5840,6 +5840,23 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 ))}
               </ul>
             )}
+            {tutorialDef.categoryCards && tutorialDef.categoryCards.length > 0 && (
+              <ul className="tutorial-coach-categories">
+                {tutorialDef.categoryCards.map((card) => (
+                  <li key={card.label} style={{ "--cat-color": card.color } as CSSProperties}>
+                    <svg viewBox="0 0 32 28" aria-hidden="true">
+                      <polygon points="16,3 29,25 3,25" fill="var(--cat-color)" fillOpacity="0.22" stroke="var(--cat-color)" strokeWidth="2" strokeLinejoin="round" />
+                      <line x1="9.7" y1="17.5" x2="22.3" y2="17.5" stroke="var(--cat-color)" strokeWidth="1.6" />
+                      <line x1="12.8" y1="11.5" x2="19.2" y2="11.5" stroke="var(--cat-color)" strokeWidth="1.6" />
+                    </svg>
+                    <span className="tutorial-coach-category-text">
+                      <strong>{card.label}</strong>
+                      <small>{card.body}</small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <div className="tutorial-coach-actions">
             <button type="button" className="tutorial-coach-exit" onClick={() => exitTutorial(false)}>
