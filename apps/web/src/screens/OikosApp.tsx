@@ -6746,7 +6746,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         </div>
       )}
 
-      {hasStartedGame && !cleanBoardMode && opponentInspectorEntries.length > 0 && (
+      {hasStartedGame && !cleanBoardMode && !tutorialActive && opponentInspectorEntries.length > 0 && (
         <aside className="opponent-inspector" aria-label="Consultar outros jogadores">
           <div className="opponent-rail" role="list">
             {opponentInspectorEntries.map(({ player, gamePlayer, species, displayIndex, isActivePlayer }) => (
