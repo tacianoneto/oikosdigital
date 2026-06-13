@@ -27,6 +27,7 @@ const groups = [
   { from: join(root, "movimentos"), to: join(publicAssets, "movimentos") },
   { from: join(root, "movimentos", "Separados"), to: join(publicAssets, "movimentos", "separados") },
   { from: join(root, "recursos"), to: join(publicAssets, "resources") },
+  { from: join(root, "icones"), to: join(publicAssets, "icones") },
   { from: join(root, "logo"), to: join(publicAssets, "logo") },
   { from: join(root, "interface", "onça"), to: join(publicAssets, "interface", "onça") },
   { from: join(root, "interface", "lobo guara"), to: join(publicAssets, "interface", "lobo") },

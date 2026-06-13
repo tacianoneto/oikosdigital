@@ -29,11 +29,18 @@ export interface TutorialResourceIcon {
   caption: string;
 }
 
-// A species-type card shown with a colored population-pyramid icon, mirroring
-// the "tipos de espécie" page of the rulebook.
+// A species-type card shown with the colored population-pyramid icon from the
+// "tipos de espécie" page of the rulebook.
 export interface TutorialCategoryCard {
   label: string;
-  color: string; // hex used for the pyramid icon and accent
+  color: string; // hex accent (border + label) tuned for the dark coach panel
+  iconAsset: string;
+  body: string;
+}
+
+// A bolded term plus its definition, used for the "termos importantes" step.
+export interface TutorialTerm {
+  term: string;
   body: string;
 }
 
@@ -44,6 +51,7 @@ export interface TutorialStepDef {
   autoAdvance: boolean;
   resourceIcons?: TutorialResourceIcon[];
   categoryCards?: TutorialCategoryCard[];
+  terms?: TutorialTerm[];
   requiredCardId?: string; // the only hand card the player may place this step
   markedSlot?: GridPosition; // the only slot where the card may be placed
   markedMoveTarget?: GridPosition; // the only board destination taught this step
@@ -115,30 +123,41 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
       {
         label: "Predador (obrigatório)",
         color: "#e06457",
+        iconAsset: "/assets/icones/predador.webp",
         body: "Remove peças de outras espécies. Cada partida tem exatamente 1."
       },
       {
         label: "Espécie de base (obrigatória)",
         color: "#5a9bd8",
+        iconAsset: "/assets/icones/base.webp",
         body: "Preenche a floresta. Cada partida tem de 1 a 2."
       },
       {
         label: "Espécie de meio",
         color: "#e8c14f",
+        iconAsset: "/assets/icones/meio.webp",
         body: "Mecânicas variadas. Completa o número de jogadores depois das obrigatórias."
       },
       {
         label: "Subpredador",
         color: "#e8954e",
+        iconAsset: "/assets/icones/subpredador.webp",
         body: "Conta como de meio, mas também remove peças de espécies de base."
       }
     ]
   },
   {
     title: "Termos importantes",
-    body: "Peça: cada espécie tem uma quantidade diferente; representam seus animais na floresta. Local: cada carta na floresta é um local, com até 4 locais adjacentes ou até 8 ao redor (contando as diagonais). Recurso: existem 4 tipos: carne, ovo, fruta e semente. Floresta: o conjunto de cartas conectadas na mesa; a floresta inicial são 9 cartas, com uma rosa dos ventos ao centro. Habitat: 3 tipos, que também são os naipes das cartas: bosque, campo e rio.",
+    body: "Antes de jogar, conheça os termos que vão aparecer o tempo todo:",
     gate: "none",
-    autoAdvance: false
+    autoAdvance: false,
+    terms: [
+      { term: "Peça", body: "Representa seus animais na floresta. Cada espécie tem uma quantidade diferente." },
+      { term: "Local", body: "Cada carta na floresta é um local, com até 4 locais adjacentes ou até 8 ao redor (contando as diagonais)." },
+      { term: "Recurso", body: "Existem 4 tipos: carne, ovo, fruta e semente." },
+      { term: "Floresta", body: "O conjunto de cartas conectadas na mesa. A floresta inicial são 9 cartas, com uma rosa dos ventos ao centro." },
+      { term: "Habitat", body: "3 tipos, que também são os naipes das cartas: bosque, campo e rio." }
+    ]
   },
   {
     title: "Como jogar",
