@@ -111,13 +111,13 @@ const INITIAL_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "Setup: posicione seus meeples",
-    body: "Comece colocando seus meeples iniciais. Clique em cartas da floresta para posicioná-los. Você tem dois para colocar. Importante: ao entrar em um local, você coleta na hora o recurso daquele local. Coloque os dois para continuar.",
+    body: "Comece colocando seus meeples iniciais. Clique em cartas da floresta para posicioná-los. Você tem dois para colocar. Importante: este setup é a única vez na partida em que adicionar uma peça coleta o recurso do local. Coloque os dois para continuar.",
     gate: "setup",
     autoAdvance: true
   },
   {
     title: "Você já coletou recursos",
-    body: "Pronto! Cada meeple que você posicionou rendeu o recurso do local onde entrou. Olhe o seu painel no canto: os recursos coletados já estão somados ali. Essa é a regra de ouro: entrar num local sempre coleta o recurso dele.",
+    body: "Pronto! Cada meeple que você posicionou rendeu o recurso do local onde entrou. Olhe o seu painel no canto: os recursos coletados já estão somados ali. Atenção: isso só vale aqui no setup. Durante a partida, adicionar uma peça da reserva não coleta recurso. A partir daí você coleta recurso ao mover seus meeples.",
     gate: "none",
     autoAdvance: false
   },
