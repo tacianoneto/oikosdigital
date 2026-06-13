@@ -1215,12 +1215,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
   const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
   const isBasicTutorial = tutorialId === "initial";
-  const basicTutorialActionHint =
-    activeActionId === "A"
-      ? "Etapa A: escolha a carta destacada da mao e coloque no espaco marcado."
-      : activeActionId === "B"
-        ? "Etapa B: selecione um meeple seu e mova para um destino destacado."
-        : "Siga o cartao do tutorial. As acoes especiais ficam para os capitulos avancados.";
   const highlightedMovementGuideSpecies =
     tutorialActive ? tutorialDef?.highlightMovementGuideSpecies ?? null : null;
   const tutorialRequiredCardId =
@@ -6090,15 +6084,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </div>
               </div>
             )}
-            {activeSpecies && activeActionId && (
+            {activeSpecies && activeActionId && !isBasicTutorial && (
               <div className="current-action-card">
-                {isBasicTutorial ? (
-                  <>
-                    <strong>Etapa {activeActionId}</strong>
-                    <small>{basicTutorialActionHint}</small>
-                  </>
-                ) : (
-                  <>
+                <>
                 <ActionStepsViewer
                   speciesId={activeSpecies.speciesId}
                   activeActionId={activeActionId}
@@ -6338,7 +6326,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </>
                 )}
                   </>
-                )}
               </div>
             )}
           </section>
