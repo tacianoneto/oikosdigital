@@ -416,6 +416,19 @@ io.on("connection", (socket) => {
     await sendReplyAsync(reply, playerId, fn);
   };
 
+  // Most game actions share one shape: run a rooms.ts mutator, broadcast the new
+  // state, and return it through withReply. onRoomAction registers exactly that,
+  // so each handler below collapses to its event name plus the mutator call.
+  const onRoomAction = <P>(event: string, run: (payload: P, actingPlayerId: string) => PublicRoomState): void => {
+    socket.on(event, (payload: P, reply: unknown) => {
+      withReply(reply, () => {
+        const room = run(payload, playerId);
+        broadcastRoom(room);
+        return room;
+      });
+    });
+  };
+
   socket.emit("connected", { playerId });
 
   socket.on("presence:ping", (payload: { roomId?: string } | undefined, reply) => {
@@ -496,49 +509,16 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("player:rename", (payload: { roomId: string; name: string }, reply) => {
-    withReply(reply, () => {
-      const room = renamePlayer(payload.roomId, playerId, payload.name);
-      broadcastRoom(room);
-      return room;
-    });
-  });
+  onRoomAction("player:rename", (p: { roomId: string; name: string }, pid) => renamePlayer(p.roomId, pid, p.name));
 
   socket.on("room:get", (payload: { roomId: string }, reply) => {
     withReply(reply, () => getPublicRoom(payload.roomId));
   });
 
-  socket.on("bots:add", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = addBots(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("bots:remove", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = removeBots(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("bots:add-species", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
-    withReply(reply, () => {
-      const room = addBotForSpecies(payload.roomId, playerId, payload.speciesId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("bots:remove-species", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
-    withReply(reply, () => {
-      const room = removeBotForSpecies(payload.roomId, playerId, payload.speciesId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
+  onRoomAction("bots:add", (p: { roomId: string }, pid) => addBots(p.roomId, pid));
+  onRoomAction("bots:remove", (p: { roomId: string }, pid) => removeBots(p.roomId, pid));
+  onRoomAction("bots:add-species", (p: { roomId: string; speciesId: SpeciesId }, pid) => addBotForSpecies(p.roomId, pid, p.speciesId));
+  onRoomAction("bots:remove-species", (p: { roomId: string; speciesId: SpeciesId }, pid) => removeBotForSpecies(p.roomId, pid, p.speciesId));
 
   socket.on("bots:speed", (payload: { roomId: string; delayMs: number }, reply) => {
     withReply(reply, () => {
@@ -558,37 +538,10 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("mini-expansion:set", (payload: { roomId: string; expansionId: MiniExpansionId; enabled: boolean }, reply) => {
-    withReply(reply, () => {
-      const room = setMiniExpansion(payload.roomId, playerId, payload.expansionId, payload.enabled);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("scenario:selection-mode", (payload: { roomId: string; mode: "vote" | "host" }, reply) => {
-    withReply(reply, () => {
-      const room = setScenarioSelectionMode(payload.roomId, playerId, payload.mode);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("scenario:count", (payload: { roomId: string; scenarioCount: ScenarioCount }, reply) => {
-    withReply(reply, () => {
-      const room = setScenarioCount(payload.roomId, playerId, payload.scenarioCount);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("scenario:host-select", (payload: { roomId: string; scenarioIds: ScenarioCardId[] }, reply) => {
-    withReply(reply, () => {
-      const room = setHostSelectedScenarios(payload.roomId, playerId, payload.scenarioIds);
-      broadcastRoom(room);
-      return room;
-    });
-  });
+  onRoomAction("mini-expansion:set", (p: { roomId: string; expansionId: MiniExpansionId; enabled: boolean }, pid) => setMiniExpansion(p.roomId, pid, p.expansionId, p.enabled));
+  onRoomAction("scenario:selection-mode", (p: { roomId: string; mode: "vote" | "host" }, pid) => setScenarioSelectionMode(p.roomId, pid, p.mode));
+  onRoomAction("scenario:count", (p: { roomId: string; scenarioCount: ScenarioCount }, pid) => setScenarioCount(p.roomId, pid, p.scenarioCount));
+  onRoomAction("scenario:host-select", (p: { roomId: string; scenarioIds: ScenarioCardId[] }, pid) => setHostSelectedScenarios(p.roomId, pid, p.scenarioIds));
 
   socket.on("species:select", (payload: { roomId: string; speciesId: SpeciesId }, reply) => {
     void withReplyAsync(reply, async () => {
@@ -602,13 +555,7 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("player:ready", (payload: { roomId: string; ready: boolean }, reply) => {
-    withReply(reply, () => {
-      const room = setReady(payload.roomId, playerId, payload.ready);
-      broadcastRoom(room);
-      return room;
-    });
-  });
+  onRoomAction("player:ready", (p: { roomId: string; ready: boolean }, pid) => setReady(p.roomId, pid, p.ready));
 
   socket.on("game:start", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
@@ -623,47 +570,22 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("scenario:caatinga-collect", (payload: { roomId: string; mode?: "gain" | "lose" | "skip" }, reply) => {
-    withReply(reply, () => {
-      const room = collectCaatinga(payload.roomId, playerId, payload.mode ?? "gain");
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("scenario:cerrado-collect", (payload: { roomId: string; mode?: "collect" | "skip" }, reply) => {
-    withReply(reply, () => {
-      const room = collectCerrado(payload.roomId, playerId, payload.mode ?? "collect");
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("scenario:mata-atlantica-discard", (payload: { roomId: string; cardId: string }, reply) => {
-    withReply(reply, () => {
-      const room = discardMataAtlanticaCard(payload.roomId, playerId, payload.cardId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on(
+  onRoomAction("scenario:caatinga-collect", (p: { roomId: string; mode?: "gain" | "lose" | "skip" }, pid) => collectCaatinga(p.roomId, pid, p.mode ?? "gain"));
+  onRoomAction("scenario:cerrado-collect", (p: { roomId: string; mode?: "collect" | "skip" }, pid) => collectCerrado(p.roomId, pid, p.mode ?? "collect"));
+  onRoomAction("scenario:mata-atlantica-discard", (p: { roomId: string; cardId: string }, pid) => discardMataAtlanticaCard(p.roomId, pid, p.cardId));
+  onRoomAction(
     "threat:caca-ilegal-resolve",
     (
-      payload:
+      p:
         | { roomId: string; kind: "remove_piece"; pieceId: string }
         | { roomId: string; kind: "spend_resource"; resource: Resource },
-      reply
+      pid
     ) => {
-      withReply(reply, () => {
-        const choice =
-          payload.kind === "remove_piece"
-            ? { kind: "remove_piece" as const, pieceId: payload.pieceId }
-            : { kind: "spend_resource" as const, resource: payload.resource };
-        const room = resolveCacaIlegalThreat(payload.roomId, playerId, choice);
-        broadcastRoom(room);
-        return room;
-      });
+      const choice =
+        p.kind === "remove_piece"
+          ? { kind: "remove_piece" as const, pieceId: p.pieceId }
+          : { kind: "spend_resource" as const, resource: p.resource };
+      return resolveCacaIlegalThreat(p.roomId, pid, choice);
     }
   );
 
@@ -680,208 +602,35 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("objective:select", (payload: { roomId: string; objectiveCardId: string }, reply) => {
-    withReply(reply, () => {
-      const room = chooseObjective(payload.roomId, playerId, payload.objectiveCardId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("objective:discard", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = discardObjective(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("objective:extra-turn", (payload: { roomId: string; accept: boolean }, reply) => {
-    withReply(reply, () => {
-      const room = resolveExtraTurn(payload.roomId, playerId, payload.accept);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("objective:seed-spend", (payload: { roomId: string; accept: boolean }, reply) => {
-    withReply(reply, () => {
-      const room = resolveSeedSpend(payload.roomId, playerId, payload.accept);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("setup:place-piece", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = placeSetupPiece(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on(
+  onRoomAction("objective:select", (p: { roomId: string; objectiveCardId: string }, pid) => chooseObjective(p.roomId, pid, p.objectiveCardId));
+  onRoomAction("objective:discard", (p: { roomId: string }, pid) => discardObjective(p.roomId, pid));
+  onRoomAction("objective:extra-turn", (p: { roomId: string; accept: boolean }, pid) => resolveExtraTurn(p.roomId, pid, p.accept));
+  onRoomAction("objective:seed-spend", (p: { roomId: string; accept: boolean }, pid) => resolveSeedSpend(p.roomId, pid, p.accept));
+  onRoomAction("setup:place-piece", (p: { roomId: string; x: number; y: number }, pid) => placeSetupPiece(p.roomId, pid, p.x, p.y));
+  onRoomAction(
     "forest:place-card",
-    (payload: { roomId: string; cardId: string; x: number; y: number; rotation: 0 | 90 | 180 | 270 }, reply) => {
-      withReply(reply, () => {
-        const room = placeCardInForest(payload.roomId, playerId, payload.cardId, payload.x, payload.y, payload.rotation);
-        broadcastRoom(room);
-        return room;
-      });
-    }
+    (p: { roomId: string; cardId: string; x: number; y: number; rotation: 0 | 90 | 180 | 270 }, pid) =>
+      placeCardInForest(p.roomId, pid, p.cardId, p.x, p.y, p.rotation)
   );
-
-  socket.on("action:complete", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = completeAction(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("coati:add", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = addCoati(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("galo:add", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = addGalo(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("galo:add-adjacent", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = addGaloAdjacent(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("coati:resolve-pair", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = resolveCoatiPair(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("capuchin:add", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = addCapuchin(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("macaw:add", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = addMacaw(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("armadillo:add", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = addArmadillo(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("wolf:add", (payload: { roomId: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = addWolf(payload.roomId, playerId, payload.x, payload.y);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("piece:move", (payload: { roomId: string; pieceId: string; targetPieceId?: string; x: number; y: number }, reply) => {
-    withReply(reply, () => {
-      const room = movePiece(payload.roomId, playerId, payload.pieceId, payload.x, payload.y, payload.targetPieceId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("pieces:remove", (payload: { roomId: string; pieceIds: string[] }, reply) => {
-    withReply(reply, () => {
-      const room = removePieces(payload.roomId, playerId, payload.pieceIds);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("jaguar:spend-meat", (payload: { roomId: string; count: number }, reply) => {
-    withReply(reply, () => {
-      const room = spendJaguarMeat(payload.roomId, playerId, payload.count);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("capuchin:score", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = scoreCapuchin(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("macaw:score", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = scoreMacaw(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("galo:score", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = scoreGalo(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("armadillo:hide", (payload: { roomId: string; pieceId: string }, reply) => {
-    withReply(reply, () => {
-      const room = hideArmadillo(payload.roomId, playerId, payload.pieceId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("armadillo:score", (payload: { roomId: string }, reply) => {
-    withReply(reply, () => {
-      const room = scoreArmadillo(payload.roomId, playerId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("wolf:remove-base", (payload: { roomId: string; pieceId: string }, reply) => {
-    withReply(reply, () => {
-      const room = removeWolfBasePiece(payload.roomId, playerId, payload.pieceId);
-      broadcastRoom(room);
-      return room;
-    });
-  });
-
-  socket.on("wolf:spend-resources", (payload: { roomId: string; resources: Array<"meat" | "egg" | "fruit" | "seed"> }, reply) => {
-    withReply(reply, () => {
-      const room = spendWolfResources(payload.roomId, playerId, payload.resources);
-      broadcastRoom(room);
-      return room;
-    });
-  });
+  onRoomAction("action:complete", (p: { roomId: string }, pid) => completeAction(p.roomId, pid));
+  onRoomAction("coati:add", (p: { roomId: string; x: number; y: number }, pid) => addCoati(p.roomId, pid, p.x, p.y));
+  onRoomAction("galo:add", (p: { roomId: string; x: number; y: number }, pid) => addGalo(p.roomId, pid, p.x, p.y));
+  onRoomAction("galo:add-adjacent", (p: { roomId: string; x: number; y: number }, pid) => addGaloAdjacent(p.roomId, pid, p.x, p.y));
+  onRoomAction("coati:resolve-pair", (p: { roomId: string; x: number; y: number }, pid) => resolveCoatiPair(p.roomId, pid, p.x, p.y));
+  onRoomAction("capuchin:add", (p: { roomId: string; x: number; y: number }, pid) => addCapuchin(p.roomId, pid, p.x, p.y));
+  onRoomAction("macaw:add", (p: { roomId: string; x: number; y: number }, pid) => addMacaw(p.roomId, pid, p.x, p.y));
+  onRoomAction("armadillo:add", (p: { roomId: string; x: number; y: number }, pid) => addArmadillo(p.roomId, pid, p.x, p.y));
+  onRoomAction("wolf:add", (p: { roomId: string; x: number; y: number }, pid) => addWolf(p.roomId, pid, p.x, p.y));
+  onRoomAction("piece:move", (p: { roomId: string; pieceId: string; targetPieceId?: string; x: number; y: number }, pid) => movePiece(p.roomId, pid, p.pieceId, p.x, p.y, p.targetPieceId));
+  onRoomAction("pieces:remove", (p: { roomId: string; pieceIds: string[] }, pid) => removePieces(p.roomId, pid, p.pieceIds));
+  onRoomAction("jaguar:spend-meat", (p: { roomId: string; count: number }, pid) => spendJaguarMeat(p.roomId, pid, p.count));
+  onRoomAction("capuchin:score", (p: { roomId: string }, pid) => scoreCapuchin(p.roomId, pid));
+  onRoomAction("macaw:score", (p: { roomId: string }, pid) => scoreMacaw(p.roomId, pid));
+  onRoomAction("galo:score", (p: { roomId: string }, pid) => scoreGalo(p.roomId, pid));
+  onRoomAction("armadillo:hide", (p: { roomId: string; pieceId: string }, pid) => hideArmadillo(p.roomId, pid, p.pieceId));
+  onRoomAction("armadillo:score", (p: { roomId: string }, pid) => scoreArmadillo(p.roomId, pid));
+  onRoomAction("wolf:remove-base", (p: { roomId: string; pieceId: string }, pid) => removeWolfBasePiece(p.roomId, pid, p.pieceId));
+  onRoomAction("wolf:spend-resources", (p: { roomId: string; resources: Array<"meat" | "egg" | "fruit" | "seed"> }, pid) => spendWolfResources(p.roomId, pid, p.resources));
 
   socket.on("disconnect", () => {
     unregisterSocket(playerId, socket.id);
