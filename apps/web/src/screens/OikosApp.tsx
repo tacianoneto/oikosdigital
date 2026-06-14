@@ -150,10 +150,10 @@ import { ActiveRulesDock } from "../ui/ActiveRulesDock";
 import { ArmadilloSharePanel } from "../ui/ArmadilloSharePanel";
 import { EndgameCeremony } from "../ui/EndgameCeremony";
 import { MovementGlyph } from "../ui/MovementGlyph";
-import { ObjectiveStatusBadge } from "../ui/ObjectiveStatusBadge";
 import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
 import { SettingsModal } from "../ui/SettingsModal";
+import { SpeciesHudShell } from "../ui/SpeciesHudShell";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
 import { formatTurnTimer } from "../ui/format";
@@ -816,20 +816,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     };
     return { meat: major("meat"), egg: major("egg"), fruit: major("fruit"), seed: false };
   }, [room?.game, currentGamePlayer]);
-  const renderHudResource = (itemClassName: string, resource: Resource) => {
-    const hasMajority = currentPlayerResourceMajority[resource];
-    return (
-      <div
-        className={`${itemClassName} res-${resource}${hasMajority ? " is-majority" : ""}`}
-        data-resource={resource}
-        data-majority={hasMajority ? "true" : "false"}
-        ref={(node) => setEffectTarget(`hudbar:${resource}`, node)}
-      >
-        <span className="hud-resource-value">{currentGamePlayer?.resources[resource] ?? 0}</span>
-      </div>
-    );
-  };
-
   // Tutorial state derived from the current step.
   const tutorialSteps = getTutorialSteps(tutorialId);
   const tutorialActive = tutorialId !== null && tutorialStep !== null;
@@ -7005,103 +6991,63 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         </nav>
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "jaguar" && (
-        <div className="hud-overlay-jaguar">
-          <div className="hud-top-jaguar">
-            <img src="/assets/interface/onça/UI_oncaTOP.webp" alt="" className="hud-top-jaguar-bg" />
-            <div className="hud-top-jaguar-score">{currentGamePlayer.score}</div>
-            <div className="hud-top-jaguar-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
-              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.jaguar.meepleAsset)}
-            </div>
-          </div>
-          <div className="hud-bottom-jaguar">
-            <img src="/assets/interface/onça/UI_oncaDOWN.webp" alt="" className="hud-bottom-jaguar-bg" />
-            <div className="hud-bottom-jaguar-action-text">
-              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.jaguar } as CSSProperties}>
-                <ActionStepsViewer
-                  speciesId="jaguar"
-                  activeActionId={ownActiveActionId}
-                  accent={SPECIES_HEX.jaguar}
-                />
+        <SpeciesHudShell
+          speciesId="jaguar"
+          player={currentGamePlayer}
+          activeActionId={ownActiveActionId}
+          resourceMajority={currentPlayerResourceMajority}
+          showObjective={Boolean(objectivePreviewCard)}
+          objectiveCompleted={selectedObjectiveCompleted}
+          objectiveDiscarded={objectiveWasDiscarded}
+          showScenarios={activeScenarioDefinitions.length > 0}
+          showThreat={Boolean(activeThreatDefinition)}
+          setEffectTarget={setEffectTarget}
+          onExpansionToggle={toggleExpansionPreview}
+        >
+          {room?.game?.activePlayerId === currentGamePlayer.playerId && (
+            <>
+              {(activeActionId === "A" || activeActionId === "B") && (
+                <div className="action-box-hint">
+                  {canSkipJaguarMove
+                    ? "Nenhum destino válido. Conclua a ação para seguir."
+                    : selectedJaguarDestination
+                      ? "Escolha qual meeple remover no destino selecionado."
+                      : "Selecione a Onça e clique em um destino destacado."}
+                </div>
+              )}
+              {activeActionId === "C" && (
+                <div className="action-box-hint">
+                  <ResourceText text="Defina quantas carnes converter em pontos na janela central." />
+                </div>
+              )}
 
-                {room?.game?.activePlayerId === currentGamePlayer.playerId && (
-                  <>
-                    {(activeActionId === "A" || activeActionId === "B") && (
-                      <div className="action-box-hint">
-                        {canSkipJaguarMove
-                          ? "Nenhum destino válido. Conclua a ação para seguir."
-                          : selectedJaguarDestination
-                            ? "Escolha qual meeple remover no destino selecionado."
-                            : "Selecione a Onça e clique em um destino destacado."}
-                      </div>
-                    )}
-                    {activeActionId === "C" && (
-                      <div className="action-box-hint">
-                        <ResourceText text="Defina quantas carnes converter em pontos na janela central." />
-                      </div>
-                    )}
-
-                    {canSkipJaguarMove && (activeActionId === "A" || activeActionId === "B") && (
-                      <div className="action-box-actions">
-                        <button type="button" className="action-box-btn is-secondary" onClick={handleCompleteAction}>
-                          Concluir
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="hud-bottom-jaguar-resources">
-              {renderHudResource("hud-bottom-jaguar-resource-item", "meat")}
-              {renderHudResource("hud-bottom-jaguar-resource-item", "fruit")}
-              {renderHudResource("hud-bottom-jaguar-resource-item", "egg")}
-              {renderHudResource("hud-bottom-jaguar-resource-item", "seed")}
-            </div>
-            <div className="hud-bottom-jaguar-movements">
-              <img src="/assets/interface/onça/Movimentos_onca.webp" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-jaguar-expansions">
-              {objectivePreviewCard && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
-                </button>
+              {canSkipJaguarMove && (activeActionId === "A" || activeActionId === "B") && (
+                <div className="action-box-actions">
+                  <button type="button" className="action-box-btn is-secondary" onClick={handleCompleteAction}>
+                    Concluir
+                  </button>
+                </div>
               )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-jaguar-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </SpeciesHudShell>
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "maned_wolf" && (
-        <div className="hud-overlay-wolf">
-          <div className="hud-top-wolf">
-            <img src="/assets/interface/lobo/UI_loboTOP.webp" alt="" className="hud-top-wolf-bg" />
-            <div className="hud-top-wolf-score">{currentGamePlayer.score}</div>
-            <div className="hud-top-wolf-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
-              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.maned_wolf.meepleAsset)}
-            </div>
-          </div>
-          <div className="hud-bottom-wolf">
-            <img src="/assets/interface/lobo/UI_lobo.webp" alt="" className="hud-bottom-wolf-bg" />
-            <div className="hud-bottom-wolf-action-text">
-              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.maned_wolf } as CSSProperties}>
-                <ActionStepsViewer
-                  speciesId="maned_wolf"
-                  activeActionId={ownActiveActionId}
-                  accent={SPECIES_HEX.maned_wolf}
-                />
-
-                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-                  <>
+        <SpeciesHudShell
+          speciesId="maned_wolf"
+          player={currentGamePlayer}
+          activeActionId={ownActiveActionId}
+          resourceMajority={currentPlayerResourceMajority}
+          showObjective={Boolean(objectivePreviewCard)}
+          objectiveCompleted={selectedObjectiveCompleted}
+          objectiveDiscarded={objectiveWasDiscarded}
+          showScenarios={activeScenarioDefinitions.length > 0}
+          showThreat={Boolean(activeThreatDefinition)}
+          setEffectTarget={setEffectTarget}
+          onExpansionToggle={toggleExpansionPreview}
+        >
+          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+            <>
                     {activeActionId === "A" && (
                       <div className="action-box-hint">
                         {room.game.activePlayedForestCardId
@@ -7150,63 +7096,26 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         </div>
                       </>
                     )}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="hud-bottom-wolf-resources">
-              {renderHudResource("hud-bottom-wolf-resource-item", "meat")}
-              {renderHudResource("hud-bottom-wolf-resource-item", "fruit")}
-              {renderHudResource("hud-bottom-wolf-resource-item", "egg")}
-              {renderHudResource("hud-bottom-wolf-resource-item", "seed")}
-            </div>
-            <div className="hud-bottom-wolf-movements">
-              <img src="/assets/interface/lobo/Movimentos_lobo.webp" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-wolf-expansions">
-              {objectivePreviewCard && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-wolf-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </SpeciesHudShell>
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "armadillo" && (
-        <div className="hud-overlay-tatu">
-          <div className="hud-top-tatu">
-            <img src="/assets/interface/tatu/UI_tatuTOP.webp" alt="" className="hud-top-tatu-bg" />
-            <div className="hud-top-tatu-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-tatu-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
-              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.armadillo.meepleAsset)}
-            </div>
-          </div>
-          <div className="hud-bottom-tatu">
-            <img src="/assets/interface/tatu/UI_tatu.webp" alt="" className="hud-bottom-tatu-bg" />
-            <div className="hud-bottom-tatu-action-text">
-              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.armadillo } as CSSProperties}>
-                <ActionStepsViewer
-                  speciesId="armadillo"
-                  activeActionId={ownActiveActionId}
-                  accent={SPECIES_HEX.armadillo}
-                />
-
-                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-                  <>
+        <SpeciesHudShell
+          speciesId="armadillo"
+          player={currentGamePlayer}
+          activeActionId={ownActiveActionId}
+          resourceMajority={currentPlayerResourceMajority}
+          showObjective={Boolean(objectivePreviewCard)}
+          objectiveCompleted={selectedObjectiveCompleted}
+          objectiveDiscarded={objectiveWasDiscarded}
+          showScenarios={activeScenarioDefinitions.length > 0}
+          showThreat={Boolean(activeThreatDefinition)}
+          setEffectTarget={setEffectTarget}
+          onExpansionToggle={toggleExpansionPreview}
+        >
+          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+            <>
                     {activeActionId === "A" && (
                       <>
                         <div className="action-box-hint">
@@ -7260,63 +7169,26 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         {scoringPreview.armadillo && <ArmadilloSharePanel details={scoringPreview.armadillo} />}
                       </>
                     )}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="hud-bottom-tatu-resources">
-              {renderHudResource("hud-bottom-tatu-resource-item", "meat")}
-              {renderHudResource("hud-bottom-tatu-resource-item", "fruit")}
-              {renderHudResource("hud-bottom-tatu-resource-item", "egg")}
-              {renderHudResource("hud-bottom-tatu-resource-item", "seed")}
-            </div>
-            <div className="hud-bottom-tatu-movements">
-              <img src="/assets/interface/tatu/Movimentos_tatu.webp" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-tatu-expansions">
-              {objectivePreviewCard && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-tatu-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </SpeciesHudShell>
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "macaw" && (
-        <div className="hud-overlay-macaw">
-          <div className="hud-top-macaw">
-            <img src="/assets/interface/arara/UI_araraTOP.webp" alt="" className="hud-top-macaw-bg" />
-            <div className="hud-top-macaw-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-macaw-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
-              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.macaw.meepleAsset)}
-            </div>
-          </div>
-          <div className="hud-bottom-macaw">
-            <img src="/assets/interface/arara/UI_arara.webp" alt="" className="hud-bottom-macaw-bg" />
-            <div className="hud-bottom-macaw-action-text">
-              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.macaw } as CSSProperties}>
-                <ActionStepsViewer
-                  speciesId="macaw"
-                  activeActionId={ownActiveActionId}
-                  accent={SPECIES_HEX.macaw}
-                />
-
-                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-                  <>
+        <SpeciesHudShell
+          speciesId="macaw"
+          player={currentGamePlayer}
+          activeActionId={ownActiveActionId}
+          resourceMajority={currentPlayerResourceMajority}
+          showObjective={Boolean(objectivePreviewCard)}
+          objectiveCompleted={selectedObjectiveCompleted}
+          objectiveDiscarded={objectiveWasDiscarded}
+          showScenarios={activeScenarioDefinitions.length > 0}
+          showThreat={Boolean(activeThreatDefinition)}
+          setEffectTarget={setEffectTarget}
+          onExpansionToggle={toggleExpansionPreview}
+        >
+          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+            <>
                     {activeActionId === "A" && (
                       <>
                         <div className="action-box-hint">
@@ -7359,63 +7231,26 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         Pontuação automática: <strong>+{macawLineScore}</strong> {macawLineScore === 1 ? "ponto" : "pontos"} pelas formações lineares.
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="hud-bottom-macaw-resources">
-              {renderHudResource("hud-bottom-macaw-resource-item", "meat")}
-              {renderHudResource("hud-bottom-macaw-resource-item", "fruit")}
-              {renderHudResource("hud-bottom-macaw-resource-item", "egg")}
-              {renderHudResource("hud-bottom-macaw-resource-item", "seed")}
-            </div>
-            <div className="hud-bottom-macaw-movements">
-              <img src="/assets/interface/arara/Movimentos_arara.webp" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-macaw-expansions">
-              {objectivePreviewCard && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-macaw-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </SpeciesHudShell>
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "galo_de_campina" && (
-        <div className="hud-overlay-galo">
-          <div className="hud-top-galo">
-            <img src="/assets/interface/galo/UI_galodecampinaTOP.webp" alt="" className="hud-top-galo-bg" />
-            <div className="hud-top-galo-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-galo-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
-              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.galo_de_campina.meepleAsset)}
-            </div>
-          </div>
-          <div className="hud-bottom-galo">
-            <img src="/assets/interface/galo/UI_galodecampina.webp" alt="" className="hud-bottom-galo-bg" />
-            <div className="hud-bottom-galo-action-text">
-              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.galo_de_campina } as CSSProperties}>
-                <ActionStepsViewer
-                  speciesId="galo_de_campina"
-                  activeActionId={ownActiveActionId}
-                  accent={SPECIES_HEX.galo_de_campina}
-                />
-
-                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-                  <>
+        <SpeciesHudShell
+          speciesId="galo_de_campina"
+          player={currentGamePlayer}
+          activeActionId={ownActiveActionId}
+          resourceMajority={currentPlayerResourceMajority}
+          showObjective={Boolean(objectivePreviewCard)}
+          objectiveCompleted={selectedObjectiveCompleted}
+          objectiveDiscarded={objectiveWasDiscarded}
+          showScenarios={activeScenarioDefinitions.length > 0}
+          showThreat={Boolean(activeThreatDefinition)}
+          setEffectTarget={setEffectTarget}
+          onExpansionToggle={toggleExpansionPreview}
+        >
+          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+            <>
                     {activeActionId === "A" && (
                       <>
                         <div className="action-box-hint">
@@ -7465,63 +7300,26 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         +1 se presente em 3+ campinas, +1 se presente em 3+ locais de <ResourceIcon resource="seed" />.
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="hud-bottom-galo-resources">
-              {renderHudResource("hud-bottom-galo-resource-item", "meat")}
-              {renderHudResource("hud-bottom-galo-resource-item", "fruit")}
-              {renderHudResource("hud-bottom-galo-resource-item", "egg")}
-              {renderHudResource("hud-bottom-galo-resource-item", "seed")}
-            </div>
-            <div className="hud-bottom-galo-movements">
-              <img src="/assets/interface/galo/Movimentos_galodecampina.webp" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-galo-expansions">
-              {objectivePreviewCard && (
-                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-galo-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </SpeciesHudShell>
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "capuchin" && (
-        <div className="hud-overlay-capuchin">
-          <div className="hud-top-capuchin">
-            <img src="/assets/interface/macaco/UI_macacoTOP.webp" alt="" className="hud-top-capuchin-bg" />
-            <div className="hud-top-capuchin-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-capuchin-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
-              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.capuchin.meepleAsset)}
-            </div>
-          </div>
-          <div className="hud-bottom-capuchin">
-            <img src="/assets/interface/macaco/UI_macaco.webp" alt="" className="hud-bottom-capuchin-bg" />
-            <div className="hud-bottom-capuchin-action-text">
-              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.capuchin } as CSSProperties}>
-                <ActionStepsViewer
-                  speciesId="capuchin"
-                  activeActionId={ownActiveActionId}
-                  accent={SPECIES_HEX.capuchin}
-                />
-
-                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-                  <>
+        <SpeciesHudShell
+          speciesId="capuchin"
+          player={currentGamePlayer}
+          activeActionId={ownActiveActionId}
+          resourceMajority={currentPlayerResourceMajority}
+          showObjective={Boolean(objectivePreviewCard)}
+          objectiveCompleted={selectedObjectiveCompleted}
+          objectiveDiscarded={objectiveWasDiscarded}
+          showScenarios={activeScenarioDefinitions.length > 0}
+          showThreat={Boolean(activeThreatDefinition)}
+          setEffectTarget={setEffectTarget}
+          onExpansionToggle={toggleExpansionPreview}
+        >
+          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+            <>
                     {activeActionId === "A" && (
                       <>
                         <div className="action-box-hint">
@@ -7562,68 +7360,31 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                         Pontuação automática: <strong>+{capuchinHabitatScore}</strong> {capuchinHabitatScore === 1 ? "ponto" : "pontos"} pelos habitats dominados.
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="hud-bottom-capuchin-resources">
-              {renderHudResource("hud-bottom-capuchin-resource-item", "meat")}
-              {renderHudResource("hud-bottom-capuchin-resource-item", "fruit")}
-              {renderHudResource("hud-bottom-capuchin-resource-item", "egg")}
-              {renderHudResource("hud-bottom-capuchin-resource-item", "seed")}
-            </div>
-            <div className="hud-bottom-capuchin-movements">
-              <img src="/assets/interface/macaco/Movimentos_macaco.webp" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-capuchin-expansions">
-              {objectivePreviewCard && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-capuchin-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        </SpeciesHudShell>
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "coati" && (
-        <div className="hud-overlay-coati">
-          <div className="hud-top-coati">
-            <img src="/assets/interface/quati/UI_quatiTOP.webp" alt="" className="hud-top-coati-bg" />
-            <div className="hud-top-coati-score">
-              {currentGamePlayer.score ?? 0}
-            </div>
-            <div className="hud-top-coati-meeples" ref={(node) => setEffectTarget("hudbar:reserve", node)}>
-              {renderReserveMeeples(currentGamePlayer, speciesDefinitions.coati.meepleAsset)}
-            </div>
-          </div>
-          <div className="hud-bottom-coati">
-            <img src="/assets/interface/quati/UI_quati.webp" alt="" className="hud-bottom-coati-bg" />
-            <div className="hud-bottom-coati-action-text">
-              <div className="action-box" style={{ "--action-accent": SPECIES_HEX.coati } as CSSProperties}>
-                <ActionStepsViewer
-                  speciesId="coati"
-                  activeActionId={ownActiveActionId}
-                  accent={SPECIES_HEX.coati}
-                />
-
-                {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-                  hasPendingCoatiPairBonus ? (
-                    <div className="action-box-hint">
-                      Passiva ativada! Adicione 1 quati da reserva em uma carta adjacente. Essa adição marca 1 ponto.
-                    </div>
-                  ) : (
-                    <>
+        <SpeciesHudShell
+          speciesId="coati"
+          player={currentGamePlayer}
+          activeActionId={ownActiveActionId}
+          resourceMajority={currentPlayerResourceMajority}
+          showObjective={Boolean(objectivePreviewCard)}
+          objectiveCompleted={selectedObjectiveCompleted}
+          objectiveDiscarded={objectiveWasDiscarded}
+          showScenarios={activeScenarioDefinitions.length > 0}
+          showThreat={Boolean(activeThreatDefinition)}
+          setEffectTarget={setEffectTarget}
+          onExpansionToggle={toggleExpansionPreview}
+        >
+          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
+            hasPendingCoatiPairBonus ? (
+              <div className="action-box-hint">
+                Passiva ativada! Adicione 1 quati da reserva em uma carta adjacente. Essa adição marca 1 ponto.
+              </div>
+            ) : (
+              <>
                       {activeActionId === "A" && (
                         <>
                           <div className="action-box-hint">
@@ -7675,40 +7436,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                           )}
                         </>
                       )}
-                    </>
-                  )
-                )}
-              </div>
-            </div>
-            <div className="hud-bottom-coati-resources">
-              {renderHudResource("hud-bottom-coati-resource-item", "meat")}
-              {renderHudResource("hud-bottom-coati-resource-item", "fruit")}
-              {renderHudResource("hud-bottom-coati-resource-item", "egg")}
-              {renderHudResource("hud-bottom-coati-resource-item", "seed")}
-            </div>
-            <div className="hud-bottom-coati-movements">
-              <img src="/assets/interface/quati/Movimentos_quati.webp" alt="Movimentos" />
-            </div>
-            <div className="hud-bottom-coati-expansions">
-              {objectivePreviewCard && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("objective", e)} title="Ver Objetivo">
-                  <img src={encodeURI(objectiveCardBackPath)} alt="Objetivos" />
-                  <ObjectiveStatusBadge completed={selectedObjectiveCompleted} discarded={objectiveWasDiscarded} />
-                </button>
-              )}
-              {activeScenarioDefinitions && activeScenarioDefinitions.length > 0 && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("scenarios", e)} title="Ver Cenários">
-                  <img src={encodeURI(scenarioCardBackPath)} alt="Cenários" />
-                </button>
-              )}
-              {activeThreatDefinition && (
-                <button type="button" className="hud-bottom-coati-expansion-btn" onClick={(e) => toggleExpansionPreview("threat", e)} title="Ver Ameaça">
-                  <img src={encodeURI(threatCardBackPath)} alt="Ameaças" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+              </>
+            )
+          )}
+        </SpeciesHudShell>
       )}
     </main>
   );
