@@ -3223,7 +3223,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         setSelectedHandCardId(null);
         setSelectedPieceId(null);
         setSelectedRemovalPieceIds([]);
-        setNotice("Bonus da dupla de quatis resolvido.");
+        setNotice("Quati da passiva adicionado e 1 ponto marcado.");
         return;
       }
 
@@ -5357,7 +5357,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.coati.displayName}</strong>
-                  <small>Forme duplas exatas, ganhe quatis e pontos, e controle sua reserva.</small>
+                  <small>Forme duplas exatas para adicionar quatis da reserva e marcar pontos.</small>
                 </span>
                 {isTutorialCoatiDone() ? (
                   <span className="tutorial-chapter-badge done">
@@ -6369,7 +6369,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   variant="card"
                 />
                 {activeSpecies.speciesId === "coati" && hasPendingCoatiPairBonus && canControlActivePlayer && (
-                  <small>Dupla de quatis formada: escolha uma carta adjacente para adicionar 1 quati e marcar 1 ponto.</small>
+                  <small>A passiva foi ativada: adicione 1 quati da reserva em uma carta adjacente. Essa adição marca 1 ponto.</small>
                 )}
                 {activeSpecies.speciesId === "coati" && !hasPendingCoatiPairBonus && activeActionId === "A" && canControlActivePlayer && (
                   <>
@@ -8150,7 +8150,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
                   hasPendingCoatiPairBonus ? (
                     <div className="action-box-hint">
-                      Dupla formada! Escolha uma carta adjacente para abrigar 1 quati e marcar 1 ponto.
+                      Passiva ativada! Adicione 1 quati da reserva em uma carta adjacente. Essa adição marca 1 ponto.
                     </div>
                   ) : (
                     <>

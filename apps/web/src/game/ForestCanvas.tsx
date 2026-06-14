@@ -190,7 +190,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
   const statusText = canPlaceSetupPiece
     ? "Clique em uma carta para posicionar seu meeple inicial"
     : bonusTargets.length > 0
-      ? "Dupla de quatis formada: clique em uma carta adjacente para o bônus"
+      ? "Passiva do Quati: adicione 1 quati da reserva em uma carta adjacente para marcar 1 ponto"
       : selectedHandCardId
         ? "Clique em um espaço destacado para colocar a carta"
         : addPieceTargets.length > 0

@@ -107,7 +107,7 @@ function fromPayload(entry: GameLogEntry, speciesId: SpeciesId | null, pieceById
     case "hide_piece":
       return { id: entry.id, icon: "hide", text: `Escondeu 1 ${pieceLabel}${habitat ? ` em ${habitat}` : ""}`, cardInstanceIds: cards };
     case "pair_bonus":
-      return { id: entry.id, icon: "add", text: `Dupla de quatis: +1 ${pieceLabel} adjacente`, points: payload.points, cardInstanceIds: cards };
+      return { id: entry.id, icon: "add", text: `Adicionou 1 ${pieceLabel} pela passiva`, points: payload.points, cardInstanceIds: cards };
     case "score":
       return { id: entry.id, icon: "score", text: `Pontuou ação ${payload.actionId ?? ""}`.trim(), points: payload.points, cardInstanceIds: cards };
     case "objective":
@@ -151,8 +151,8 @@ function fromMessage(entry: GameLogEntry, speciesId: SpeciesId | null): TurnSumm
     return { id, icon: "spend", text: `Gastou ${spendMatch[1]} recurso(s)`, points: Number(spendMatch[1]), cardInstanceIds: [] };
   }
 
-  if (lower.includes("dupla de quatis")) {
-    return { id, icon: "add", text: `Dupla de quatis: +1 ${pieceLabel} adjacente`, points: 1, cardInstanceIds: [] };
+  if (lower.includes("adicionou 1 quati adjacente") && lower.includes("marcou 1 ponto")) {
+    return { id, icon: "add", text: `Adicionou 1 ${pieceLabel} pela passiva`, points: 1, cardInstanceIds: [] };
   }
 
   if (lower.includes("adicionou")) {

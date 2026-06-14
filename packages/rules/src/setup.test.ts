@@ -630,6 +630,34 @@ describe("setup placement", () => {
     expect(game.activePlayerId).toBe("jaguar");
   });
 
+  it("does not score a Quati pair when no piece is available in reserve", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
+
+    game = placeInitialPiece(game, "jaguar", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 0, y: 0 });
+    game = placeInitialPiece(game, "coati", { x: 1, y: 0 });
+
+    const cardId = game.players.find((candidate) => candidate.playerId === "coati")?.hand[0];
+    game = placeForestCard(game, "coati", cardId!, { x: 2, y: 0 });
+    game = addCoatiForCurrentAction(game, "coati", { x: 2, y: 0 });
+
+    const movedPieceId = game.players.find((candidate) => candidate.playerId === "coati")?.piecesInForest[0];
+    const scoreBefore = game.players.find((candidate) => candidate.playerId === "coati")!.score;
+    game = {
+      ...game,
+      players: game.players.map((candidate) =>
+        candidate.playerId === "coati" ? { ...candidate, reservePieces: [] } : candidate
+      )
+    };
+
+    game = movePieceForCurrentAction(game, "coati", movedPieceId!, { x: 2, y: 0 });
+
+    expect(game.pendingCoatiPairBonus).toBeNull();
+    expect(game.players.find((candidate) => candidate.playerId === "coati")?.score).toBe(scoreBefore);
+    expect(game.activePlayerId).toBe("coati");
+    expect(game.activeActionIndex).toBe(2);
+  });
+
   it("automatically skips Quati action C when reserve has at least two pieces", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("coati", "coati")]);
 
