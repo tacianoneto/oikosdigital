@@ -706,6 +706,8 @@
 }
 
 .opponent-rail {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: var(--opponent-button-gap);
   pointer-events: auto;
@@ -713,109 +715,75 @@
 
 .opponent-portrait-btn {
   position: relative;
+  z-index: 1;
   width: var(--opponent-button-size);
   height: var(--opponent-button-size);
   display: grid;
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--species, var(--panel)) 28%, rgba(8, 16, 13, 0.34)) 0 48%, transparent 68%);
-  box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.42);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   overflow: visible;
   transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
 .opponent-portrait-btn::before {
-  content: "";
-  position: absolute;
-  inset: 5px;
-  border-radius: 50%;
-  border: 1px solid transparent;
-  background: color-mix(in srgb, var(--species, var(--panel)) 16%, rgba(0, 0, 0, 0.2));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  transition: box-shadow 140ms ease, opacity 140ms ease;
-  z-index: -1;
+  display: none;
 }
 
 .opponent-portrait-btn:hover,
 .opponent-portrait-btn.is-selected {
   transform: translateX(-4px) scale(1.04);
-  box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.56),
-    0 0 18px color-mix(in srgb, var(--species, var(--amber)) 34%, transparent);
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.48));
 }
 
 .opponent-portrait-btn.is-selected::before {
-  box-shadow:
-    inset 0 0 0 2px color-mix(in srgb, var(--species, var(--amber)) 44%, transparent),
-    0 0 14px color-mix(in srgb, var(--species, var(--amber)) 42%, transparent);
+  display: none;
 }
 
 .opponent-portrait-btn.is-active-turn {
   transform: translateX(-7px) scale(1.08);
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.62),
-    0 0 0 3px rgba(7, 17, 13, 0.9),
-    0 0 0 7px rgba(120, 240, 161, 0.58),
-    0 0 28px rgba(120, 240, 161, 0.82);
+  filter:
+    drop-shadow(0 10px 12px rgba(0, 0, 0, 0.58))
+    drop-shadow(0 0 10px rgba(120, 240, 161, 0.92));
 }
 
 .opponent-portrait-btn.is-active-turn::before {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(120, 240, 161, 0.22), transparent 62%),
-    color-mix(in srgb, var(--species, var(--panel)) 20%, rgba(0, 0, 0, 0.24));
-  box-shadow:
-    inset 0 0 0 5px rgba(120, 240, 161, 0.96),
-    inset 0 0 0 8px rgba(7, 17, 13, 0.78),
-    0 0 18px rgba(120, 240, 161, 0.92);
+  display: none;
 }
 
 .opponent-portrait-btn.is-active-turn::after {
-  content: "";
-  position: absolute;
-  inset: -8px;
-  border: 3px solid rgba(120, 240, 161, 0.95);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 2px rgba(7, 17, 13, 0.86),
-    0 0 18px rgba(120, 240, 161, 0.86),
-    inset 0 0 14px rgba(120, 240, 161, 0.42);
-  pointer-events: none;
-  z-index: 1;
+  display: none;
 }
 
 .opponent-portrait-btn.is-active-turn.is-selected::before {
-  box-shadow:
-    inset 0 0 0 5px rgba(120, 240, 161, 0.98),
-    inset 0 0 0 8px rgba(242, 193, 78, 0.62),
-    0 0 22px rgba(120, 240, 161, 0.96);
+  display: none;
 }
 
-.opponent-portrait-frame {
+.opponent-portrait-image {
   position: relative;
-  width: var(--opponent-frame-size);
-  height: var(--opponent-frame-size);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  border-radius: 50%;
+  display: block;
+  width: calc(var(--opponent-frame-size) * 1.36);
+  height: calc(var(--opponent-frame-size) * 1.36);
+  flex: 0 0 auto;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  box-shadow: none;
+  filter: none;
+  pointer-events: none;
+  z-index: 10;
 }
 
-.opponent-portrait-frame img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  object-fit: cover;
-  border-radius: 50%;
-  display: block;
-  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.42));
-  pointer-events: none;
+.opponent-portrait-btn[data-species="armadillo"] .opponent-portrait-image {
+  width: calc(var(--opponent-frame-size) * 1.36);
+  height: calc(var(--opponent-frame-size) * 1.36);
 }
 
 .opponent-portrait-btn > span {

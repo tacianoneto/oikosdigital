@@ -6,7 +6,17 @@ vi.mock("./store", () => ({
 }));
 
 import { deleteRoom } from "./store";
-import { createRoom, leaveRooms, listOpenRooms, quitRoom } from "./rooms";
+import {
+  addBots,
+  createRoom,
+  joinRoom,
+  leaveRooms,
+  listOpenRooms,
+  quitRoom,
+  selectSpecies,
+  setReady,
+  startGame
+} from "./rooms";
 
 describe("room lifecycle", () => {
   beforeEach(() => {
@@ -30,9 +40,40 @@ describe("room lifecycle", () => {
     quitRoom(replacement.roomId, hostId);
   });
 
+  it("replaces an empty hosted lobby even while another socket keeps the host connected", () => {
+    const hostId = "host-replacing-empty-lobby";
+    const first = createRoom(hostId, "Host");
+    const replacement = createRoom(hostId, "Host");
+
+    expect(listOpenRooms().some((room) => room.roomId === first.roomId)).toBe(false);
+    expect(listOpenRooms().some((room) => room.roomId === replacement.roomId)).toBe(true);
+    expect(deleteRoom).toHaveBeenCalledWith(first.roomId);
+
+    quitRoom(replacement.roomId, hostId);
+  });
+
+  it("removes a disconnected bot setup before any piece was placed", () => {
+    const hostId = "host-with-pristine-setup";
+    const setupRoom = createRoom(hostId, "Host");
+    selectSpecies(setupRoom.roomId, hostId, "jaguar");
+    addBots(setupRoom.roomId, hostId);
+    setReady(setupRoom.roomId, hostId, true);
+    startGame(setupRoom.roomId, hostId);
+    leaveRooms(hostId);
+
+    const replacement = createRoom(hostId, "Host");
+
+    expect(deleteRoom).toHaveBeenCalledWith(setupRoom.roomId);
+    quitRoom(replacement.roomId, hostId);
+  });
+
   it("still limits four connected rooms for the same host", () => {
     const hostId = "host-with-active-lobbies";
-    const activeRooms = Array.from({ length: 4 }, () => createRoom(hostId, "Host"));
+    const activeRooms = Array.from({ length: 4 }, (_, index) => {
+      const room = createRoom(hostId, "Host");
+      joinRoom(room.roomId, `guest-${index}`, `Guest ${index}`);
+      return room;
+    });
 
     expect(() => createRoom(hostId, "Host")).toThrow("Você já tem 4 salas abertas.");
 

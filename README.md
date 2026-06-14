@@ -1,5 +1,13 @@
 # Oikos Digital
 
+## Regra obrigatoria de publicacao
+
+Toda atualizacao do projeto deve ser enviada ao GitHub.
+
+- Uma tarefa so esta concluida depois de validar as mudancas, criar o commit e executar o push para o repositorio remoto `origin`.
+- Nao deixe atualizacoes apenas no ambiente local.
+- Se o push falhar, informe claramente o erro e mantenha a tarefa como pendente ate a publicacao ser concluida.
+
 ## Multiplayer online
 
 O multiplayer usa servidor autoritativo com Socket.IO. O navegador envia a jogada, o servidor valida nas regras e todos os jogadores da sala recebem o novo estado.

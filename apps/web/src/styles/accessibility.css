@@ -227,8 +227,21 @@
 }
 
 .accessibility-visual-mode .opponent-portrait-btn::before {
-  background-image: var(--species-pattern);
-  opacity: 0.28;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0;
+}
+
+.accessibility-visual-mode .opponent-portrait-btn {
+  outline: 0;
+}
+
+.accessibility-visual-mode .opponent-portrait-btn:not(.is-active-turn)::after {
+  display: none;
+}
+
+.accessibility-visual-mode .opponent-portrait-btn.is-active-turn::after {
+  display: none;
 }
 
 .accessibility-visual-mode .flow-species-card > *,

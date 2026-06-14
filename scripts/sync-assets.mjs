@@ -9,6 +9,8 @@ import sharp from "sharp";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const publicAssets = join(root, "apps", "web", "public", "assets");
+const portraitSources = join(root, "portraits");
+const openPortraitAssets = join(publicAssets, "portraits-open");
 
 const WEBP_QUALITY = 82;
 
@@ -58,6 +60,52 @@ let converted = 0;
 let copied = 0;
 let skipped = 0;
 const jobs = [];
+
+// These variants keep artwork outside the printed circle away from the image
+// boundary. Lobby and opponent rail can render them without any CSS mask.
+mkdirSync(openPortraitAssets, { recursive: true });
+const openPortraitEntries = readdirSync(portraitSources, { withFileTypes: true }).filter(
+  (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".png")
+);
+const expectedOpenPortraits = new Set(openPortraitEntries.map((entry) => targetNameFor(entry.name, true)));
+
+for (const entry of readdirSync(openPortraitAssets, { withFileTypes: true })) {
+  if (entry.isFile() && !expectedOpenPortraits.has(entry.name) && /\.(png|webp)$/i.test(entry.name)) {
+    rmSync(join(openPortraitAssets, entry.name));
+  }
+}
+
+for (const entry of openPortraitEntries) {
+  const source = join(portraitSources, entry.name);
+  const target = join(openPortraitAssets, targetNameFor(entry.name, true));
+
+  if (isUpToDate(source, target)) {
+    skipped += 1;
+    continue;
+  }
+
+  jobs.push(
+    (async () => {
+      const image = sharp(source);
+      const { width = 0, height = 0 } = await image.metadata();
+      const canvasSize = Math.max(315, width, height);
+      const horizontalSpace = canvasSize - width;
+      const verticalSpace = canvasSize - height;
+
+      await image
+        .extend({
+          left: Math.floor(horizontalSpace / 2),
+          right: Math.ceil(horizontalSpace / 2),
+          top: Math.floor(verticalSpace / 2),
+          bottom: Math.ceil(verticalSpace / 2),
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .webp({ quality: WEBP_QUALITY })
+        .toFile(target);
+      converted += 1;
+    })()
+  );
+}
 
 for (const group of groups) {
   mkdirSync(group.to, { recursive: true });

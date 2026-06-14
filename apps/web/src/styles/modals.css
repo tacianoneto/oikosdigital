@@ -1671,14 +1671,9 @@
     height: 78px;
   }
 
-  .opponent-portrait-frame {
-    width: 68px;
-    height: 68px;
-  }
-
-  .opponent-portrait-frame img {
-    max-width: 68px;
-    max-height: 68px;
+  .opponent-portrait-image {
+    width: 92px;
+    height: 92px;
   }
 
   .opponent-popover {
@@ -1760,14 +1755,9 @@
     height: 70px;
   }
 
-  .opponent-portrait-frame {
-    width: 60px;
-    height: 60px;
-  }
-
-  .opponent-portrait-frame img {
-    max-width: 60px;
-    max-height: 60px;
+  .opponent-portrait-image {
+    width: 82px;
+    height: 82px;
   }
 
   .opponent-popover {

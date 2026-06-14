@@ -218,6 +218,8 @@ function isSmallScreen(): boolean {
 // Phone breakpoint that switches the HUD to the tabbed bottom-sheet layout.
 // Matches the `.mobile-hud` media query in styles.css.
 const MOBILE_HUD_QUERY = "(max-width: 560px)";
+const getOpenPortraitAsset = (portraitAsset: string) =>
+  portraitAsset.replace("/assets/portraits/", "/assets/portraits-open/");
 function isMobileWidth(): boolean {
   return typeof window !== "undefined" && window.matchMedia(MOBILE_HUD_QUERY).matches;
 }
@@ -5799,6 +5801,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       <div
                         key={species.speciesId}
                         className={`lobby-species-card-wrap ${isBotSlot ? "is-bot" : ""}`}
+                        data-species={species.speciesId}
                         style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
                       >
                         <button
@@ -5810,9 +5813,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                             void run(() => roomApi.selectSpecies(requireSocket(), room.roomId, species.speciesId));
                           }}
                         >
-                          <div className="lobby-species-thumb">
-                            <img className="is-portrait" src={encodeURI(species.portraitAsset)} alt="" />
-                          </div>
+                          <img
+                            className="lobby-species-portrait"
+                            src={encodeURI(getOpenPortraitAsset(species.portraitAsset))}
+                            alt=""
+                          />
                           <div className="lobby-species-text">
                             <strong>{species.displayName}</strong>
                             <small>{categoryLabels[species.category]}</small>
@@ -7005,9 +7010,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 }
               >
                 {species ? (
-                  <span className="opponent-portrait-frame">
-                    <img src={encodeURI(species.portraitAsset)} alt="" />
-                  </span>
+                  <span
+                    className="opponent-portrait-image"
+                    style={{
+                      backgroundImage: `url("${encodeURI(getOpenPortraitAsset(species.portraitAsset))}")`
+                    }}
+                    aria-hidden="true"
+                  />
                 ) : (
                   <span>{displayIndex + 1}</span>
                 )}

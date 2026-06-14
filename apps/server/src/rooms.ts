@@ -196,6 +196,25 @@ function hasConnectedHuman(room: ServerRoom): boolean {
   return room.players.some((player) => !player.isBot && player.connected);
 }
 
+function hasOtherHuman(room: ServerRoom, playerId: string): boolean {
+  return room.players.some((player) => !player.isBot && player.playerId !== playerId);
+}
+
+function isAbandonedPristineSetup(room: ServerRoom, hostPlayerId: string): boolean {
+  if (room.status !== "setup" || room.game?.status !== "setup" || hasConnectedHuman(room)) {
+    return false;
+  }
+
+  const host = room.players.find((player) => player.playerId === hostPlayerId);
+  return Boolean(
+    host &&
+      !host.connected &&
+      !hasOtherHuman(room, hostPlayerId) &&
+      room.game.pieces.every((piece) => !piece.location) &&
+      room.game.players.every((player) => player.turnsTaken === 0)
+  );
+}
+
 function removeRoom(roomId: string): void {
   const normalizedRoomId = roomId.trim().toUpperCase();
   rooms.delete(normalizedRoomId);
@@ -204,7 +223,11 @@ function removeRoom(roomId: string): void {
 
 function removeAbandonedHostedLobbies(hostPlayerId: string): void {
   for (const room of [...rooms.values()]) {
-    if (room.hostPlayerId === hostPlayerId && room.status === "lobby" && !hasConnectedHuman(room)) {
+    const emptyLobby =
+      room.hostPlayerId === hostPlayerId &&
+      room.status === "lobby" &&
+      !hasOtherHuman(room, hostPlayerId);
+    if (emptyLobby || (room.hostPlayerId === hostPlayerId && isAbandonedPristineSetup(room, hostPlayerId))) {
       removeRoom(room.roomId);
     }
   }
