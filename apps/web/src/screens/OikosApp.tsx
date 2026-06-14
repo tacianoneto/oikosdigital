@@ -730,6 +730,60 @@ function getAuthDisplayName(user: User): string {
   return (user.email?.split("@")[0] || "Jogador").slice(0, 24);
 }
 
+// Per-species "add piece" wiring: the local engine step, the online socket call,
+// and the confirmation notice. The galo-de-campina entry branches on whether an
+// adjacent add is pending. Species not listed here (coati included) fall back to
+// the coati handler, matching the previous default branch.
+type AddPieceHandler = {
+  local: (game: GameState, playerId: string, position: GridPosition, galoAdjacentPending: boolean) => GameState;
+  api: (socket: OikosSocket, roomId: string, x: number, y: number, galoAdjacentPending: boolean) => Promise<PublicRoomState>;
+  notice: string;
+};
+
+const ADD_PIECE_DEFAULT: AddPieceHandler = {
+  local: (game, playerId, position) => addCoatiForCurrentAction(game, playerId, position),
+  api: (socket, roomId, x, y) => roomApi.addCoati(socket, roomId, x, y),
+  notice: "Quati adicionado em local de fruta."
+};
+
+const ADD_PIECE_HANDLERS: Partial<Record<SpeciesId, AddPieceHandler>> = {
+  capuchin: {
+    local: (game, playerId, position) => addCapuchinForCurrentAction(game, playerId, position),
+    api: (socket, roomId, x, y) => roomApi.addCapuchin(socket, roomId, x, y),
+    notice: "Macaco-prego adicionado."
+  },
+  macaw: {
+    local: (game, playerId, position) => addMacawForCurrentAction(game, playerId, position),
+    api: (socket, roomId, x, y) => roomApi.addMacaw(socket, roomId, x, y),
+    notice: "Arara adicionada."
+  },
+  galo_de_campina: {
+    local: (game, playerId, position, galoAdjacentPending) =>
+      galoAdjacentPending
+        ? addGaloAdjacentForCurrentAction(game, playerId, position)
+        : addGaloForCurrentAction(game, playerId, position),
+    api: (socket, roomId, x, y, galoAdjacentPending) =>
+      galoAdjacentPending
+        ? roomApi.addGaloAdjacent(socket, roomId, x, y)
+        : roomApi.addGalo(socket, roomId, x, y),
+    notice: "Galo-de-campina adicionado."
+  },
+  armadillo: {
+    local: (game, playerId, position) => addArmadilloForCurrentAction(game, playerId, position),
+    api: (socket, roomId, x, y) => roomApi.addArmadillo(socket, roomId, x, y),
+    notice: "Tatu-bola adicionado."
+  },
+  maned_wolf: {
+    local: (game, playerId, position) => addWolfForCurrentAction(game, playerId, position),
+    api: (socket, roomId, x, y) => roomApi.addWolf(socket, roomId, x, y),
+    notice: "Lobo-guará adicionado."
+  }
+};
+
+function getAddPieceHandler(speciesId: SpeciesId | null | undefined): AddPieceHandler {
+  return (speciesId && ADD_PIECE_HANDLERS[speciesId]) || ADD_PIECE_DEFAULT;
+}
+
 export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [socket, setSocket] = useState<OikosSocket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
@@ -3126,21 +3180,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         return;
       }
 
+      const addHandler = getAddPieceHandler(activeSpecies?.speciesId);
+
       if (isLocalRoom) {
-        const nextGame =
-          activeSpecies?.speciesId === "capuchin"
-            ? addCapuchinForCurrentAction(room.game, room.game.activePlayerId, position)
-            : activeSpecies?.speciesId === "macaw"
-              ? addMacawForCurrentAction(room.game, room.game.activePlayerId, position)
-              : activeSpecies?.speciesId === "galo_de_campina"
-                ? galoAdjacentPending
-                  ? addGaloAdjacentForCurrentAction(room.game, room.game.activePlayerId, position)
-                  : addGaloForCurrentAction(room.game, room.game.activePlayerId, position)
-              : activeSpecies?.speciesId === "armadillo"
-                ? addArmadilloForCurrentAction(room.game, room.game.activePlayerId, position)
-                : activeSpecies?.speciesId === "maned_wolf"
-                  ? addWolfForCurrentAction(room.game, room.game.activePlayerId, position)
-            : addCoatiForCurrentAction(room.game, room.game.activePlayerId, position);
+        const nextGame = addHandler.local(room.game, room.game.activePlayerId, position, galoAdjacentPending);
         setRoom({
           ...room,
           status: nextGame.status === "active" ? "active" : room.status,
@@ -3150,36 +3193,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         setSelectedHandCardId(null);
         setSelectedPieceId(null);
         setSelectedRemovalPieceIds([]);
-        setNotice(
-          activeSpecies?.speciesId === "capuchin"
-            ? "Macaco-prego adicionado."
-            : activeSpecies?.speciesId === "macaw"
-              ? "Arara adicionada."
-              : activeSpecies?.speciesId === "galo_de_campina"
-                ? "Galo-de-campina adicionado."
-              : activeSpecies?.speciesId === "armadillo"
-                ? "Tatu-bola adicionado."
-                : activeSpecies?.speciesId === "maned_wolf"
-                  ? "Lobo-guará adicionado."
-              : "Quati adicionado em local de fruta."
-        );
+        setNotice(addHandler.notice);
         return;
       }
 
       void run(() =>
-        activeSpecies?.speciesId === "capuchin"
-          ? roomApi.addCapuchin(requireSocket(), room.roomId, position.x, position.y)
-          : activeSpecies?.speciesId === "macaw"
-            ? roomApi.addMacaw(requireSocket(), room.roomId, position.x, position.y)
-            : activeSpecies?.speciesId === "galo_de_campina"
-              ? galoAdjacentPending
-                ? roomApi.addGaloAdjacent(requireSocket(), room.roomId, position.x, position.y)
-                : roomApi.addGalo(requireSocket(), room.roomId, position.x, position.y)
-            : activeSpecies?.speciesId === "armadillo"
-              ? roomApi.addArmadillo(requireSocket(), room.roomId, position.x, position.y)
-              : activeSpecies?.speciesId === "maned_wolf"
-                ? roomApi.addWolf(requireSocket(), room.roomId, position.x, position.y)
-          : roomApi.addCoati(requireSocket(), room.roomId, position.x, position.y)
+        addHandler.api(requireSocket(), room.roomId, position.x, position.y, galoAdjacentPending)
       ).then(() => {
         setSelectedHandCardId(null);
         setSelectedPieceId(null);
