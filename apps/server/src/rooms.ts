@@ -864,74 +864,70 @@ export function setMiniExpansion(roomId: string, playerId: string, expansionId: 
   return toPublicRoom(room);
 }
 
-export function placeSetupPiece(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
+type ActiveGame = NonNullable<ServerRoom["game"]>;
+
+// Status resolvers shared by the game-mutating wrappers below. Each maps the
+// post-step game state to the room status, reproducing exactly what the
+// hand-written wrappers used to compute inline.
+const statusActive = (): ServerRoom["status"] => "active";
+const statusActiveOrKeep = (game: ActiveGame, room: ServerRoom): ServerRoom["status"] =>
+  game.status === "active" ? "active" : room.status;
+const statusFinishedOrActive = (game: ActiveGame): ServerRoom["status"] =>
+  game.status === "finished" ? "finished" : "active";
+
+// Shared body for the endpoints that mutate an in-progress game: fetch the room,
+// require a started game, apply the engine step, then recompute status/warnings
+// and return the public projection. `mutate` may return null to signal "no
+// change" (e.g. a stale score request), leaving the room untouched.
+function withActiveGame(
+  roomId: string,
+  mutate: (game: ActiveGame, room: ServerRoom) => ActiveGame | null,
+  resolveStatus: (game: ActiveGame, room: ServerRoom) => ServerRoom["status"]
+): PublicRoomState {
   const room = getRoom(roomId);
 
   if (!room.game) {
     throw new Error("A partida ainda não foi iniciada.");
   }
 
-  room.game = placeInitialPiece(room.game, playerId, { x, y });
-  room.status = room.game.status === "active" ? "active" : "setup";
+  const next = mutate(room.game, room);
+  if (next === null) {
+    return toPublicRoom(room);
+  }
+
+  room.game = next;
+  room.status = resolveStatus(room.game, room);
   room.warnings = room.game.contentWarnings;
 
   return toPublicRoom(room);
+}
+
+export function placeSetupPiece(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
+  return withActiveGame(
+    roomId,
+    (game) => placeInitialPiece(game, playerId, { x, y }),
+    (game) => (game.status === "active" ? "active" : "setup")
+  );
 }
 
 export function chooseObjective(roomId: string, playerId: string, objectiveCardId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-
-  room.game = selectObjectiveCard(room.game, playerId, objectiveCardId);
-  room.status = room.game.status === "setup" ? "setup" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(
+    roomId,
+    (game) => selectObjectiveCard(game, playerId, objectiveCardId),
+    (game, room) => (game.status === "setup" ? "setup" : room.status)
+  );
 }
 
 export function discardObjective(roomId: string, playerId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-
-  room.game = discardObjectiveForResources(room.game, playerId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => discardObjectiveForResources(game, playerId), statusActiveOrKeep);
 }
 
 export function resolveExtraTurn(roomId: string, playerId: string, accept: boolean): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-
-  room.game = resolveExtraTurnObjective(room.game, playerId, accept);
-  room.status = room.game.status === "finished" ? "finished" : "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => resolveExtraTurnObjective(game, playerId, accept), statusFinishedOrActive);
 }
 
 export function resolveSeedSpend(roomId: string, playerId: string, accept: boolean): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-
-  room.game = resolveSeedSpendObjective(room.game, playerId, accept);
-  room.status = room.game.status === "finished" ? "finished" : "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => resolveSeedSpendObjective(game, playerId, accept), statusFinishedOrActive);
 }
 
 export function collectCaatinga(
@@ -939,14 +935,7 @@ export function collectCaatinga(
   playerId: string,
   mode: "gain" | "lose" | "skip" = "gain"
 ): PublicRoomState {
-  const room = getRoom(roomId);
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-  room.game = collectCaatingaBonus(room.game, playerId, mode);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => collectCaatingaBonus(game, playerId, mode), statusActiveOrKeep);
 }
 
 export function collectCerrado(
@@ -954,14 +943,7 @@ export function collectCerrado(
   playerId: string,
   mode: "collect" | "skip" = "collect"
 ): PublicRoomState {
-  const room = getRoom(roomId);
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-  room.game = collectCerradoBonus(room.game, playerId, mode);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => collectCerradoBonus(game, playerId, mode), statusActiveOrKeep);
 }
 
 export function resolveCacaIlegalThreat(
@@ -969,25 +951,11 @@ export function resolveCacaIlegalThreat(
   playerId: string,
   choice: Parameters<typeof resolveCacaIlegal>[2]
 ): PublicRoomState {
-  const room = getRoom(roomId);
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-  room.game = resolveCacaIlegal(room.game, playerId, choice);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => resolveCacaIlegal(game, playerId, choice), statusActiveOrKeep);
 }
 
 export function discardMataAtlanticaCard(roomId: string, playerId: string, cardId: string): PublicRoomState {
-  const room = getRoom(roomId);
-  if (!room.game) {
-    throw new Error("A partida ainda nao foi iniciada.");
-  }
-  room.game = discardMataAtlanticaPileCard(room.game, playerId, cardId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => discardMataAtlanticaPileCard(game, playerId, cardId), statusActiveOrKeep);
 }
 
 export function placeCardInForest(
@@ -998,299 +966,103 @@ export function placeCardInForest(
   y: number,
   rotation: ForestCardState["rotation"]
 ): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = placeForestCard(room.game, playerId, cardId, { x, y }, rotation);
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => placeForestCard(game, playerId, cardId, { x, y }, rotation), statusActive);
 }
 
 export function addCoati(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = addCoatiForCurrentAction(room.game, playerId, { x, y });
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => addCoatiForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
 export function addGalo(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = addGaloForCurrentAction(room.game, playerId, { x, y });
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => addGaloForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
 export function addGaloAdjacent(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = addGaloAdjacentForCurrentAction(room.game, playerId, { x, y });
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => addGaloAdjacentForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
 export function resolveCoatiPair(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = resolveCoatiPairBonus(room.game, playerId, { x, y });
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => resolveCoatiPairBonus(game, playerId, { x, y }), statusActiveOrKeep);
 }
 
 export function addCapuchin(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = addCapuchinForCurrentAction(room.game, playerId, { x, y });
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => addCapuchinForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
 export function addMacaw(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = addMacawForCurrentAction(room.game, playerId, { x, y });
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => addMacawForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
 export function addArmadillo(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = addArmadilloForCurrentAction(room.game, playerId, { x, y });
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => addArmadilloForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
 export function addWolf(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = addWolfForCurrentAction(room.game, playerId, { x, y });
-  room.status = "active";
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => addWolfForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
 export function completeAction(roomId: string, playerId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = completeCurrentAction(room.game, playerId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => completeCurrentAction(game, playerId), statusActiveOrKeep);
 }
 
 export function scoreCapuchin(roomId: string, playerId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  if (isStaleScoreRequest(room, playerId, "capuchin")) {
-    return toPublicRoom(room);
-  }
-
-  room.game = scoreCapuchinHabitatPresence(room.game, playerId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(
+    roomId,
+    (game, room) => (isStaleScoreRequest(room, playerId, "capuchin") ? null : scoreCapuchinHabitatPresence(game, playerId)),
+    statusActiveOrKeep
+  );
 }
 
 export function scoreMacaw(roomId: string, playerId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  if (isStaleScoreRequest(room, playerId, "macaw")) {
-    return toPublicRoom(room);
-  }
-
-  room.game = scoreMacawLines(room.game, playerId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(
+    roomId,
+    (game, room) => (isStaleScoreRequest(room, playerId, "macaw") ? null : scoreMacawLines(game, playerId)),
+    statusActiveOrKeep
+  );
 }
 
 export function scoreGalo(roomId: string, playerId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  if (isStaleScoreRequest(room, playerId, "galo_de_campina")) {
-    return toPublicRoom(room);
-  }
-
-  room.game = scoreGaloSeedCards(room.game, playerId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(
+    roomId,
+    (game, room) => (isStaleScoreRequest(room, playerId, "galo_de_campina") ? null : scoreGaloSeedCards(game, playerId)),
+    statusActiveOrKeep
+  );
 }
 
 export function hideArmadillo(roomId: string, playerId: string, pieceId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = hideArmadilloForCurrentAction(room.game, playerId, pieceId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => hideArmadilloForCurrentAction(game, playerId, pieceId), statusActiveOrKeep);
 }
 
 export function scoreArmadillo(roomId: string, playerId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  if (isStaleScoreRequest(room, playerId, "armadillo")) {
-    return toPublicRoom(room);
-  }
-
-  room.game = scoreArmadilloSharing(room.game, playerId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(
+    roomId,
+    (game, room) => (isStaleScoreRequest(room, playerId, "armadillo") ? null : scoreArmadilloSharing(game, playerId)),
+    statusActiveOrKeep
+  );
 }
 
 export function removeWolfBasePiece(roomId: string, playerId: string, pieceId: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = removeBasePieceForWolfAction(room.game, playerId, pieceId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => removeBasePieceForWolfAction(game, playerId, pieceId), statusActiveOrKeep);
 }
 
 export function spendWolfResources(roomId: string, playerId: string, resources: Resource[]): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = spendWolfResourcesForPoints(room.game, playerId, resources);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => spendWolfResourcesForPoints(game, playerId, resources), statusActiveOrKeep);
 }
 
 export function movePiece(roomId: string, playerId: string, pieceId: string, x: number, y: number, targetPieceId?: string): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = movePieceForCurrentAction(room.game, playerId, pieceId, { x, y }, targetPieceId);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(
+    roomId,
+    (game) => movePieceForCurrentAction(game, playerId, pieceId, { x, y }, targetPieceId),
+    statusActiveOrKeep
+  );
 }
 
 export function removePieces(roomId: string, playerId: string, pieceIds: string[]): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = removePiecesForCurrentAction(room.game, playerId, pieceIds);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => removePiecesForCurrentAction(game, playerId, pieceIds), statusActiveOrKeep);
 }
 
 export function spendJaguarMeat(roomId: string, playerId: string, count: number): PublicRoomState {
-  const room = getRoom(roomId);
-
-  if (!room.game) {
-    throw new Error("A partida ainda não foi iniciada.");
-  }
-
-  room.game = spendJaguarMeatForPoints(room.game, playerId, count);
-  room.status = room.game.status === "active" ? "active" : room.status;
-  room.warnings = room.game.contentWarnings;
-
-  return toPublicRoom(room);
+  return withActiveGame(roomId, (game) => spendJaguarMeatForPoints(game, playerId, count), statusActiveOrKeep);
 }
 
 export function getPublicRoom(roomId: string): PublicRoomState {
