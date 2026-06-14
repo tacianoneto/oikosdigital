@@ -379,7 +379,7 @@
   align-items: flex-end;
   gap: 4px;
   pointer-events: none;
-  z-index: 2;
+  z-index: 20;
 }
 
 .opponent-portrait-leader {

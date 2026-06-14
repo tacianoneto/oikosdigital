@@ -818,7 +818,7 @@
   font-weight: 900;
   line-height: 1;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-  z-index: 2;
+  z-index: 20;
 }
 
 .opponent-portrait-btn em img {
