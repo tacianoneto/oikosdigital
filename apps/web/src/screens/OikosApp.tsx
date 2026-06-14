@@ -156,6 +156,8 @@ import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesHudShell } from "../ui/SpeciesHudShell";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
+import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
+import { TutorialCoach } from "../ui/TutorialCoach";
 import { formatTurnTimer } from "../ui/format";
 import { renderReserveMeeples } from "../ui/meeples";
 import { movementArtPath } from "../ui/movementArt";
@@ -4630,223 +4632,19 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {!hasStartedGame && !room && landingMode === "tutorials" && (
-        <div className="flow-screen" role="main">
-          <div className="landing-bg-orbs" aria-hidden="true">
-            <span className="orb orb-1" />
-            <span className="orb orb-2" />
-            <span className="orb orb-3" />
-          </div>
-
-          <header className="flow-header">
-            <button
-              type="button"
-              className="flow-back"
-              onClick={() => setLandingMode("idle")}
-              aria-label="Voltar"
-            >
-              <ChevronLeft aria-hidden="true" />
-              <span>Voltar</span>
-            </button>
-            <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
-            </div>
-            <span className="flow-spacer" aria-hidden="true" />
-          </header>
-
-          <div className="flow-body">
-            <h2 className="flow-title">Tutoriais</h2>
-            <p className="flow-subtitle">Escolha um capítulo. Comece pelo tutorial básico.</p>
-
-            <div className="tutorial-chapters">
-              <button
-                type="button"
-                className={`tutorial-chapter ${isTutorialInitialDone() ? "is-done" : "is-available"}`}
-                onClick={() => startTutorial("initial")}
-              >
-                <span className="tutorial-chapter-icon">
-                  <GraduationCap aria-hidden="true" />
-                </span>
-                <span className="tutorial-chapter-text">
-                  <strong>Tutorial básico</strong>
-                  <small>Meeples, cartas, rios, rotação, movimento e pontuação final.</small>
-                </span>
-                {isTutorialInitialDone() ? (
-                  <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
-                  </span>
-                ) : (
-                  <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`tutorial-chapter ${isTutorialJaguarDone() ? "is-done" : "is-available"}`}
-                style={{ "--species-color": SPECIES_HEX.jaguar } as CSSProperties}
-                onClick={() => startTutorial("jaguar")}
-              >
-                <span className="tutorial-chapter-icon">
-                  <img className="is-portrait" src={encodeURI(speciesDefinitions.jaguar.portraitAsset)} alt="" />
-                </span>
-                <span className="tutorial-chapter-text">
-                  <strong>{speciesDefinitions.jaguar.displayName}</strong>
-                  <small><ResourceText text="O predador: cace peças e gaste carne por pontos." /></small>
-                </span>
-                {isTutorialJaguarDone() ? (
-                  <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
-                  </span>
-                ) : (
-                  <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`tutorial-chapter ${isTutorialWolfDone() ? "is-done" : "is-available"}`}
-                style={{ "--species-color": SPECIES_HEX.maned_wolf } as CSSProperties}
-                onClick={() => startTutorial("wolf")}
-              >
-                <span className="tutorial-chapter-icon">
-                  <img className="is-portrait" src={encodeURI(speciesDefinitions.maned_wolf.portraitAsset)} alt="" />
-                </span>
-                <span className="tutorial-chapter-text">
-                  <strong>{speciesDefinitions.maned_wolf.displayName}</strong>
-                  <small>Mova a alcateia, remova espécies de base e converta recursos em pontos.</small>
-                </span>
-                {isTutorialWolfDone() ? (
-                  <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
-                  </span>
-                ) : (
-                  <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`tutorial-chapter ${isTutorialArmadilloDone() ? "is-done" : "is-available"}`}
-                style={{ "--species-color": SPECIES_HEX.armadillo } as CSSProperties}
-                onClick={() => startTutorial("armadillo")}
-              >
-                <span className="tutorial-chapter-icon">
-                  <img className="is-portrait" src={encodeURI(speciesDefinitions.armadillo.portraitAsset)} alt="" />
-                </span>
-                <span className="tutorial-chapter-text">
-                  <strong>{speciesDefinitions.armadillo.displayName}</strong>
-                  <small>Espalhe 4 tatus, faça 3 pontos e teste a carapaça contra a Onça.</small>
-                </span>
-                {isTutorialArmadilloDone() ? (
-                  <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
-                  </span>
-                ) : (
-                  <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`tutorial-chapter ${isTutorialMacawDone() ? "is-done" : "is-available"}`}
-                style={{ "--species-color": SPECIES_HEX.macaw } as CSSProperties}
-                onClick={() => startTutorial("macaw")}
-              >
-                <span className="tutorial-chapter-icon">
-                  <img className="is-portrait" src={encodeURI(speciesDefinitions.macaw.portraitAsset)} alt="" />
-                </span>
-                <span className="tutorial-chapter-text">
-                  <strong>{speciesDefinitions.macaw.displayName}</strong>
-                  <small>Posicione 6 araras, cruze 3 linhas e marque 3 pontos.</small>
-                </span>
-                {isTutorialMacawDone() ? (
-                  <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
-                  </span>
-                ) : (
-                  <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`tutorial-chapter ${isTutorialCapuchinDone() ? "is-done" : "is-available"}`}
-                style={{ "--species-color": SPECIES_HEX.capuchin } as CSSProperties}
-                onClick={() => startTutorial("capuchin")}
-              >
-                <span className="tutorial-chapter-icon">
-                  <img className="is-portrait" src={encodeURI(speciesDefinitions.capuchin.portraitAsset)} alt="" />
-                </span>
-                <span className="tutorial-chapter-text">
-                  <strong>{speciesDefinitions.capuchin.displayName}</strong>
-                  <small>Use 7 macacos, complete os 3 habitats e marque 3 pontos.</small>
-                </span>
-                {isTutorialCapuchinDone() ? (
-                  <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
-                  </span>
-                ) : (
-                  <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
-                  </span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`tutorial-chapter ${isTutorialCoatiDone() ? "is-done" : "is-available"}`}
-                style={{ "--species-color": SPECIES_HEX.coati } as CSSProperties}
-                onClick={() => startTutorial("coati")}
-              >
-                <span className="tutorial-chapter-icon">
-                  <img className="is-portrait" src={encodeURI(speciesDefinitions.coati.portraitAsset)} alt="" />
-                </span>
-                <span className="tutorial-chapter-text">
-                  <strong>{speciesDefinitions.coati.displayName}</strong>
-                  <small>Encadeie duplas exatas para adicionar quatis da reserva e marcar 3 pontos.</small>
-                </span>
-                {isTutorialCoatiDone() ? (
-                  <span className="tutorial-chapter-badge done">
-                    <Check aria-hidden="true" /> Concluído
-                  </span>
-                ) : (
-                  <span className="tutorial-chapter-badge play">
-                    <Play aria-hidden="true" /> Começar
-                  </span>
-                )}
-              </button>
-              {speciesList.filter((species) =>
-                species.speciesId !== "jaguar" &&
-                species.speciesId !== "maned_wolf" &&
-                species.speciesId !== "armadillo" &&
-                species.speciesId !== "macaw" &&
-                species.speciesId !== "capuchin" &&
-                species.speciesId !== "coati"
-              ).map((species) => (
-                <div
-                  key={species.speciesId}
-                  className="tutorial-chapter is-locked"
-                  style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
-                  aria-disabled="true"
-                >
-                  <span className="tutorial-chapter-icon">
-                    <img className="is-portrait" src={encodeURI(species.portraitAsset)} alt="" />
-                  </span>
-                  <span className="tutorial-chapter-text">
-                    <strong>{species.displayName}</strong>
-                    <small>Aprenda a jogar com esta espécie.</small>
-                  </span>
-                  <span className="tutorial-chapter-badge locked">
-                    <Lock aria-hidden="true" /> Em breve
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <TutorialChapterSelect
+          completed={{
+            initial: isTutorialInitialDone(),
+            jaguar: isTutorialJaguarDone(),
+            wolf: isTutorialWolfDone(),
+            armadillo: isTutorialArmadilloDone(),
+            macaw: isTutorialMacawDone(),
+            capuchin: isTutorialCapuchinDone(),
+            coati: isTutorialCoatiDone()
+          }}
+          onBack={() => setLandingMode("idle")}
+          onStart={startTutorial}
+        />
       )}
 
       {!hasStartedGame && room && (
@@ -5535,77 +5333,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {tutorialActive && hasStartedGame && !cleanBoardMode && tutorialDef && (
-        <div className="tutorial-coach" role="dialog" aria-live="polite">
-          <div className="tutorial-coach-progress" aria-hidden="true">
-            {tutorialSteps.map((_, i) => (
-              <span
-                key={i}
-                className={`tutorial-dot ${
-                  i === tutorialStep ? "active" : i < (tutorialStep ?? 0) ? "done" : ""
-                }`}
-              />
-            ))}
-          </div>
-          <div className="tutorial-coach-body">
-            <span className="tutorial-coach-step">
-              Passo {(tutorialStep ?? 0) + 1}/{tutorialSteps.length}
-            </span>
-            <h3><ResourceText text={tutorialDef.title} /></h3>
-            <p><ResourceText text={tutorialDef.body} /></p>
-            {tutorialDef.resourceIcons && tutorialDef.resourceIcons.length > 0 && (
-              <ul className="tutorial-coach-resources">
-                {tutorialDef.resourceIcons.map((icon) => (
-                  <li key={`${icon.resource}-${icon.caption}`}>
-                    <img src={encodeURI(resourceAssets[icon.resource])} alt="" />
-                    <span>{icon.caption}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {tutorialDef.categoryCards && tutorialDef.categoryCards.length > 0 && (
-              <ul className="tutorial-coach-categories">
-                {tutorialDef.categoryCards.map((card) => (
-                  <li key={card.label} style={{ "--cat-color": card.color } as CSSProperties}>
-                    <img src={encodeURI(card.iconAsset)} alt="" />
-                    <span className="tutorial-coach-category-text">
-                      <strong>{card.label}</strong>
-                      <small><ResourceText text={card.body} /></small>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {tutorialDef.terms && tutorialDef.terms.length > 0 && (
-              <dl className="tutorial-coach-terms">
-                {tutorialDef.terms.map((entry) => (
-                  <div key={entry.term}>
-                    <dt>{entry.term}</dt>
-                    <dd><ResourceText text={entry.body} /></dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </div>
-          <div className="tutorial-coach-actions">
-            <button type="button" className="tutorial-coach-exit" onClick={() => exitTutorial(false)}>
-              Sair
-            </button>
-            {!tutorialDef.autoAdvance &&
-              (tutorialStep === tutorialSteps.length - 1 ? (
-                <button type="button" className="primary-button" onClick={() => exitTutorial(true)}>
-                  Concluir
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="primary-button"
-                  onClick={() => setTutorialStep((step) => (step === null ? step : step + 1))}
-                >
-                  Próximo
-                </button>
-              ))}
-          </div>
-        </div>
+        <TutorialCoach
+          currentStep={tutorialStep}
+          steps={tutorialSteps}
+          onExit={() => exitTutorial(false)}
+          onComplete={() => exitTutorial(true)}
+          onNext={() => setTutorialStep((step) => (step === null ? step : step + 1))}
+        />
       )}
 
       {hasStartedGame && !cleanBoardMode && configOpen && (
