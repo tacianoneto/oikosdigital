@@ -161,6 +161,11 @@ import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
 import { SettingsModal } from "../ui/SettingsModal";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
+import { formatTurnTimer } from "../ui/format";
+import { renderReserveMeeples } from "../ui/meeples";
+import { movementArtPath } from "../ui/movementArt";
+import { DESKTOP_ONLY_QUERY, MOBILE_HUD_QUERY, isBelowDesktopWidth, isMobileWidth, isSmallScreen } from "../ui/responsive";
+import { getVisualAccessibilityPreference, setVisualAccessibilityPreference } from "../ui/visualAccessibility";
 import {
   HABITAT_SCORE_COLORS,
   SPECIES_HEX,
@@ -214,38 +219,8 @@ const ForestCanvas = lazy(() =>
   import("../game/ForestCanvas").then((module) => ({ default: module.ForestCanvas }))
 ) as ForestCanvasComponent;
 
-// Phones/small tablets: start with the side docks and hand collapsed so the
-// board owns the screen; the edge tabs reopen each panel on demand.
-function isSmallScreen(): boolean {
-  return typeof window !== "undefined" && window.innerWidth <= 820;
-}
-
-// Phone breakpoint that switches the HUD to the tabbed bottom-sheet layout.
-// Matches the `.mobile-hud` media query in styles.css.
-const MOBILE_HUD_QUERY = "(max-width: 560px)";
 const getOpenPortraitAsset = (portraitAsset: string) =>
   portraitAsset.replace("/assets/portraits/", "/assets/portraits-open/");
-function isMobileWidth(): boolean {
-  return typeof window !== "undefined" && window.matchMedia(MOBILE_HUD_QUERY).matches;
-}
-
-const DESKTOP_ONLY_QUERY = "(max-width: 1023px)";
-function isBelowDesktopWidth(): boolean {
-  return typeof window !== "undefined" && window.matchMedia(DESKTOP_ONLY_QUERY).matches;
-}
-
-const VISUAL_ACCESSIBILITY_KEY = "oikos.visualAccessibility";
-function getVisualAccessibilityPreference(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(VISUAL_ACCESSIBILITY_KEY) === "true";
-}
-
-function setVisualAccessibilityPreference(enabled: boolean): boolean {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(VISUAL_ACCESSIBILITY_KEY, enabled ? "true" : "false");
-  }
-  return enabled;
-}
 
 type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 
@@ -255,17 +230,6 @@ const DEFAULT_TURN_TIMER_MS = 60000;
 const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
 const handHabitatOrder: Habitat[] = ["forest", "field", "river"];
 type HandSortMode = "habitat" | "resource";
-
-function renderReserveMeeples(player: Pick<PlayerState, "playerId" | "reservePieces">, meepleAsset: string) {
-  return player.reservePieces.map((pieceId, index) => (
-    <img
-      key={`${player.playerId}_reserve_${pieceId}_${index}`}
-      className="is-in-reserve"
-      src={encodeURI(meepleAsset)}
-      alt="Na reserva"
-    />
-  ));
-}
 
 const miniExpansionOptions: Array<{
   id: MiniExpansionId;
@@ -301,23 +265,6 @@ const movementKindLabels: Record<MovementKind, string> = {
   knight_jump: "Salto em curva"
 };
 
-const movementKindAssetSuffix: Record<MovementKind, string> = {
-  adjacent: "ortogonal",
-  diagonal: "diagonal",
-  straight_jump: "salto",
-  knight_jump: "cavalo"
-};
-
-const habitatAssetPrefix: Record<Habitat, string> = {
-  forest: "bosque",
-  field: "campo",
-  river: "rios"
-};
-
-function movementArtPath(habitat: Habitat, kind: MovementKind): string {
-  return `/assets/movimentos/separados/${habitatAssetPrefix[habitat]}_${movementKindAssetSuffix[kind]}.webp`;
-}
-
 function SkipExtraTurnNoCardAction({
   visible,
   onComplete
@@ -340,16 +287,6 @@ function SkipExtraTurnNoCardAction({
 
 function isExclusiveScenarioPair(a: ScenarioCardId, b: ScenarioCardId): boolean {
   return (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
-}
-
-function formatTurnTimer(ms: number): string {
-  const seconds = Math.round(ms / 1000);
-  if (seconds < 60) {
-    return `${seconds}s`;
-  }
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return rest > 0 ? `${minutes}min ${rest}s` : `${minutes}min`;
 }
 
 interface OikosAppProps {
