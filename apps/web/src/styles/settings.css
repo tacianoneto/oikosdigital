@@ -4,7 +4,9 @@
 .settings-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  /* Above the floating active-species hand (.table-hand uses z-index: 9999) so
+     cards never cover the settings dialog. */
+  z-index: 10000;
   display: grid;
   place-items: center;
   padding: 5vh 5vw;
