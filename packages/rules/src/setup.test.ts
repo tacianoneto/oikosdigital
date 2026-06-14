@@ -1658,16 +1658,18 @@ describe("setup placement", () => {
     expect(game.activePlayerId).toBe("coati");
   });
 
-  it("counts a hidden Tatu-bola when sharing with three rival species", () => {
+  it("counts a hidden Tatu-bola when sharing with four rival species", () => {
     let game = createTestGameState("room", [
+      player("jaguar", "jaguar"),
       player("armadillo", "armadillo"),
       player("capuchin", "capuchin"),
       player("coati", "coati"),
       player("macaw", "macaw")
     ]);
+    game = placeInitialPiece(game, "jaguar", { x: -1, y: -1 });
     game = placeInitialPiece(game, "armadillo", { x: -1, y: -1 });
     game = placeInitialPiece(game, "armadillo", { x: 0, y: -1 });
-    game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
+    game = placeInitialPiece(game, "macaw", { x: 0, y: -1 });
     game = placeInitialPiece(game, "macaw", { x: 1, y: -1 });
     game = placeInitialPiece(game, "macaw", { x: 1, y: 0 });
     game = placeInitialPiece(game, "capuchin", { x: -1, y: -1 });
@@ -1686,7 +1688,7 @@ describe("setup placement", () => {
     expect(getArmadilloShareScore(game, "armadillo")).toBe(3);
     expect(getArmadilloSharingDetails(game, "armadillo")).toMatchObject({
       points: 3,
-      sharedSpecies: expect.arrayContaining(["capuchin", "coati", "macaw"]),
+      sharedSpecies: expect.arrayContaining(["jaguar", "capuchin", "coati", "macaw"]),
       missingSpecies: []
     });
 

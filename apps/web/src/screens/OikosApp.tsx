@@ -5227,7 +5227,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.armadillo.displayName}</strong>
-                  <small>Adicione, mova e esconda tatus para compartilhar locais e pontuar.</small>
+                  <small>Espalhe 4 tatus, faça 3 pontos e teste a carapaça contra a Onça.</small>
                 </span>
                 {isTutorialArmadilloDone() ? (
                   <span className="tutorial-chapter-badge done">

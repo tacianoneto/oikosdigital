@@ -406,50 +406,62 @@ const WOLF_TUTORIAL_STEPS: TutorialStepDef[] = [
 ];
 
 // --- Tatu-bola (armadillo) chapter -----------------------------------------
-// A scripted full turn against three rival species. Each rival ends the turn
-// sharing a location with at least one armadillo, which yields the maximum
-// three points. The newly added armadillo is hidden in action C to demonstrate
-// that protection does not stop it from counting toward sharing in action D.
+// A scripted full turn on a larger forest against four rival species. The
+// armadillo reaches all four pieces, scores the maximum three points, then the
+// player controls the Jaguar in a short attack demonstration. The Jaguar
+// removes a visible Macaw but cannot remove the hidden armadillo beside it.
 const ARMADILLO_TUTORIAL_PLAYER_ID = "local_armadillo";
+const ARMADILLO_TUTORIAL_JAGUAR_ID = "local_armadillo_jaguar";
 const ARMADILLO_TUTORIAL_CAPUCHIN_ID = "local_armadillo_capuchin";
 const ARMADILLO_TUTORIAL_COATI_ID = "local_armadillo_coati";
 const ARMADILLO_TUTORIAL_MACAW_ID = "local_armadillo_macaw";
 const ARMADILLO_TUTORIAL_CARD = "bosque_1_copy";
 const ARMADILLO_TUTORIAL_MOVING_PIECE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_2`;
-const ARMADILLO_TUTORIAL_HIDING_PIECE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_3`;
+const ARMADILLO_TUTORIAL_HIDING_PIECE_ID = `${ARMADILLO_TUTORIAL_PLAYER_ID}_piece_4`;
+const ARMADILLO_TUTORIAL_JAGUAR_PIECE_ID = `${ARMADILLO_TUTORIAL_JAGUAR_ID}_piece_1`;
 
 const ARMADILLO_TUTORIAL_FOREST: ForestCardState[] = [
   { instanceId: "arm_tut_0", definitionId: "bosque_2", x: -1, y: -1, rotation: 0, isInitial: true },
   { instanceId: "arm_tut_1", definitionId: "bosque_4", x: 0, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_2", definitionId: "bosque_1", x: 1, y: -1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_3", definitionId: "campo_3", x: -1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_4", definitionId: "campo_4", x: 0, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_5", definitionId: "campo_2", x: 1, y: 0, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_6", definitionId: "campo_4_copy", x: -1, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_7", definitionId: "bosque_3", x: 0, y: 1, rotation: 0, isInitial: true },
-  { instanceId: "arm_tut_8", definitionId: "campo_1", x: 1, y: 1, rotation: 0, isInitial: true }
+  { instanceId: "arm_tut_2", definitionId: "campo_4", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_3", definitionId: "campo_3", x: 2, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_4", definitionId: "campo_3_copy", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_5", definitionId: "campo_4_copy", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_6", definitionId: "campo_2", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_7", definitionId: "bosque_1", x: 2, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_8", definitionId: "campo_1", x: -1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_9", definitionId: "bosque_2_copy", x: 0, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_10", definitionId: "bosque_3", x: 1, y: 1, rotation: 0, isInitial: true },
+  { instanceId: "arm_tut_11", definitionId: "bosque_4_copy", x: 2, y: 1, rotation: 0, isInitial: true }
 ];
 
 const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Tatu-bola",
-    body: "O Tatu-bola é uma espécie de meio com 4 peças. Ele começa com 2 tatus, adiciona novos animais em locais de semente, pode se esconder contra predadores e pontua ao compartilhar locais com espécies diferentes.",
-    gate: "none",
-    autoAdvance: false
-  },
-  {
-    title: "O plano do turno",
-    body: "Já existe um tatu dividindo local com o Macaco-prego. Na ação A, você adicionará outro junto da Arara-azul. Na B, moverá um tatu até o Quati. Na C, esconderá o tatu recém-adicionado. Assim, as três espécies compartilharão locais e a ação D renderá 3 pontos, o máximo.",
+    body: "O Tatu-bola é uma espécie de meio com 4 peças. Sua estratégia é espalhar a população pela floresta para compartilhar locais com espécies diferentes. Ele adiciona novos tatus em sementes, move conforme a carta jogada e usa a carapaça para escapar de predadores.",
     gate: "none",
     autoAdvance: false,
     resourceIcons: [
       { resource: "seed", caption: "Sementes recebem novos tatus" },
-      { resource: "point", caption: "3 espécies compartilhadas: 3 pontos" }
+      { resource: "point", caption: "Compartilhar com rivais gera pontos" }
     ]
   },
   {
+    title: "Leia a floresta",
+    body: "A floresta está maior e você já tem 3 tatus em campo. Um compartilha local com o Macaco-prego, outro está perto do Quati e o terceiro divide local com a Onça-pintada. A Arara-azul está em uma semente, pronta para receber o quarto tatu.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "O plano para 3 pontos",
+    body: "Você precisa terminar o turno compartilhando com as quatro espécies rivais. Na ação A, adicionará o último tatu junto da Arara. Na B, moverá outro até o Quati. Na C, esconderá o tatu ameaçado pela Onça. Na D, todas as espécies estarão alcançadas e você marcará o máximo de 3 pontos.",
+    gate: "none",
+    autoAdvance: false,
+    resourceIcons: [{ resource: "point", caption: "Quatro rivais alcançados: 3 pontos" }]
+  },
+  {
     title: "Ação A: expanda a floresta",
-    body: "Jogue a carta de bosque destacada no espaço marcado. Além de expandir a floresta, o habitat da carta jogada define como um tatu poderá se mover na ação B. Para o Tatu-bola, bosque significa mover 1 local adjacente.",
+    body: "Jogue a carta de bosque destacada no espaço marcado. O Tatu-bola sempre expande antes de adicionar uma peça. Guarde também o habitat da carta: ele define como um tatu poderá se mover na ação B. Bosque significa movimento para um local adjacente.",
     gate: "placeCard",
     autoAdvance: true,
     requiredCardId: ARMADILLO_TUTORIAL_CARD,
@@ -457,16 +469,16 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
     highlightMovementGuideSpecies: "armadillo"
   },
   {
-    title: "Ação A: adicione um tatu",
-    body: "Depois de expandir, adicione 1 tatu da reserva em um local de semente. Clique no local destacado, onde está a Arara-azul. Espécies diferentes podem compartilhar o mesmo local.",
+    title: "Ação A: complete a população",
+    body: "Agora adicione o quarto e último tatu no local de semente destacado, junto da Arara-azul. Ter mais tatus aumenta sua cobertura: cada peça pode manter contato com uma espécie rival em uma parte diferente da floresta.",
     gate: "addPiece",
     autoAdvance: true,
-    markedAddPieceTarget: { x: 0, y: 1 },
+    markedAddPieceTarget: { x: 1, y: 1 },
     completeWhenActionIndex: 1
   },
   {
-    title: "Ação B: mova um tatu",
-    body: "Selecione o tatu destacado e mova-o ao local do Quati. Como a carta jogada foi de bosque, o movimento é para um local adjacente. O tatu também coleta o recurso do destino.",
+    title: "Ação B: alcance o Quati",
+    body: "O segundo tatu ainda não compartilha com ninguém. Selecione a peça destacada e mova-a para o local do Quati. Como você jogou bosque, ela anda para um local adjacente. Ao chegar, também coleta o recurso impresso no destino.",
     gate: "move",
     autoAdvance: true,
     markedPieceId: ARMADILLO_TUTORIAL_MOVING_PIECE_ID,
@@ -475,30 +487,56 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
     highlightMovementGuideSpecies: "armadillo"
   },
   {
-    title: "Ação C: esconda um tatu",
-    body: "Selecione o tatu que acabou de entrar junto da Arara-azul e confirme em Esconder Tatu-bola. Um tatu escondido não pode ser removido pela Onça-pintada, mas continua ocupando e compartilhando o local.",
+    title: "Quatro contatos ativos",
+    body: "Confira a distribuição: Macaco-prego à esquerda, Quati acima, Onça-pintada à direita e Arara-azul no local de semente. A pontuação considera espécies diferentes, não a quantidade de peças rivais nem a distância entre seus tatus.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação C: use a carapaça",
+    body: "A Onça está a um movimento do local da Arara. Selecione o tatu recém-adicionado e confirme em Esconder Tatu-bola. A peça ficará protegida pela carapaça: predadores podem entrar no local, mas não podem escolher esse tatu para remoção.",
     gate: "hidePiece",
     autoAdvance: true,
     markedPieceId: ARMADILLO_TUTORIAL_HIDING_PIECE_ID,
     completeWhenActionIndex: 3
   },
   {
-    title: "Três espécies compartilhadas",
-    body: "Agora seus tatus dividem locais com Macaco-prego, Quati e Arara-azul. A pontuação considera espécies diferentes, não o número de peças rivais. O tatu escondido junto da Arara ainda conta normalmente.",
+    title: "Escondido ainda compartilha",
+    body: "A carapaça muda apenas a vulnerabilidade da peça. O tatu escondido continua ocupando o local, compartilhando com a Arara e contando para a pontuação. Esconder protege sua rede sem desligar o contato.",
     gate: "none",
     autoAdvance: false,
-    resourceIcons: [{ resource: "point", caption: "Nenhuma espécie ausente: 3 pontos" }]
+    resourceIcons: [{ resource: "point", caption: "A Arara continua compartilhada" }]
   },
   {
     title: "Ação D: marque 3 pontos",
-    body: "A pontuação começa em 3 e perde 1 para cada espécie rival que não compartilha local com nenhum tatu. Como todas as três espécies estão compartilhando, aguarde a contagem automática de 3 pontos.",
+    body: "A pontuação começa em 3 e perde 1 para cada espécie rival que não compartilha local com nenhum tatu. Macaco, Quati, Onça e Arara estão todos compartilhando. Aguarde a contagem automática: mesmo com quatro rivais, o teto continua sendo 3 pontos.",
     gate: "score",
     autoAdvance: true,
     completeWhenScoreAtLeast: 3
   },
   {
-    title: "Turno do Tatu-bola completo!",
-    body: "Você expandiu a floresta, adicionou um tatu em semente, moveu outro, protegeu uma peça ao escondê-la e marcou o máximo de 3 pontos. O ciclo ideal é espalhar os tatus entre espécies diferentes e usar a carapaça sem perder compartilhamentos.",
+    title: "A Onça vai atacar",
+    body: "Agora começa a vez da Onça-pintada. Ela está ao lado do local onde estão a Arara visível e o tatu escondido. Vamos controlar a Onça por um instante para provar a diferença entre uma peça exposta e uma protegida.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Teste a carapaça",
+    body: "Selecione a Onça destacada e mova-a para o local da Arara e do tatu escondido. A Arara está visível e será removida. O tatu não aparece como alvo para a Onça e deve permanecer no mesmo local.",
+    gate: "move",
+    autoAdvance: true,
+    markedPieceId: ARMADILLO_TUTORIAL_JAGUAR_PIECE_ID,
+    markedMoveTarget: { x: 1, y: 1 }
+  },
+  {
+    title: "A carapaça funcionou",
+    body: "A Onça entrou no local e removeu a Arara visível, mas o tatu escondido continuou na floresta. A Onça ganhou carne pela captura da Arara; não ganhou uma segunda carne pelo tatu, pois peças escondidas não podem ser removidas.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Tutorial do Tatu-bola completo!",
+    body: "Você usou os 4 tatus, expandiu a floresta, adicionou em semente, moveu para criar contato, marcou o máximo de 3 pontos e comprovou a proteção contra a Onça. O ciclo ideal é espalhar a população e esconder a peça mais ameaçada sem perder compartilhamentos.",
     gate: "none",
     autoAdvance: false
   }
@@ -779,6 +817,13 @@ export function createArmadilloTutorialRoom(): PublicRoomState {
       connected: true
     },
     {
+      playerId: ARMADILLO_TUTORIAL_JAGUAR_ID,
+      name: "Onça de treino",
+      speciesId: "jaguar",
+      ready: true,
+      connected: true
+    },
+    {
       playerId: ARMADILLO_TUTORIAL_CAPUCHIN_ID,
       name: "Macaco de treino",
       speciesId: "capuchin",
@@ -817,9 +862,11 @@ export function createArmadilloTutorialRoom(): PublicRoomState {
 
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 1, { x: -1, y: 0 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 2, { x: 1, y: 0 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_PLAYER_ID, 3, { x: 2, y: 1 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_JAGUAR_ID, 1, { x: 2, y: 1 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_CAPUCHIN_ID, 1, { x: -1, y: 0 });
   placeTutorialPiece(game, ARMADILLO_TUTORIAL_COATI_ID, 1, { x: 1, y: -1 });
-  placeTutorialPiece(game, ARMADILLO_TUTORIAL_MACAW_ID, 1, { x: 0, y: 1 });
+  placeTutorialPiece(game, ARMADILLO_TUTORIAL_MACAW_ID, 1, { x: 1, y: 1 });
 
   game.status = "active";
   game.round = 2;
@@ -831,7 +878,7 @@ export function createArmadilloTutorialRoom(): PublicRoomState {
   game.pendingWolfMoves = null;
   game.setupActivePlayerId = null;
   game.setupOrder = [];
-  game.turnOrder = [ARMADILLO_TUTORIAL_PLAYER_ID];
+  game.turnOrder = [ARMADILLO_TUTORIAL_PLAYER_ID, ARMADILLO_TUTORIAL_JAGUAR_ID];
   game.log = [
     {
       id: "armadillo_tutorial_ready",
