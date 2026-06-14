@@ -141,6 +141,7 @@ import type {
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import { createSocket, roomApi, type OikosSocket } from "../socket";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
@@ -197,8 +198,6 @@ import {
   createJaguarTutorialRoom,
   createMacawTutorialRoom,
   createWolfTutorialRoom,
-  getTutorialPlayerId,
-  getTutorialSteps,
   isTutorialArmadilloDone,
   isTutorialCapuchinDone,
   isTutorialCoatiDone,
@@ -208,8 +207,8 @@ import {
   isTutorialWolfDone,
   markTutorialDone,
   TUTORIAL_NONRIVER_CARD,
-  type TutorialGate,
-  type TutorialId
+  type TutorialId,
+  type TutorialStepDef
 } from "../ui/tutorials";
 
 const ForestCanvas = lazy(() =>
@@ -434,10 +433,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<"idle" | "create" | "join" | "local" | "tutorials">("idle");
-  const [tutorialId, setTutorialId] = useState<TutorialId | null>(null);
-  const [tutorialStep, setTutorialStep] = useState<number | null>(null);
-  // Log length captured when the move step begins, to detect the taught move.
-  const tutorialMoveLogLenRef = useRef<number | null>(null);
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
     lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
     points: number;
@@ -818,27 +813,64 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     };
     return { meat: major("meat"), egg: major("egg"), fruit: major("fruit"), seed: false };
   }, [room?.game, currentGamePlayer]);
-  // Tutorial state derived from the current step.
-  const tutorialSteps = getTutorialSteps(tutorialId);
-  const tutorialActive = tutorialId !== null && tutorialStep !== null;
-  const tutorialDef = tutorialActive ? tutorialSteps[tutorialStep] ?? null : null;
-  const tutorialGate: TutorialGate | null = tutorialDef?.gate ?? null;
-  const isBasicTutorial = tutorialId === "initial";
-  const highlightedMovementGuideSpecies =
-    tutorialActive ? tutorialDef?.highlightMovementGuideSpecies ?? null : null;
-  const tutorialRequiredCardId =
-    tutorialActive && tutorialDef?.gate === "placeCard" ? tutorialDef.requiredCardId ?? null : null;
-  // True when the tutorial forbids a given board interaction for the current step.
-  const tutorialBlocks = useCallback(
-    (action: "setupPlace" | "placeCard" | "move") => {
-      if (!tutorialActive) return false;
-      if (tutorialGate === "setup") return action !== "setupPlace";
-      if (tutorialGate === "placeCard") return action !== "placeCard";
-      if (tutorialGate === "move") return action !== "move";
-      return true; // "none" steps block all board actions
-    },
-    [tutorialActive, tutorialGate]
-  );
+  const handleTutorialCardPlaced = useCallback((id: TutorialId, step: TutorialStepDef) => {
+    if (id === "initial") {
+      const isRiverStep = Boolean(step.requiresRiver);
+      setRoom((current) => {
+        if (!current?.game) return current;
+        const nextGame = { ...current.game };
+        if (isRiverStep) {
+          // Set up action B (move) with a forest card as the played card so the
+          // Tatu has the simplest movement (adjacent).
+          nextGame.activeActionIndex = 1;
+          nextGame.activePlayedForestCardId = TUTORIAL_NONRIVER_CARD;
+        } else {
+          // Allow placing the next card in the same action A.
+          nextGame.activePlayedForestCardId = null;
+        }
+        return { ...current, game: nextGame };
+      });
+    }
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+  }, []);
+
+  const handleTutorialStepActivated = useCallback((step: TutorialStepDef) => {
+    // Reset board selection so read-only steps never inherit clickable targets.
+    setSelectedPieceId(null);
+    setSelectedJaguarDestination(null);
+    setSelectedJaguarTargetPieceId(null);
+    setSelectedWolfTargetPieceId(null);
+    setSelectedRemovalPieceIds([]);
+    if (step.gate === "placeCard" && step.requiredCardId) {
+      setSelectedHandCardId(step.requiredCardId);
+    } else {
+      setSelectedHandCardId(null);
+    }
+    setSelectedCardRotation(0);
+    setPendingPlacement(null);
+    setBoardSpecies(step.openBoard ?? null);
+  }, []);
+
+  const {
+    advanceTutorial,
+    beginTutorial,
+    clearTutorial,
+    highlightedMovementGuideSpecies,
+    isBasicTutorial,
+    tutorialActive,
+    tutorialBlocks,
+    tutorialDef,
+    tutorialGate,
+    tutorialId,
+    tutorialRequiredCardId,
+    tutorialStep,
+    tutorialSteps
+  } = useTutorialController({
+    game: room?.game,
+    onCardPlaced: handleTutorialCardPlaced,
+    onStepActivated: handleTutorialStepActivated
+  });
 
   // Play sound effects for new game-log entries (covers local, server, and bots).
   useEffect(() => {
@@ -865,134 +897,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const updateVisualAccessibility = useCallback((enabled: boolean) => {
     setVisualAccessibility(setVisualAccessibilityPreference(enabled));
   }, []);
-
-  // Orchestrate the scripted tutorial: detect when the taught action is done and
-  // craft the next state. Card placements are detected by the card appearing in
-  // the forest (so we are not bound to the species action pipeline).
-  const tutorialGameStatus = room?.game?.status;
-  useEffect(() => {
-    if (tutorialStep === null || !room?.game) return;
-    const def = tutorialSteps[tutorialStep];
-    if (!def?.autoAdvance) return;
-    const game = room.game;
-    const forestHas = (cardId: string) => game.forest.cards.some((card) => card.definitionId === cardId);
-    const tutorialPlayerId = getTutorialPlayerId(tutorialId, game.activePlayerId);
-
-    if (def.gate === "setup") {
-      if (game.status === "active") setTutorialStep((step) => (step === null ? step : step + 1));
-      return;
-    }
-
-    if (def.gate === "placeCard" && def.requiredCardId && forestHas(def.requiredCardId)) {
-      if (tutorialId === "initial") {
-        const isRiverStep = Boolean(def.requiresRiver);
-        setRoom((current) => {
-          if (!current?.game) return current;
-          const nextGame = { ...current.game };
-          if (isRiverStep) {
-            // Set up action B (move) with a forest card as the played card so the
-            // Tatu has the simplest movement (adjacent).
-            nextGame.activeActionIndex = 1;
-            nextGame.activePlayedForestCardId = TUTORIAL_NONRIVER_CARD;
-          } else {
-            // Allow placing the next card in the same action A.
-            nextGame.activePlayedForestCardId = null;
-          }
-          return { ...current, game: nextGame };
-        });
-      }
-      setSelectedHandCardId(null);
-      setSelectedCardRotation(0);
-      tutorialMoveLogLenRef.current = null;
-      setTutorialStep((step) => (step === null ? step : step + 1));
-      return;
-    }
-
-    if (def.gate === "move" && def.markedPieceId && def.markedMoveTarget) {
-      const piece = game.pieces.find((candidate) => candidate.pieceId === def.markedPieceId);
-      if (piece?.location && sameGridPosition(piece.location, def.markedMoveTarget)) {
-        tutorialMoveLogLenRef.current = null;
-        setTutorialStep((step) => (step === null ? step : step + 1));
-      }
-      return;
-    }
-
-    if (def.completeWhenCoatiPairPending) {
-      if (game.activePlayerId === tutorialPlayerId && game.pendingCoatiPairBonus?.playerId === tutorialPlayerId) {
-        tutorialMoveLogLenRef.current = null;
-        setTutorialStep((step) => (step === null ? step : step + 1));
-      }
-      return;
-    }
-
-    if (typeof def.completeWhenActionIndex === "number") {
-      if (game.activePlayerId === tutorialPlayerId && game.activeActionIndex >= def.completeWhenActionIndex) {
-        tutorialMoveLogLenRef.current = null;
-        setTutorialStep((step) => (step === null ? step : step + 1));
-      }
-      return;
-    }
-
-    if (typeof def.completeWhenScoreAtLeast === "number") {
-      const player = game.players.find((candidate) => candidate.playerId === tutorialPlayerId);
-      if (player && player.score >= def.completeWhenScoreAtLeast) {
-        tutorialMoveLogLenRef.current = null;
-        setTutorialStep((step) => (step === null ? step : step + 1));
-      }
-      return;
-    }
-
-    if (typeof def.completeWhenRoundAtLeast === "number") {
-      if (game.round >= def.completeWhenRoundAtLeast) {
-        tutorialMoveLogLenRef.current = null;
-        setTutorialStep((step) => (step === null ? step : step + 1));
-      }
-      return;
-    }
-
-    if (def.gate === "move") {
-      if (tutorialMoveLogLenRef.current === null) {
-        tutorialMoveLogLenRef.current = game.log.length;
-        return;
-      }
-      const moved = game.log
-        .slice(tutorialMoveLogLenRef.current)
-        .some((entry) => entry.payload?.kind === "move_piece");
-      if (moved) setTutorialStep((step) => (step === null ? step : step + 1));
-    }
-  }, [tutorialId, tutorialStep, tutorialSteps, tutorialGameStatus, room?.game]);
-
-  // When a tutorial step starts: pre-select the required card and open the board
-  // it asks to show, so the player only has to act, not hunt for the right card.
-  useEffect(() => {
-    if (tutorialStep === null) {
-      return;
-    }
-    // Reset any board selection so a read-only step never inherits a clickable
-    // piece/target from the previous step.
-    setSelectedPieceId(null);
-    setSelectedJaguarDestination(null);
-    setSelectedJaguarTargetPieceId(null);
-    setSelectedWolfTargetPieceId(null);
-    setSelectedRemovalPieceIds([]);
-    const def = tutorialSteps[tutorialStep];
-    if (def?.gate === "placeCard" && def.requiredCardId) {
-      setSelectedHandCardId(def.requiredCardId);
-      setSelectedCardRotation(0);
-      setPendingPlacement(null);
-    } else {
-      // Read-only step: no card selected, so no rotation/placement affordances.
-      setSelectedHandCardId(null);
-      setSelectedCardRotation(0);
-      setPendingPlacement(null);
-    }
-    if (def?.openBoard) {
-      setBoardSpecies(def.openBoard);
-    } else {
-      setBoardSpecies(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tutorialId, tutorialStep, tutorialSteps]);
 
   const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
   const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
@@ -3403,7 +3307,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setError(null);
     setNotice(null);
     lastOnlineRoomSnapshotRef.current = "";
-    tutorialMoveLogLenRef.current = null;
     autoScoredRef.current = null;
     setSelectedHandCardId(null);
     setSelectedCardRotation(0);
@@ -3419,15 +3322,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }
     setPendingPlacement(null);
     setRoom(TUTORIAL_ROOM_FACTORIES[id]());
-    setTutorialStep(0);
-    setTutorialId(id);
+    beginTutorial(id);
   }
 
   function exitTutorial(completed: boolean) {
     if (completed && tutorialId) markTutorialDone(tutorialId);
     autoScoredRef.current = null;
-    setTutorialId(null);
-    setTutorialStep(null);
+    clearTutorial();
     setBoardSpecies(null);
     setSelectedHandCardId(null);
     setSelectedCardRotation(0);
@@ -3452,8 +3353,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       }
     }
 
-    setTutorialId(null);
-    setTutorialStep(null);
+    clearTutorial();
     setLandingMode("idle");
     autoScoredRef.current = null;
     clearRoomState();
@@ -5334,11 +5234,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
       {tutorialActive && hasStartedGame && !cleanBoardMode && tutorialDef && (
         <TutorialCoach
-          currentStep={tutorialStep}
+          currentStep={tutorialStep!}
           steps={tutorialSteps}
           onExit={() => exitTutorial(false)}
           onComplete={() => exitTutorial(true)}
-          onNext={() => setTutorialStep((step) => (step === null ? step : step + 1))}
+          onNext={advanceTutorial}
         />
       )}
 
