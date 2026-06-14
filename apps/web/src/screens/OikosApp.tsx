@@ -139,6 +139,7 @@ import type {
   ThreatCardId
 } from "@oikos/shared";
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
+import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import { createSocket, roomApi, type OikosSocket } from "../socket";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
@@ -164,7 +165,7 @@ import { TurnCountdown } from "../ui/TurnCountdown";
 import { formatTurnTimer } from "../ui/format";
 import { renderReserveMeeples } from "../ui/meeples";
 import { movementArtPath } from "../ui/movementArt";
-import { DESKTOP_ONLY_QUERY, MOBILE_HUD_QUERY, isBelowDesktopWidth, isMobileWidth, isSmallScreen } from "../ui/responsive";
+import { isSmallScreen } from "../ui/responsive";
 import { getVisualAccessibilityPreference, setVisualAccessibilityPreference } from "../ui/visualAccessibility";
 import {
   HABITAT_SCORE_COLORS,
@@ -413,8 +414,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   });
   // Mobile-only HUD: below this width the floating docks become bottom sheets
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
-  const [isMobile, setIsMobile] = useState(isMobileWidth);
-  const [isBelowDesktop, setIsBelowDesktop] = useState(isBelowDesktopWidth);
+  const { isMobile, isBelowDesktop } = useResponsiveLayout();
   const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
   const [visualAccessibility, setVisualAccessibility] = useState(() => getVisualAccessibilityPreference());
@@ -462,37 +462,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }
   }, [recapCollapsed, turnSummary?.key]);
 
-  // Keep `isMobile` in sync with the phone breakpoint; close any open sheet
-  // when leaving mobile so the desktop layout is never left in a sheet state.
+  // Leaving the phone breakpoint closes any open bottom sheet so the desktop
+  // layout is never left in a sheet state.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia(MOBILE_HUD_QUERY);
-    const onChange = () => {
-      setIsMobile(mql.matches);
-      if (!mql.matches) setMobileSheet(null);
-    };
-    onChange();
-    mql.addEventListener("change", onChange);
-    // Fallback: some environments don't dispatch matchMedia "change" reliably.
-    window.addEventListener("resize", onChange);
-    return () => {
-      mql.removeEventListener("change", onChange);
-      window.removeEventListener("resize", onChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia(DESKTOP_ONLY_QUERY);
-    const onChange = () => setIsBelowDesktop(mql.matches);
-    onChange();
-    mql.addEventListener("change", onChange);
-    window.addEventListener("resize", onChange);
-    return () => {
-      mql.removeEventListener("change", onChange);
-      window.removeEventListener("resize", onChange);
-    };
-  }, []);
+    if (!isMobile) setMobileSheet(null);
+  }, [isMobile]);
 
   useEffect(() => {
     if (room?.game?.status === "active") {
