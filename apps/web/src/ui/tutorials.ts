@@ -758,6 +758,114 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
   }
 ];
 
+// --- Quati (coati) chapter --------------------------------------------------
+// Five coatis begin in the forest, leaving three in reserve. Action A adds one
+// to a fruit card and forms an exact pair; the passive then adds a seventh
+// coati adjacently and scores 1 point. Action B demonstrates the forest-card
+// straight jump. With only one coati left in reserve, action C removes two from
+// the forest and restores the reserve above the penalty threshold.
+const COATI_TUTORIAL_PLAYER_ID = "local_coati";
+const COATI_TUTORIAL_CARD = "bosque_1_copy";
+const COATI_TUTORIAL_MOVING_PIECE_ID = `${COATI_TUTORIAL_PLAYER_ID}_piece_2`;
+
+const COATI_TUTORIAL_FOREST: ForestCardState[] = [
+  { instanceId: "coa_tut_0", definitionId: "initial_5", x: -1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_1", definitionId: "initial_2", x: 0, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_2", definitionId: "initial_3", x: 1, y: -1, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_3", definitionId: "initial_4", x: -1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_4", definitionId: "initial_6", x: 0, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_5", definitionId: "initial_7", x: 1, y: 0, rotation: 0, isInitial: true },
+  { instanceId: "coa_tut_6", definitionId: "initial_9", x: -1, y: 1, rotation: 90, isInitial: true },
+  { instanceId: "coa_tut_7", definitionId: "initial_1", x: 0, y: 1, rotation: 90, isInitial: true },
+  { instanceId: "coa_tut_8", definitionId: "initial_8_v", x: 1, y: 1, rotation: 270, isInitial: true }
+];
+
+const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
+  {
+    title: "Quati",
+    body: "O Quati é uma espécie de base com 8 peças. Ele ocupa a floresta rapidamente, adiciona peças em locais de fruta e transforma duplas exatas em novos quatis e pontos.",
+    gate: "none",
+    autoAdvance: false,
+    resourceIcons: [
+      { resource: "fruit", caption: "A ação A adiciona em locais de fruta" },
+      { resource: "point", caption: "Cada dupla exata pode valer 1 ponto" }
+    ]
+  },
+  {
+    title: "A passiva da dupla",
+    body: "Sempre que um quati entra em um local e passa a formar uma dupla exata de 2 quatis, você adiciona 1 quati da reserva em um local adjacente e marca 1 ponto. Três ou mais quatis juntos não formam uma nova dupla.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "O plano do turno",
+    body: "Você começa com 5 quatis na floresta e 3 na reserva. Na ação A, adicionará um quati para formar uma dupla e ativar a passiva. Na B, fará um salto reto. Restará somente 1 quati na reserva, então a ação C exigirá retirar 2 quatis da floresta.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação A: expanda a floresta",
+    body: "Jogue a carta de bosque destacada no espaço marcado. O habitat da carta jogada também define o movimento da ação B. Para o Quati, bosque significa saltar 2 locais em linha reta.",
+    gate: "placeCard",
+    autoAdvance: true,
+    requiredCardId: COATI_TUTORIAL_CARD,
+    markedSlot: { x: 2, y: 0 },
+    highlightMovementGuideSpecies: "coati"
+  },
+  {
+    title: "Ação A: forme uma dupla",
+    body: "Agora adicione 1 quati no local de fruta destacado. Já existe 1 quati ali, então a chegada do segundo forma uma dupla exata e prepara a passiva.",
+    gate: "addPiece",
+    autoAdvance: true,
+    markedAddPieceTarget: { x: -1, y: -1 },
+    completeWhenCoatiPairPending: true
+  },
+  {
+    title: "Passiva: abrigue o quati bônus",
+    body: "A dupla está formada. Coloque 1 quati da reserva no local adjacente destacado. A passiva adiciona essa peça sem coletar o recurso do destino e marca 1 ponto.",
+    gate: "resolvePair",
+    autoAdvance: true,
+    markedPairTarget: { x: 0, y: -1 },
+    completeWhenActionIndex: 1
+  },
+  {
+    title: "Dupla resolvida",
+    body: "Você ficou com 7 quatis na floresta, 1 na reserva e marcou 1 ponto. A dupla não pontua novamente enquanto continuar igual; será preciso desfazê-la e formar outra dupla exata.",
+    gate: "none",
+    autoAdvance: false,
+    resourceIcons: [{ resource: "point", caption: "Dupla exata resolvida: 1 ponto" }]
+  },
+  {
+    title: "Ação B: salto reto",
+    body: "Selecione o quati destacado e mova-o para o local marcado. Como você jogou bosque, ele salta 2 locais em linha reta. Ao chegar, coleta a carne impressa no destino.",
+    gate: "move",
+    autoAdvance: true,
+    markedPieceId: COATI_TUTORIAL_MOVING_PIECE_ID,
+    markedMoveTarget: { x: 1, y: 0 },
+    completeWhenActionIndex: 2,
+    highlightMovementGuideSpecies: "coati"
+  },
+  {
+    title: "Reserva baixa",
+    body: "Depois da adição e do bônus, restou apenas 1 quati na reserva. A ação C verifica a reserva: com menos de 2 peças, você deve retirar exatamente 2 quatis da floresta.",
+    gate: "none",
+    autoAdvance: false
+  },
+  {
+    title: "Ação C: retire 2 quatis",
+    body: "Selecione quaisquer 2 quatis seus na floresta e confirme a retirada. Eles voltam para a reserva, que ficará com 3 peças. Planeje a expansão para aproveitar as duplas sem terminar o turno com a reserva baixa.",
+    gate: "removeCoati",
+    autoAdvance: true,
+    completeWhenRoundAtLeast: 3
+  },
+  {
+    title: "Tutorial do Quati completo!",
+    body: "Você expandiu a floresta, adicionou em fruta, formou uma dupla exata, usou a passiva para ganhar peça e ponto, moveu conforme a carta e recuperou a reserva na ação C. O Quati cresce rápido, mas precisa equilibrar floresta e reserva.",
+    gate: "none",
+    autoAdvance: false
+  }
+];
+
 function getTutorialDoneKey(tutorialId: TutorialId): string {
   return `oikos-tutorial-${tutorialId}`;
 }
@@ -805,13 +913,18 @@ export function isTutorialCapuchinDone(): boolean {
   return isTutorialDone("capuchin");
 }
 
+export function isTutorialCoatiDone(): boolean {
+  return isTutorialDone("coati");
+}
+
 export function getTutorialSteps(tutorialId: TutorialId | null): TutorialStepDef[] {
   if (tutorialId === "jaguar") return JAGUAR_TUTORIAL_STEPS;
   if (tutorialId === "wolf") return WOLF_TUTORIAL_STEPS;
   if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_STEPS;
   if (tutorialId === "macaw") return MACAW_TUTORIAL_STEPS;
   if (tutorialId === "capuchin") return CAPUCHIN_TUTORIAL_STEPS;
-  // Other species chapters are rebuilt later; default to the basic tutorial.
+  if (tutorialId === "coati") return COATI_TUTORIAL_STEPS;
+  // Chapters not rebuilt yet default to the basic tutorial.
   return INITIAL_TUTORIAL_STEPS;
 }
 
@@ -822,6 +935,7 @@ export function getTutorialPlayerId(tutorialId: TutorialId | null, fallback: str
   if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_PLAYER_ID;
   if (tutorialId === "macaw") return MACAW_TUTORIAL_PLAYER_ID;
   if (tutorialId === "capuchin") return CAPUCHIN_TUTORIAL_PLAYER_ID;
+  if (tutorialId === "coati") return COATI_TUTORIAL_PLAYER_ID;
   return fallback;
 }
 
@@ -1226,6 +1340,64 @@ export function createCapuchinTutorialRoom(): PublicRoomState {
     {
       id: "capuchin_tutorial_ready",
       message: "Tutorial do Macaco-prego preparado no segundo turno.",
+      createdAt: Date.now()
+    }
+  ];
+
+  return {
+    roomId: localRoomId,
+    status: "active",
+    hostPlayerId: "local_host",
+    players: tutorialPlayers,
+    enabledMiniExpansions: game.enabledMiniExpansions,
+    game,
+    warnings: game.contentWarnings
+  };
+}
+
+export function createCoatiTutorialRoom(): PublicRoomState {
+  const tutorialPlayers: RoomPlayer[] = [
+    {
+      playerId: COATI_TUTORIAL_PLAYER_ID,
+      name: "Tutorial Quati",
+      speciesId: "coati",
+      ready: true,
+      connected: true
+    }
+  ];
+  const game = createInitialGameState(localRoomId, tutorialPlayers, Math.random, COATI_TUTORIAL_FOREST, {
+    enabledMiniExpansions: []
+  });
+
+  const coati = game.players.find((player) => player.playerId === COATI_TUTORIAL_PLAYER_ID);
+  if (coati) {
+    coati.score = 0;
+    coati.turnsTaken = 1;
+    coati.resources = { meat: 0, egg: 0, fruit: 0, seed: 0 };
+    coati.hand = [COATI_TUTORIAL_CARD];
+  }
+
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 1, { x: -1, y: -1 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 0 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 3, { x: 0, y: 0 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 4, { x: 1, y: -1 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 5, { x: 1, y: 1 });
+
+  game.status = "active";
+  game.round = 2;
+  game.activePlayerId = COATI_TUTORIAL_PLAYER_ID;
+  game.activeActionIndex = 0;
+  game.activePlayedForestCardId = null;
+  game.pendingCoatiPairBonus = null;
+  game.pendingMacawMovedPiece = null;
+  game.pendingWolfMoves = null;
+  game.setupActivePlayerId = null;
+  game.setupOrder = [];
+  game.turnOrder = [COATI_TUTORIAL_PLAYER_ID];
+  game.log = [
+    {
+      id: "coati_tutorial_ready",
+      message: "Tutorial do Quati preparado no segundo turno.",
       createdAt: Date.now()
     }
   ];

@@ -184,6 +184,7 @@ import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "
 import {
   createArmadilloTutorialRoom,
   createCapuchinTutorialRoom,
+  createCoatiTutorialRoom,
   createInitialTutorialRoom,
   createJaguarTutorialRoom,
   createMacawTutorialRoom,
@@ -192,6 +193,7 @@ import {
   getTutorialSteps,
   isTutorialArmadilloDone,
   isTutorialCapuchinDone,
+  isTutorialCoatiDone,
   isTutorialInitialDone,
   isTutorialJaguarDone,
   isTutorialMacawDone,
@@ -1910,7 +1912,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return getCoatiPairBonusTargets(room.game, room.game.activePlayerId);
   }, [canControlActivePlayer, room?.game]);
   const displayCoatiPairBonusTargets = useMemo(() => {
-    if (!tutorialActive || tutorialGate !== "resolvePair" || !tutorialDef?.markedPairTarget) {
+    if (tutorialActive && tutorialGate !== "resolvePair") {
+      return [];
+    }
+    if (!tutorialActive || !tutorialDef?.markedPairTarget) {
       return coatiPairBonusTargets;
     }
 
@@ -3193,9 +3198,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       if (!room?.game || !room.game.activePlayerId || coatiPairBonusTargets.length === 0) {
         return;
       }
+      if (tutorialActive && tutorialGate !== "resolvePair") {
+        return;
+      }
       if (
         tutorialActive &&
-        tutorialGate === "resolvePair" &&
         tutorialDef?.markedPairTarget &&
         !sameGridPosition(position, tutorialDef.markedPairTarget)
       ) {
@@ -3946,8 +3953,21 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setTutorialId("capuchin");
   }
 
-  // Other species tutorials (coati) are being
-  // rebuilt from scratch and will get their own start functions then.
+  function startCoatiTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createCoatiTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("coati");
+  }
 
   function exitTutorial(completed: boolean) {
     if (completed && tutorialId) markTutorialDone(tutorialId);
@@ -5321,12 +5341,36 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </span>
                 )}
               </button>
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialCoatiDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.coati } as CSSProperties}
+                onClick={startCoatiTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.coati.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.coati.displayName}</strong>
+                  <small>Forme duplas exatas, ganhe quatis e pontos, e controle sua reserva.</small>
+                </span>
+                {isTutorialCoatiDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
               {speciesList.filter((species) =>
                 species.speciesId !== "jaguar" &&
                 species.speciesId !== "maned_wolf" &&
                 species.speciesId !== "armadillo" &&
                 species.speciesId !== "macaw" &&
-                species.speciesId !== "capuchin"
+                species.speciesId !== "capuchin" &&
+                species.speciesId !== "coati"
               ).map((species) => (
                 <div
                   key={species.speciesId}
