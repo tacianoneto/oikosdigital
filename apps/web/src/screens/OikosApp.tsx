@@ -284,6 +284,17 @@ function isExclusiveScenarioPair(a: ScenarioCardId, b: ScenarioCardId): boolean 
   return (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
 }
 
+// Maps each tutorial chapter to the factory that builds its scripted local room.
+const TUTORIAL_ROOM_FACTORIES: Record<TutorialId, () => PublicRoomState> = {
+  initial: createInitialTutorialRoom,
+  jaguar: createJaguarTutorialRoom,
+  wolf: createWolfTutorialRoom,
+  armadillo: createArmadilloTutorialRoom,
+  macaw: createMacawTutorialRoom,
+  capuchin: createCapuchinTutorialRoom,
+  coati: createCoatiTutorialRoom
+};
+
 interface OikosAppProps {
   authSession: Session;
   authUser: User;
@@ -3397,8 +3408,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     startLocalTest();
   }
 
-  // Launch the scripted basic tutorial on a real local game.
-  function startInitialTutorial() {
+  // Launch a scripted tutorial chapter on a real local game. Resets the same
+  // shared interaction state every chapter needs, plus the species-specific
+  // selection state used by that chapter, then loads its scripted room.
+  function startTutorial(id: TutorialId) {
     setError(null);
     setNotice(null);
     lastOnlineRoomSnapshotRef.current = "";
@@ -3407,109 +3420,19 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setSelectedHandCardId(null);
     setSelectedCardRotation(0);
     setSelectedPieceId(null);
+    if (id === "jaguar") {
+      setSelectedJaguarDestination(null);
+      setSelectedJaguarTargetPieceId(null);
+    } else if (id === "wolf") {
+      setSelectedWolfTargetPieceId(null);
+      setSelectedWolfResources([]);
+    } else if (id !== "initial") {
+      setSelectedRemovalPieceIds([]);
+    }
     setPendingPlacement(null);
-    setRoom(createInitialTutorialRoom());
+    setRoom(TUTORIAL_ROOM_FACTORIES[id]());
     setTutorialStep(0);
-    setTutorialId("initial");
-  }
-
-  // Launch the scripted Onça-pintada (jaguar) chapter on a real local game.
-  function startJaguarTutorial() {
-    setError(null);
-    setNotice(null);
-    lastOnlineRoomSnapshotRef.current = "";
-    tutorialMoveLogLenRef.current = null;
-    autoScoredRef.current = null;
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    setSelectedJaguarDestination(null);
-    setSelectedJaguarTargetPieceId(null);
-    setPendingPlacement(null);
-    setRoom(createJaguarTutorialRoom());
-    setTutorialStep(0);
-    setTutorialId("jaguar");
-  }
-
-  function startWolfTutorial() {
-    setError(null);
-    setNotice(null);
-    lastOnlineRoomSnapshotRef.current = "";
-    tutorialMoveLogLenRef.current = null;
-    autoScoredRef.current = null;
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    setSelectedWolfTargetPieceId(null);
-    setSelectedWolfResources([]);
-    setPendingPlacement(null);
-    setRoom(createWolfTutorialRoom());
-    setTutorialStep(0);
-    setTutorialId("wolf");
-  }
-
-  function startArmadilloTutorial() {
-    setError(null);
-    setNotice(null);
-    lastOnlineRoomSnapshotRef.current = "";
-    tutorialMoveLogLenRef.current = null;
-    autoScoredRef.current = null;
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    setSelectedRemovalPieceIds([]);
-    setPendingPlacement(null);
-    setRoom(createArmadilloTutorialRoom());
-    setTutorialStep(0);
-    setTutorialId("armadillo");
-  }
-
-  function startMacawTutorial() {
-    setError(null);
-    setNotice(null);
-    lastOnlineRoomSnapshotRef.current = "";
-    tutorialMoveLogLenRef.current = null;
-    autoScoredRef.current = null;
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    setSelectedRemovalPieceIds([]);
-    setPendingPlacement(null);
-    setRoom(createMacawTutorialRoom());
-    setTutorialStep(0);
-    setTutorialId("macaw");
-  }
-
-  function startCapuchinTutorial() {
-    setError(null);
-    setNotice(null);
-    lastOnlineRoomSnapshotRef.current = "";
-    tutorialMoveLogLenRef.current = null;
-    autoScoredRef.current = null;
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    setSelectedRemovalPieceIds([]);
-    setPendingPlacement(null);
-    setRoom(createCapuchinTutorialRoom());
-    setTutorialStep(0);
-    setTutorialId("capuchin");
-  }
-
-  function startCoatiTutorial() {
-    setError(null);
-    setNotice(null);
-    lastOnlineRoomSnapshotRef.current = "";
-    tutorialMoveLogLenRef.current = null;
-    autoScoredRef.current = null;
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    setSelectedRemovalPieceIds([]);
-    setPendingPlacement(null);
-    setRoom(createCoatiTutorialRoom());
-    setTutorialStep(0);
-    setTutorialId("coati");
+    setTutorialId(id);
   }
 
   function exitTutorial(completed: boolean) {
@@ -4752,7 +4675,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <button
                 type="button"
                 className={`tutorial-chapter ${isTutorialInitialDone() ? "is-done" : "is-available"}`}
-                onClick={startInitialTutorial}
+                onClick={() => startTutorial("initial")}
               >
                 <span className="tutorial-chapter-icon">
                   <GraduationCap aria-hidden="true" />
@@ -4775,7 +4698,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className={`tutorial-chapter ${isTutorialJaguarDone() ? "is-done" : "is-available"}`}
                 style={{ "--species-color": SPECIES_HEX.jaguar } as CSSProperties}
-                onClick={startJaguarTutorial}
+                onClick={() => startTutorial("jaguar")}
               >
                 <span className="tutorial-chapter-icon">
                   <img className="is-portrait" src={encodeURI(speciesDefinitions.jaguar.portraitAsset)} alt="" />
@@ -4798,7 +4721,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className={`tutorial-chapter ${isTutorialWolfDone() ? "is-done" : "is-available"}`}
                 style={{ "--species-color": SPECIES_HEX.maned_wolf } as CSSProperties}
-                onClick={startWolfTutorial}
+                onClick={() => startTutorial("wolf")}
               >
                 <span className="tutorial-chapter-icon">
                   <img className="is-portrait" src={encodeURI(speciesDefinitions.maned_wolf.portraitAsset)} alt="" />
@@ -4821,7 +4744,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className={`tutorial-chapter ${isTutorialArmadilloDone() ? "is-done" : "is-available"}`}
                 style={{ "--species-color": SPECIES_HEX.armadillo } as CSSProperties}
-                onClick={startArmadilloTutorial}
+                onClick={() => startTutorial("armadillo")}
               >
                 <span className="tutorial-chapter-icon">
                   <img className="is-portrait" src={encodeURI(speciesDefinitions.armadillo.portraitAsset)} alt="" />
@@ -4844,7 +4767,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className={`tutorial-chapter ${isTutorialMacawDone() ? "is-done" : "is-available"}`}
                 style={{ "--species-color": SPECIES_HEX.macaw } as CSSProperties}
-                onClick={startMacawTutorial}
+                onClick={() => startTutorial("macaw")}
               >
                 <span className="tutorial-chapter-icon">
                   <img className="is-portrait" src={encodeURI(speciesDefinitions.macaw.portraitAsset)} alt="" />
@@ -4867,7 +4790,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className={`tutorial-chapter ${isTutorialCapuchinDone() ? "is-done" : "is-available"}`}
                 style={{ "--species-color": SPECIES_HEX.capuchin } as CSSProperties}
-                onClick={startCapuchinTutorial}
+                onClick={() => startTutorial("capuchin")}
               >
                 <span className="tutorial-chapter-icon">
                   <img className="is-portrait" src={encodeURI(speciesDefinitions.capuchin.portraitAsset)} alt="" />
@@ -4890,7 +4813,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 type="button"
                 className={`tutorial-chapter ${isTutorialCoatiDone() ? "is-done" : "is-available"}`}
                 style={{ "--species-color": SPECIES_HEX.coati } as CSSProperties}
-                onClick={startCoatiTutorial}
+                onClick={() => startTutorial("coati")}
               >
                 <span className="tutorial-chapter-icon">
                   <img className="is-portrait" src={encodeURI(speciesDefinitions.coati.portraitAsset)} alt="" />

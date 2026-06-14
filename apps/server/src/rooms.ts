@@ -148,7 +148,7 @@ function fillMissingScenarioVotes(voting: ScenarioVotingState, players: RoomPlay
 }
 
 function normalizeScenarioCount(value: unknown): ScenarioCount {
-  return 1;
+  return value === 2 ? 2 : 1;
 }
 
 const rooms = new Map<string, ServerRoom>();

@@ -14,6 +14,7 @@ import {
   listOpenRooms,
   quitRoom,
   selectSpecies,
+  setScenarioCount,
   setReady,
   startGame
 } from "./rooms";
@@ -88,5 +89,15 @@ describe("room lifecycle", () => {
 
     expect(quitRoom(room.roomId.toLowerCase(), hostId)).toBeNull();
     expect(deleteRoom).toHaveBeenCalledWith(room.roomId);
+  });
+
+  it("allows the host to configure two scenarios", () => {
+    const hostId = "host-with-two-scenarios";
+    const room = createRoom(hostId, "Host");
+
+    const updated = setScenarioCount(room.roomId, hostId, 2);
+
+    expect(updated.scenarioCount).toBe(2);
+    quitRoom(room.roomId, hostId);
   });
 });
