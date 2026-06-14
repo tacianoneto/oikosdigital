@@ -49,7 +49,7 @@ import type {
 } from "@oikos/shared";
 import { scenarioCards } from "@oikos/content";
 import { playBotStep, playRandomStep } from "@oikos/rules";
-import { loadRooms } from "./store";
+import { deleteRoom as deleteStoredRoom, loadRooms } from "./store";
 
 interface ServerRoom {
   roomId: string;
@@ -192,7 +192,27 @@ function sanitizeName(raw: unknown, fallback: string): string {
   return trimmed.length > 0 ? trimmed : fallback;
 }
 
+function hasConnectedHuman(room: ServerRoom): boolean {
+  return room.players.some((player) => !player.isBot && player.connected);
+}
+
+function removeRoom(roomId: string): void {
+  const normalizedRoomId = roomId.trim().toUpperCase();
+  rooms.delete(normalizedRoomId);
+  deleteStoredRoom(normalizedRoomId);
+}
+
+function removeAbandonedHostedLobbies(hostPlayerId: string): void {
+  for (const room of [...rooms.values()]) {
+    if (room.hostPlayerId === hostPlayerId && room.status === "lobby" && !hasConnectedHuman(room)) {
+      removeRoom(room.roomId);
+    }
+  }
+}
+
 export function createRoom(hostSocketId: string, hostName: string, password?: string | null): PublicRoomState {
+  removeAbandonedHostedLobbies(hostSocketId);
+
   let hostedRooms = 0;
   for (const existing of rooms.values()) {
     if (existing.hostPlayerId === hostSocketId && existing.status !== "finished" && existing.game?.status !== "finished") {
@@ -246,8 +266,7 @@ export function listOpenRooms(): RoomSummary[] {
     // Only real, live rooms: at least one connected human. Excludes abandoned
     // rooms (everyone left), bot-only rooms, and ghosts restored from storage
     // after a restart (all humans start disconnected until they rejoin).
-    const hasConnectedHuman = room.players.some((player) => !player.isBot && player.connected);
-    if (!hasConnectedHuman) {
+    if (!hasConnectedHuman(room)) {
       continue;
     }
 
@@ -374,7 +393,7 @@ export function quitRoom(roomId: string, playerId: string): PublicRoomState | nu
   }
 
   if (room.players.filter((candidate) => !candidate.isBot).length === 0) {
-    rooms.delete(roomId);
+    removeRoom(roomId);
     return null;
   }
 
@@ -1421,6 +1440,10 @@ function getRoom(roomId: string): ServerRoom {
   }
 
   return room;
+}
+
+export function hasRoom(roomId: string): boolean {
+  return rooms.has(roomId.trim().toUpperCase());
 }
 
 function assertPassword(room: ServerRoom, playerId: string, password?: string | null): void {

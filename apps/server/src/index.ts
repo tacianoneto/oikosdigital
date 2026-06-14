@@ -6,7 +6,7 @@ import type { MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, Scenar
 import { getUserIdFromAccessToken } from "./auth";
 import { projectRoomForViewer } from "./projection";
 import { canUseSpecies } from "./speciesAccess";
-import { purgeRoomsOlderThan, saveRoom } from "./store";
+import { deleteRoom, purgeRoomsOlderThan, saveRoom } from "./store";
 import {
   addBots,
   addBotForSpecies,
@@ -36,6 +36,7 @@ import {
   forceSkipActivePlayer,
   getActiveDisconnectedPlayer,
   getPublicRoom,
+  hasRoom,
   listOpenRooms,
   hideArmadillo,
   joinRoom,
@@ -385,7 +386,11 @@ function flushPendingRoomSaves(): void {
   pendingRoomSaves.clear();
 
   for (const room of roomsToSave) {
-    saveRoom(room);
+    if (hasRoom(room.roomId)) {
+      saveRoom(room);
+    } else {
+      deleteRoom(room.roomId);
+    }
   }
 }
 
