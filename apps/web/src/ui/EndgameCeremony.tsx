@@ -5,6 +5,7 @@ import type { FinalScoreBreakdown, FinalScoreEntry, SpeciesId } from "@oikos/sha
 import { resourceLabels, speciesDefinitions } from "@oikos/content";
 import { speciesVar } from "./speciesStyle";
 import { AnimatedNumber } from "./AnimatedNumber";
+import { ResourceText } from "./ResourceText";
 
 /**
  * Final-score ceremony. Reveals each scoring category one at a time over a
@@ -266,11 +267,15 @@ export function EndgameCeremony({
                 <strong>{currentEntry.name}</strong>
                 <small key={currentCategory.key} className="ceremony-stage-cat">
                   <currentCategory.icon aria-hidden="true" />
-                  {isBaseStage
-                    ? "Placar da partida"
-                    : currentCategory.key === "majority" && wonResourceLabelsByPlayer.has(currentEntry.playerId)
-                      ? `Maioria: ${wonResourceLabelsByPlayer.get(currentEntry.playerId)}`
-                      : currentCategory.label}
+                  <ResourceText
+                    text={
+                      isBaseStage
+                        ? "Placar da partida"
+                        : currentCategory.key === "majority" && wonResourceLabelsByPlayer.has(currentEntry.playerId)
+                          ? `Maioria: ${wonResourceLabelsByPlayer.get(currentEntry.playerId)}`
+                          : currentCategory.label
+                    }
+                  />
                   <b>{catPoints > 0 ? `+${catPoints}` : "0"}</b>
                 </small>
               </div>
@@ -291,7 +296,7 @@ export function EndgameCeremony({
                 style={{ ["--cat" as string]: c.color } as CSSProperties}
               >
                 <i />
-                {c.label}
+                <ResourceText text={c.label} />
               </span>
             ))}
           </div>
@@ -406,9 +411,13 @@ export function EndgameCeremony({
                             <span key={c.key} className="cd-chip" style={{ ["--cat" as string]: c.color } as CSSProperties}>
                               <c.icon aria-hidden="true" />
                               <em>
-                                {c.key === "majority" && wonResourceLabelsByPlayer.has(entry.playerId)
-                                  ? `Maioria: ${wonResourceLabelsByPlayer.get(entry.playerId)}`
-                                  : c.label}
+                                <ResourceText
+                                  text={
+                                    c.key === "majority" && wonResourceLabelsByPlayer.has(entry.playerId)
+                                      ? `Maioria: ${wonResourceLabelsByPlayer.get(entry.playerId)}`
+                                      : c.label
+                                  }
+                                />
                               </em>
                               <b>{c.key === "base" ? c.value : `+${c.value}`}</b>
                             </span>
@@ -453,8 +462,8 @@ export function EndgameCeremony({
           role="tooltip"
           style={{ left: segTip.x, top: segTip.y } as CSSProperties}
         >
-          <strong>{segTip.title}</strong>
-          <span>{segTip.hint}</span>
+          <strong><ResourceText text={segTip.title} /></strong>
+          <span><ResourceText text={segTip.hint} /></span>
           <b>{segTip.points > 0 ? `+${segTip.points} pt${segTip.points > 1 ? "s" : ""}` : "0 pts"}</b>
         </div>
       )}

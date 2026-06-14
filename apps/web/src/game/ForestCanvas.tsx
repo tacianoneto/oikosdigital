@@ -5,6 +5,7 @@ import {
   ForestPhaserScene,
 } from "./ForestPhaserScene";
 import type { ForestCanvasHandle, ForestCanvasProps } from "./ForestCanvasTypes";
+import { ResourceText } from "../ui/ResourceText";
 
 const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(function ForestCanvas(props, ref) {
   const {
@@ -201,7 +202,7 @@ const ForestCanvasComponent = forwardRef<ForestCanvasHandle, ForestCanvasProps>(
   return (
     <div className="forest-canvas">
       <div ref={hostRef} className="forest-phaser-host" />
-      <div className="forest-status-chip">{statusText}</div>
+      <div className="forest-status-chip"><ResourceText text={statusText} /></div>
       <button
         type="button"
         className="forest-recenter"

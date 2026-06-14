@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { ActionId, SpeciesId } from "@oikos/shared";
 import { speciesDefinitions } from "@oikos/content";
 import { getActionDescription, getPassiveDescription } from "./actionDescriptions";
+import { ResourceText } from "./ResourceText";
 
 interface ActionStepsViewerProps {
   speciesId: SpeciesId;
@@ -75,7 +76,7 @@ export function ActionStepsViewer({
           {selected === activeActionId ? " · em andamento" : " · consulta"}
         </span>
         <p className="action-steps-desc">
-          {selected === "*" ? passiveDescription : getActionDescription(speciesId, selected)}
+          <ResourceText text={selected === "*" ? passiveDescription ?? "" : getActionDescription(speciesId, selected)} />
         </p>
       </div>
     </div>

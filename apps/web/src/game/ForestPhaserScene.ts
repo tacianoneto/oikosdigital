@@ -36,6 +36,7 @@ export interface ScoringCardHighlight {
   position: GridPosition;
   label: string;
   color: number;
+  resource?: Resource;
   // When set, the badge shows these species' meeple icons (used by the
   // armadillo share highlight) instead of the plain text label.
   speciesIds?: SpeciesId[];
@@ -738,7 +739,10 @@ export class ForestPhaserScene extends Phaser.Scene {
       }
 
       const badge = this.add.container(0, -half - 26);
-      bw = Math.max(44, item.label.length * 8 + 30);
+      const hasResourceIcon = Boolean(item.resource && this.textures.exists(`res:${item.resource}`));
+      bw = hasResourceIcon
+        ? Math.max(52, item.label.length * 8 + 58)
+        : Math.max(44, item.label.length * 8 + 30);
       const shadow = this.add.graphics();
       shadow.fillStyle(0x000000, 0.3);
       shadow.fillRoundedRect(-bw / 2, -11, bw, 32, 16);
@@ -750,15 +754,38 @@ export class ForestPhaserScene extends Phaser.Scene {
       const dot = this.add.graphics();
       dot.fillStyle(item.color, 1);
       dot.fillCircle(-bw / 2 + 13, 0, 3.5);
-      const text = this.add
-        .text(6, 0, item.label, {
-          fontFamily: "Outfit, sans-serif",
-          fontSize: "14px",
-          fontStyle: "800",
-          color: "#f4fbf6"
-        })
-        .setOrigin(0.5);
-      badge.add([shadow, bg, dot, text]);
+      badge.add([shadow, bg, dot]);
+      if (hasResourceIcon && item.resource) {
+        const textWidth = item.label.length * 7;
+        if (item.label) {
+          badge.add(
+            this.add
+              .text(-12, 0, item.label, {
+                fontFamily: "Outfit, sans-serif",
+                fontSize: "14px",
+                fontStyle: "800",
+                color: "#f4fbf6"
+              })
+              .setOrigin(0.5)
+          );
+        }
+        badge.add(
+          this.add
+            .image(item.label ? textWidth / 2 + 10 : 3, 0, `res:${item.resource}`)
+            .setDisplaySize(24, 24)
+        );
+      } else {
+        badge.add(
+          this.add
+            .text(6, 0, item.label, {
+              fontFamily: "Outfit, sans-serif",
+              fontSize: "14px",
+              fontStyle: "800",
+              color: "#f4fbf6"
+            })
+            .setOrigin(0.5)
+        );
+      }
 
       const cont = this.add.container(w.x, w.y, [frame, corners, badge]);
       cont.setDepth(80);
@@ -1768,7 +1795,7 @@ function viewSignature(vm: ForestViewModel): string {
     vm.selectedPieceId ?? "",
     vm.selectedPieceIds.join("|"),
     vm.selectablePieceIds.join("|"),
-    vm.scoringCardHighlights.map((item) => `${item.position.x},${item.position.y}:${item.label}:${item.color}:${(item.speciesIds ?? []).join(",")}`).join("|"),
+    vm.scoringCardHighlights.map((item) => `${item.position.x},${item.position.y}:${item.label}:${item.color}:${item.resource ?? ""}:${(item.speciesIds ?? []).join(",")}`).join("|"),
     vm.scoringLineHighlights
       .map((item) => `${item.positions.map((position) => `${position.x},${position.y}`).join(">")}:${item.label}:${item.color}`)
       .join("|")

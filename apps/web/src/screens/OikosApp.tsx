@@ -153,6 +153,7 @@ import {
 } from "../ui/audio";
 import { ActionStepsViewer } from "../ui/ActionStepsViewer";
 import { EndgameCeremony } from "../ui/EndgameCeremony";
+import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { SettingsModal } from "../ui/SettingsModal";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import {
@@ -595,7 +596,7 @@ function ScenarioVotingOverlay({
                   </span>
                   <span className="scenario-vote-card-copy">
                     <span className="scenario-vote-card-name">{def.label}</span>
-                    <span className="scenario-vote-card-desc">{def.description}</span>
+                    <span className="scenario-vote-card-desc"><ResourceText text={def.description} /></span>
                   </span>
                   {selected && (
                     <span className="scenario-vote-card-check" aria-hidden="true">
@@ -692,7 +693,7 @@ function ActiveRulesDock({
                     <span>Ameaca da rodada</span>
                   </div>
                   <strong>{threat.label}</strong>
-                  <p>{threat.description}</p>
+                  <p><ResourceText text={threat.description} /></p>
                 </div>
               </article>
             )}
@@ -2062,13 +2063,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       const cardHighlights = [
         ...fieldPositions.map((position) => ({
           position,
-          // A field+seed card counts for both bonuses; label it accordingly.
-          label: seedKeys.has(`${position.x},${position.y}`) ? "campina + semente" : "campina",
+          // A field+seed card counts for both bonuses; pair the habitat label
+          // with the printed seed icon instead of spelling out the resource.
+          label: seedKeys.has(`${position.x},${position.y}`) ? "campina +" : "campina",
+          resource: seedKeys.has(`${position.x},${position.y}`) ? "seed" as const : undefined,
           color: 0x6fae46
         })),
         ...seedPositions
           .filter((position) => !fieldPositions.some((field) => field.x === position.x && field.y === position.y))
-          .map((position) => ({ position, label: "semente", color: 0xd94b3f }))
+          .map((position) => ({ position, label: "", resource: "seed" as const, color: 0xd94b3f }))
       ];
       return {
         cardHighlights,
@@ -4486,13 +4489,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="seed-spend-title">
             <div className="caatinga-choice-head">
               <Trophy aria-hidden="true" />
-              <span>Objetivo de sementes</span>
+              <span><ResourceText text="Objetivo de sementes" /></span>
             </div>
-            <h2 id="seed-spend-title">Gastar {pendingSeedSpendCount} sementes?</h2>
+            <h2 id="seed-spend-title">
+              Gastar {pendingSeedSpendCount} <ResourceIcon resource="seed" label="sementes" />?
+            </h2>
             <p>
               {pendingSeedSpendPlayer?.name ?? "Jogador"}, antes da pontuacao final voce pode gastar{" "}
-              <strong>{pendingSeedSpendCount} sementes</strong> para ganhar{" "}
-              <strong>{pendingSeedSpendPoints} pontos</strong>. Depois disso, sementes restantes ainda pontuam normalmente.
+              <strong>{pendingSeedSpendCount} <ResourceIcon resource="seed" label="sementes" /></strong> para ganhar{" "}
+              <strong>{pendingSeedSpendPoints} pontos</strong>. Depois disso, <ResourceIcon resource="seed" label="sementes" /> restantes ainda pontuam normalmente.
             </p>
             <div className="caatinga-choice-actions caatinga-choice-actions--stack">
               <button
@@ -5237,7 +5242,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.jaguar.displayName}</strong>
-                  <small>O predador: cace peças e gaste carne por pontos.</small>
+                  <small><ResourceText text="O predador: cace peças e gaste carne por pontos." /></small>
                 </span>
                 {isTutorialJaguarDone() ? (
                   <span className="tutorial-chapter-badge done">
@@ -6061,7 +6066,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </div>
             )}
             <strong className="threat-reveal-name">{threatRevealDefinition.label}</strong>
-            <p className="threat-reveal-desc">{threatRevealDefinition.description}</p>
+            <p className="threat-reveal-desc"><ResourceText text={threatRevealDefinition.description} /></p>
             <span className="threat-reveal-progress" aria-hidden="true" />
           </div>
         </div>
@@ -6093,8 +6098,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             <span className="tutorial-coach-step">
               Passo {(tutorialStep ?? 0) + 1}/{tutorialSteps.length}
             </span>
-            <h3>{tutorialDef.title}</h3>
-            <p>{tutorialDef.body}</p>
+            <h3><ResourceText text={tutorialDef.title} /></h3>
+            <p><ResourceText text={tutorialDef.body} /></p>
             {tutorialDef.resourceIcons && tutorialDef.resourceIcons.length > 0 && (
               <ul className="tutorial-coach-resources">
                 {tutorialDef.resourceIcons.map((icon) => (
@@ -6112,7 +6117,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     <img src={encodeURI(card.iconAsset)} alt="" />
                     <span className="tutorial-coach-category-text">
                       <strong>{card.label}</strong>
-                      <small>{card.body}</small>
+                      <small><ResourceText text={card.body} /></small>
                     </span>
                   </li>
                 ))}
@@ -6123,7 +6128,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 {tutorialDef.terms.map((entry) => (
                   <div key={entry.term}>
                     <dt>{entry.term}</dt>
-                    <dd>{entry.body}</dd>
+                    <dd><ResourceText text={entry.body} /></dd>
                   </div>
                 ))}
               </dl>
@@ -6273,7 +6278,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         {!cleanBoardMode && (error || notice) && (
           <div className={`status-message hud-toast ${error ? "error" : "notice"}`}>
             {error ? <AlertTriangle aria-hidden="true" /> : <Check aria-hidden="true" />}
-            <span>{error ?? notice}</span>
+            <span><ResourceText text={error ?? notice ?? ""} /></span>
           </div>
         )}
 
@@ -6369,9 +6374,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 {activeSpecies.speciesId === "coati" && !hasPendingCoatiPairBonus && activeActionId === "A" && canControlActivePlayer && (
                   <>
                     <small>
-                      {room.game.activePlayedForestCardId
-                        ? "Escolha uma carta com fruta para adicionar 1 quati, ou conclua sem adicionar."
-                        : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
+                      <ResourceText
+                        text={
+                          room.game.activePlayedForestCardId
+                            ? "Escolha uma carta com fruta para adicionar 1 quati, ou conclua sem adicionar."
+                            : "Selecione uma carta na mão e coloque em um espaço vazio destacado."
+                        }
+                      />
                     </small>
                     {room.game.activePlayedForestCardId && !tutorialActive && (
                       <button className="secondary-button" onClick={handleCompleteAction}>
@@ -6433,7 +6442,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 {activeSpecies.speciesId === "jaguar" &&
                   activeActionId === "C" &&
                   canControlActivePlayer && (
-                    <small>Escolha quantas carnes gastar na janela central.</small>
+                    <small><ResourceText text="Escolha quantas carnes gastar na janela central." /></small>
                   )}
                 {activeSpecies.speciesId === "capuchin" && activeActionId === "A" && canControlActivePlayer && (() => {
                   const canSkipAdd = Boolean(room.game.activePlayedForestCardId);
@@ -6481,13 +6490,17 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   return (
                     <>
                       <small>
-                        {!room.game.activePlayedForestCardId
-                          ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
-                          : noReserve
-                            ? "Sem araras na reserva. Conclua a ação para seguir."
-                            : noEggTargets
-                              ? "Nenhuma carta com ovo disponível. Conclua a ação para seguir."
-                              : `Clique em uma carta com ovo destacada para adicionar 1 arara, ou conclua sem adicionar. Reserva: ${reserveCount}.`}
+                        <ResourceText
+                          text={
+                            !room.game.activePlayedForestCardId
+                              ? "Selecione uma carta na mão e coloque em um espaço vazio destacado."
+                              : noReserve
+                                ? "Sem araras na reserva. Conclua a ação para seguir."
+                                : noEggTargets
+                                  ? "Nenhuma carta com ovo disponível. Conclua a ação para seguir."
+                                  : `Clique em uma carta com ovo destacada para adicionar 1 arara, ou conclua sem adicionar. Reserva: ${reserveCount}.`
+                          }
+                        />
                       </small>
                       {room.game.activePlayedForestCardId && (
                         <button className="secondary-button" onClick={handleCompleteAction}>
@@ -6516,9 +6529,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 {activeSpecies.speciesId === "armadillo" && activeActionId === "A" && canControlActivePlayer && (
                   <>
                     <small>
-                      {room.game.activePlayedForestCardId
-                        ? "Clique em uma carta com semente destacada para adicionar 1 tatu, ou conclua sem adicionar."
-                        : "Selecione uma carta na mão e coloque em um espaço vazio destacado."}
+                      <ResourceText
+                        text={
+                          room.game.activePlayedForestCardId
+                            ? "Clique em uma carta com semente destacada para adicionar 1 tatu, ou conclua sem adicionar."
+                            : "Selecione uma carta na mão e coloque em um espaço vazio destacado."
+                        }
+                      />
                     </small>
                     {room.game.activePlayedForestCardId && (
                       <button className="secondary-button" onClick={handleCompleteAction}>
@@ -6589,7 +6606,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 {activeSpecies.speciesId === "maned_wolf" && activeActionId === "D" && canControlActivePlayer && (
                   <>
                     <small>
-                      Clique em uma carta com carne para adicionar 1 lobo, ou conclua sem adicionar. Locais válidos: {wolfMeatTargets.length}.
+                      Clique em uma carta com <ResourceIcon resource="meat" /> para adicionar 1 lobo, ou conclua sem adicionar.
+                      Locais válidos: {wolfMeatTargets.length}.
                     </small>
                     <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
                       Concluir sem adicionar
@@ -7231,11 +7249,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 <img src={encodeURI(speciesDefinitions.jaguar.meepleAsset)} alt="" />
                 <div>
                   <span>Onça-pintada · Ação C</span>
-                  <h2>Gastar carne para pontuar</h2>
+                  <h2><ResourceText text="Gastar carne para pontuar" /></h2>
                 </div>
               </header>
               <p className="choice-modal-desc">
-                Gaste 1 carne para marcar 1 ponto, até 3 vezes. Carnes disponíveis: {availableJaguarPointSpendCount}.
+                Gaste 1 <ResourceIcon resource="meat" /> para marcar 1 ponto, até 3 vezes.{" "}
+                <ResourceIcon resource="meat" label="Carnes" /> disponíveis: {availableJaguarPointSpendCount}.
               </p>
               <div className="choice-count-grid">
                 {[1, 2, 3].map((count) => (
@@ -7547,7 +7566,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "C" && (
                       <div className="action-box-hint">
-                        Defina quantas carnes converter em pontos na janela central.
+                        <ResourceText text="Defina quantas carnes converter em pontos na janela central." />
                       </div>
                     )}
 
@@ -7651,7 +7670,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "D" && (
                       <>
                         <div className="action-box-hint">
-                          Clique em uma carta de carne para abrigar 1 lobo. Locais válidos: <strong>{wolfMeatTargets.length}</strong>.
+                          Clique em uma carta de <ResourceIcon resource="meat" /> para abrigar 1 lobo. Locais válidos:{" "}
+                          <strong>{wolfMeatTargets.length}</strong>.
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
@@ -7720,9 +7740,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "A" && (
                       <>
                         <div className="action-box-hint">
-                          {room.game.activePlayedForestCardId
-                            ? "Clique em uma carta com semente destacada para abrigar 1 tatu."
-                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                          <ResourceText
+                            text={
+                              room.game.activePlayedForestCardId
+                                ? "Clique em uma carta com semente destacada para abrigar 1 tatu."
+                                : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
+                            }
+                          />
                         </div>
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
@@ -7826,9 +7850,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "A" && (
                       <>
                         <div className="action-box-hint">
-                          {room.game.activePlayedForestCardId
-                            ? "Clique em uma carta com ovo destacada para abrigar 1 arara."
-                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                          <ResourceText
+                            text={
+                              room.game.activePlayedForestCardId
+                                ? "Clique em uma carta com ovo destacada para abrigar 1 arara."
+                                : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
+                            }
+                          />
                         </div>
                         {room.game.activePlayedForestCardId && (
                           <div className="action-box-actions">
@@ -7942,11 +7970,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     {activeActionId === "C" && (
                       <>
                         <div className="action-box-hint">
-                          {room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
-                            ? "Clique em um local destacado adjacente ao galo movido para adicionar 1 galo-de-campina."
-                            : (currentGamePlayer.resources.seed ?? 0) <= 0
-                              ? "Sem semente disponível: conclua a ação para seguir."
-                              : "Opcional: gaste 1 semente ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."}
+                          <ResourceText
+                            text={
+                              room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
+                                ? "Clique em um local destacado adjacente ao galo movido para adicionar 1 galo-de-campina."
+                                : (currentGamePlayer.resources.seed ?? 0) <= 0
+                                  ? "Sem semente disponível: conclua a ação para seguir."
+                                  : "Opcional: gaste 1 semente ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."
+                            }
+                          />
                         </div>
                         <div className="action-box-actions">
                           <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
@@ -7959,7 +7991,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                     )}
                     {activeActionId === "D" && (
                       <div className="action-box-hint">
-                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"}: +1 se presente em 3+ campinas, +1 se presente em 3+ locais de semente.
+                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"}:
+                        +1 se presente em 3+ campinas, +1 se presente em 3+ locais de <ResourceIcon resource="seed" />.
                       </div>
                     )}
                   </>
@@ -8124,9 +8157,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                       {activeActionId === "A" && (
                         <>
                           <div className="action-box-hint">
-                            {room.game.activePlayedForestCardId
-                              ? "Clique em uma carta com fruta destacada para abrigar 1 quati."
-                              : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
+                            <ResourceText
+                              text={
+                                room.game.activePlayedForestCardId
+                                  ? "Clique em uma carta com fruta destacada para abrigar 1 quati."
+                                  : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
+                              }
+                            />
                           </div>
                           {room.game.activePlayedForestCardId && !tutorialActive && (
                             <div className="action-box-actions">

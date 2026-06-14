@@ -3,6 +3,7 @@ import { AlertTriangle, Copy, Eye, LogOut, Minus, Play, Plus, Settings, Users, V
 import type { AudioSettings } from "./audio";
 import { initAudioOnGesture, playClick } from "./audio";
 import { ScenarioDescription } from "./ScenarioDescription";
+import { ResourceText } from "./ResourceText";
 
 interface TableScenarioInfo {
   id: string;
@@ -142,7 +143,7 @@ export function SettingsModal({
                   )}
                   <div>
                     <strong>{table.threat.label}</strong>
-                    <p>{table.threat.description}</p>
+                    <p><ResourceText text={table.threat.description} /></p>
                   </div>
                 </article>
               </div>
