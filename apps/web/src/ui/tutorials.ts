@@ -905,54 +905,34 @@ export function markTutorialDone(tutorialId: TutorialId): void {
   void markTutorialProgressDone(tutorialId);
 }
 
-export function isTutorialInitialDone(): boolean {
-  return isTutorialDone("initial");
-}
+export const isTutorialInitialDone = (): boolean => isTutorialDone("initial");
+export const isTutorialJaguarDone = (): boolean => isTutorialDone("jaguar");
+export const isTutorialWolfDone = (): boolean => isTutorialDone("wolf");
+export const isTutorialArmadilloDone = (): boolean => isTutorialDone("armadillo");
+export const isTutorialMacawDone = (): boolean => isTutorialDone("macaw");
+export const isTutorialCapuchinDone = (): boolean => isTutorialDone("capuchin");
+export const isTutorialCoatiDone = (): boolean => isTutorialDone("coati");
 
-export function isTutorialJaguarDone(): boolean {
-  return isTutorialDone("jaguar");
-}
-
-export function isTutorialWolfDone(): boolean {
-  return isTutorialDone("wolf");
-}
-
-export function isTutorialArmadilloDone(): boolean {
-  return isTutorialDone("armadillo");
-}
-
-export function isTutorialMacawDone(): boolean {
-  return isTutorialDone("macaw");
-}
-
-export function isTutorialCapuchinDone(): boolean {
-  return isTutorialDone("capuchin");
-}
-
-export function isTutorialCoatiDone(): boolean {
-  return isTutorialDone("coati");
-}
+// Per-tutorial wiring in one place: the step script and the scripted player id.
+// getTutorialSteps / getTutorialPlayerId read from here instead of repeating a
+// branch per chapter.
+const TUTORIAL_DEFS: Record<TutorialId, { steps: TutorialStepDef[]; playerId: string }> = {
+  initial: { steps: INITIAL_TUTORIAL_STEPS, playerId: INITIAL_TUTORIAL_PLAYER_ID },
+  jaguar: { steps: JAGUAR_TUTORIAL_STEPS, playerId: JAGUAR_TUTORIAL_PLAYER_ID },
+  wolf: { steps: WOLF_TUTORIAL_STEPS, playerId: WOLF_TUTORIAL_PLAYER_ID },
+  armadillo: { steps: ARMADILLO_TUTORIAL_STEPS, playerId: ARMADILLO_TUTORIAL_PLAYER_ID },
+  macaw: { steps: MACAW_TUTORIAL_STEPS, playerId: MACAW_TUTORIAL_PLAYER_ID },
+  capuchin: { steps: CAPUCHIN_TUTORIAL_STEPS, playerId: CAPUCHIN_TUTORIAL_PLAYER_ID },
+  coati: { steps: COATI_TUTORIAL_STEPS, playerId: COATI_TUTORIAL_PLAYER_ID }
+};
 
 export function getTutorialSteps(tutorialId: TutorialId | null): TutorialStepDef[] {
-  if (tutorialId === "jaguar") return JAGUAR_TUTORIAL_STEPS;
-  if (tutorialId === "wolf") return WOLF_TUTORIAL_STEPS;
-  if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_STEPS;
-  if (tutorialId === "macaw") return MACAW_TUTORIAL_STEPS;
-  if (tutorialId === "capuchin") return CAPUCHIN_TUTORIAL_STEPS;
-  if (tutorialId === "coati") return COATI_TUTORIAL_STEPS;
-  // Chapters not rebuilt yet default to the basic tutorial.
-  return INITIAL_TUTORIAL_STEPS;
+  // Chapters without an id default to the basic tutorial.
+  return tutorialId ? TUTORIAL_DEFS[tutorialId].steps : INITIAL_TUTORIAL_STEPS;
 }
 
 export function getTutorialPlayerId(tutorialId: TutorialId | null, fallback: string | null): string | null {
-  if (tutorialId === "initial") return INITIAL_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "jaguar") return JAGUAR_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "wolf") return WOLF_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "armadillo") return ARMADILLO_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "macaw") return MACAW_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "capuchin") return CAPUCHIN_TUTORIAL_PLAYER_ID;
-  if (tutorialId === "coati") return COATI_TUTORIAL_PLAYER_ID;
-  return fallback;
+  return tutorialId ? TUTORIAL_DEFS[tutorialId].playerId : fallback;
 }
 
 function placeTutorialPiece(game: GameState, playerId: string, pieceNumber: number, location: GridPosition): void {
