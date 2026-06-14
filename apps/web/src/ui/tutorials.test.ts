@@ -13,15 +13,15 @@ import { describe, expect, it } from "vitest";
 import { createCoatiTutorialRoom, getTutorialSteps } from "./tutorials";
 
 describe("Quati tutorial", () => {
-  it("plays its scripted turn from expansion through reserve recovery", () => {
+  it("scores three passive additions before recovering the reserve", () => {
     let game = createCoatiTutorialRoom().game!;
     const playerId = game.activePlayerId!;
     const getPlayer = () => game.players.find((candidate) => candidate.playerId === playerId)!;
     const movingPieceId = `${playerId}_piece_2`;
 
-    expect(getTutorialSteps("coati")).toHaveLength(11);
-    expect(getPlayer().piecesInForest).toHaveLength(5);
-    expect(getPlayer().reservePieces).toHaveLength(3);
+    expect(getTutorialSteps("coati")).toHaveLength(13);
+    expect(getPlayer().piecesInForest).toHaveLength(4);
+    expect(getPlayer().reservePieces).toHaveLength(4);
 
     game = placeForestCard(game, playerId, "bosque_1_copy", { x: 2, y: 0 });
     expect(getCoatiFruitPlacementPositions(game, playerId)).toContainEqual({ x: -1, y: -1 });
@@ -32,7 +32,20 @@ describe("Quati tutorial", () => {
 
     game = resolveCoatiPairBonus(game, playerId, { x: 0, y: -1 });
     expect(getPlayer().score).toBe(1);
+    expect(getPlayer().reservePieces).toHaveLength(2);
+    expect(game.pendingCoatiPairBonus?.origin).toEqual({ x: 0, y: -1 });
+    expect(getCoatiPairBonusTargets(game, playerId)).toContainEqual({ x: 1, y: -1 });
+
+    game = resolveCoatiPairBonus(game, playerId, { x: 1, y: -1 });
+    expect(getPlayer().score).toBe(2);
     expect(getPlayer().reservePieces).toHaveLength(1);
+    expect(game.pendingCoatiPairBonus?.origin).toEqual({ x: 1, y: -1 });
+    expect(getCoatiPairBonusTargets(game, playerId)).toContainEqual({ x: 1, y: 0 });
+
+    game = resolveCoatiPairBonus(game, playerId, { x: 1, y: 0 });
+    expect(getPlayer().score).toBe(3);
+    expect(getPlayer().reservePieces).toHaveLength(0);
+    expect(game.pendingCoatiPairBonus).toBeNull();
     expect(game.activeActionIndex).toBe(1);
     expect(getValidPieceMovementDestinations(game, playerId, movingPieceId)).toContainEqual({ x: 1, y: 0 });
 
@@ -44,7 +57,8 @@ describe("Quati tutorial", () => {
     game = removePiecesForCurrentAction(game, playerId, removalIds);
 
     expect(game.round).toBe(3);
-    expect(getPlayer().reservePieces).toHaveLength(3);
-    expect(getPlayer().piecesInForest).toHaveLength(5);
+    expect(getPlayer().score).toBe(3);
+    expect(getPlayer().reservePieces).toHaveLength(2);
+    expect(getPlayer().piecesInForest).toHaveLength(6);
   });
 });

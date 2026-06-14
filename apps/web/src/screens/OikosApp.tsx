@@ -5357,7 +5357,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                 </span>
                 <span className="tutorial-chapter-text">
                   <strong>{speciesDefinitions.coati.displayName}</strong>
-                  <small>Forme duplas exatas para adicionar quatis da reserva e marcar pontos.</small>
+                  <small>Encadeie duplas exatas para adicionar quatis da reserva e marcar 3 pontos.</small>
                 </span>
                 {isTutorialCoatiDone() ? (
                   <span className="tutorial-chapter-badge done">

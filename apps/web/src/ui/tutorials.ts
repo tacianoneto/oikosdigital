@@ -759,11 +759,10 @@ const CAPUCHIN_TUTORIAL_STEPS: TutorialStepDef[] = [
 ];
 
 // --- Quati (coati) chapter --------------------------------------------------
-// Five coatis begin in the forest, leaving three in reserve. Action A adds one
-// to a fruit card and forms an exact pair; the passive then adds a seventh
-// coati adjacently, and that addition scores 1 point. Action B demonstrates the forest-card
-// straight jump. With only one coati left in reserve, action C removes two from
-// the forest and restores the reserve above the penalty threshold.
+// Four coatis begin as a chain of singletons, leaving four in reserve. Action A
+// forms the first exact pair, then three passive additions cascade through the
+// chain for 3 points. Action B demonstrates the forest-card straight jump. With
+// an empty reserve, action C removes two coatis and restores the reserve.
 const COATI_TUTORIAL_PLAYER_ID = "local_coati";
 const COATI_TUTORIAL_CARD = "bosque_1_copy";
 const COATI_TUTORIAL_MOVING_PIECE_ID = `${COATI_TUTORIAL_PLAYER_ID}_piece_2`;
@@ -783,7 +782,7 @@ const COATI_TUTORIAL_FOREST: ForestCardState[] = [
 const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
   {
     title: "Quati",
-    body: "O Quati é uma espécie de base com 8 peças. Ele ocupa a floresta rapidamente, adiciona peças em locais de fruta e usa duplas exatas para adicionar novos quatis. Cada quati adicionado por essa passiva marca 1 ponto.",
+    body: "O Quati é uma espécie de base com 8 peças. Ele ocupa a floresta rapidamente, adiciona peças em locais de fruta e usa duplas exatas para adicionar novos quatis. Cada quati adicionado por essa passiva marca 1 ponto. Neste tutorial, você fará 3 pontos.",
     gate: "none",
     autoAdvance: false,
     resourceIcons: [
@@ -798,10 +797,11 @@ const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
     autoAdvance: false
   },
   {
-    title: "O plano do turno",
-    body: "Você começa com 5 quatis na floresta e 3 na reserva. Na ação A, adicionará um quati para formar uma dupla e ativar a passiva. Na B, fará um salto reto. Restará somente 1 quati na reserva, então a ação C exigirá retirar 2 quatis da floresta.",
+    title: "O plano para 3 pontos",
+    body: "Você começa com 4 quatis na floresta e 4 na reserva. Na ação A, formará uma dupla. O quati adicionado pela passiva formará outra dupla, repetindo o efeito até você adicionar 3 quatis e marcar 3 pontos. Depois, fará um salto reto na ação B e recuperará 2 peças na ação C.",
     gate: "none",
-    autoAdvance: false
+    autoAdvance: false,
+    resourceIcons: [{ resource: "point", caption: "3 quatis adicionados pela passiva: 3 pontos" }]
   },
   {
     title: "Ação A: expanda a floresta",
@@ -821,19 +821,35 @@ const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
     completeWhenCoatiPairPending: true
   },
   {
-    title: "Passiva: abrigue o quati bônus",
-    body: "A dupla ativou a passiva. Coloque 1 quati da reserva no local adjacente destacado. Essa adição não coleta o recurso do destino e, quando for concluída, marca 1 ponto.",
+    title: "Primeiro quati da passiva",
+    body: "A dupla ativou a passiva. Coloque 1 quati da reserva no local adjacente destacado. Essa adição marca o primeiro ponto e forma uma nova dupla, ativando a passiva novamente.",
     gate: "resolvePair",
     autoAdvance: true,
     markedPairTarget: { x: 0, y: -1 },
-    completeWhenActionIndex: 1
+    completeWhenScoreAtLeast: 1
   },
   {
-    title: "Quati bônus adicionado",
-    body: "Você adicionou o quati da passiva, marcou 1 ponto e ficou com 7 quatis na floresta e 1 na reserva. A dupla apenas permitiu essa adição; ela não marca ponto sozinha.",
+    title: "Segundo quati da passiva",
+    body: "Você marcou 1 ponto e a nova dupla manteve a passiva ativa. Adicione outro quati da reserva no próximo local destacado. Essa segunda adição marca o segundo ponto e forma a terceira dupla.",
+    gate: "resolvePair",
+    autoAdvance: true,
+    markedPairTarget: { x: 1, y: -1 },
+    completeWhenScoreAtLeast: 2
+  },
+  {
+    title: "Terceiro quati da passiva",
+    body: "Adicione o último quati da reserva no local destacado. Essa terceira adição marca o terceiro ponto. Como a reserva ficará vazia, nenhuma nova passiva poderá ser ativada.",
+    gate: "resolvePair",
+    autoAdvance: true,
+    markedPairTarget: { x: 1, y: 0 },
+    completeWhenScoreAtLeast: 3
+  },
+  {
+    title: "Três pontos marcados",
+    body: "Você adicionou 3 quatis pela passiva e marcou 3 pontos. As duplas foram os gatilhos; cada ponto veio de uma nova peça adicionada da reserva. Agora todos os 8 quatis estão na floresta.",
     gate: "none",
     autoAdvance: false,
-    resourceIcons: [{ resource: "point", caption: "Quati da passiva adicionado: 1 ponto" }]
+    resourceIcons: [{ resource: "point", caption: "3 adições da passiva: 3 pontos" }]
   },
   {
     title: "Ação B: salto reto",
@@ -846,21 +862,21 @@ const COATI_TUTORIAL_STEPS: TutorialStepDef[] = [
     highlightMovementGuideSpecies: "coati"
   },
   {
-    title: "Reserva baixa",
-    body: "Depois da adição e do bônus, restou apenas 1 quati na reserva. A ação C verifica a reserva: com menos de 2 peças, você deve retirar exatamente 2 quatis da floresta.",
+    title: "Reserva vazia",
+    body: "Depois das três adições da passiva, não restou nenhum quati na reserva. A ação C verifica a reserva: com menos de 2 peças, você deve retirar exatamente 2 quatis da floresta.",
     gate: "none",
     autoAdvance: false
   },
   {
     title: "Ação C: retire 2 quatis",
-    body: "Selecione quaisquer 2 quatis seus na floresta e confirme a retirada. Eles voltam para a reserva, que ficará com 3 peças. Planeje a expansão para aproveitar as duplas sem terminar o turno com a reserva baixa.",
+    body: "Selecione quaisquer 2 quatis seus na floresta e confirme a retirada. Eles voltam para a reserva, que ficará com 2 peças. Planeje as duplas para pontuar sem deixar a reserva vazia por muito tempo.",
     gate: "removeCoati",
     autoAdvance: true,
     completeWhenRoundAtLeast: 3
   },
   {
     title: "Tutorial do Quati completo!",
-    body: "Você expandiu a floresta, adicionou em fruta, formou uma dupla exata e usou a passiva para adicionar outro quati e marcar 1 ponto. Depois, moveu conforme a carta e recuperou a reserva na ação C. Sem peça na reserva, a dupla não gera adição nem ponto.",
+    body: "Você expandiu a floresta, adicionou em fruta e encadeou três ativações da passiva para adicionar 3 quatis e marcar 3 pontos. Depois, moveu conforme a carta e recuperou 2 peças na ação C. Sem peça na reserva, uma dupla não gera adição nem ponto.",
     gate: "none",
     autoAdvance: false
   }
@@ -1379,9 +1395,8 @@ export function createCoatiTutorialRoom(): PublicRoomState {
 
   placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 1, { x: -1, y: -1 });
   placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 2, { x: -1, y: 0 });
-  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 3, { x: 0, y: 0 });
+  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 3, { x: 0, y: -1 });
   placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 4, { x: 1, y: -1 });
-  placeTutorialPiece(game, COATI_TUTORIAL_PLAYER_ID, 5, { x: 1, y: 1 });
 
   game.status = "active";
   game.round = 2;
