@@ -530,7 +530,7 @@ const ARMADILLO_TUTORIAL_STEPS: TutorialStepDef[] = [
   },
   {
     title: "A carapaça funcionou",
-    body: "A Onça entrou no local e removeu a Arara visível, mas o tatu escondido continuou na floresta. A Onça ganhou carne pela captura da Arara; não ganhou uma segunda carne pelo tatu, pois peças escondidas não podem ser removidas.",
+    body: "A Onça entrou no local e removeu a Arara visível. O tatu permaneceu na floresta porque estava escondido: peças escondidas não podem ser escolhidas como alvo da Onça. A captura da Arara rendeu 1 carne.",
     gate: "none",
     autoAdvance: false
   },
