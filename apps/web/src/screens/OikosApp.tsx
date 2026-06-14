@@ -183,6 +183,7 @@ import { speciesVar } from "../ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "../ui/turnSummary";
 import {
   createArmadilloTutorialRoom,
+  createCapuchinTutorialRoom,
   createInitialTutorialRoom,
   createJaguarTutorialRoom,
   createMacawTutorialRoom,
@@ -190,6 +191,7 @@ import {
   getTutorialPlayerId,
   getTutorialSteps,
   isTutorialArmadilloDone,
+  isTutorialCapuchinDone,
   isTutorialInitialDone,
   isTutorialJaguarDone,
   isTutorialMacawDone,
@@ -3928,7 +3930,23 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setTutorialId("macaw");
   }
 
-  // Other species tutorials (capuchin, coati) are being
+  function startCapuchinTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createCapuchinTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("capuchin");
+  }
+
+  // Other species tutorials (coati) are being
   // rebuilt from scratch and will get their own start functions then.
 
   function exitTutorial(completed: boolean) {
@@ -5280,11 +5298,35 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </span>
                 )}
               </button>
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialCapuchinDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.capuchin } as CSSProperties}
+                onClick={startCapuchinTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.capuchin.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.capuchin.displayName}</strong>
+                  <small>Use 7 macacos, complete os 3 habitats e marque 3 pontos.</small>
+                </span>
+                {isTutorialCapuchinDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
               {speciesList.filter((species) =>
                 species.speciesId !== "jaguar" &&
                 species.speciesId !== "maned_wolf" &&
                 species.speciesId !== "armadillo" &&
-                species.speciesId !== "macaw"
+                species.speciesId !== "macaw" &&
+                species.speciesId !== "capuchin"
               ).map((species) => (
                 <div
                   key={species.speciesId}

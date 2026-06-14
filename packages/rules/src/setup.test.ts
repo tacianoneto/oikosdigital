@@ -1188,6 +1188,69 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(3);
   });
 
+  it("lets the Macaco-prego tutorial score all three habitats in one turn", () => {
+    const tutorialForest: ForestCardState[] = [
+      { instanceId: "cap_tut_0", definitionId: "initial_5", x: -1, y: -1, rotation: 0, isInitial: true },
+      { instanceId: "cap_tut_1", definitionId: "initial_2", x: 0, y: -1, rotation: 0, isInitial: true },
+      { instanceId: "cap_tut_2", definitionId: "initial_3", x: 1, y: -1, rotation: 0, isInitial: true },
+      { instanceId: "cap_tut_3", definitionId: "initial_4", x: -1, y: 0, rotation: 0, isInitial: true },
+      { instanceId: "cap_tut_4", definitionId: "initial_6", x: 0, y: 0, rotation: 0, isInitial: true },
+      { instanceId: "cap_tut_5", definitionId: "initial_7", x: 1, y: 0, rotation: 0, isInitial: true },
+      { instanceId: "cap_tut_6", definitionId: "initial_9", x: -1, y: 1, rotation: 90, isInitial: true },
+      { instanceId: "cap_tut_7", definitionId: "initial_1", x: 0, y: 1, rotation: 90, isInitial: true },
+      { instanceId: "cap_tut_8", definitionId: "initial_8_v", x: 1, y: 1, rotation: 270, isInitial: true }
+    ];
+    let game = createInitialGameState("room", [player("capuchin", "capuchin")], () => 0.999999, tutorialForest);
+    game.players[0]!.objectiveChoices = [];
+
+    game = placeInitialPiece(game, "capuchin", { x: -1, y: 0 });
+    game = placeInitialPiece(game, "capuchin", { x: 0, y: -1 });
+    game = placeInitialPiece(game, "capuchin", { x: 1, y: -1 });
+    game = {
+      ...game,
+      players: game.players.map((candidate) =>
+        candidate.playerId === "capuchin"
+          ? {
+              ...candidate,
+              hand: ["campo_2_copy"],
+              reservePieces: candidate.reservePieces.filter(
+                (pieceId) => pieceId !== "capuchin_piece_4" && pieceId !== "capuchin_piece_5"
+              ),
+              piecesInForest: [...candidate.piecesInForest, "capuchin_piece_4", "capuchin_piece_5"]
+            }
+          : candidate
+      ),
+      pieces: game.pieces.map((piece) =>
+        piece.pieceId === "capuchin_piece_4"
+          ? { ...piece, location: { x: 0, y: 0, siteId: "main" } }
+          : piece.pieceId === "capuchin_piece_5"
+            ? { ...piece, location: { x: 0, y: 1, siteId: "main" } }
+            : piece
+      )
+    };
+
+    game = placeForestCard(game, "capuchin", "campo_2_copy", { x: 2, y: 0 });
+    expect(getCapuchinPlacementPositions(game, "capuchin")).toEqual([{ x: 2, y: 0 }]);
+
+    game = addCapuchinForCurrentAction(game, "capuchin", { x: 2, y: 0 });
+    expect(getValidPieceMovementDestinations(game, "capuchin", "capuchin_piece_1")).toContainEqual({ x: 1, y: 1 });
+
+    game = movePieceForCurrentAction(game, "capuchin", "capuchin_piece_1", { x: 1, y: 1 });
+    expect(getCapuchinPlacementPositions(game, "capuchin")).toContainEqual({ x: 1, y: 1 });
+
+    game = addCapuchinForCurrentAction(game, "capuchin", { x: 1, y: 1 });
+
+    expect(getCapuchinHabitatScore(game, "capuchin")).toBe(3);
+    expect(getCapuchinScoringHabitats(game, "capuchin").map((group) => group.habitat).sort()).toEqual([
+      "field",
+      "forest",
+      "river"
+    ]);
+
+    game = scoreCapuchinHabitatPresence(game, "capuchin");
+    expect(game.players.find((candidate) => candidate.playerId === "capuchin")?.score).toBe(3);
+  });
+
   it("plays Arara-azul action A by expanding and adding a macaw on an egg card", () => {
     let game = createTestGameState("room", [player("macaw", "macaw"), player("coati", "coati")]);
     game = placeInitialPiece(game, "macaw", { x: -1, y: -1 });
