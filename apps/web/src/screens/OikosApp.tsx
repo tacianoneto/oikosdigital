@@ -185,12 +185,14 @@ import {
   createArmadilloTutorialRoom,
   createInitialTutorialRoom,
   createJaguarTutorialRoom,
+  createMacawTutorialRoom,
   createWolfTutorialRoom,
   getTutorialPlayerId,
   getTutorialSteps,
   isTutorialArmadilloDone,
   isTutorialInitialDone,
   isTutorialJaguarDone,
+  isTutorialMacawDone,
   isTutorialWolfDone,
   markTutorialDone,
   TUTORIAL_NONRIVER_CARD,
@@ -3910,7 +3912,23 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setTutorialId("armadillo");
   }
 
-  // Other species tutorials (macaw, capuchin, coati) are being
+  function startMacawTutorial() {
+    setError(null);
+    setNotice(null);
+    lastOnlineRoomSnapshotRef.current = "";
+    tutorialMoveLogLenRef.current = null;
+    autoScoredRef.current = null;
+    setSelectedHandCardId(null);
+    setSelectedCardRotation(0);
+    setSelectedPieceId(null);
+    setSelectedRemovalPieceIds([]);
+    setPendingPlacement(null);
+    setRoom(createMacawTutorialRoom());
+    setTutorialStep(0);
+    setTutorialId("macaw");
+  }
+
+  // Other species tutorials (capuchin, coati) are being
   // rebuilt from scratch and will get their own start functions then.
 
   function exitTutorial(completed: boolean) {
@@ -5239,10 +5257,34 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   </span>
                 )}
               </button>
+              <button
+                type="button"
+                className={`tutorial-chapter ${isTutorialMacawDone() ? "is-done" : "is-available"}`}
+                style={{ "--species-color": SPECIES_HEX.macaw } as CSSProperties}
+                onClick={startMacawTutorial}
+              >
+                <span className="tutorial-chapter-icon">
+                  <img className="is-portrait" src={encodeURI(speciesDefinitions.macaw.portraitAsset)} alt="" />
+                </span>
+                <span className="tutorial-chapter-text">
+                  <strong>{speciesDefinitions.macaw.displayName}</strong>
+                  <small>Posicione 6 araras, cruze 3 linhas e marque 3 pontos.</small>
+                </span>
+                {isTutorialMacawDone() ? (
+                  <span className="tutorial-chapter-badge done">
+                    <Check aria-hidden="true" /> Concluído
+                  </span>
+                ) : (
+                  <span className="tutorial-chapter-badge play">
+                    <Play aria-hidden="true" /> Começar
+                  </span>
+                )}
+              </button>
               {speciesList.filter((species) =>
                 species.speciesId !== "jaguar" &&
                 species.speciesId !== "maned_wolf" &&
-                species.speciesId !== "armadillo"
+                species.speciesId !== "armadillo" &&
+                species.speciesId !== "macaw"
               ).map((species) => (
                 <div
                   key={species.speciesId}
