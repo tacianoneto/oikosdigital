@@ -139,18 +139,12 @@ import type {
   ThreatCardId
 } from "@oikos/shared";
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
+import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import { createSocket, roomApi, type OikosSocket } from "../socket";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
-import {
-  getAudioSettings,
-  initAudioOnGesture,
-  playClick,
-  playLogEvent,
-  setAudioSettings,
-  type AudioSettings
-} from "../ui/audio";
+import { playLogEvent } from "../ui/audio";
 import { ActionStepsViewer } from "../ui/ActionStepsViewer";
 import { ActiveRulesDock } from "../ui/ActiveRulesDock";
 import { ArmadilloSharePanel } from "../ui/ArmadilloSharePanel";
@@ -416,7 +410,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
   const { isMobile, isBelowDesktop } = useResponsiveLayout();
   const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
-  const [audioSettings, setAudioSettingsState] = useState<AudioSettings>(() => getAudioSettings());
+  const { audioSettings, updateAudio } = useAudioSettings();
   const [visualAccessibility, setVisualAccessibility] = useState(() => getVisualAccessibilityPreference());
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
@@ -847,25 +841,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     [tutorialActive, tutorialGate]
   );
 
-  // Unlock the audio context on the first user gesture (browser autoplay policy)
-  // and play a soft click on every button press.
-  useEffect(() => {
-    const onFirstGesture = () => initAudioOnGesture();
-    const onPointerDown = (event: PointerEvent) => {
-      initAudioOnGesture();
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("button")) {
-        playClick();
-      }
-    };
-    window.addEventListener("keydown", onFirstGesture);
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => {
-      window.removeEventListener("keydown", onFirstGesture);
-      window.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, []);
-
   // Play sound effects for new game-log entries (covers local, server, and bots).
   useEffect(() => {
     if (!gameLog) {
@@ -887,10 +862,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       playLogEvent(entry.payload?.kind);
     }
   }, [gameLog]);
-
-  const updateAudio = useCallback((partial: Partial<AudioSettings>) => {
-    setAudioSettingsState(setAudioSettings(partial));
-  }, []);
 
   const updateVisualAccessibility = useCallback((enabled: boolean) => {
     setVisualAccessibility(setVisualAccessibilityPreference(enabled));
