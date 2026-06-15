@@ -148,11 +148,11 @@ import {
 import { JaguarScoreModal, WolfScoreModal } from "../ui/ScoreSpendModals";
 import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesActionHud } from "../ui/SpeciesActionHud";
+import { SpeciesStatusHud } from "../ui/SpeciesStatusHud";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
 import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
 import { TutorialCoach } from "../ui/TutorialCoach";
-import { renderReserveMeeples } from "../ui/meeples";
 import { movementArtPath } from "../ui/movementArt";
 import { isSmallScreen } from "../ui/responsive";
 import { getVisualAccessibilityPreference, setVisualAccessibilityPreference } from "../ui/visualAccessibility";
@@ -3297,80 +3297,18 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {hasStartedGame && !cleanBoardMode && hudGamePlayer && hudSpecies && (
-        <section
-          className={`hud-species panel-block species-hud ${hudSpeciesCollapsed ? "is-collapsed" : ""}`}
-          data-species={hudGamePlayer.speciesId}
-          style={speciesVar(hudGamePlayer.speciesId)}
-        >
-            <div className="species-hud-header">
-              <img
-                className="player-portrait"
-                src={encodeURI(isBasicTutorial ? resourceAssets.point : hudSpecies.portraitAsset)}
-                alt=""
-              />
-              <div>
-                <span>{currentGamePlayer ? "Controlando" : "Vez atual"}</span>
-                <h2>{isBasicTutorial ? "Meeples" : hudSpecies.displayName}</h2>
-                <p>{isBasicTutorial ? "Tutorial basico" : hudGamePlayer.name}</p>
-              </div>
-              <button
-                type="button"
-                className="species-hud-toggle"
-                onClick={() => setHudSpeciesCollapsed((value) => !value)}
-                aria-label={hudSpeciesCollapsed ? "Expandir painel da espécie" : "Recolher painel da espécie"}
-                title={hudSpeciesCollapsed ? "Expandir" : "Recolher"}
-              >
-                {hudSpeciesCollapsed ? <ChevronDown aria-hidden="true" /> : <ChevronUp aria-hidden="true" />}
-              </button>
-            </div>
-
-            <div className="hud-player-strip">
-              <div className="hud-score-chip" title="Pontos" aria-label={`Pontos: ${hudGamePlayer.score}`}>
-                <img src={encodeURI(resourceAssets.point)} alt="" />
-                <strong><AnimatedNumber value={hudGamePlayer.score} /></strong>
-              </div>
-              <div
-                className="hud-piece-track"
-                ref={(node) => setEffectTarget("hud:reserve", node)}
-                title={`${hudGamePlayer.reservePieces.length} na reserva`}
-                aria-label={`${hudGamePlayer.reservePieces.length} peças na reserva`}
-              >
-                {renderReserveMeeples(hudGamePlayer, hudSpecies.meepleAsset)}
-              </div>
-            </div>
-
-            <div className="resource-bank">
-              {resourceOrder.map((resource) => {
-                const hasMajority = resourceLeaders[resource]?.has(hudGamePlayer.playerId) ?? false;
-                return (
-                <div
-                  className={`resource-chip${hasMajority ? " is-majority" : ""}`}
-                  key={resource}
-                  data-resource={resource}
-                  ref={(node) => setEffectTarget(`hud:${resource}`, node)}
-                  title={hasMajority ? `${resourceLabels[resource]}: maioria` : resourceLabels[resource]}
-                  aria-label={`${resourceLabels[resource]}: ${hudGamePlayer.resources[resource] ?? 0}${hasMajority ? " (maioria)" : ""}`}
-                >
-                  <img src={encodeURI(resourceAssets[resource])} alt="" />
-                  <span>{resourceLabels[resource]}</span>
-                  <strong><AnimatedNumber value={hudGamePlayer.resources[resource] ?? 0} /></strong>
-                </div>
-              );
-              })}
-              {floatingGains.length > 0 && (
-                <div className="floating-gains" aria-hidden="true">
-                  {floatingGains.map((gain) => (
-                    <span className="floating-gain" key={gain.id}>
-                      <img src={encodeURI(resourceAssets[gain.resource])} alt="" />
-                      +{gain.amount} {gain.resource === "point" ? "ponto" : resourceLabels[gain.resource]}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-          </section>
-        )}
+        <SpeciesStatusHud
+          collapsed={hudSpeciesCollapsed}
+          floatingGains={floatingGains}
+          isBasicTutorial={isBasicTutorial}
+          isControlledPlayer={Boolean(currentGamePlayer)}
+          player={hudGamePlayer}
+          resourceLeaders={resourceLeaders}
+          species={hudSpecies}
+          setEffectTarget={setEffectTarget}
+          onToggleCollapsed={() => setHudSpeciesCollapsed((value) => !value)}
+        />
+      )}
 
         {!cleanBoardMode && (error || notice) && (
           <div className={`status-message hud-toast ${error ? "error" : "notice"}`}>
