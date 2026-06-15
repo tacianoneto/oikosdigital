@@ -45,7 +45,6 @@ import {
   scenarioCardsById,
   threatCardBackPath,
   threatCardsById,
-  objectiveCardsById,
   resourceAssets,
   resourceLabels,
   speciesDefinitions
@@ -102,9 +101,7 @@ import {
   discardMataAtlanticaPileCard,
   discardObjectiveForResources,
   resolveExtraTurnObjective,
-  resolveSeedSpendObjective,
-  isObjectiveCompleted,
-  getObjectiveProgressPoints
+  resolveSeedSpendObjective
 } from "@oikos/rules";
 import type {
   GameState,
@@ -112,7 +109,6 @@ import type {
   Habitat,
   MiniExpansionId,
   MovementKind,
-  ObjectiveCardDefinition,
   PlayerState,
   PublicRoomState,
   Resource,
@@ -127,6 +123,8 @@ import type {
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
+import type { HandSortMode } from "../hooks/playerCardState";
+import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
@@ -210,8 +208,6 @@ type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
 const DEFAULT_TURN_TIMER_MS = 60000;
 const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
-const handHabitatOrder: Habitat[] = ["forest", "field", "river"];
-type HandSortMode = "habitat" | "resource";
 
 const miniExpansionOptions: Array<{
   id: MiniExpansionId;
@@ -1209,68 +1205,29 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     room?.game && room.game.activePlayerId ? getWolfSpendableResourceTypes(room.game, room.game.activePlayerId) : [];
   const availableWolfPointSpendCount =
     room?.game && room.game.activePlayerId ? getAvailableWolfPointSpendCount(room.game, room.game.activePlayerId) : 0;
-  const mataAtlanticaPileTopIds = useMemo(() => {
-    const piles = room?.game?.mataAtlanticaPiles;
-    if (!piles) return [] as string[];
-    return piles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
-  }, [room?.game?.mataAtlanticaPiles]);
-  const mataAtlanticaPileIndexByCardId = useMemo(() => {
-    const map = new Map<string, number>();
-    mataAtlanticaPileTopIds.forEach((id, index) => {
-      if (id) map.set(id, index);
-    });
-    return map;
-  }, [mataAtlanticaPileTopIds]);
-  const handCards = useMemo(
-    () => {
-      const personal = (currentGamePlayer?.hand ?? []).map((cardId) => getForestCardDefinition(cardId));
-      const piles = mataAtlanticaPileTopIds.map((cardId) => getForestCardDefinition(cardId));
-      return [...personal, ...piles];
-    },
-    [currentGamePlayer?.hand, mataAtlanticaPileTopIds]
-  );
-  const objectiveChoices = useMemo(
-    () =>
-      (currentGamePlayer?.objectiveChoices ?? [])
-        .map((cardId) => objectiveCardsById.get(cardId))
-        .filter((card): card is ObjectiveCardDefinition => Boolean(card)),
-    [currentGamePlayer?.objectiveChoices]
-  );
-  const selectedObjectiveCard = currentGamePlayer?.selectedObjectiveCardId
-    ? getObjectiveCardDefinition(currentGamePlayer.selectedObjectiveCardId)
-    : null;
-  const discardedObjectiveCard = currentGamePlayer?.discardedObjectiveCardId
-    ? getObjectiveCardDefinition(currentGamePlayer.discardedObjectiveCardId)
-    : null;
-  const objectiveWasDiscarded = Boolean(discardedObjectiveCard);
-  const objectivePreviewCard = selectedObjectiveCard ?? discardedObjectiveCard;
-  const selectedObjectiveCompleted = Boolean(
-    room?.game &&
-      currentGamePlayer?.selectedObjectiveCardId &&
-      isObjectiveCompleted(room.game, currentGamePlayer.playerId)
-  );
-  // Points the selected objective is currently scoring (live). Only meaningful
-  // for point objectives, not the discard/extra-turn action cards.
-  const selectedObjectiveScoresPoints = Boolean(
-    selectedObjectiveCard &&
-      selectedObjectiveCard.scoring.kind !== "discard_for_resources" &&
-      selectedObjectiveCard.scoring.kind !== "extra_turn"
-  );
-  const selectedObjectiveProgress =
-    room?.game && currentGamePlayer?.selectedObjectiveCardId && selectedObjectiveScoresPoints
-      ? getObjectiveProgressPoints(room.game, currentGamePlayer.playerId)
-      : 0;
-  const canDiscardSelectedObjective = Boolean(
-    !isSpectator &&
-      currentGamePlayer &&
-      room?.game?.status === "active" &&
-      selectedObjectiveCard?.scoring.kind === "discard_for_resources"
-  );
-  const needsObjectiveChoice = Boolean(
-    currentGamePlayer &&
-      objectiveChoices.length > 0 &&
-      !currentGamePlayer.selectedObjectiveCardId &&
-      !pendingObjectiveCardId
+  const {
+    canDiscardSelectedObjective,
+    handCards,
+    handSortLabel,
+    mataAtlanticaPileIndexByCardId,
+    mataAtlanticaPileTopIds,
+    needsObjectiveChoice,
+    nextHandSortLabel,
+    nextHandSortMode,
+    objectiveChoices,
+    objectivePreviewCard,
+    objectiveWasDiscarded,
+    selectedObjectiveCard,
+    selectedObjectiveCompleted,
+    selectedObjectiveProgress,
+    selectedObjectiveScoresPoints,
+    sortedHandCards
+  } = usePlayerCardState(
+    room?.game,
+    currentGamePlayer,
+    handSortMode,
+    isSpectator,
+    pendingObjectiveCardId
   );
   useEffect(() => {
     if (
@@ -1281,33 +1238,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setPendingObjectiveCardId(null);
     }
   }, [currentGamePlayer?.objectiveChoices, currentGamePlayer?.selectedObjectiveCardId, pendingObjectiveCardId]);
-  const sortedHandCards = useMemo(() => {
-    const habitatRank = new Map(handHabitatOrder.map((habitat, index) => [habitat, index]));
-    const resourceRank = new Map(resourceOrder.map((resource, index) => [resource, index]));
-
-    return handCards
-      .map((card, index) => ({ card, index }))
-      .sort((a, b) => {
-        if (handSortMode === "habitat") {
-          return (
-            (habitatRank.get(a.card.habitat as Habitat) ?? 99) -
-              (habitatRank.get(b.card.habitat as Habitat) ?? 99) ||
-            a.index - b.index
-          );
-        }
-        if (handSortMode === "resource") {
-          return (
-            (resourceRank.get(a.card.resource as Resource) ?? 99) -
-              (resourceRank.get(b.card.resource as Resource) ?? 99) ||
-            a.index - b.index
-          );
-        }
-        return a.index - b.index;
-      });
-  }, [handCards, handSortMode]);
-  const nextHandSortMode: HandSortMode = handSortMode === "habitat" ? "resource" : "habitat";
-  const handSortLabel = handSortMode === "habitat" ? "Habitat" : "Recurso";
-  const nextHandSortLabel = nextHandSortMode === "habitat" ? "habitat" : "recurso";
   const showHandDuringGame = Boolean(
     hasStartedGame &&
       currentGamePlayer &&
