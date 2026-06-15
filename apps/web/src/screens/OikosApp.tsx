@@ -136,6 +136,7 @@ import {
 import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
+import { MovementGuideFloating, SpeciesBoardModal } from "../ui/BoardModals";
 import { ExtraTurnObjectiveModal, SeedSpendObjectiveModal } from "../ui/EndgameObjectiveDialogs";
 import {
   CaatingaChoiceModal,
@@ -4314,25 +4315,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {!cleanBoardMode && movementPreview && typeof document !== "undefined" && createPortal(
-        (() => {
-          const species = speciesDefinitions[movementPreview.speciesId];
-          return (
-            <div
-              className="movement-guide-floating"
-              role="tooltip"
-              style={
-                {
-                  ...speciesVar(movementPreview.speciesId),
-                  left: movementPreview.left,
-                  top: movementPreview.top
-                } as CSSProperties
-              }
-            >
-              <strong>{species.displayName}</strong>
-              <img src={encodeURI(species.movementAsset)} alt={`Movimentos de ${species.displayName}`} />
-            </div>
-          );
-        })(),
+        <MovementGuideFloating
+          speciesId={movementPreview.speciesId}
+          left={movementPreview.left}
+          top={movementPreview.top}
+        />,
         document.body
       )}
 
@@ -4469,41 +4456,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {!cleanBoardMode && boardSpecies && (
-        <div
-          className="board-modal-backdrop"
-          role="presentation"
-          onClick={() => setBoardSpecies(null)}
-        >
-          <div
-            className="board-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Tabuleiro de ${speciesDefinitions[boardSpecies].displayName}`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <header className="board-modal-head">
-              <img src={encodeURI(speciesDefinitions[boardSpecies].meepleAsset)} alt="" />
-              <div>
-                <h2>{speciesDefinitions[boardSpecies].displayName}</h2>
-                <span>{speciesDefinitions[boardSpecies].scientificName}</span>
-              </div>
-              <button
-                type="button"
-                className="board-modal-close"
-                aria-label="Fechar"
-                onClick={() => setBoardSpecies(null)}
-              >
-                <X aria-hidden="true" />
-              </button>
-            </header>
-            <div className="board-modal-body">
-              <img
-                src={encodeURI(speciesDefinitions[boardSpecies].boardAsset)}
-                alt={`Tabuleiro de ${speciesDefinitions[boardSpecies].displayName}`}
-              />
-            </div>
-          </div>
-        </div>
+        <SpeciesBoardModal speciesId={boardSpecies} onClose={() => setBoardSpecies(null)} />
       )}
 
       {isMobile && hasStartedGame && !cleanBoardMode && (

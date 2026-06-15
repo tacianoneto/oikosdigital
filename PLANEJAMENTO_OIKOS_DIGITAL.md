@@ -31,11 +31,12 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Modais de pontuação inline (Onça-pintada · Ação C "gastar carne" e Lobo-guará · Ação C "gastar recursos") extraídos de `OikosApp.tsx` para componentes presentacionais `JaguarScoreModal`/`WolfScoreModal` em `apps/web/src/ui/ScoreSpendModals.tsx`. Condições de visibilidade ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
 - Diálogos de cenário/ameaça pendente inline (Caça ilegal: modal de escolha + faixa de remoção; Caatinga; Cerrado; Mata Atlântica) extraídos de `OikosApp.tsx` para componentes presentacionais em `apps/web/src/ui/ScenarioPendingDialogs.tsx` (`CacaIlegalChoiceModal`, `CacaIlegalRemovalBanner`, `CaatingaChoiceModal`, `CerradoChoiceModal`, `MataAtlanticaDiscardModal`). Condições de visibilidade e resolvers ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
 - Diálogos de objetivo de fim de jogo inline (turno extra e gastar sementes) extraídos de `OikosApp.tsx` para componentes presentacionais em `apps/web/src/ui/EndgameObjectiveDialogs.tsx` (`ExtraTurnObjectiveModal`, `SeedSpendObjectiveModal`). Condições de visibilidade e resolvers ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
+- Board modal de espécie e tooltip flutuante de movimento inline extraídos de `OikosApp.tsx` para `apps/web/src/ui/BoardModals.tsx` (`SpeciesBoardModal`, `MovementGuideFloating`). Condições de visibilidade e o wrapper `createPortal` do guia de movimento ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
 - Baseline validada com `typecheck`, `test` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** continuar a divisão de `apps/web/src/screens/OikosApp.tsx` (helpers de módulo, hook de conexão/sessão, modais de pontuação, diálogos de cenário pendente e diálogos de objetivo de fim de jogo já extraídos): seguir com o board modal e o modal de movimentos, e por fim os blocos de HUD.
+1. **Fazer primeiro:** continuar a divisão de `apps/web/src/screens/OikosApp.tsx` (helpers de módulo, hook de conexão/sessão e todos os modais/diálogos inline já extraídos): seguir com os blocos de HUD (painéis esquerdo/direito, barra de espécie, indicadores de rodada/turno) e o tabbar mobile.
 2. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
 3. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
 
