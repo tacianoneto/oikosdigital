@@ -11,6 +11,39 @@ Data do levantamento: 2026-05-13
 - Rodar `npm run typecheck` e `npm run test` antes de subir, quando aplicável.
 - Nunca usar `--no-verify` nem pular hooks; corrigir a causa raiz de falhas.
 
+## 0.1 Handoff de Refatoração para o Próximo Chat
+
+Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima rodada de refatoração.
+
+### Refatorações já concluídas
+
+- HUD e conteúdo das ações de espécie extraídos para `apps/web/src/ui/SpeciesActionHud.tsx`.
+- Execução de ações locais e online centralizada em `apps/web/src/OikosApp.tsx`.
+- Configuração da floresta inicial extraída de `packages/rules/src/setup.ts` para `packages/rules/src/initialForest.ts`.
+- Baseline validada com 238 testes, `typecheck` e `build` aprovados.
+
+### Ordem obrigatória recomendada
+
+1. **Fazer primeiro:** extrair de `packages/rules/src/setup.ts` a criação da partida: ordem de turno, jogadores e peças, distribuição das mãos e montagem do `GameState` inicial. Preservar exports públicos, determinismo e comportamento. Não misturar esta etapa com movimentação.
+2. Extrair de `packages/rules/src/setup.ts` as regras e utilitários de movimentação.
+3. Refatorar `packages/rules/src/bots.ts`: primeiro compartilhar o preâmbulo comum entre bots smart/random; depois separar decisões por espécie e avaliação.
+4. Continuar a divisão de `apps/web/src/OikosApp.tsx`: sessão/conexão online primeiro, depois grupos de modais.
+5. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
+6. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
+
+### Regras para cada etapa
+
+- Criar e enviar backup (`tag` e branch) antes de alterar.
+- Preservar paridade local/online, API pública e comportamento observável.
+- Rodar testes, `typecheck` e `build`; em mudanças visuais, fazer também smoke test no navegador.
+- Fazer commit pequeno e enviar para o GitHub após cada etapa aprovada.
+
+### Manutenção obrigatória deste planejamento
+
+- Após concluir uma etapa, removê-la da lista pendente, registrar uma linha curta em “Refatorações já concluídas” e renumerar/reorganizar o restante.
+- Remover instruções concluídas, referências antigas e caminhos que deixarem de existir. Não deixar o planejamento acumular histórico obsoleto.
+- Quando toda esta rodada terminar, remover a seção `0.1` e consolidar apenas os resultados permanentes nas seções adequadas do documento.
+
 ## 1. Objetivo do Projeto
 
 Criar um port digital multiplayer fiel ao jogo de tabuleiro Oikos, seguindo 100% o GDD fornecido e sem adicionar regras, modos, espécies, cartas ou efeitos que não estejam documentados ou aprovados.
@@ -55,7 +88,7 @@ Detalhe importante das cartas:
 
 - 36 cartas são cartas comuns de floresta: 12 `bosque`, 12 `campos`, 12 `rios`. Suficiente para distribuir 6 cartas para cada uma das 5 espécies que usam cartas em uma partida de 6 jogadores (5 × 6 = 30, sobram 6).
 - A floresta inicial usa 9 cartas: 3 rios de face dupla (ovo, pinha, carne) + 6 de terra (bosque/campo). Cada rio é frente/verso da mesma carta física, então a frente e o verso de um rio nunca aparecem juntos; toda floresta inicial sempre tem exatamente 1 rio de ovo, 1 de pinha e 1 de carne. As 12 definições de carta inicial em `packages/content/src/cards.ts` cobrem essas 9 cartas (3 frentes de rio + 3 versos + 6 de terra).
-- A partida começa montando a grade 3x3 a partir de uma das 18 mesas de rio pré-validadas em `packages/rules/src/setup.ts` (`FOREST_TEMPLATES`), sorteada no início. Cada mesa garante que toda boca de rio conecta com outra boca ou sai pela borda do grid, nunca encosta em mata, e usa exatamente uma face de cada rio (validado na carga do módulo). A posição das 6 cartas de terra também é sorteada por partida (6! = 720 arranjos por mesa), dando 18 × 720 = 12.960 florestas iniciais possíveis.
+- A partida começa montando a grade 3x3 a partir de uma das 18 mesas de rio pré-validadas em `packages/rules/src/initialForest.ts` (`FOREST_TEMPLATES`), sorteada no início. Cada mesa garante que toda boca de rio conecta com outra boca ou sai pela borda do grid, nunca encosta em mata, e usa exatamente uma face de cada rio (validado na carga do módulo). A posição das 6 cartas de terra também é sorteada por partida (6! = 720 arranjos por mesa), dando 18 × 720 = 12.960 florestas iniciais possíveis.
 
 Status dos manifestos:
 
