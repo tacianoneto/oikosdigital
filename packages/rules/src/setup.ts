@@ -94,6 +94,17 @@ export {
   getGaloSeedCardPositions,
   getGaloSeedCardScore
 };
+import {
+  getCapuchinHabitatScore,
+  getCapuchinPlacementPositions,
+  getCapuchinScoringHabitats
+} from "./species/capuchin";
+export {
+  getCapuchinHabitatScore,
+  getCapuchinPlacementPositions,
+  getCapuchinScoringHabitats
+};
+export type { CapuchinHabitatGroup } from "./species/capuchin";
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
@@ -1457,46 +1468,6 @@ export function scoreGaloSeedCards(game: GameState, playerId: string): GameState
   return next;
 }
 
-export function getCapuchinPlacementPositions(game: GameState, playerId: string): GridPosition[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  if (game.pendingCoatiPairBonus) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "capuchin" || player.reservePieces.length === 0) {
-    return [];
-  }
-
-  const action = getCurrentAction(game);
-  if (action === "A") {
-    if (!game.activePlayedForestCardId) {
-      return [];
-    }
-
-    const playedCard = getPlayedForestCardForCurrentAction(game);
-    return playedCard ? [{ x: playedCard.x, y: playedCard.y }] : [];
-  }
-
-  if (action === "C") {
-    const positions = new Map<string, GridPosition>();
-    for (const piece of game.pieces) {
-      if (piece.ownerId !== playerId || piece.speciesId !== "capuchin" || !piece.location) {
-        continue;
-      }
-
-      positions.set(positionKey(piece.location), toGridPosition(piece.location));
-    }
-
-    return [...positions.values()].sort((a, b) => a.y - b.y || a.x - b.x);
-  }
-
-  return [];
-}
-
 export function addCapuchinForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
   if (game.status !== "active") {
     throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
@@ -1571,77 +1542,6 @@ export function addCapuchinForCurrentAction(game: GameState, playerId: string, l
 
   advanceActiveAction(next);
   return next;
-}
-
-export function getCapuchinHabitatScore(game: GameState, playerId: string): number {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return 0;
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "capuchin" || getCurrentAction(game) !== "D") {
-    return 0;
-  }
-
-  const positionsByHabitat = new Map<string, Set<string>>();
-  for (const piece of game.pieces) {
-    if (piece.ownerId !== playerId || piece.speciesId !== "capuchin" || !piece.location) {
-      continue;
-    }
-
-    const card = getForestCardAtPosition(game, piece.location);
-    const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
-    if (!definition?.habitat) {
-      continue;
-    }
-
-    const positions = positionsByHabitat.get(definition.habitat) ?? new Set<string>();
-    positions.add(positionKey(piece.location));
-    positionsByHabitat.set(definition.habitat, positions);
-  }
-
-  return [...positionsByHabitat.values()].filter((positions) => positions.size >= 2).length;
-}
-
-export interface CapuchinHabitatGroup {
-  habitat: string;
-  positions: GridPosition[];
-}
-
-export function getCapuchinScoringHabitats(game: GameState, playerId: string): CapuchinHabitatGroup[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "capuchin" || getCurrentAction(game) !== "D") {
-    return [];
-  }
-
-  const positionsByHabitat = new Map<string, Map<string, GridPosition>>();
-  for (const piece of game.pieces) {
-    if (piece.ownerId !== playerId || piece.speciesId !== "capuchin" || !piece.location) {
-      continue;
-    }
-
-    const card = getForestCardAtPosition(game, piece.location);
-    const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
-    if (!definition?.habitat) {
-      continue;
-    }
-
-    const map = positionsByHabitat.get(definition.habitat) ?? new Map<string, GridPosition>();
-    map.set(positionKey(piece.location), piece.location);
-    positionsByHabitat.set(definition.habitat, map);
-  }
-
-  const groups: CapuchinHabitatGroup[] = [];
-  for (const [habitat, map] of positionsByHabitat.entries()) {
-    if (map.size >= 2) {
-      groups.push({ habitat, positions: [...map.values()] });
-    }
-  }
-  return groups;
 }
 
 export function scoreCapuchinHabitatPresence(game: GameState, playerId: string): GameState {
@@ -4178,18 +4078,6 @@ function completeActionWithoutOptionalAddition(
 
 function pieceLocationKey(location: PieceLocation): string {
   return `${location.x}:${location.y}:${location.siteId}`;
-}
-
-function getPlayedForestCardForCurrentAction(game: GameState): ForestCardState | null {
-  if (!game.activePlayedForestCardId) {
-    return null;
-  }
-
-  return (
-    [...game.forest.cards]
-      .reverse()
-      .find((card) => !card.isInitial && card.definitionId === game.activePlayedForestCardId) ?? null
-  );
 }
 
 function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, origin: GridPosition): GridPosition[] {

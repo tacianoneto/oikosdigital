@@ -38,6 +38,18 @@ export function getForestCardAtPosition(game: GameState, location: GridPosition)
   return game.forest.cards.find((card) => card.x === location.x && card.y === location.y) ?? null;
 }
 
+export function getPlayedForestCardForCurrentAction(game: GameState): ForestCardState | null {
+  if (!game.activePlayedForestCardId) {
+    return null;
+  }
+
+  return (
+    [...game.forest.cards]
+      .reverse()
+      .find((card) => !card.isInitial && card.definitionId === game.activePlayedForestCardId) ?? null
+  );
+}
+
 export interface ForestSiteOccupancy {
   card: ForestCardState;
   site: ForestCardSiteDefinition;
