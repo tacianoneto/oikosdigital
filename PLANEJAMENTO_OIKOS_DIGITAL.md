@@ -22,11 +22,12 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Configuração da floresta inicial extraída de `packages/rules/src/setup.ts` para `packages/rules/src/initialForest.ts`.
 - Criação da partida (ordem de setup/turno, jogadores e peças, distribuição de mãos e montagem do `GameState` inicial) extraída de `packages/rules/src/setup.ts` para `packages/rules/src/createGame.ts`, com `setup.ts` reexportando a API pública.
 - Regras e utilitários de movimentação extraídos de `packages/rules/src/setup.ts` para `packages/rules/src/movementActions.ts` (`getValidPieceMovementDestinations`, `movePieceForCurrentAction`, `moveJaguarForCurrentAction` e helpers); `setup.ts` reexporta a API pública.
+- Preâmbulo comum dos bots (resolução de Caatinga/Cerrado/Caça ilegal/Mata Atlântica) compartilhado entre `playBotStep` e `playRandomStep` via `resolvePendingScenarioStep` em `packages/rules/src/bots.ts`, sem mudar comportamento nem sequência de RNG.
 - Baseline validada com 238 testes, `typecheck` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** refatorar `packages/rules/src/bots.ts`: primeiro compartilhar o preâmbulo comum entre bots smart/random; depois separar decisões por espécie e avaliação.
+1. **Fazer primeiro:** continuar `packages/rules/src/bots.ts`: separar as decisões por espécie (smart e random) e a camada de avaliação/scoring em módulos próprios.
 2. Continuar a divisão de `apps/web/src/OikosApp.tsx`: sessão/conexão online primeiro, depois grupos de modais.
 3. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
 4. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
