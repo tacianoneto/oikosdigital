@@ -51,7 +51,7 @@ import {
   gridPositionKey,
   parseGridPositionKey
 } from "@oikos/shared";
-import type { GameState, GridPosition, Habitat, Resource, SpeciesId } from "@oikos/shared";
+import type { GameState, GridPosition, Habitat, PlayerState, Resource, SpeciesId } from "@oikos/shared";
 
 const resourcePreference: Record<SpeciesId, Resource[]> = {
   jaguar: ["meat", "meat", "egg", "fruit", "seed"],
@@ -65,21 +65,13 @@ const resourcePreference: Record<SpeciesId, Resource[]> = {
 
 const rotations = [0, 90, 180, 270] as const;
 
-export function playBotStep(game: GameState, playerId: string): GameState {
-  if (game.status === "setup") {
-    return playSetupStep(game, playerId);
-  }
+// Shared bot preamble: resolve scenario prompts (Caatinga/Cerrado/Caca ilegal)
+// and the Mata Atlantica forced discard before the species acts. Both the smart
+// and the random takeover bot run this identically; returns the resulting game
+// when it acted, or null to let the caller continue.
+function resolvePendingScenarioStep(game: GameState, player: PlayerState): GameState | null {
+  const playerId = player.playerId;
 
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return game;
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (!player?.speciesId) {
-    return game;
-  }
-
-  // Scenario bots: collect Caatinga bonus the moment it shows up.
   if (game.caatingaPending?.playerId === playerId) {
     try {
       return collectCaatingaBonus(game, playerId);
@@ -114,6 +106,7 @@ export function playBotStep(game: GameState, playerId: string): GameState {
   // Mata Atlântica: non-card species must discard 1 top card from a pile.
   if (
     game.mataAtlanticaPiles &&
+    player.speciesId &&
     !speciesDefinitions[player.speciesId].usesForestCards &&
     (game.mataAtlanticaDiscardByPlayer ?? {})[playerId] !== player.turnsTaken
   ) {
@@ -125,6 +118,28 @@ export function playBotStep(game: GameState, playerId: string): GameState {
         // fall through
       }
     }
+  }
+
+  return null;
+}
+
+export function playBotStep(game: GameState, playerId: string): GameState {
+  if (game.status === "setup") {
+    return playSetupStep(game, playerId);
+  }
+
+  if (game.status !== "active" || game.activePlayerId !== playerId) {
+    return game;
+  }
+
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player?.speciesId) {
+    return game;
+  }
+
+  const scenarioStep = resolvePendingScenarioStep(game, player);
+  if (scenarioStep) {
+    return scenarioStep;
   }
 
   if (game.pendingCoatiPairBonus?.playerId === playerId) {
@@ -181,50 +196,9 @@ export function playRandomStep(game: GameState, playerId: string): GameState {
 
   const speciesId = player.speciesId;
 
-  if (game.caatingaPending?.playerId === playerId) {
-    try {
-      return collectCaatingaBonus(game, playerId);
-    } catch {
-      // fall through
-    }
-  }
-
-  if (game.cerradoPending?.playerId === playerId) {
-    try {
-      return collectCerradoBonus(game, playerId);
-    } catch {
-      // fall through
-    }
-  }
-
-  if (game.cacaIlegalPending?.playerId === playerId) {
-    try {
-      const top = getCacaIlegalTopResources(game, playerId);
-      if (top.length > 0) {
-        return resolveCacaIlegal(game, playerId, { kind: "spend_resource", resource: top[0] });
-      }
-      const removable = getCacaIlegalRemovablePieceIds(game, playerId);
-      if (removable.length > 0) {
-        return resolveCacaIlegal(game, playerId, { kind: "remove_piece", pieceId: removable[0] });
-      }
-    } catch {
-      // fall through
-    }
-  }
-
-  if (
-    game.mataAtlanticaPiles &&
-    !speciesDefinitions[speciesId].usesForestCards &&
-    (game.mataAtlanticaDiscardByPlayer ?? {})[playerId] !== player.turnsTaken
-  ) {
-    const tops = game.mataAtlanticaPiles.map((pile) => pile[0]).filter((id): id is string => Boolean(id));
-    if (tops.length > 0) {
-      try {
-        return discardMataAtlanticaPileCard(game, playerId, pickOne(tops));
-      } catch {
-        // fall through
-      }
-    }
+  const scenarioStep = resolvePendingScenarioStep(game, player);
+  if (scenarioStep) {
+    return scenarioStep;
   }
 
   if (game.pendingCoatiPairBonus?.playerId === playerId) {
