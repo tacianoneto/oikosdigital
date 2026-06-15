@@ -129,6 +129,11 @@ import { ActionStepsViewer } from "../ui/ActionStepsViewer";
 import { ActiveRulesDock } from "../ui/ActiveRulesDock";
 import { ArmadilloSharePanel } from "../ui/ArmadilloSharePanel";
 import { EndgameCeremony } from "../ui/EndgameCeremony";
+import {
+  ExpansionPreviewOverlay,
+  ThreatRevealOverlay,
+  type ExpansionPreviewKind
+} from "../ui/GameOverlays";
 import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
@@ -353,7 +358,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [configOpen, setConfigOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [scenarioDockOpen, setScenarioDockOpen] = useState(false);
-  const [expansionPreview, setExpansionPreview] = useState<"objective" | "scenarios" | "threat" | null>(null);
+  const [expansionPreview, setExpansionPreview] = useState<ExpansionPreviewKind | null>(null);
   // Viewport point (icon center) the preview should grow out from, for the
   // fly-from-origin open animation. Recomputed on each open.
   const [expansionOrigin, setExpansionOrigin] = useState<{ x: number; y: number } | null>(null);
@@ -3739,142 +3744,26 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {hasStartedGame && !cleanBoardMode && expansionPreview && (
-        <div
-          className="expansion-modal-backdrop"
-          role="presentation"
-          onClick={() => setExpansionPreview(null)}
-        >
-        <div
-          className={`expansion-preview is-${expansionPreview}`}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Carta da partida"
-          onClick={(event) => event.stopPropagation()}
-          style={
-            expansionOrigin
-              ? ({
-                  "--from-x": `${expansionOrigin.x - window.innerWidth / 2}px`,
-                  "--from-y": `${expansionOrigin.y - window.innerHeight / 2}px`
-                } as React.CSSProperties)
-              : undefined
-          }
-        >
-          <button
-            type="button"
-            className="expansion-preview-close"
-            aria-label="Fechar"
-            onClick={() => setExpansionPreview(null)}
-          >
-            <X aria-hidden="true" />
-          </button>
-          {expansionPreview === "objective" && objectivePreviewCard && (
-            <>
-              <img
-                src={encodeURI(objectivePreviewCard.imagePath)}
-                alt={objectivePreviewCard.label}
-                draggable={false}
-              />
-              {objectiveWasDiscarded && (
-                <div className="objective-progress is-discarded" role="status">
-                  <X aria-hidden="true" />
-                  <span>Objetivo descartado</span>
-                </div>
-              )}
-              {selectedObjectiveScoresPoints && (
-                <div
-                  className={`objective-progress ${selectedObjectiveProgress > 0 ? "is-scoring" : "is-pending"}`}
-                  role="status"
-                >
-                  <img src={encodeURI(resourceAssets.point)} alt="" />
-                  {selectedObjectiveProgress > 0 ? (
-                    <span>
-                      Fazendo <strong>{selectedObjectiveProgress}</strong> ponto
-                      {selectedObjectiveProgress > 1 ? "s" : ""}
-                    </span>
-                  ) : (
-                    <span>Ainda sem pontos</span>
-                  )}
-                </div>
-              )}
-              {canDiscardSelectedObjective && (
-                <button
-                  type="button"
-                  className="objective-discard-btn"
-                  onClick={() => void handleDiscardObjective()}
-                >
-                  <Leaf aria-hidden="true" />
-                  <span className="objective-discard-text">
-                    <strong>Descartar</strong>
-                    <small>Ganhe 1 de cada recurso</small>
-                  </span>
-                </button>
-              )}
-            </>
-          )}
-          {expansionPreview === "scenarios" && (
-            <div className="expansion-preview-stack">
-              {activeScenarioDefinitions.map((scenario) => (
-                <img
-                  key={scenario.id}
-                  src={encodeURI(scenario.imagePath)}
-                  alt={scenario.label}
-                  draggable={false}
-                />
-              ))}
-            </div>
-          )}
-          {expansionPreview === "threat" && activeThreatDefinition?.imagePath && (
-            <img
-              src={encodeURI(activeThreatDefinition.imagePath)}
-              alt={activeThreatDefinition.label}
-              draggable={false}
-            />
-          )}
-        </div>
-        </div>
+        <ExpansionPreviewOverlay
+          kind={expansionPreview}
+          origin={expansionOrigin}
+          objective={objectivePreviewCard}
+          objectiveDiscarded={objectiveWasDiscarded}
+          objectiveScoresPoints={selectedObjectiveScoresPoints}
+          objectiveProgress={selectedObjectiveProgress}
+          canDiscardObjective={canDiscardSelectedObjective}
+          scenarios={activeScenarioDefinitions}
+          threat={activeThreatDefinition}
+          onClose={() => setExpansionPreview(null)}
+          onDiscardObjective={() => void handleDiscardObjective()}
+        />
       )}
 
       {threatRevealDefinition && (
-        <div
-          className="threat-reveal-backdrop"
-          role="presentation"
-          onClick={() => setThreatReveal(null)}
-        >
-          <div
-            className="threat-reveal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Nova ameaca: ${threatRevealDefinition.label}`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="expansion-preview-close threat-reveal-close"
-              aria-label="Fechar"
-              onClick={() => setThreatReveal(null)}
-            >
-              <X aria-hidden="true" />
-            </button>
-            <div className="threat-reveal-badge">
-              <AlertTriangle aria-hidden="true" />
-              <span>Nova ameaca</span>
-            </div>
-            {threatRevealDefinition.imagePath ? (
-              <img
-                src={encodeURI(threatRevealDefinition.imagePath)}
-                alt={threatRevealDefinition.label}
-                draggable={false}
-              />
-            ) : (
-              <div className="threat-reveal-icon">
-                <AlertTriangle aria-hidden="true" />
-              </div>
-            )}
-            <strong className="threat-reveal-name">{threatRevealDefinition.label}</strong>
-            <p className="threat-reveal-desc"><ResourceText text={threatRevealDefinition.description} /></p>
-            <span className="threat-reveal-progress" aria-hidden="true" />
-          </div>
-        </div>
+        <ThreatRevealOverlay
+          threat={threatRevealDefinition}
+          onClose={() => setThreatReveal(null)}
+        />
       )}
 
       {hasStartedGame && !cleanBoardMode && isSpectator && (
