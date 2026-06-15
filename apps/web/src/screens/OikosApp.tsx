@@ -1403,7 +1403,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     prevGameRef.current = game;
   }, [hudGamePlayer?.playerId, room?.game]);
 
-  async function run(action: () => Promise<PublicRoomState>, success?: string) {
+  const run = useCallback(async (action: () => Promise<PublicRoomState>, success?: string) => {
     if (onlineActionInFlightRef.current) {
       return;
     }
@@ -1437,7 +1437,51 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     } finally {
       onlineActionInFlightRef.current = false;
     }
-  }
+  }, [applyOnlineRoomState, clearRoomState, name]);
+
+  const clearActionSelection = useCallback(() => {
+    setSelectedHandCardId(null);
+    setSelectedPieceId(null);
+    setSelectedRemovalPieceIds([]);
+  }, []);
+
+  const clearWolfActionSelection = useCallback(() => {
+    clearActionSelection();
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+  }, [clearActionSelection]);
+
+  const applyLocalAction = useCallback((nextGame: GameState, notice: string) => {
+    setRoom((current) =>
+      current
+        ? {
+            ...current,
+            status: nextGame.status === "active" ? "active" : current.status,
+            game: nextGame,
+            warnings: nextGame.contentWarnings
+          }
+        : current
+    );
+    setNotice(notice);
+  }, []);
+
+  const executeGameAction = useCallback(
+    (
+      localAction: () => GameState,
+      onlineAction: () => Promise<PublicRoomState>,
+      notice: string,
+      reset: () => void = clearActionSelection
+    ) => {
+      if (isLocalRoom) {
+        applyLocalAction(localAction(), notice);
+        reset();
+        return;
+      }
+
+      void run(onlineAction).then(reset);
+    },
+    [applyLocalAction, clearActionSelection, isLocalRoom, run]
+  );
 
   function requireSocket(): OikosSocket {
     if (!socket) {
@@ -1951,33 +1995,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
       const addHandler = getAddPieceHandler(activeSpecies?.speciesId);
 
-      if (isLocalRoom) {
-        const nextGame = addHandler.local(room.game, room.game.activePlayerId, position, galoAdjacentPending);
-        setRoom({
-          ...room,
-          status: nextGame.status === "active" ? "active" : room.status,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice(addHandler.notice);
-        return;
-      }
-
-      void run(() =>
-        addHandler.api(requireSocket(), room.roomId, position.x, position.y, galoAdjacentPending)
-      ).then(() => {
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-      });
+      executeGameAction(
+        () => addHandler.local(room.game!, room.game!.activePlayerId!, position, galoAdjacentPending),
+        () => addHandler.api(requireSocket(), room.roomId, position.x, position.y, galoAdjacentPending),
+        addHandler.notice
+      );
     },
     [
       activeSpecies?.speciesId,
       addPieceTargets.length,
-      isLocalRoom,
+      executeGameAction,
       room,
       socket,
       tutorialActive,
@@ -2002,28 +2029,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         return;
       }
 
-      if (isLocalRoom) {
-        const nextGame = resolveCoatiPairBonus(room.game, room.game.activePlayerId, position);
-        setRoom({
-          ...room,
-          status: nextGame.status === "active" ? "active" : room.status,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice("Quati da passiva adicionado e 1 ponto marcado.");
-        return;
-      }
-
-      void run(() => roomApi.resolveCoatiPair(requireSocket(), room.roomId, position.x, position.y)).then(() => {
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-      });
+      executeGameAction(
+        () => resolveCoatiPairBonus(room.game!, room.game!.activePlayerId!, position),
+        () => roomApi.resolveCoatiPair(requireSocket(), room.roomId, position.x, position.y),
+        "Quati da passiva adicionado e 1 ponto marcado."
+      );
     },
-    [coatiPairBonusTargets.length, isLocalRoom, room, socket, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]
+    [coatiPairBonusTargets.length, executeGameAction, room, socket, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]
   );
 
   const handleRemoveSelectedPieces = useCallback(() => {
@@ -2036,31 +2048,21 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = removePiecesForCurrentAction(room.game, room.game.activePlayerId, selectedRemovalPieceIds);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
-      });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedWolfTargetPieceId(null);
-      setSelectedWolfResources([]);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Quatis removidos da floresta.");
-      return;
-    }
-
-    void run(() => roomApi.removePieces(requireSocket(), room.roomId, selectedRemovalPieceIds)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedWolfTargetPieceId(null);
-      setSelectedWolfResources([]);
-      setSelectedRemovalPieceIds([]);
-    });
-  }, [canControlActivePlayer, isLocalRoom, requiredCoatiRemovalCount, room, selectedRemovalPieceIds, socket]);
+    executeGameAction(
+      () => removePiecesForCurrentAction(room.game!, room.game!.activePlayerId!, selectedRemovalPieceIds),
+      () => roomApi.removePieces(requireSocket(), room.roomId, selectedRemovalPieceIds),
+      "Quatis removidos da floresta.",
+      clearWolfActionSelection
+    );
+  }, [
+    canControlActivePlayer,
+    clearWolfActionSelection,
+    executeGameAction,
+    requiredCoatiRemovalCount,
+    room,
+    selectedRemovalPieceIds,
+    socket
+  ]);
 
   const handleSpendJaguarMeat = useCallback(
     (count: number) => {
@@ -2072,28 +2074,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         return;
       }
 
-      if (isLocalRoom) {
-        const nextGame = spendJaguarMeatForPoints(room.game, room.game.activePlayerId, count);
-        setRoom({
-          ...room,
-          status: nextGame.status === "active" ? "active" : room.status,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice("Carne gasta e pontos marcados.");
-        return;
-      }
-
-      void run(() => roomApi.spendJaguarMeat(requireSocket(), room.roomId, count)).then(() => {
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-      });
+      executeGameAction(
+        () => spendJaguarMeatForPoints(room.game!, room.game!.activePlayerId!, count),
+        () => roomApi.spendJaguarMeat(requireSocket(), room.roomId, count),
+        "Carne gasta e pontos marcados."
+      );
     },
-    [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive, tutorialDef?.requiredSpendCount]
+    [canControlActivePlayer, executeGameAction, room, socket, tutorialActive, tutorialDef?.requiredSpendCount]
   );
 
   const handleScoreCapuchin = useCallback(() => {
@@ -2106,32 +2093,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Macaco-prego";
 
     const finalize = () => {
-      if (isLocalRoom) {
-        const currentGame = room.game;
-        if (!currentGame) return;
-        const nextGame = scoreCapuchinHabitatPresence(currentGame, activeId);
-        setRoom((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: nextGame.status === "active" ? "active" : prev.status,
-                game: nextGame,
-                warnings: nextGame.contentWarnings
-              }
-            : prev
-        );
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice("Macaco-prego pontuado.");
-        return;
-      }
-
-      void run(() => roomApi.scoreCapuchin(requireSocket(), room.roomId)).then(() => {
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-      });
+      executeGameAction(
+        () => scoreCapuchinHabitatPresence(room.game!, activeId),
+        () => roomApi.scoreCapuchin(requireSocket(), room.roomId),
+        "Macaco-prego pontuado."
+      );
     };
 
     if (groups.length === 0) {
@@ -2145,7 +2111,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setCapuchinScoreAnim(null);
       finalize();
     }, 2400);
-  }, [canControlActivePlayer, isLocalRoom, room, socket]);
+  }, [canControlActivePlayer, executeGameAction, room, socket]);
 
   const handleScoreMacaw = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
@@ -2157,32 +2123,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Arara-azul";
 
     const finalize = () => {
-      if (isLocalRoom) {
-        const currentGame = room.game;
-        if (!currentGame) return;
-        const nextGame = scoreMacawLines(currentGame, activeId);
-        setRoom((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: nextGame.status === "active" ? "active" : prev.status,
-                game: nextGame,
-                warnings: nextGame.contentWarnings
-              }
-            : prev
-        );
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice("Arara-azul pontuada.");
-        return;
-      }
-
-      void run(() => roomApi.scoreMacaw(requireSocket(), room.roomId)).then(() => {
-        setSelectedHandCardId(null);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-      });
+      executeGameAction(
+        () => scoreMacawLines(room.game!, activeId),
+        () => roomApi.scoreMacaw(requireSocket(), room.roomId),
+        "Arara-azul pontuada."
+      );
     };
 
     if (lines.length === 0) {
@@ -2200,34 +2145,19 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setMacawScoreAnim(null);
       finalize();
     }, 2400);
-  }, [canControlActivePlayer, isLocalRoom, room, socket]);
+  }, [canControlActivePlayer, executeGameAction, room, socket]);
 
   const handleScoreGalo = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = scoreGaloSeedCards(room.game, room.game.activePlayerId);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
-      });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Galo-de-campina pontuado.");
-      return;
-    }
-
-    void run(() => roomApi.scoreGalo(requireSocket(), room.roomId)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-    });
-  }, [canControlActivePlayer, isLocalRoom, room, socket]);
+    executeGameAction(
+      () => scoreGaloSeedCards(room.game!, room.game!.activePlayerId!),
+      () => roomApi.scoreGalo(requireSocket(), room.roomId),
+      "Galo-de-campina pontuado."
+    );
+  }, [canControlActivePlayer, executeGameAction, room, socket]);
 
   const handleHideArmadillo = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedPieceId) {
@@ -2237,54 +2167,24 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = hideArmadilloForCurrentAction(room.game, room.game.activePlayerId, selectedPieceId);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
-      });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Tatu-bola escondido.");
-      return;
-    }
-
-    void run(() => roomApi.hideArmadillo(requireSocket(), room.roomId, selectedPieceId)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-    });
-  }, [canControlActivePlayer, isLocalRoom, room, selectedPieceId, socket, tutorialActive, tutorialDef?.markedPieceId]);
+    executeGameAction(
+      () => hideArmadilloForCurrentAction(room.game!, room.game!.activePlayerId!, selectedPieceId),
+      () => roomApi.hideArmadillo(requireSocket(), room.roomId, selectedPieceId),
+      "Tatu-bola escondido."
+    );
+  }, [canControlActivePlayer, executeGameAction, room, selectedPieceId, socket, tutorialActive, tutorialDef?.markedPieceId]);
 
   const handleScoreArmadillo = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = scoreArmadilloSharing(room.game, room.game.activePlayerId);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
-      });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Tatu-bola pontuado.");
-      return;
-    }
-
-    void run(() => roomApi.scoreArmadillo(requireSocket(), room.roomId)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-    });
-  }, [canControlActivePlayer, isLocalRoom, room, socket]);
+    executeGameAction(
+      () => scoreArmadilloSharing(room.game!, room.game!.activePlayerId!),
+      () => roomApi.scoreArmadillo(requireSocket(), room.roomId),
+      "Tatu-bola pontuado."
+    );
+  }, [canControlActivePlayer, executeGameAction, room, socket]);
 
   const handleRemoveWolfBasePiece = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedWolfTargetPieceId) {
@@ -2294,33 +2194,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = removeBasePieceForWolfAction(room.game, room.game.activePlayerId, selectedWolfTargetPieceId);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
-      });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedWolfTargetPieceId(null);
-      setSelectedWolfResources([]);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Lobo-guará removeu peça de base.");
-      return;
-    }
-
-    void run(() => roomApi.removeWolfBasePiece(requireSocket(), room.roomId, selectedWolfTargetPieceId)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedWolfTargetPieceId(null);
-      setSelectedWolfResources([]);
-      setSelectedRemovalPieceIds([]);
-    });
+    executeGameAction(
+      () => removeBasePieceForWolfAction(room.game!, room.game!.activePlayerId!, selectedWolfTargetPieceId),
+      () => roomApi.removeWolfBasePiece(requireSocket(), room.roomId, selectedWolfTargetPieceId),
+      "Lobo-guará removeu peça de base.",
+      clearWolfActionSelection
+    );
   }, [
     canControlActivePlayer,
-    isLocalRoom,
+    clearWolfActionSelection,
+    executeGameAction,
     room,
     selectedWolfTargetPieceId,
     socket,
@@ -2341,33 +2224,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = spendWolfResourcesForPoints(room.game, room.game.activePlayerId, selectedWolfResources);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
-      });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedWolfTargetPieceId(null);
-      setSelectedWolfResources([]);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Lobo-guará gastou recursos e marcou pontos.");
-      return;
-    }
-
-    void run(() => roomApi.spendWolfResources(requireSocket(), room.roomId, selectedWolfResources)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedWolfTargetPieceId(null);
-      setSelectedWolfResources([]);
-      setSelectedRemovalPieceIds([]);
-    });
+    executeGameAction(
+      () => spendWolfResourcesForPoints(room.game!, room.game!.activePlayerId!, selectedWolfResources),
+      () => roomApi.spendWolfResources(requireSocket(), room.roomId, selectedWolfResources),
+      "Lobo-guará gastou recursos e marcou pontos.",
+      clearWolfActionSelection
+    );
   }, [
     canControlActivePlayer,
-    isLocalRoom,
+    clearWolfActionSelection,
+    executeGameAction,
     room,
     selectedWolfResources,
     socket,
@@ -2383,27 +2249,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
 
-    if (isLocalRoom) {
-      const nextGame = completeCurrentAction(room.game, room.game.activePlayerId);
-      setRoom({
-        ...room,
-        status: nextGame.status === "active" ? "active" : room.status,
-        game: nextGame,
-        warnings: nextGame.contentWarnings
-      });
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-      setNotice("Ação concluída.");
-      return;
-    }
-
-    void run(() => roomApi.completeAction(requireSocket(), room.roomId)).then(() => {
-      setSelectedHandCardId(null);
-      setSelectedPieceId(null);
-      setSelectedRemovalPieceIds([]);
-    });
-  }, [canControlActivePlayer, isLocalRoom, room, socket, tutorialActive]);
+    executeGameAction(
+      () => completeCurrentAction(room.game!, room.game!.activePlayerId!),
+      () => roomApi.completeAction(requireSocket(), room.roomId),
+      "Ação concluída."
+    );
+  }, [canControlActivePlayer, executeGameAction, room, socket, tutorialActive]);
 
   useEffect(() => {
     if ((!canSkipExtraTurnNoCardAction && !needsEndgameOverflowRepair) || tutorialActive) {
