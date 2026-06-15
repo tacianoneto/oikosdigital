@@ -20,16 +20,16 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - HUD e conteúdo das ações de espécie extraídos para `apps/web/src/ui/SpeciesActionHud.tsx`.
 - Execução de ações locais e online centralizada em `apps/web/src/OikosApp.tsx`.
 - Configuração da floresta inicial extraída de `packages/rules/src/setup.ts` para `packages/rules/src/initialForest.ts`.
+- Criação da partida (ordem de setup/turno, jogadores e peças, distribuição de mãos e montagem do `GameState` inicial) extraída de `packages/rules/src/setup.ts` para `packages/rules/src/createGame.ts`, com `setup.ts` reexportando a API pública.
 - Baseline validada com 238 testes, `typecheck` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** extrair de `packages/rules/src/setup.ts` a criação da partida: ordem de turno, jogadores e peças, distribuição das mãos e montagem do `GameState` inicial. Preservar exports públicos, determinismo e comportamento. Não misturar esta etapa com movimentação.
-2. Extrair de `packages/rules/src/setup.ts` as regras e utilitários de movimentação.
-3. Refatorar `packages/rules/src/bots.ts`: primeiro compartilhar o preâmbulo comum entre bots smart/random; depois separar decisões por espécie e avaliação.
-4. Continuar a divisão de `apps/web/src/OikosApp.tsx`: sessão/conexão online primeiro, depois grupos de modais.
-5. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
-6. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
+1. **Fazer primeiro:** extrair de `packages/rules/src/setup.ts` as regras e utilitários de movimentação.
+2. Refatorar `packages/rules/src/bots.ts`: primeiro compartilhar o preâmbulo comum entre bots smart/random; depois separar decisões por espécie e avaliação.
+3. Continuar a divisão de `apps/web/src/OikosApp.tsx`: sessão/conexão online primeiro, depois grupos de modais.
+4. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
+5. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
 
 ### Regras para cada etapa
 
