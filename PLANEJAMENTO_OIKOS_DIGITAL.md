@@ -24,14 +24,14 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Regras e utilitários de movimentação extraídos de `packages/rules/src/setup.ts` para `packages/rules/src/movementActions.ts` (`getValidPieceMovementDestinations`, `movePieceForCurrentAction`, `moveJaguarForCurrentAction` e helpers); `setup.ts` reexporta a API pública.
 - Preâmbulo comum dos bots (resolução de Caatinga/Cerrado/Caça ilegal/Mata Atlântica) compartilhado entre `playBotStep` e `playRandomStep` via `resolvePendingScenarioStep` em `packages/rules/src/bots.ts`, sem mudar comportamento nem sequência de RNG.
 - Camada de avaliação dos bots (scoring, ranking, consultas de tabuleiro e seletores de candidatos) extraída de `packages/rules/src/bots.ts` para `packages/rules/src/botScoring.ts`; `bots.ts` mantém a orquestração e importa a API de avaliação. Movimento puro, sem mudar comportamento nem RNG.
+- Decisões por espécie separadas por família: handlers `play*` (smart) em `packages/rules/src/botSmart.ts` e `random*` em `packages/rules/src/botRandom.ts`; `completeOrSkip`/`rotations` em `packages/rules/src/botShared.ts`. `bots.ts` ficou só com `playBotStep`/`playRandomStep` e o preâmbulo comum. Movimento puro, sem mudar comportamento nem RNG.
 - Baseline validada com 238 testes, `typecheck` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** continuar `packages/rules/src/bots.ts`: separar as decisões por espécie (handlers `play*`/`random*`) em módulo(s) próprio(s), mantendo `playBotStep`/`playRandomStep` como orquestradores.
-2. Continuar a divisão de `apps/web/src/OikosApp.tsx`: sessão/conexão online primeiro, depois grupos de modais.
-3. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
-4. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
+1. **Fazer primeiro:** continuar a divisão de `apps/web/src/OikosApp.tsx`: sessão/conexão online primeiro, depois grupos de modais.
+2. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
+3. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
 
 ### Regras para cada etapa
 
