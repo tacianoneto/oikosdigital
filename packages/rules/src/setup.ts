@@ -27,6 +27,14 @@ import type {
   ScenarioCardId,
   SpeciesId
 } from "@oikos/shared";
+import {
+  cloneGameState,
+  findPlayer,
+  getCurrentAction,
+  positionKey,
+  pushUniqueWarning,
+  toGridPosition
+} from "./state";
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
@@ -4267,124 +4275,6 @@ function shouldSkipWolfMeatAction(game: GameState, playerId: string): boolean {
   return getCurrentAction(game) === "D" && getWolfMeatPlacementPositions(game, playerId).length === 0;
 }
 
-function getCurrentAction(game: GameState): ActionId | null {
-  if (!game.activePlayerId) {
-    return null;
-  }
-
-  const player = findPlayer(game, game.activePlayerId);
-  if (!player.speciesId) {
-    return null;
-  }
-
-  return speciesDefinitions[player.speciesId].actions[game.activeActionIndex] ?? null;
-}
-
-function findPlayer(game: GameState, playerId: string): PlayerState {
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (!player) {
-    throw new Error("Jogador não encontrado.");
-  }
-
-  return player;
-}
-
-function cloneGameState(game: GameState): GameState {
-  return {
-    ...game,
-    enabledMiniExpansions: [...(game.enabledMiniExpansions ?? [])],
-    activeScenarioIds: [...(game.activeScenarioIds ?? [])],
-    activeThreatCardId: game.activeThreatCardId ?? null,
-    threatDeckIds: [...(game.threatDeckIds ?? [])],
-    threatDiscardIds: [...(game.threatDiscardIds ?? [])],
-    cerradoTriggeredByPlayer: { ...(game.cerradoTriggeredByPlayer ?? {}) },
-    cerradoPending: game.cerradoPending
-      ? {
-          ...game.cerradoPending,
-          location: { ...game.cerradoPending.location }
-        }
-      : null,
-    caatingaUsedByPlayer: { ...(game.caatingaUsedByPlayer ?? {}) },
-    caatingaPending: game.caatingaPending
-      ? {
-          ...game.caatingaPending,
-          location: { ...game.caatingaPending.location }
-        }
-      : null,
-    mataAtlanticaPiles: game.mataAtlanticaPiles
-      ? game.mataAtlanticaPiles.map((pile) => [...pile])
-      : null,
-    mataAtlanticaDiscardByPlayer: { ...(game.mataAtlanticaDiscardByPlayer ?? {}) },
-    cacaIlegalPending: game.cacaIlegalPending ? { ...game.cacaIlegalPending } : null,
-    pendingCoatiPairBonus: game.pendingCoatiPairBonus
-      ? {
-          ...game.pendingCoatiPairBonus,
-          origin: { ...game.pendingCoatiPairBonus.origin }
-        }
-      : null,
-    pendingMacawMovedPiece: game.pendingMacawMovedPiece
-      ? {
-          ...game.pendingMacawMovedPiece,
-          location: { ...game.pendingMacawMovedPiece.location }
-        }
-      : null,
-    pendingGaloMovedPiece: game.pendingGaloMovedPiece ? { ...game.pendingGaloMovedPiece } : null,
-    pendingGaloAdjacentAdd: game.pendingGaloAdjacentAdd
-      ? {
-          ...game.pendingGaloAdjacentAdd,
-          location: { ...game.pendingGaloAdjacentAdd.location }
-        }
-      : null,
-    pendingWolfMoves: game.pendingWolfMoves
-      ? {
-          ...game.pendingWolfMoves,
-          pieceIds: [...game.pendingWolfMoves.pieceIds]
-        }
-      : null,
-    pendingExtraTurnPlayerId: game.pendingExtraTurnPlayerId ?? null,
-    extraTurnPlayerId: game.extraTurnPlayerId ?? null,
-    resolvedExtraTurnPlayerIds: [...(game.resolvedExtraTurnPlayerIds ?? [])],
-    pendingSeedSpendObjectivePlayerId: game.pendingSeedSpendObjectivePlayerId ?? null,
-    acceptedSeedSpendObjectivePlayerIds: [...(game.acceptedSeedSpendObjectivePlayerIds ?? [])],
-    resolvedSeedSpendObjectivePlayerIds: [...(game.resolvedSeedSpendObjectivePlayerIds ?? [])],
-    resolvedCoatiPairBonuses: [...game.resolvedCoatiPairBonuses],
-    players: game.players.map((player) => ({
-      ...player,
-      resources: { ...player.resources },
-      hand: [...player.hand],
-      objectiveChoices: [...(player.objectiveChoices ?? [])],
-      discardedObjectiveCardId: player.discardedObjectiveCardId ?? null,
-      reservePieces: [...player.reservePieces],
-      piecesInForest: [...player.piecesInForest]
-    })),
-    pieces: game.pieces.map((piece) => ({
-      ...piece,
-      location: piece.location ? { ...piece.location } : null,
-      state: { ...piece.state }
-    })),
-    forest: {
-      cards: game.forest.cards.map((card) => ({ ...card }))
-    },
-    deck: {
-      commonCardIds: [...game.deck.commonCardIds],
-      initialCandidateIds: [...game.deck.initialCandidateIds]
-    },
-    log: [...game.log],
-    contentWarnings: [...game.contentWarnings],
-    finalScoreBreakdown: game.finalScoreBreakdown
-      ? {
-          resourceMajorities: game.finalScoreBreakdown.resourceMajorities.map((entry) => ({
-            ...entry,
-            winnerPlayerIds: [...entry.winnerPlayerIds]
-          })),
-          entries: game.finalScoreBreakdown.entries.map((entry) => ({ ...entry })),
-          pointCap: game.finalScoreBreakdown.pointCap
-        }
-      : null,
-    winnerPlayerIds: [...game.winnerPlayerIds]
-  };
-}
-
 function getCardDefinitionOrNull(definitionId: string): ForestCardDefinition | null {
   const commonCard = commonForestCards.find((card) => card.id === definitionId);
   if (commonCard) {
@@ -4522,23 +4412,6 @@ function noConnections(): CardConnections {
     east: null,
     south: null,
     west: null
-  };
-}
-
-function pushUniqueWarning(game: GameState, warning: string): void {
-  if (!game.contentWarnings.includes(warning)) {
-    game.contentWarnings = [...game.contentWarnings, warning];
-  }
-}
-
-function positionKey(position: GridPosition): string {
-  return `${position.x}:${position.y}`;
-}
-
-function toGridPosition(location: GridPosition): GridPosition {
-  return {
-    x: location.x,
-    y: location.y
   };
 }
 
