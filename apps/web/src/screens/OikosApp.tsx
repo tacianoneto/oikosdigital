@@ -67,12 +67,9 @@ import {
   getAvailableJaguarPointSpendCount,
   getAvailableWolfPointSpendCount,
   getArmadilloHidePieceIds,
-  getArmadilloSharingDetails,
   getArmadilloShareScore,
   getCapuchinHabitatScore,
   getGaloSeedCardScore,
-  getGaloSeedCardPositions,
-  getGaloFieldCardPositions,
   getAvailableForestExpansionPositions,
   getAvailableForestExpansionPositionsForCard,
   getCapuchinScoringHabitats,
@@ -131,6 +128,7 @@ import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCa
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import { createSocket, roomApi, type OikosSocket } from "../socket";
@@ -155,12 +153,10 @@ import { movementArtPath } from "../ui/movementArt";
 import { isSmallScreen } from "../ui/responsive";
 import { getVisualAccessibilityPreference, setVisualAccessibilityPreference } from "../ui/visualAccessibility";
 import {
-  HABITAT_SCORE_COLORS,
   SPECIES_HEX,
   botTurnDelayStepMs,
   categoryLabels,
   defaultBotTurnDelayMs,
-  habitatShortLabel,
   localRoomId,
   maxBotTurnDelayMs,
   maxTurnHistory,
@@ -1202,108 +1198,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const macawLineScore = room?.game && room.game.activePlayerId ? getMacawLineScore(room.game, room.game.activePlayerId) : 0;
   const galoSeedCardScore = room?.game && room.game.activePlayerId ? getGaloSeedCardScore(room.game, room.game.activePlayerId) : 0;
   const armadilloShareScore = room?.game && room.game.activePlayerId ? getArmadilloShareScore(room.game, room.game.activePlayerId) : 0;
-  const scoringPreview = useMemo(() => {
-    if (!room?.game || room.game.status !== "active" || !room.game.activePlayerId || activeActionId !== "D") {
-      return {
-        cardHighlights: [],
-        lineHighlights: [],
-        lines: 0,
-        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
-        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
-      };
-    }
-
-    if (activeSpecies?.speciesId === "macaw") {
-      const lines = getMacawScoringLines(room.game, room.game.activePlayerId);
-      return {
-        cardHighlights: [],
-        lineHighlights: lines.map((line) => ({ positions: line.positions, label: "+1", color: 0x3a7fc4 })),
-        lines: lines.length,
-        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
-        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
-      };
-    }
-
-    if (activeSpecies?.speciesId === "capuchin") {
-      const habitats = getCapuchinScoringHabitats(room.game, room.game.activePlayerId);
-      return {
-        cardHighlights: habitats.flatMap((group) =>
-          group.positions.map((position) => ({
-            position,
-            label: `${habitatShortLabel[group.habitat as keyof typeof habitatShortLabel]} +1`,
-            color: HABITAT_SCORE_COLORS[group.habitat as keyof typeof HABITAT_SCORE_COLORS]
-          }))
-        ),
-        lineHighlights: [],
-        lines: 0,
-        habitats,
-        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
-      };
-    }
-
-    if (activeSpecies?.speciesId === "galo_de_campina") {
-      const seedPositions = getGaloSeedCardPositions(room.game, room.game.activePlayerId);
-      const fieldPositions = getGaloFieldCardPositions(room.game, room.game.activePlayerId);
-      const seedKeys = new Set(seedPositions.map((position) => `${position.x},${position.y}`));
-      const cardHighlights = [
-        ...fieldPositions.map((position) => ({
-          position,
-          // A field+seed card counts for both bonuses; pair the habitat label
-          // with the printed seed icon instead of spelling out the resource.
-          label: seedKeys.has(`${position.x},${position.y}`) ? "campina +" : "campina",
-          resource: seedKeys.has(`${position.x},${position.y}`) ? "seed" as const : undefined,
-          color: 0x6fae46
-        })),
-        ...seedPositions
-          .filter((position) => !fieldPositions.some((field) => field.x === position.x && field.y === position.y))
-          .map((position) => ({ position, label: "", resource: "seed" as const, color: 0xd94b3f }))
-      ];
-      return {
-        cardHighlights,
-        lineHighlights: [],
-        lines: 0,
-        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
-        armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
-      };
-    }
-
-    if (activeSpecies?.speciesId === "armadillo") {
-      const armadillo = getArmadilloSharingDetails(room.game, room.game.activePlayerId);
-      // Map each shared tile to the rival species standing on it, so the board
-      // badge can show their meeple icons instead of a generic "compartilha".
-      const keyOf = (position: GridPosition) => `${position.x},${position.y}`;
-      const rivalSpeciesByTile = new Map<string, SpeciesId[]>();
-      for (const piece of room.game.pieces) {
-        if (!piece.location || piece.speciesId === "armadillo") continue;
-        const key = keyOf(piece.location);
-        const list = rivalSpeciesByTile.get(key) ?? [];
-        if (!list.includes(piece.speciesId)) {
-          list.push(piece.speciesId);
-          rivalSpeciesByTile.set(key, list);
-        }
-      }
-      return {
-        cardHighlights: armadillo.sharedPositions.map((position) => ({
-          position,
-          label: "compartilha",
-          color: 0xf2c14e,
-          speciesIds: rivalSpeciesByTile.get(keyOf(position)) ?? []
-        })),
-        lineHighlights: [],
-        lines: 0,
-        habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
-        armadillo
-      };
-    }
-
-    return {
-      cardHighlights: [],
-      lineHighlights: [],
-      lines: 0,
-      habitats: [] as ReturnType<typeof getCapuchinScoringHabitats>,
-      armadillo: null as ReturnType<typeof getArmadilloSharingDetails> | null
-    };
-  }, [activeActionId, activeSpecies?.speciesId, room?.game]);
+  const scoringPreview = useScoringPreview(
+    room?.game,
+    activeActionId,
+    activeSpecies?.speciesId ?? null
+  );
   const wolfRemovableBasePieceIds =
     room?.game && room.game.activePlayerId ? getWolfRemovableBasePieceIds(room.game, room.game.activePlayerId) : [];
   const wolfSpendableResources =
