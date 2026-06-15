@@ -148,6 +148,7 @@ import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesActionHud } from "../ui/SpeciesActionHud";
 import { SpeciesStatusHud } from "../ui/SpeciesStatusHud";
 import { LeftActionDock } from "../ui/LeftActionDock";
+import { MobileTabbar, type MobileTabId } from "../ui/MobileTabbar";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
 import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
@@ -283,7 +284,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
   const [hudLeftCollapsed, setHudLeftCollapsed] = useState(isSmallScreen);
-  const [hudRightCollapsed, setHudRightCollapsed] = useState(isSmallScreen);
   // Mobile-only: the species panel can collapse to its header. Desktop keeps it
   // open (toggle is hidden and the collapse CSS lives only in the phone query).
   const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
@@ -582,7 +582,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     advanceTutorial,
     beginTutorial,
     clearTutorial,
-    highlightedMovementGuideSpecies,
     isBasicTutorial,
     tutorialActive,
     tutorialBlocks,
@@ -902,6 +901,19 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   function closeTurnRecap(): void {
     setTurnRecap((current) => ({ ...current, visible: false }));
     setHoveredSummaryCardIds([]);
+  }
+
+  function handleMobileTabSelect(id: MobileTabId): void {
+    setMobileSheet((current) => {
+      const next = current === id ? null : id;
+      if (next === "acao") setHudLeftCollapsed(false);
+      if (next === "mao") setHandCollapsed(false);
+      if (next === "jogadores") {
+        setSelectedOpponentPlayerId((currentId) => currentId ?? opponentInspectorEntries[0]?.player.playerId ?? null);
+      }
+      if (next === "resumo") setRecapCollapsed(false);
+      return next;
+    });
   }
 
   function toggleCleanBoardMode(): void {
@@ -3995,48 +4007,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {isMobile && hasStartedGame && !cleanBoardMode && (
-        <nav className="mobile-tabbar" aria-label="Painéis do jogo">
-          {([
-            { id: "acao", label: "Ação", icon: Play, available: true },
-            {
-              id: "mao",
-              label: "Mão",
-              icon: Leaf,
-              available: showHandDuringGame && Boolean(currentGamePlayer)
-            },
-            { id: "jogadores", label: "Jogadores", icon: Users, available: Boolean(room) },
-            {
-              id: "resumo",
-              label: "Resumo",
-              icon: Clock,
-              available: Boolean(turnSummary) && room?.game?.status === "active"
-            }
-          ] as const).map(({ id, label, icon: Icon, available }) => (
-            <button
-              key={id}
-              type="button"
-              className={`mobile-tab ${mobileSheet === id ? "is-active" : ""}`}
-              aria-pressed={mobileSheet === id}
-              disabled={!available}
-              onClick={() =>
-                setMobileSheet((current) => {
-                  const next = current === id ? null : id;
-                  if (next === "acao") setHudLeftCollapsed(false);
-                  if (next === "mao") setHandCollapsed(false);
-                  if (next === "jogadores") {
-                    setHudRightCollapsed(false);
-                    setSelectedOpponentPlayerId((currentId) => currentId ?? opponentInspectorEntries[0]?.player.playerId ?? null);
-                  }
-                  if (next === "resumo") setRecapCollapsed(false);
-                  return next;
-                })
-              }
-            >
-              <Icon aria-hidden="true" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
+        <MobileTabbar
+          activeSheet={mobileSheet}
+          canShowHand={showHandDuringGame && Boolean(currentGamePlayer)}
+          canShowPlayers={Boolean(room)}
+          canShowSummary={Boolean(turnSummary) && room?.game?.status === "active"}
+          onSelect={handleMobileTabSelect}
+        />
       )}
       {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId && room?.game && (
         <SpeciesActionHud

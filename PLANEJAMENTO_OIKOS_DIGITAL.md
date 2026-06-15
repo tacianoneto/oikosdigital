@@ -35,13 +35,13 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Painel direito "Jogadores" do HUD removido de `OikosApp.tsx`: estava sob `{false && ...}` (código morto desde 04/06, commit d4c8418), nunca renderizava. Deletado o bloco (~107 linhas). `typecheck`/`test`/`build` ok; smoke in-game real (login Supabase → Teste Local → HUD) confirmou HUD intacto, sem regressão nem erros de console. Fluxo de smoke in-game validado: `preview_eval` com setter nativo + `form.requestSubmit()` para logar, viewport ≥1024px.
 - Barra de espécie `hud-species` extraída de `OikosApp.tsx` para o componente presentacional `apps/web/src/ui/SpeciesStatusHud.tsx`. Condições de visibilidade, estado de colapso e alvos de efeitos ficaram no pai; JSX e comportamento preservados. `typecheck`/`test`/`build` ok e smoke in-game real (login Supabase → Teste Local → HUD) sem erros de console.
 - Dock de ação esquerdo `hud-left` extraído de `OikosApp.tsx` para o componente presentacional `apps/web/src/ui/LeftActionDock.tsx`. Estado, callbacks e regras ficaram no pai; JSX e comportamento preservados. `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (login Supabase → Teste Local → partida) sem erros de console.
+- Tabbar mobile extraído de `OikosApp.tsx` para o componente presentacional `apps/web/src/ui/MobileTabbar.tsx`; seleção das abas continua no pai. Removidos os remanescentes mortos `hudRightCollapsed` e `highlightedMovementGuideSpecies`. `typecheck`/`test`/`build` ok; smoke jogável com usuário de teste em largura suportada (login Supabase → Teste Local → partida) sem erros de console. Smoke mobile in-game não aplicável enquanto o app bloqueia larguras abaixo de 1024px.
 - Baseline validada com `typecheck`, `test` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** continuar a divisão de `apps/web/src/screens/OikosApp.tsx` com o tabbar mobile. Validar com smoke in-game real (login → Teste Local → screenshot + console). Restam remanescentes mortos no pai (valor `hudRightCollapsed` e `highlightedMovementGuideSpecies` agora sem uso) — limpar quando tocar nas fatias relacionadas.
-2. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
-3. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
+1. **Fazer primeiro:** dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
+2. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
 
 ### Regras para cada etapa
 
