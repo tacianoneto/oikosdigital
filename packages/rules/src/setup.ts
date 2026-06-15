@@ -120,6 +120,18 @@ export {
   getMacawScoringLines
 };
 export type { MacawScoringLine } from "./species/macaw";
+import {
+  getAvailableWolfPointSpendCount,
+  getWolfMeatPlacementPositions,
+  getWolfRemovableBasePieceIds,
+  getWolfSpendableResourceTypes
+} from "./species/wolf";
+export {
+  getAvailableWolfPointSpendCount,
+  getWolfMeatPlacementPositions,
+  getWolfRemovableBasePieceIds,
+  getWolfSpendableResourceTypes
+};
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
@@ -1895,34 +1907,6 @@ export function scoreArmadilloSharing(game: GameState, playerId: string): GameSt
   return next;
 }
 
-export function getWolfRemovableBasePieceIds(game: GameState, playerId: string): string[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "maned_wolf" || getCurrentAction(game) !== "B") {
-    return [];
-  }
-
-  const wolfPositions = new Set(
-    game.pieces
-      .filter((piece) => piece.ownerId === playerId && piece.speciesId === "maned_wolf" && piece.location)
-      .map((piece) => positionKey(piece.location!))
-  );
-
-  return game.pieces
-    .filter((piece) => {
-      if (piece.ownerId === playerId || piece.state.hidden || !piece.location || !wolfPositions.has(positionKey(piece.location))) {
-        return false;
-      }
-
-      return speciesDefinitions[piece.speciesId].category === "base";
-    })
-    .sort((a, b) => a.pieceId.localeCompare(b.pieceId))
-    .map((piece) => piece.pieceId);
-}
-
 export function removeBasePieceForWolfAction(game: GameState, playerId: string, targetPieceId: string): GameState {
   if (game.status !== "active") {
     throw new Error("Remocoes so podem acontecer durante a fase ativa.");
@@ -2000,40 +1984,6 @@ export function removeBasePieceForWolfAction(game: GameState, playerId: string, 
   return next;
 }
 
-export function getWolfSpendableResourceTypes(game: GameState, playerId: string): Resource[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "maned_wolf" || getCurrentAction(game) !== "C") {
-    return [];
-  }
-
-  const maxCount = getAvailableWolfPointSpendCount(game, playerId);
-  if (maxCount === 0) {
-    return [];
-  }
-
-  return (["meat", "egg", "fruit", "seed"] as Resource[]).filter((resource) => player.resources[resource] > 0);
-}
-
-export function getAvailableWolfPointSpendCount(game: GameState, playerId: string): number {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return 0;
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "maned_wolf" || getCurrentAction(game) !== "C") {
-    return 0;
-  }
-
-  const wolvesInForest = game.pieces.filter((piece) => piece.ownerId === playerId && piece.speciesId === "maned_wolf" && piece.location).length;
-  const resourceTypesInStock = (["meat", "egg", "fruit", "seed"] as Resource[]).filter((resource) => player.resources[resource] > 0).length;
-
-  return Math.min(wolvesInForest, resourceTypesInStock);
-}
-
 export function spendWolfResourcesForPoints(game: GameState, playerId: string, resources: Resource[]): GameState {
   if (game.status !== "active") {
     throw new Error("Acoes so podem acontecer durante a fase ativa.");
@@ -2093,19 +2043,6 @@ export function spendWolfResourcesForPoints(game: GameState, playerId: string, r
 
   advanceActiveAction(next);
   return next;
-}
-
-export function getWolfMeatPlacementPositions(game: GameState, playerId: string): GridPosition[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "maned_wolf" || getCurrentAction(game) !== "D" || player.reservePieces.length === 0) {
-    return [];
-  }
-
-  return getForestPositionsWithResource(game, "meat");
 }
 
 export function addWolfForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
