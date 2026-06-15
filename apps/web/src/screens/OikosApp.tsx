@@ -125,6 +125,7 @@ import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
 import type { HandSortMode } from "../hooks/playerCardState";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
+import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
@@ -711,14 +712,27 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     : isSpectator
       ? null
       : playerId;
-  const currentPlayer = room?.players.find((player) => player.playerId === controlledPlayerId) ?? null;
+  const {
+    activeGamePlayer,
+    activeSpecies,
+    currentGamePlayer,
+    currentPlayer,
+    currentPlayerResourceMajority,
+    hudGamePlayer,
+    hudSpecies,
+    opponentInspectorEntries,
+    resourceLeaders,
+    selectedOpponentEntry,
+    selectedOpponentRailIndex,
+    setupActivePlayer
+  } = usePlayerHudState(
+    room,
+    controlledPlayerId,
+    selectedOpponentPlayerId
+  );
   // In a local game the active species is auto-played when it is a bot, so the
   // human must not be able to act on its turn.
   const activeIsLocalBot = Boolean(isLocalRoom && currentPlayer?.isBot);
-  const currentGamePlayer = room?.game?.players.find((player) => player.playerId === controlledPlayerId) ?? null;
-  const setupActivePlayer = room?.game?.players.find((player) => player.playerId === room.game?.setupActivePlayerId) ?? null;
-  const activeGamePlayer = room?.game?.players.find((player) => player.playerId === room.game?.activePlayerId) ?? null;
-  const activeSpecies = activeGamePlayer?.speciesId ? speciesDefinitions[activeGamePlayer.speciesId] : null;
   const activeActionId = activeSpecies && room?.game ? activeSpecies.actions[room.game.activeActionIndex] ?? null : null;
   const mataAtlanticaBlocksTurn = Boolean(
     room?.game?.mataAtlanticaPiles &&
@@ -748,53 +762,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
 
-  // Leader(s) per resource for the players panel. Seed (semente) has no majority
-  // in scoring, so it is excluded. Ties highlight every top holder. Count 0 = no
-  // leader. Mirrors the endgame resource-majority rule (meat/egg/fruit only).
-  const resourceLeaders = useMemo(() => {
-    const leaders: Partial<Record<Resource, Set<string>>> = {};
-    const gamePlayers = room?.game?.players ?? [];
-    if (gamePlayers.length === 0) {
-      return leaders;
-    }
-
-    for (const resource of ["meat", "egg", "fruit"] as Resource[]) {
-      let top = 0;
-      for (const player of gamePlayers) {
-        top = Math.max(top, player.resources[resource] ?? 0);
-      }
-      if (top <= 0) {
-        continue;
-      }
-      leaders[resource] = new Set(
-        gamePlayers.filter((player) => (player.resources[resource] ?? 0) === top).map((player) => player.playerId)
-      );
-    }
-
-    return leaders;
-  }, [room?.game]);
-
-  // Whether the controlled player currently holds the majority of each
-  // majority-eligible resource (meat/egg/fruit). Seed never qualifies (it only
-  // converts to points at the end). Used to pulse the resource number in the
-  // bottom species HUD.
-  const currentPlayerResourceMajority = useMemo(() => {
-    const gamePlayers = room?.game?.players ?? [];
-    const major = (resource: Resource) => {
-      if (!currentGamePlayer || gamePlayers.length === 0) {
-        return false;
-      }
-
-      const currentCount = currentGamePlayer.resources[resource] ?? 0;
-      if (currentCount <= 0) {
-        return false;
-      }
-
-      const topCount = Math.max(...gamePlayers.map((player) => player.resources[resource] ?? 0));
-      return currentCount === topCount;
-    };
-    return { meat: major("meat"), egg: major("egg"), fruit: major("fruit"), seed: false };
-  }, [room?.game, currentGamePlayer]);
   const handleTutorialCardPlaced = useCallback((id: TutorialId, step: TutorialStepDef) => {
     if (id === "initial") {
       const isRiverStep = Boolean(step.requiresRiver);
@@ -880,58 +847,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setVisualAccessibility(setVisualAccessibilityPreference(enabled));
   }, []);
 
-  const hudGamePlayer = currentGamePlayer ?? activeGamePlayer ?? setupActivePlayer ?? null;
-  const hudSpecies = hudGamePlayer?.speciesId ? speciesDefinitions[hudGamePlayer.speciesId] : null;
-  const playerInspectorEntries = useMemo(() => {
-    const players = room?.players ?? [];
-    if (!room?.game) {
-      return players.map((player, displayIndex) => ({
-        player,
-        gamePlayer: null,
-        species: player.speciesId ? speciesDefinitions[player.speciesId] : null,
-        displayIndex,
-        isActivePlayer: false
-      }));
-    }
-
-    const order = room.game.status === "setup" ? room.game.setupOrder : room.game.turnOrder;
-    const indexByPlayerId = new Map(order.map((id, index) => [id, index]));
-    return [...players]
-      .sort((a, b) => {
-        const ai = indexByPlayerId.get(a.playerId);
-        const bi = indexByPlayerId.get(b.playerId);
-        if (ai === undefined && bi === undefined) return 0;
-        if (ai === undefined) return 1;
-        if (bi === undefined) return -1;
-        return ai - bi;
-      })
-      .map((player, displayIndex) => ({
-        player,
-        gamePlayer: room.game?.players.find((candidate) => candidate.playerId === player.playerId) ?? null,
-        species: player.speciesId ? speciesDefinitions[player.speciesId] : null,
-        displayIndex,
-        isActivePlayer:
-          player.playerId === room.game?.activePlayerId ||
-          player.playerId === room.game?.setupActivePlayerId
-      }));
-  }, [room?.players, room?.game]);
-  const opponentInspectorEntries = useMemo(
-    () =>
-      playerInspectorEntries.filter(
-        (entry) => !currentGamePlayer || entry.player.playerId !== currentGamePlayer.playerId
-      ),
-    [currentGamePlayer?.playerId, playerInspectorEntries]
-  );
-  const selectedOpponentEntry = useMemo(
-    () => opponentInspectorEntries.find((entry) => entry.player.playerId === selectedOpponentPlayerId) ?? null,
-    [opponentInspectorEntries, selectedOpponentPlayerId]
-  );
-  const selectedOpponentRailIndex = selectedOpponentEntry
-    ? Math.max(
-        0,
-        opponentInspectorEntries.findIndex((entry) => entry.player.playerId === selectedOpponentEntry.player.playerId)
-      )
-    : 0;
   const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
   const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
   const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
