@@ -136,6 +136,7 @@ import {
 import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
+import { ExtraTurnObjectiveModal, SeedSpendObjectiveModal } from "../ui/EndgameObjectiveDialogs";
 import {
   CaatingaChoiceModal,
   CacaIlegalChoiceModal,
@@ -2705,75 +2706,20 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         />
       )}
       {room?.game?.pendingExtraTurnPlayerId && canResolveExtraTurn && (
-        <div className="caatinga-choice-backdrop" role="presentation">
-          <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="extra-turn-title">
-            <div className="caatinga-choice-head">
-              <Trophy aria-hidden="true" />
-              <span>Objetivo de turno extra</span>
-            </div>
-            <h2 id="extra-turn-title">Jogar 1 turno extra?</h2>
-            <p>
-              {pendingExtraTurnPlayer?.name ?? "Jogador"}, voce pode perder 1 ponto para jogar sozinho um turno extra
-              antes da pontuacao final.
-            </p>
-            <div className="caatinga-choice-actions caatinga-choice-actions--stack">
-              <button
-                type="button"
-                className="caatinga-collect-btn"
-                onClick={() => resolveExtraTurnChoice(true)}
-                disabled={(pendingExtraTurnPlayer?.score ?? 0) < 1}
-              >
-                <Trophy aria-hidden="true" />
-                Perder 1 ponto e jogar
-              </button>
-              <button
-                type="button"
-                className="caatinga-collect-btn caatinga-collect-btn--skip"
-                onClick={() => resolveExtraTurnChoice(false)}
-              >
-                Recusar e finalizar
-              </button>
-            </div>
-          </section>
-        </div>
+        <ExtraTurnObjectiveModal
+          playerName={pendingExtraTurnPlayer?.name ?? "Jogador"}
+          acceptDisabled={(pendingExtraTurnPlayer?.score ?? 0) < 1}
+          onResolve={resolveExtraTurnChoice}
+        />
       )}
       {room?.game?.pendingSeedSpendObjectivePlayerId && canResolveSeedSpend && (
-        <div className="caatinga-choice-backdrop" role="presentation">
-          <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="seed-spend-title">
-            <div className="caatinga-choice-head">
-              <Trophy aria-hidden="true" />
-              <span><ResourceText text="Objetivo de sementes" /></span>
-            </div>
-            <h2 id="seed-spend-title">
-              Gastar {pendingSeedSpendCount} <ResourceIcon resource="seed" label="sementes" />?
-            </h2>
-            <p>
-              {pendingSeedSpendPlayer?.name ?? "Jogador"}, antes da pontuacao final voce pode gastar{" "}
-              <strong>{pendingSeedSpendCount} <ResourceIcon resource="seed" label="sementes" /></strong> para ganhar{" "}
-              <strong>{pendingSeedSpendPoints} pontos</strong>. Depois disso, <ResourceIcon resource="seed" label="sementes" /> restantes ainda pontuam normalmente.
-            </p>
-            <div className="caatinga-choice-actions caatinga-choice-actions--stack">
-              <button
-                type="button"
-                className="caatinga-collect-btn"
-                onClick={() => resolveSeedSpendChoice(true)}
-                disabled={pendingSeedSpendSeeds < pendingSeedSpendCount}
-              >
-                Gastar {pendingSeedSpendCount}
-                <img src={encodeURI(resourceAssets.seed)} alt="sementes" />
-                para fazer {pendingSeedSpendPoints}
-                <img src={encodeURI(resourceAssets.point)} alt="pontos" />
-              </button>
-              <button
-                type="button"
-                className="caatinga-collect-btn caatinga-collect-btn--skip"
-                onClick={() => resolveSeedSpendChoice(false)}
-              >
-                Nao gastar
-              </button>
-            </div>
-          </section>
-        </div>
+        <SeedSpendObjectiveModal
+          playerName={pendingSeedSpendPlayer?.name ?? "Jogador"}
+          spendCount={pendingSeedSpendCount}
+          points={pendingSeedSpendPoints}
+          acceptDisabled={pendingSeedSpendSeeds < pendingSeedSpendCount}
+          onResolve={resolveSeedSpendChoice}
+        />
       )}
       {mataAtlanticaForcedDiscard && (
         <MataAtlanticaDiscardModal
