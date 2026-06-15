@@ -57,6 +57,29 @@ export function getMataAtlanticaPileTops(game: GameState): string[] {
     .filter((id): id is string => Boolean(id));
 }
 
+export function removeFromMataAtlanticaPile(
+  game: GameState,
+  cardId: string
+): boolean {
+  if (!game.mataAtlanticaPiles) return false;
+  let removedPileIndex = -1;
+  game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile, index) => {
+    if (removedPileIndex >= 0) return [...pile];
+    const cardIndex = pile.indexOf(cardId);
+    if (cardIndex < 0) return [...pile];
+    removedPileIndex = index;
+    return [...pile.slice(0, cardIndex), ...pile.slice(cardIndex + 1)];
+  });
+  if (removedPileIndex >= 0 && game.deck.commonCardIds.length > 0) {
+    const [refillId, ...rest] = game.deck.commonCardIds;
+    game.deck = { ...game.deck, commonCardIds: rest };
+    game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile, index) =>
+      index === removedPileIndex ? [...pile, refillId] : pile
+    );
+  }
+  return removedPileIndex >= 0;
+}
+
 export function mataAtlanticaRequiresDiscard(game: GameState, playerId: string): boolean {
   if (!game.mataAtlanticaPiles) return false;
   const player = game.players.find((candidate) => candidate.playerId === playerId);

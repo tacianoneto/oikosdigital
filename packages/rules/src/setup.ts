@@ -1,8 +1,6 @@
 import {
   commonForestCards,
   initialForestCardCandidates,
-  objectiveCards,
-  objectiveCardsById,
   speciesDefinitions,
   speciesOrderBySetup,
   speciesOrderByTurn,
@@ -74,7 +72,6 @@ import {
   floodThreatId,
   queueEndgameChoiceOrFinalize,
   revealThreatForRound,
-  rotateToNextPlayer,
   shouldSkipExtraTurnCardAction,
   shouldSkipJaguarMoveAction,
   skipAutomaticActionIfNeeded
@@ -204,20 +201,33 @@ export {
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
-  canSpeciesRemovePieceForCacaIlegal,
   getSpeciesPieceLogName,
   hasSpeciesMovementRule,
   isImplementedSpecies
 } from "./speciesRules";
 import { finalizeGameState } from "./endgame";
-import { applyFinalScoring, canSpeciesReceiveObjective } from "./scoring";
+import { applyFinalScoring } from "./scoring";
+import { dealObjectiveChoices } from "./objectives";
+export {
+  discardObjectiveForResources,
+  resolveExtraTurnObjective,
+  resolveSeedSpendObjective,
+  selectObjectiveCard
+} from "./objectives";
+export {
+  collectCaatingaBonus,
+  collectCerradoBonus,
+  discardMataAtlanticaPileCard,
+  resolveCacaIlegal
+} from "./scenarioActions";
 import {
   applyCaatingaTrigger,
   assertMataAtlanticaDiscarded,
   getCacaIlegalRemovablePieceIds,
   getCacaIlegalTopResources,
   getMataAtlanticaPileTops,
-  mataAtlanticaRequiresDiscard
+  mataAtlanticaRequiresDiscard,
+  removeFromMataAtlanticaPile
 } from "./scenarios";
 
 export { getCacaIlegalRemovablePieceIds, getCacaIlegalTopResources } from "./scenarios";
@@ -803,112 +813,6 @@ function shuffle<T>(items: T[], random: () => number): T[] {
   }
 
   return shuffled;
-}
-
-function dealObjectiveChoices(players: PlayerState[], roomPlayers: RoomPlayer[], random: () => number): void {
-  const objectiveDeck = shuffle(objectiveCards.map((card) => card.id), random);
-
-  for (const player of players) {
-    if (!player.speciesId) {
-      player.objectiveChoices = [];
-      continue;
-    }
-
-    const objectiveChoices = objectiveDeck
-      .filter((objectiveCardId) => {
-        const card = objectiveCardsById.get(objectiveCardId);
-        return card ? canSpeciesReceiveObjective(player.speciesId!, card) : false;
-      })
-      .slice(0, 2);
-
-    for (const objectiveCardId of objectiveChoices) {
-      const deckIndex = objectiveDeck.indexOf(objectiveCardId);
-      if (deckIndex >= 0) {
-        objectiveDeck.splice(deckIndex, 1);
-      }
-    }
-
-    player.objectiveChoices = objectiveChoices;
-    const roomPlayer = roomPlayers.find((candidate) => candidate.playerId === player.playerId);
-    player.selectedObjectiveCardId = roomPlayer?.isBot ? (player.objectiveChoices[0] ?? null) : null;
-  }
-}
-
-export function selectObjectiveCard(game: GameState, playerId: string, objectiveCardId: string): GameState {
-  if (game.status !== "setup") {
-    throw new Error("Objetivo so pode ser escolhido no inicio da partida.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (player.selectedObjectiveCardId) {
-    throw new Error("Objetivo ja escolhido.");
-  }
-
-  if (!player.objectiveChoices.includes(objectiveCardId)) {
-    throw new Error("Escolha uma das 2 cartas de objetivo recebidas.");
-  }
-
-  if (player.speciesId) {
-    const card = objectiveCardsById.get(objectiveCardId);
-    if (!card || !canSpeciesReceiveObjective(player.speciesId, card)) {
-      throw new Error("Esta especie nao pode receber este objetivo.");
-    }
-  }
-
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  nextPlayer.selectedObjectiveCardId = objectiveCardId;
-  nextPlayer.discardedObjectiveCardId = null;
-  next.log = [
-    ...next.log,
-    {
-      id: `objective_select_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} escolheu uma carta de objetivo.`,
-      createdAt: Date.now()
-    }
-  ];
-
-  return next;
-}
-
-export function discardObjectiveForResources(game: GameState, playerId: string): GameState {
-  if (game.status !== "active") {
-    throw new Error("Objetivo so pode ser descartado durante a partida.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (!player.selectedObjectiveCardId) {
-    throw new Error("Jogador nao possui objetivo selecionado.");
-  }
-
-  const card = objectiveCardsById.get(player.selectedObjectiveCardId);
-  if (card?.scoring.kind !== "discard_for_resources") {
-    throw new Error("Este objetivo nao pode ser descartado por recursos.");
-  }
-
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  const discardedObjectiveCardId = nextPlayer.selectedObjectiveCardId;
-  nextPlayer.resources = {
-    meat: (nextPlayer.resources.meat ?? 0) + 1,
-    egg: (nextPlayer.resources.egg ?? 0) + 1,
-    fruit: (nextPlayer.resources.fruit ?? 0) + 1,
-    seed: (nextPlayer.resources.seed ?? 0) + 1
-  };
-  nextPlayer.selectedObjectiveCardId = null;
-  nextPlayer.discardedObjectiveCardId = discardedObjectiveCardId;
-  nextPlayer.objectiveChoices = [];
-  next.log = [
-    ...next.log,
-    {
-      id: `objective_discard_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} descartou o objetivo para ganhar 1 recurso de cada.`,
-      createdAt: Date.now(),
-      payload: { kind: "objective", actorPlayerId: playerId, resources: ["meat", "egg", "fruit", "seed"] }
-    }
-  ];
-
-  return next;
 }
 
 export function placeInitialPiece(game: GameState, playerId: string, location: GridPosition): GameState {
@@ -1864,344 +1768,6 @@ function advanceSetupTurn(game: GameState): void {
   ];
   revealThreatForRound(game);
   skipAutomaticActionIfNeeded(game);
-}
-
-export function resolveExtraTurnObjective(game: GameState, playerId: string, accept: boolean): GameState {
-  if (game.status !== "active") {
-    throw new Error("Turno extra so pode ser resolvido durante a partida.");
-  }
-
-  if (game.pendingExtraTurnPlayerId !== playerId) {
-    throw new Error("Nenhum turno extra pendente para este jogador.");
-  }
-
-  const next = cloneGameState(game);
-  const player = findPlayer(next, playerId);
-  next.pendingExtraTurnPlayerId = null;
-  next.resolvedExtraTurnPlayerIds = [...new Set([...(next.resolvedExtraTurnPlayerIds ?? []), playerId])];
-
-  if (!accept) {
-    next.log = [
-      ...next.log,
-      {
-        id: `extra_turn_declined_${playerId}_${next.log.length + 1}`,
-        message: `${player.name} recusou o turno extra.`,
-        createdAt: Date.now(),
-        payload: { kind: "objective", actorPlayerId: playerId }
-      }
-    ];
-    queueEndgameChoiceOrFinalize(next);
-    return next;
-  }
-
-  if (player.score < 1) {
-    throw new Error("E preciso ter ao menos 1 ponto para comprar o turno extra.");
-  }
-
-  player.score -= 1;
-  next.extraTurnPlayerId = playerId;
-  next.activePlayerId = playerId;
-  next.activeActionIndex = 0;
-  next.activePlayedForestCardId = null;
-  next.pendingCoatiPairBonus = null;
-  next.pendingMacawMovedPiece = null;
-  next.pendingGaloMovedPiece = null;
-  next.pendingWolfMoves = null;
-  next.log = [
-    ...next.log,
-    {
-      id: `extra_turn_accept_${playerId}_${next.log.length + 1}`,
-      message: `${player.name} perdeu 1 ponto para jogar 1 turno extra.`,
-      createdAt: Date.now(),
-      payload: { kind: "objective", actorPlayerId: playerId, points: -1 }
-    }
-  ];
-  skipAutomaticActionIfNeeded(next);
-  return next;
-}
-
-export function resolveSeedSpendObjective(game: GameState, playerId: string, accept: boolean): GameState {
-  if (game.status !== "active") {
-    throw new Error("Objetivo de sementes so pode ser resolvido durante a partida.");
-  }
-
-  if (game.pendingSeedSpendObjectivePlayerId !== playerId) {
-    throw new Error("Nenhum objetivo de sementes pendente para este jogador.");
-  }
-
-  const next = cloneGameState(game);
-  const player = findPlayer(next, playerId);
-  const card = player.selectedObjectiveCardId ? objectiveCardsById.get(player.selectedObjectiveCardId) : null;
-  if (card?.scoring.kind !== "seed_spend") {
-    throw new Error("Objetivo de sementes invalido para este jogador.");
-  }
-
-  const spendSeedCount = card.scoring.spendSeedCount ?? 3;
-  if (accept && (player.resources.seed ?? 0) < spendSeedCount) {
-    throw new Error("Sementes insuficientes para ativar este objetivo.");
-  }
-
-  next.pendingSeedSpendObjectivePlayerId = null;
-  next.resolvedSeedSpendObjectivePlayerIds = [
-    ...new Set([...(next.resolvedSeedSpendObjectivePlayerIds ?? []), playerId])
-  ];
-  if (accept) {
-    next.acceptedSeedSpendObjectivePlayerIds = [
-      ...new Set([...(next.acceptedSeedSpendObjectivePlayerIds ?? []), playerId])
-    ];
-  }
-
-  next.log = [
-    ...next.log,
-    {
-      id: `seed_spend_${accept ? "accepted" : "declined"}_${playerId}_${next.log.length + 1}`,
-      message: accept
-        ? `${player.name} escolheu gastar ${spendSeedCount} sementes no objetivo final.`
-        : `${player.name} recusou gastar sementes no objetivo final.`,
-      createdAt: Date.now(),
-      payload: { kind: "objective", actorPlayerId: playerId }
-    }
-  ];
-
-  queueEndgameChoiceOrFinalize(next);
-  return next;
-}
-
-export function resolveCacaIlegal(
-  game: GameState,
-  playerId: string,
-  choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }
-): GameState {
-  if (game.status !== "active") {
-    throw new Error("Caca ilegal so pode ser resolvida durante a fase ativa.");
-  }
-  if (!game.cacaIlegalPending || game.cacaIlegalPending.playerId !== playerId) {
-    throw new Error("Nenhum efeito de Caca ilegal pendente.");
-  }
-  const next = cloneGameState(game);
-  const player = findPlayer(next, playerId);
-
-  if (choice.kind === "remove_piece") {
-    if (!canSpeciesRemovePieceForCacaIlegal(player.speciesId)) {
-      throw new Error("A Onca nao pode remover peca por Caca ilegal; gaste um recurso.");
-    }
-    const piece = next.pieces.find(
-      (candidate) => candidate.pieceId === choice.pieceId && candidate.ownerId === playerId && candidate.location
-    );
-    if (!piece) {
-      throw new Error("Peca invalida para remocao.");
-    }
-    piece.location = null;
-    player.piecesInForest = player.piecesInForest.filter((id) => id !== choice.pieceId);
-    player.reservePieces = [...player.reservePieces, choice.pieceId];
-    if (piece.speciesId === "coati") {
-      pruneResolvedCoatiPairBonuses(next, playerId);
-    }
-    next.log = [
-      ...next.log,
-      {
-        id: `caca_ilegal_remove_${playerId}_${next.log.length + 1}`,
-        message: `${player.name} removeu 1 ${player.speciesId ? getSpeciesPieceLogName(player.speciesId) : "peca"} (Caca ilegal).`,
-        createdAt: Date.now()
-      }
-    ];
-  } else {
-    const top = getCacaIlegalTopResources(next, playerId);
-    if (!top.includes(choice.resource)) {
-      throw new Error("Recurso invalido: escolha um dos recursos que voce mais possui.");
-    }
-    player.resources = {
-      ...player.resources,
-      [choice.resource]: Math.max(0, (player.resources[choice.resource] ?? 0) - 1)
-    };
-    next.log = [
-      ...next.log,
-      {
-        id: `caca_ilegal_spend_${playerId}_${next.log.length + 1}`,
-        message: `${player.name} gastou 1 ${choice.resource} (Caca ilegal).`,
-        createdAt: Date.now()
-      }
-    ];
-  }
-
-  next.cacaIlegalPending = null;
-  rotateToNextPlayer(next, player);
-  return next;
-}
-
-function removeFromMataAtlanticaPile(game: GameState, cardId: string): boolean {
-  if (!game.mataAtlanticaPiles) return false;
-  let removedPileIndex = -1;
-  game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile, index) => {
-    if (removedPileIndex >= 0) return [...pile];
-    const idx = pile.indexOf(cardId);
-    if (idx < 0) return [...pile];
-    removedPileIndex = index;
-    return [...pile.slice(0, idx), ...pile.slice(idx + 1)];
-  });
-  if (removedPileIndex >= 0 && game.deck.commonCardIds.length > 0) {
-    const [refillId, ...rest] = game.deck.commonCardIds;
-    game.deck = { ...game.deck, commonCardIds: rest };
-    game.mataAtlanticaPiles = game.mataAtlanticaPiles.map((pile, index) =>
-      index === removedPileIndex ? [...pile, refillId] : pile
-    );
-  }
-  return removedPileIndex >= 0;
-}
-
-export function discardMataAtlanticaPileCard(game: GameState, playerId: string, cardId: string): GameState {
-  if (game.status !== "active") {
-    throw new Error("Descarte da Mata Atlantica so pode acontecer durante a fase ativa.");
-  }
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Apenas o jogador ativo pode descartar uma carta.");
-  }
-  if (!game.mataAtlanticaPiles) {
-    throw new Error("Mata Atlantica nao esta ativa.");
-  }
-  const pileTops = getMataAtlanticaPileTops(game);
-  if (!pileTops.includes(cardId)) {
-    throw new Error("Escolha o topo de uma das pilhas para descartar.");
-  }
-  const player = findPlayer(game, playerId);
-  if (!player.speciesId) {
-    throw new Error("Jogador sem especie selecionada.");
-  }
-  if (speciesDefinitions[player.speciesId].usesForestCards) {
-    throw new Error("Especies que usam cartas nao descartam na Mata Atlantica; joguem uma carta.");
-  }
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  if ((next.mataAtlanticaDiscardByPlayer ?? {})[playerId] === nextPlayer.turnsTaken) {
-    throw new Error("Voce ja descartou uma carta da Mata Atlantica neste turno.");
-  }
-  removeFromMataAtlanticaPile(next, cardId);
-  next.mataAtlanticaDiscardByPlayer = {
-    ...next.mataAtlanticaDiscardByPlayer,
-    [playerId]: nextPlayer.turnsTaken
-  };
-  const def = getCardDefinitionOrNull(cardId);
-  next.log = [
-    ...next.log,
-    {
-      id: `mata_atlantica_discard_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} descartou ${def?.label ?? "carta"} (Mata Atlantica).`,
-      createdAt: Date.now()
-    }
-  ];
-  return next;
-}
-
-export function collectCaatingaBonus(
-  game: GameState,
-  playerId: string,
-  mode: "gain" | "lose" | "skip" = "gain"
-): GameState {
-  if (game.status !== "active") {
-    throw new Error("Bonus de Caatinga so pode ser coletado durante a fase ativa.");
-  }
-  if (!game.caatingaPending || game.caatingaPending.playerId !== playerId) {
-    throw new Error("Nenhum efeito de Caatinga disponivel.");
-  }
-
-  const next = cloneGameState(game);
-  const player = findPlayer(next, playerId);
-  const pending = next.caatingaPending!;
-  if (mode === "skip") {
-    next.caatingaPending = null;
-    next.log = [
-      ...next.log,
-      {
-        id: `caatinga_skip_${playerId}_${next.log.length + 1}`,
-        message: `${player.name} adiou o efeito da Caatinga.`,
-        createdAt: Date.now()
-      }
-    ];
-    if (shouldAdvanceAfterScenarioChoice(next, playerId)) {
-      advanceActiveAction(next);
-    }
-    return next;
-  }
-  const current = player.resources[pending.resource] ?? 0;
-  if (mode === "lose" && current <= 0) {
-    throw new Error("Sem recurso suficiente para perder em Caatinga.");
-  }
-  const delta = mode === "gain" ? 1 : -1;
-  player.resources = {
-    ...player.resources,
-    [pending.resource]: current + delta
-  };
-  next.caatingaUsedByPlayer = { ...next.caatingaUsedByPlayer, [playerId]: pending.round };
-  next.caatingaPending = null;
-  next.log = [
-    ...next.log,
-    {
-      id: `caatinga_resolve_${playerId}_${next.log.length + 1}`,
-      message:
-        mode === "gain"
-          ? `${player.name} coletou +1 ${pending.resource} (Caatinga).`
-          : `${player.name} perdeu 1 ${pending.resource} (Caatinga).`,
-      createdAt: Date.now()
-    }
-  ];
-  if (shouldAdvanceAfterScenarioChoice(next, playerId)) {
-    advanceActiveAction(next);
-  }
-  return next;
-}
-
-export function collectCerradoBonus(
-  game: GameState,
-  playerId: string,
-  mode: "collect" | "skip" = "collect"
-): GameState {
-  if (game.status !== "active") {
-    throw new Error("Bonus de Cerrado so pode ser resolvido durante a fase ativa.");
-  }
-  if (!game.cerradoPending || game.cerradoPending.playerId !== playerId) {
-    throw new Error("Nenhum efeito de Cerrado disponivel.");
-  }
-
-  const next = cloneGameState(game);
-  const player = findPlayer(next, playerId);
-  const pending = next.cerradoPending!;
-  const gain = mode === "collect" ? 2 : 1;
-  player.resources = {
-    ...player.resources,
-    [pending.resource]: (player.resources[pending.resource] ?? 0) + gain
-  };
-
-  if (mode === "collect") {
-    next.cerradoTriggeredByPlayer = {
-      ...(next.cerradoTriggeredByPlayer ?? {}),
-      [playerId]: pending.round
-    };
-  }
-
-  next.cerradoPending = null;
-  next.log = [
-    ...next.log,
-    {
-      id: `cerrado_${mode}_${playerId}_${next.log.length + 1}`,
-      message:
-        mode === "collect"
-          ? `${player.name} coletou +2 ${pending.resource} (Cerrado).`
-          : `${player.name} guardou o Cerrado para depois e coletou +1 ${pending.resource}.`,
-      createdAt: Date.now()
-    }
-  ];
-
-  if (shouldAdvanceAfterScenarioChoice(next, playerId)) {
-    advanceActiveAction(next);
-  }
-  return next;
-}
-
-function shouldAdvanceAfterScenarioChoice(game: GameState, playerId: string): boolean {
-  if (game.caatingaPending || game.cerradoPending || game.pendingCoatiPairBonus) {
-    return false;
-  }
-  return !(game.pendingWolfMoves?.playerId === playerId && game.pendingWolfMoves.pieceIds.length > 0);
 }
 
 export function finalizeGame(game: GameState): GameState {
