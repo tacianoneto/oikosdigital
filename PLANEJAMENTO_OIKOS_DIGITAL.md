@@ -26,6 +26,7 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Camada de avaliação dos bots (scoring, ranking, consultas de tabuleiro e seletores de candidatos) extraída de `packages/rules/src/bots.ts` para `packages/rules/src/botScoring.ts`; `bots.ts` mantém a orquestração e importa a API de avaliação. Movimento puro, sem mudar comportamento nem RNG.
 - Decisões por espécie separadas por família: handlers `play*` (smart) em `packages/rules/src/botSmart.ts` e `random*` em `packages/rules/src/botRandom.ts`; `completeOrSkip`/`rotations` em `packages/rules/src/botShared.ts`. `bots.ts` ficou só com `playBotStep`/`playRandomStep` e o preâmbulo comum. Movimento puro, sem mudar comportamento nem RNG.
 - Helpers/constantes de nível de módulo de `apps/web/src/screens/OikosApp.tsx` extraídos para `apps/web/src/screens/OikosApp.helpers.tsx` (`getOpenPortraitAsset`, `MobileSheet`, `SERVER_UNAVAILABLE_MESSAGE`, `movementKindLabels`, `SkipExtraTurnNoCardAction`, `TUTORIAL_ROOM_FACTORIES`, `getAuthDisplayName`, tabela add-piece). Movimento puro; smoke da tela de login aprovado.
+- Polling de salas abertas do lobby extraído de `OikosApp.tsx` para `apps/web/src/hooks/useOpenRoomsPolling.ts` (estado `openRooms`/`roomsLoading`, efeito de poll 4s e refresh manual). Movimento puro; `typecheck`/`build` ok. (Smoke pós-login bloqueado: automação de login no preview não dispara o POST de auth; boot/login limpos.)
 - Baseline validada com 238 testes, `typecheck` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
