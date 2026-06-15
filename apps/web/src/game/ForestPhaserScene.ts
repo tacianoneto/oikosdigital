@@ -11,6 +11,7 @@ import {
   gridToWorld,
   worldToScreenPoint
 } from "./forestCamera";
+import { ForestAmbientMotes } from "./forestAmbient";
 import type { ForestBounds } from "./forestCamera";
 
 export interface RotateFitTarget {
@@ -125,7 +126,7 @@ export class ForestPhaserScene extends Phaser.Scene {
   // fire at the exact spot the meeple sat. Converted to screen on demand.
   private lastPieceWorld = new Map<string, { x: number; y: number }>();
   private pulses: Phaser.Tweens.Tween[] = [];
-  private ambient: AmbientParticle[] = [];
+  private ambientMotes?: ForestAmbientMotes;
 
   private ambientCamera?: Phaser.Cameras.Scene2D.Camera;
 
@@ -191,7 +192,8 @@ export class ForestPhaserScene extends Phaser.Scene {
     ]);
 
     this.setupCameraControls();
-    this.spawnAmbient();
+    this.ambientMotes = new ForestAmbientMotes(this, this.ambientLayer);
+    this.ambientMotes.spawn();
 
     this.scale.on("resize", () => {
       const w = this.scale.gameSize.width || this.cameras.main.width;
@@ -200,7 +202,7 @@ export class ForestPhaserScene extends Phaser.Scene {
       // significant part of the usable height.
       if (!this.userAdjusted || (w >= 1024 && w <= 1600 && h <= 800)) this.fitCamera(true);
       this.ambientCamera?.setSize(w, h);
-      this.reflowAmbient();
+      this.ambientMotes?.reflow();
     });
 
     this.ready = true;
@@ -228,9 +230,6 @@ export class ForestPhaserScene extends Phaser.Scene {
     this.fitCamera(false);
   }
 
-  // Per-frame drift for the ambient motes. Cheap: no tweens, just integrate a
-  // slow upward velocity, a sine sway, and a sine twinkle. Particles that drift
-  // off the top wrap back in at the bottom.
   // Drive the .table-wood DOM layer so the wooden surface zooms and pans with
   // the main camera, keeping the planks locked to the cards resting on them.
   // The layer is in world coordinates (origin 0 0); we replicate the camera's
@@ -261,102 +260,7 @@ export class ForestPhaserScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.syncWood();
-    if (this.ambient.length === 0) return;
-    const dt = Math.min(delta, 50) / 1000;
-    const t = this.time.now / 1000;
-    const w = this.scale.gameSize.width || this.cameras.main.width;
-    const h = this.scale.gameSize.height || this.cameras.main.height;
-
-    for (const p of this.ambient) {
-      p.y += p.vy * dt;
-      p.x += Math.sin(t * p.swayFreq + p.swayPhase) * p.swayAmp * dt;
-      if (p.y < -16) {
-        p.y = h + 16;
-        p.x = Math.random() * w;
-      }
-      if (p.x < -16) p.x = w + 16;
-      else if (p.x > w + 16) p.x = -16;
-      const alpha = p.baseAlpha + Math.sin(t * p.twinkleFreq + p.twinklePhase) * p.twinkleAmp;
-      p.obj.setPosition(p.x, p.y);
-      p.obj.setAlpha(Phaser.Math.Clamp(alpha, 0, 1));
-    }
-  }
-
-  private spawnAmbient(): void {
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduceMotion) return;
-
-    const w = this.scale.gameSize.width || this.cameras.main.width || 1280;
-    const h = this.scale.gameSize.height || this.cameras.main.height || 720;
-    // Keep it sparse: roughly one mote per 56k px², clamped so it never clutters.
-    const count = Phaser.Math.Clamp(Math.round((w * h) / 56000), 14, 28);
-
-    for (let i = 0; i < count; i += 1) {
-      // ~1 in 3 motes is a warm firefly; the rest are spores or tiny leaf flecks.
-      const firefly = i % 3 === 0;
-      this.ambient.push(this.buildAmbientParticle(firefly, w, h));
-    }
-  }
-
-  private buildAmbientParticle(firefly: boolean, w: number, h: number): AmbientParticle {
-    const x = Math.random() * w;
-    const y = Math.random() * h;
-
-    let obj: Phaser.GameObjects.Arc | Phaser.GameObjects.Ellipse;
-    let baseAlpha: number;
-    let twinkleAmp: number;
-
-    const leafFleck = !firefly && Math.random() < 0.28;
-
-    if (firefly) {
-      const r = Phaser.Math.FloatBetween(2.4, 3.8);
-      obj = this.add.circle(x, y, r, 0xffe39a, 1).setBlendMode(Phaser.BlendModes.ADD);
-      baseAlpha = 0.34;
-      twinkleAmp = 0.24;
-    } else if (leafFleck) {
-      const size = Phaser.Math.FloatBetween(5, 9);
-      obj = this.add.ellipse(x, y, size, size * 0.42, Phaser.Math.RND.pick([0x6f8f53, 0x7a6a3f, 0x4d764a]), 1);
-      obj.setAngle(Phaser.Math.FloatBetween(0, 360));
-      baseAlpha = 0.16;
-      twinkleAmp = 0.04;
-    } else {
-      const r = Phaser.Math.FloatBetween(2, 3.2);
-      obj = this.add.ellipse(x, y, r * 2, r * 1.4, 0xbcd9a4, 1);
-      obj.setAngle(Phaser.Math.FloatBetween(0, 360));
-      baseAlpha = 0.24;
-      twinkleAmp = 0.08;
-    }
-
-    obj.setAlpha(baseAlpha);
-    this.ambientLayer.add(obj);
-
-    return {
-      obj,
-      x,
-      y,
-      vy: -Phaser.Math.FloatBetween(firefly ? 7 : leafFleck ? 2 : 4, firefly ? 15 : leafFleck ? 7 : 11),
-      swayAmp: Phaser.Math.FloatBetween(leafFleck ? 10 : 6, leafFleck ? 22 : 16),
-      swayFreq: Phaser.Math.FloatBetween(leafFleck ? 0.26 : 0.18, leafFleck ? 0.62 : 0.5),
-      swayPhase: Phaser.Math.FloatBetween(0, Math.PI * 2),
-      baseAlpha,
-      twinkleAmp,
-      twinkleFreq: Phaser.Math.FloatBetween(0.6, 1.6),
-      twinklePhase: Phaser.Math.FloatBetween(0, Math.PI * 2)
-    };
-  }
-
-  // Pull any motes that ended up outside the new viewport back into view.
-  private reflowAmbient(): void {
-    const w = this.scale.gameSize.width || this.cameras.main.width;
-    const h = this.scale.gameSize.height || this.cameras.main.height;
-    if (w < 4 || h < 4) return;
-    for (const p of this.ambient) {
-      if (p.x < -16 || p.x > w + 16) p.x = Math.random() * w;
-      if (p.y < -16 || p.y > h + 16) p.y = Math.random() * h;
-    }
+    this.ambientMotes?.update(delta);
   }
 
   gridToScreenPoint(position: GridPosition): { x: number; y: number } | null {
@@ -1702,20 +1606,6 @@ export class ForestPhaserScene extends Phaser.Scene {
       ly = p.y;
     });
   }
-}
-
-interface AmbientParticle {
-  obj: Phaser.GameObjects.Arc | Phaser.GameObjects.Ellipse;
-  x: number;
-  y: number;
-  vy: number;
-  swayAmp: number;
-  swayFreq: number;
-  swayPhase: number;
-  baseAlpha: number;
-  twinkleAmp: number;
-  twinkleFreq: number;
-  twinklePhase: number;
 }
 
 interface PieceLayout {
