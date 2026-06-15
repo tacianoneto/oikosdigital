@@ -1,6 +1,13 @@
 import type { GameState, GridPosition, SpeciesId } from "@oikos/shared";
-import { getCurrentAction, positionKey } from "../state";
-import { getForestPositionsWithResource } from "../forest";
+import { cloneGameState, findPlayer, getCurrentAction, positionKey } from "../state";
+import {
+  createPieceLocation,
+  findFirstForestSiteWithResource,
+  getCardDefinitionOrNull,
+  getForestPositionsWithResource
+} from "../forest";
+import { applyCaatingaTrigger } from "../scenarios";
+import { advanceActiveAction } from "../turn";
 
 /**
  * Side-effect-free queries for the Tatu-bola (armadillo): where it may add a
@@ -139,4 +146,152 @@ export function getArmadilloSharingDetails(game: GameState, playerId: string): {
     missingSpecies,
     sharedPositions: [...sharedPositionKeys].map((key) => armadilloPositions.get(key)).filter((position): position is GridPosition => Boolean(position))
   };
+}
+
+export function addArmadilloForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
+  if (game.status !== "active") {
+    throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "armadillo") {
+    throw new Error("Adicao de peca implementada apenas para o Tatu-bola nesta etapa.");
+  }
+
+  if (getCurrentAction(game) !== "A" || !game.activePlayedForestCardId) {
+    throw new Error("O Tatu-bola adiciona peca durante a acao A depois de expandir a floresta.");
+  }
+
+  const pieceId = player.reservePieces[0];
+  if (!pieceId) {
+    throw new Error("Nao ha tatus na reserva para adicionar.");
+  }
+
+  const validPositions = getArmadilloSeedPlacementPositions(game, playerId);
+  const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
+  if (!isValidPosition) {
+    throw new Error("Escolha uma carta com local de semente para adicionar o tatu.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
+  if (!nextPiece) {
+    throw new Error("Peca nao encontrada.");
+  }
+
+  nextPiece.location = createPieceLocation(game, location, findFirstForestSiteWithResource(game, location, "seed")?.siteId);
+  nextPiece.state.hidden = false;
+  nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
+  nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
+  applyCaatingaTrigger(next, playerId, location, "add");
+  const armadilloTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
+  next.log = [
+    ...next.log,
+    {
+      id: `add_armadillo_${pieceId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} adicionou 1 tatu em local de semente.`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "add_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: armadilloTargetCard?.instanceId,
+        cardDefinitionId: armadilloTargetCard?.definitionId,
+        habitat: armadilloTargetCard ? getCardDefinitionOrNull(armadilloTargetCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: location.x, y: location.y },
+        pieceIds: [pieceId],
+        actionId: "A"
+      }
+    }
+  ];
+
+  advanceActiveAction(next);
+  return next;
+}
+
+export function hideArmadilloForCurrentAction(game: GameState, playerId: string, pieceId: string): GameState {
+  if (game.status !== "active") {
+    throw new Error("Acoes so podem acontecer durante a fase ativa.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "armadillo" || getCurrentAction(game) !== "C") {
+    throw new Error("O Tatu-bola esconde uma peca propria durante a acao C.");
+  }
+
+  if (!getArmadilloHidePieceIds(game, playerId).includes(pieceId)) {
+    throw new Error("Selecione um Tatu-bola proprio visivel na floresta.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
+  if (!nextPiece) {
+    throw new Error("Peca nao encontrada.");
+  }
+
+  nextPiece.state.hidden = true;
+  const hideLocation = nextPiece.location ? { x: nextPiece.location.x, y: nextPiece.location.y } : undefined;
+  const hideCard = hideLocation ? next.forest.cards.find((card) => card.x === hideLocation.x && card.y === hideLocation.y) : undefined;
+  next.log = [
+    ...next.log,
+    {
+      id: `hide_armadillo_${pieceId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} escondeu 1 Tatu-bola.`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "hide_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: hideCard?.instanceId,
+        cardDefinitionId: hideCard?.definitionId,
+        habitat: hideCard ? getCardDefinitionOrNull(hideCard.definitionId)?.habitat ?? undefined : undefined,
+        location: hideLocation,
+        pieceIds: [pieceId],
+        actionId: "C"
+      }
+    }
+  ];
+
+  advanceActiveAction(next);
+  return next;
+}
+
+export function scoreArmadilloSharing(game: GameState, playerId: string): GameState {
+  if (game.status !== "active") {
+    throw new Error("Pontuacao so pode acontecer durante a fase ativa.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "armadillo" || getCurrentAction(game) !== "D") {
+    throw new Error("O Tatu-bola pontua compartilhamento durante a acao D.");
+  }
+
+  const points = getArmadilloShareScore(game, playerId);
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  nextPlayer.score += points;
+  next.log = [
+    ...next.log,
+    {
+      id: `armadillo_score_${playerId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} marcou ${points} ponto(s) por compartilhamento de locais.`,
+      createdAt: Date.now(),
+      payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
+    }
+  ];
+
+  advanceActiveAction(next);
+  return next;
 }
