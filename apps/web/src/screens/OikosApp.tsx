@@ -137,6 +137,7 @@ import {
 import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
+import { JaguarScoreModal, WolfScoreModal } from "../ui/ScoreSpendModals";
 import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesActionHud } from "../ui/SpeciesActionHud";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
@@ -4520,47 +4521,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {!cleanBoardMode && shouldShowJaguarScoreModal && showJaguarScoreModal && (
-          <div className="choice-modal-backdrop" role="presentation">
-            <div
-              className="choice-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Onça-pintada: gastar carne"
-              style={speciesVar("jaguar")}
-            >
-              <header className="choice-modal-head">
-                <img src={encodeURI(speciesDefinitions.jaguar.meepleAsset)} alt="" />
-                <div>
-                  <span>Onça-pintada · Ação C</span>
-                  <h2><ResourceText text="Gastar carne para pontuar" /></h2>
-                </div>
-              </header>
-              <p className="choice-modal-desc">
-                Gaste 1 <ResourceIcon resource="meat" /> para marcar 1 ponto, até 3 vezes.{" "}
-                <ResourceIcon resource="meat" label="Carnes" /> disponíveis: {availableJaguarPointSpendCount}.
-              </p>
-              <div className="choice-count-grid">
-                {[1, 2, 3].map((count) => (
-                  <button
-                    key={count}
-                    className="choice-count-option"
-                    disabled={count > availableJaguarPointSpendCount}
-                    onClick={() => handleSpendJaguarMeat(count)}
-                  >
-                    <img src={encodeURI(resourceAssets.meat)} alt="" />
-                    <strong>Gastar {count}</strong>
-                    <span>+{count} ponto(s)</span>
-                  </button>
-                ))}
-              </div>
-              <div className="choice-modal-actions">
-                <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
-                  Concluir sem gastar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <JaguarScoreModal
+          availablePointSpendCount={availableJaguarPointSpendCount}
+          completeDisabled={tutorialActive}
+          onSpend={handleSpendJaguarMeat}
+          onComplete={handleCompleteAction}
+        />
+      )}
 
       {!cleanBoardMode && room?.game?.status === "finished" && room.game.finalScoreBreakdown && (
         <EndgameCeremony
@@ -4582,74 +4549,24 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         activeActionId === "C" &&
         canControlActivePlayer &&
         (!tutorialActive || tutorialId !== "wolf" || tutorialGate === "score") && (
-          <div className="choice-modal-backdrop" role="presentation">
-            <div
-              className="choice-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Lobo-guará: gastar recursos"
-              style={speciesVar("maned_wolf")}
-            >
-              <header className="choice-modal-head">
-                <img src={encodeURI(speciesDefinitions.maned_wolf.meepleAsset)} alt="" />
-                <div>
-                  <span>Lobo-guará · Ação C</span>
-                  <h2>Gastar recursos para pontuar</h2>
-                </div>
-              </header>
-              <p className="choice-modal-desc">
-                Para cada lobo na floresta, gaste 1 recurso diferente e marque 1 ponto. Limite: 1 por lobo em campo.
-              </p>
-              <div className="wolf-spend-summary">
-                <div>
-                  <span>Seleção</span>
-                  <strong>
-                    {selectedWolfResources.length}/{availableWolfPointSpendCount}
-                  </strong>
-                </div>
-                <div>
-                  <span>Ganho</span>
-                  <strong>{selectedWolfResources.length} ponto(s)</strong>
-                </div>
-              </div>
-              <div className="wolf-resource-grid">
-                {resourceOrder.map((resource) => (
-                  <button
-                    className={`wolf-resource-option ${selectedWolfResources.includes(resource) ? "selected" : ""}`}
-                    data-resource={resource}
-                    disabled={!wolfSpendableResources.includes(resource)}
-                    key={resource}
-                    onClick={() =>
-                      setSelectedWolfResources((current) =>
-                        current.includes(resource)
-                          ? current.filter((candidate) => candidate !== resource)
-                          : current.length < availableWolfPointSpendCount
-                            ? [...current, resource]
-                            : current
-                      )
-                    }
-                  >
-                    <img src={resourceAssets[resource]} alt="" />
-                    <span>{resourceLabels[resource]}</span>
-                    <strong>{activeGamePlayer.resources[resource] ?? 0}</strong>
-                  </button>
-                ))}
-              </div>
-              <div className="choice-modal-actions">
-                <button
-                  className="primary-button"
-                  disabled={selectedWolfResources.length === 0}
-                  onClick={handleSpendWolfResources}
-                >
-                  <Check aria-hidden="true" />
-                  Gastar selecionados
-                </button>
-                <button className="secondary-button" disabled={tutorialActive} onClick={handleCompleteAction}>
-                  Concluir sem gastar
-                </button>
-              </div>
-            </div>
-          </div>
+          <WolfScoreModal
+            resources={activeGamePlayer.resources}
+            selectedResources={selectedWolfResources}
+            spendableResources={wolfSpendableResources}
+            availablePointSpendCount={availableWolfPointSpendCount}
+            completeDisabled={tutorialActive}
+            onToggleResource={(resource) =>
+              setSelectedWolfResources((current) =>
+                current.includes(resource)
+                  ? current.filter((candidate) => candidate !== resource)
+                  : current.length < availableWolfPointSpendCount
+                    ? [...current, resource]
+                    : current
+              )
+            }
+            onSpend={handleSpendWolfResources}
+            onComplete={handleCompleteAction}
+          />
         )}
 
       {!cleanBoardMode && turnSummary && room?.game?.status === "active" && (
