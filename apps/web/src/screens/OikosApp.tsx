@@ -119,6 +119,7 @@ import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets"
 import type { HandSortMode } from "../hooks/playerCardState";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
+import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
@@ -354,12 +355,20 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [isSpectator, setIsSpectator] = useState(false);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
-  const [localSpeciesIds, setLocalSpeciesIds] = useState<SpeciesId[]>(["maned_wolf", "coati"]);
-  const [localBotSpeciesIds, setLocalBotSpeciesIds] = useState<SpeciesId[]>([]);
-  const [localBotTurnDelayMs, setLocalBotTurnDelayMs] = useState(defaultBotTurnDelayMs);
-  const [localEnabledMiniExpansions, setLocalEnabledMiniExpansions] = useState<MiniExpansionId[]>([]);
-  const [localScenarioCount, setLocalScenarioCount] = useState<ScenarioCount>(1);
-  const [localSelectedScenarioIds, setLocalSelectedScenarioIds] = useState<ScenarioCardId[]>(["amazonia"]);
+  const {
+    localSpeciesIds,
+    setLocalSpeciesIds,
+    localBotSpeciesIds,
+    setLocalBotSpeciesIds,
+    localBotTurnDelayMs,
+    setLocalBotTurnDelayMs,
+    localEnabledMiniExpansions,
+    setLocalEnabledMiniExpansions,
+    localScenarioCount,
+    setLocalScenarioCount,
+    localSelectedScenarioIds,
+    setLocalSelectedScenarioIds
+  } = useLocalGameConfig();
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
   const [selectedCardRotation, setSelectedCardRotation] = useState<0 | 90 | 180 | 270>(0);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
