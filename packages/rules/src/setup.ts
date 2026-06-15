@@ -7,11 +7,8 @@ import {
   threatCards
 } from "@oikos/content";
 import { MAX_PLAYERS } from "@oikos/shared";
-import { gridPositionKey } from "@oikos/shared";
 import type {
   ActionId,
-  CardConnections,
-  ForestCardDefinition,
   ForestCardSiteDefinition,
   ForestCardState,
   GameState,
@@ -35,10 +32,8 @@ import {
   toGridPosition
 } from "./state";
 import {
-  connectionDirections,
   createPieceLocation,
   defaultCardSiteId,
-  directionOffsets,
   findFirstForestSiteWithHabitat,
   findFirstForestSiteWithResource,
   getAvailableForestExpansionPositions,
@@ -50,10 +45,8 @@ import {
   getForestSiteOccupancy,
   getForestSitePieces,
   getForestSitesAtPosition,
-  getRotatedConnections,
   hasForestSiteResource,
-  isWithinForestLimit,
-  oppositeDirection
+  isWithinForestLimit
 } from "./forest";
 export {
   getAvailableForestExpansionPositions,
@@ -66,6 +59,8 @@ export {
   hasForestSiteResource
 };
 export type { ForestSiteOccupancy } from "./forest";
+import { pickInitialForest } from "./initialForest";
+export { createPreviewInitialForest, pickInitialForest } from "./initialForest";
 import {
   advanceActiveAction,
   finishPlayerTurn,
@@ -231,347 +226,6 @@ import {
 } from "./scenarios";
 
 export { getCacaIlegalRemovablePieceIds, getCacaIlegalTopResources } from "./scenarios";
-
-// Mesas iniciais 3x3 pre-definidas e validadas. Em vez de gerar o grid por
-// algoritmo (que podia produzir rios mal encaixados), cada mesa e uma linha
-// de rio reta (canais que entram e saem pela borda do grid) com floresta/campo
-// no resto. Toda mesa e checada na carga do modulo; uma mesa fora das regras
-// quebra o build em vez de chegar ao jogador. No inicio da partida uma e
-// sorteada.
-interface RiverCardSpec {
-  definitionId: string;
-  x: number;
-  y: number;
-  rotation: ForestCardState["rotation"];
-}
-
-interface ForestTemplate {
-  name: string;
-  river: RiverCardSpec[];
-}
-
-// Regra das mesas iniciais:
-//  - Sempre exatamente 3 cartas de rio: 1 de ovo, 1 de semente (seed) e 1 de
-//    carne. Cada rio e de face dupla; a mesa usa a frente OU o verso, nunca os
-//    dois (ver RIVER_FACE_PAIRS).
-//  - Toda saida de rio (borda com agua) conecta com outra saida de rio OU
-//    aponta para fora da mesa (borda externa do grid). Nunca encosta em mata.
-//  - O lado fechado (mata) das cartas de rio pode encostar em floresta/campo.
-//
-// Bocas de rio (rotacao 0; girar gira as bocas no sentido horario). Boca so
-// conecta com boca ou sai pela borda do grid; boca nunca encosta em mata.
-//   Canal {N,S} (rio reto), Curva {N,E} (vira em L), Ponta {N} (fim/lago).
-const RIVER_EGG_CHANNEL = "initial_1"; // frente: canal N/S
-const RIVER_EGG_BEND = "initial_1_v"; // verso: curva N/E
-const RIVER_SEED_BEND = "initial_8"; // frente: curva N/E
-const RIVER_SEED_END = "initial_8_v"; // verso: ponta N
-const RIVER_MEAT_CHANNEL = "initial_9"; // frente: canal N/S
-const RIVER_MEAT_END = "initial_9_v"; // verso: ponta N
-
-// Frente/verso de cada rio. Uma mesa nunca pode conter as duas faces do mesmo
-// rio, e nunca dois rios do mesmo recurso.
-const RIVER_FACE_PAIRS: Array<[string, string]> = [
-  [RIVER_EGG_CHANNEL, RIVER_EGG_BEND],
-  [RIVER_SEED_BEND, RIVER_SEED_END],
-  [RIVER_MEAT_CHANNEL, RIVER_MEAT_END]
-];
-
-const RIVER_CARD_IDS = new Set(RIVER_FACE_PAIRS.flat());
-
-const LAND_CARD_IDS = ["initial_2", "initial_3", "initial_4", "initial_5", "initial_6", "initial_7"];
-
-const GRID_RANGE = [-1, 0, 1];
-
-// Cada mesa coloca os 3 rios (1 face cada) no grid 3x3; as 6 cartas de terra
-// preenchem o resto. Canais precisam encadear (nao isolam num 3x3), entao
-// canais sempre conectam com outra boca ou seguem ate a borda; pontas/curvas
-// fecham o rio (lago) ou ficam isoladas com a boca para fora do grid.
-const FOREST_TEMPLATES: ForestTemplate[] = [
-  // Rio reto descendo a coluna central, terminando em lago na base.
-  {
-    name: "rio-coluna-central-lago",
-    river: [
-      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 0 },
-      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: 0, rotation: 0 },
-      { definitionId: RIVER_SEED_END, x: 0, y: 1, rotation: 0 }
-    ]
-  },
-  // Mesma coluna, encostada a esquerda.
-  {
-    name: "rio-coluna-esq-lago",
-    river: [
-      { definitionId: RIVER_EGG_CHANNEL, x: -1, y: -1, rotation: 0 },
-      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: 0, rotation: 0 },
-      { definitionId: RIVER_SEED_END, x: -1, y: 1, rotation: 0 }
-    ]
-  },
-  // Mesma coluna, encostada a direita.
-  {
-    name: "rio-coluna-dir-lago",
-    river: [
-      { definitionId: RIVER_EGG_CHANNEL, x: 1, y: -1, rotation: 0 },
-      { definitionId: RIVER_MEAT_CHANNEL, x: 1, y: 0, rotation: 0 },
-      { definitionId: RIVER_SEED_END, x: 1, y: 1, rotation: 0 }
-    ]
-  },
-  // Rio reto atravessando a linha do topo, terminando em lago a direita.
-  {
-    name: "rio-linha-topo-lago",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: -1, rotation: 90 },
-      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 90 },
-      { definitionId: RIVER_SEED_END, x: 1, y: -1, rotation: 270 }
-    ]
-  },
-  // Rio reto atravessando a linha central, terminando em lago a direita.
-  {
-    name: "rio-linha-central-lago",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: 0, rotation: 90 },
-      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: 0, rotation: 90 },
-      { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
-    ]
-  },
-  // Rio reto atravessando a linha da base, terminando em lago a direita.
-  {
-    name: "rio-linha-base-lago",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: 1, rotation: 90 },
-      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: 1, rotation: 90 },
-      { definitionId: RIVER_SEED_END, x: 1, y: 1, rotation: 270 }
-    ]
-  },
-  // L no centro: carne entra pelo topo, ovo vira em L, semente fecha a leste.
-  {
-    name: "rio-L-centro-leste",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: -1, rotation: 0 },
-      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 0 },
-      { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
-    ]
-  },
-  // Espelho do L: ovo vira a oeste e semente fecha em lago a esquerda.
-  {
-    name: "rio-L-centro-oeste",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: -1, rotation: 0 },
-      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 270 },
-      { definitionId: RIVER_SEED_END, x: -1, y: 0, rotation: 90 }
-    ]
-  },
-  // Tres nascentes isoladas: cada rio aponta as bocas para fora do grid.
-  {
-    name: "rio-tres-nascentes",
-    river: [
-      { definitionId: RIVER_EGG_BEND, x: -1, y: -1, rotation: 270 },
-      { definitionId: RIVER_SEED_BEND, x: 1, y: -1, rotation: 0 },
-      { definitionId: RIVER_MEAT_END, x: 0, y: 1, rotation: 180 }
-    ]
-  },
-  // Outras tres nascentes isoladas, em cantos/bordas diferentes.
-  {
-    name: "rio-tres-nascentes-2",
-    river: [
-      { definitionId: RIVER_EGG_BEND, x: -1, y: 1, rotation: 180 },
-      { definitionId: RIVER_SEED_END, x: 0, y: -1, rotation: 0 },
-      { definitionId: RIVER_MEAT_END, x: 1, y: 0, rotation: 90 }
-    ]
-  },
-  // L pela base: carne sobe pela base, ovo vira a leste, semente fecha a direita.
-  {
-    name: "rio-L-base-leste",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: 1, rotation: 0 },
-      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 90 },
-      { definitionId: RIVER_SEED_END, x: 1, y: 0, rotation: 270 }
-    ]
-  },
-  // Espelho: carne sobe pela base, ovo vira a oeste, semente fecha a esquerda.
-  {
-    name: "rio-L-base-oeste",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: 0, y: 1, rotation: 0 },
-      { definitionId: RIVER_EGG_BEND, x: 0, y: 0, rotation: 180 },
-      { definitionId: RIVER_SEED_END, x: -1, y: 0, rotation: 90 }
-    ]
-  },
-  // Curva entrando pelo topo-esquerda e descendo ate o centro.
-  {
-    name: "rio-curva-topo-esq",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: -1, y: -1, rotation: 90 },
-      { definitionId: RIVER_EGG_BEND, x: 0, y: -1, rotation: 180 },
-      { definitionId: RIVER_SEED_END, x: 0, y: 0, rotation: 0 }
-    ]
-  },
-  // Espelho: curva entrando pelo topo-direita e descendo ate o centro.
-  {
-    name: "rio-curva-topo-dir",
-    river: [
-      { definitionId: RIVER_MEAT_CHANNEL, x: 1, y: -1, rotation: 90 },
-      { definitionId: RIVER_EGG_BEND, x: 0, y: -1, rotation: 90 },
-      { definitionId: RIVER_SEED_END, x: 0, y: 0, rotation: 0 }
-    ]
-  },
-  // Zigue-zague: ovo desce pelo topo, semente vira a leste, carne fecha.
-  {
-    name: "rio-zigue-leste",
-    river: [
-      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 0 },
-      { definitionId: RIVER_SEED_BEND, x: 0, y: 0, rotation: 0 },
-      { definitionId: RIVER_MEAT_END, x: 1, y: 0, rotation: 270 }
-    ]
-  },
-  // Espelho do zigue-zague para o oeste.
-  {
-    name: "rio-zigue-oeste",
-    river: [
-      { definitionId: RIVER_EGG_CHANNEL, x: 0, y: -1, rotation: 0 },
-      { definitionId: RIVER_SEED_BEND, x: 0, y: 0, rotation: 270 },
-      { definitionId: RIVER_MEAT_END, x: -1, y: 0, rotation: 90 }
-    ]
-  },
-  // Tres nascentes: cantos opostos com curvas + ponta no topo.
-  {
-    name: "rio-tres-nascentes-3",
-    river: [
-      { definitionId: RIVER_EGG_BEND, x: 1, y: 1, rotation: 90 },
-      { definitionId: RIVER_SEED_BEND, x: -1, y: -1, rotation: 270 },
-      { definitionId: RIVER_MEAT_END, x: 0, y: -1, rotation: 0 }
-    ]
-  },
-  // Tres nascentes: curva no canto e duas pontas em bordas opostas.
-  {
-    name: "rio-tres-nascentes-4",
-    river: [
-      { definitionId: RIVER_EGG_BEND, x: 1, y: -1, rotation: 0 },
-      { definitionId: RIVER_SEED_END, x: -1, y: 0, rotation: 270 },
-      { definitionId: RIVER_MEAT_END, x: 0, y: 1, rotation: 180 }
-    ]
-  }
-];
-
-// Garante a composicao de cada mesa: exatamente 3 rios (1 ovo, 1 semente, 1
-// carne), nunca as duas faces do mesmo rio, e exatamente 6 cartas de terra.
-function assertForestRiverComposition(cards: ForestCardState[], templateName: string): void {
-  const riverCards = cards.filter((card) => RIVER_CARD_IDS.has(card.definitionId));
-  if (riverCards.length !== 3) {
-    throw new Error(`Mesa inicial "${templateName}" precisa de exatamente 3 rios, tem ${riverCards.length}.`);
-  }
-
-  const riverIds = riverCards.map((card) => card.definitionId);
-  for (const [front, back] of RIVER_FACE_PAIRS) {
-    const usedFaces = riverIds.filter((id) => id === front || id === back).length;
-    if (usedFaces !== 1) {
-      throw new Error(
-        `Mesa inicial "${templateName}" deve usar exatamente uma face do rio ${front}/${back}, usou ${usedFaces}.`
-      );
-    }
-  }
-
-  const landCards = cards.filter((card) => LAND_CARD_IDS.includes(card.definitionId));
-  if (landCards.length !== LAND_CARD_IDS.length) {
-    throw new Error(`Mesa inicial "${templateName}" precisa das ${LAND_CARD_IDS.length} cartas de terra.`);
-  }
-}
-
-function buildForestFromTemplate(
-  template: ForestTemplate,
-  landOrder: readonly string[] = LAND_CARD_IDS
-): ForestCardState[] {
-  const riverByPos = new Map(template.river.map((spec) => [gridPositionKey(spec), spec]));
-  const cards: ForestCardState[] = [];
-  let landIndex = 0;
-
-  for (const y of GRID_RANGE) {
-    for (const x of GRID_RANGE) {
-      const river = riverByPos.get(`${x}:${y}`);
-      if (river) {
-        cards.push({
-          instanceId: `setup_${river.definitionId}`,
-          definitionId: river.definitionId,
-          x,
-          y,
-          rotation: river.rotation,
-          isInitial: true
-        });
-        continue;
-      }
-
-      const definitionId = landOrder[landIndex];
-      landIndex += 1;
-      cards.push({
-        instanceId: `setup_${definitionId}`,
-        definitionId,
-        x,
-        y,
-        rotation: 0,
-        isInitial: true
-      });
-    }
-  }
-
-  return cards;
-}
-
-function assertForestRiverConsistency(cards: ForestCardState[], templateName: string): void {
-  const byPos = new Map(cards.map((card) => [gridPositionKey(card), card]));
-
-  for (const card of cards) {
-    const definition = getCardDefinitionOrNull(card.definitionId);
-    if (!definition) {
-      throw new Error(`Mesa inicial "${templateName}" usa carta desconhecida: ${card.definitionId}`);
-    }
-
-    const connections = getRotatedConnections(definition, card.rotation);
-    for (const direction of connectionDirections) {
-      const offset = directionOffsets[direction];
-      const neighbor = byPos.get(gridPositionKey({ x: card.x + offset.x, y: card.y + offset.y }));
-      if (!neighbor) {
-        continue;
-      }
-
-      const neighborDefinition = getCardDefinitionOrNull(neighbor.definitionId);
-      if (!neighborDefinition) {
-        throw new Error(`Mesa inicial "${templateName}" usa carta desconhecida: ${neighbor.definitionId}`);
-      }
-
-      const neighborConnections = getRotatedConnections(neighborDefinition, neighbor.rotation);
-      const here = connections[direction] === "river";
-      const there = neighborConnections[oppositeDirection[direction]] === "river";
-      if (here !== there) {
-        throw new Error(
-          `Mesa inicial "${templateName}" tem rio mal encaixado entre (${card.x},${card.y}) e (${neighbor.x},${neighbor.y}).`
-        );
-      }
-    }
-  }
-}
-
-// Valida cada mesa na carga do modulo e guarda a spec (rios) para montar a
-// floresta sob demanda; a ordem das 6 cartas de terra e sorteada por partida.
-const VALIDATED_FOREST_TEMPLATES: ForestTemplate[] = FOREST_TEMPLATES.map((template) => {
-  const cards = buildForestFromTemplate(template);
-  assertForestRiverConsistency(cards, template.name);
-  assertForestRiverComposition(cards, template.name);
-  return template;
-});
-
-export function pickInitialForest(random: () => number = Math.random): ForestCardState[] {
-  const index = Math.min(
-    VALIDATED_FOREST_TEMPLATES.length - 1,
-    Math.floor(random() * VALIDATED_FOREST_TEMPLATES.length)
-  );
-  // Sorteia tambem a posicao das 6 cartas de terra: cada mesa de rio ganha
-  // muitas combinacoes de terra (6! = 720) sem afetar o encaixe dos rios.
-  const landOrder = shuffle([...LAND_CARD_IDS], random);
-  return buildForestFromTemplate(VALIDATED_FOREST_TEMPLATES[index], landOrder);
-}
-
-export function createPreviewInitialForest(): ForestCardState[] {
-  // Determinista (ordem fixa de terra), usado por preview e testes.
-  return buildForestFromTemplate(VALIDATED_FOREST_TEMPLATES[0]);
-}
 
 export function getSetupOrder(speciesIds: SpeciesId[]): SpeciesId[] {
   return speciesOrderBySetup.filter((speciesId) => speciesIds.includes(speciesId));
