@@ -99,7 +99,6 @@ import type {
   PublicRoomState,
   Resource,
   RoomPlayer,
-  RoomSummary,
   ScenarioCount,
   ScenarioCardDefinition,
   ScenarioCardId,
@@ -115,6 +114,7 @@ import type { HandSortMode } from "../hooks/playerCardState";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
+import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
@@ -220,8 +220,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [joinCode, setJoinCode] = useState("");
   const [joinPassword, setJoinPassword] = useState("");
   const [createPassword, setCreatePassword] = useState("");
-  const [openRooms, setOpenRooms] = useState<RoomSummary[]>([]);
-  const [roomsLoading, setRoomsLoading] = useState(false);
   const [isSpectator, setIsSpectator] = useState(false);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
   const {
@@ -287,6 +285,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<LandingMode>("idle");
+  const { openRooms, roomsLoading, refreshRooms } = useOpenRoomsPolling(socket, landingMode);
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
     lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
     points: number;
@@ -534,42 +533,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     const id = window.setTimeout(() => setError(null), 4500);
     return () => window.clearTimeout(id);
   }, [error]);
-
-  // Poll the public open-room list while the "Entrar em Sala" screen is open.
-  useEffect(() => {
-    if (landingMode !== "join" || !socket) {
-      return;
-    }
-
-    let active = true;
-    const fetchRooms = () => {
-      setRoomsLoading(true);
-      roomApi
-        .listRooms(socket)
-        .then((rooms) => {
-          if (active) {
-            setOpenRooms(rooms);
-          }
-        })
-        .catch(() => {
-          if (active) {
-            setOpenRooms([]);
-          }
-        })
-        .finally(() => {
-          if (active) {
-            setRoomsLoading(false);
-          }
-        });
-    };
-
-    fetchRooms();
-    const interval = window.setInterval(fetchRooms, 4000);
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-    };
-  }, [landingMode, socket]);
 
   const isLocalRoom = room?.roomId === localRoomId;
   const controlledPlayerId = isLocalRoom
@@ -3207,16 +3170,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   className="icon-button compact"
                   title="Atualizar lista"
                   aria-label="Atualizar lista"
-                  onClick={() => {
-                    if (socket) {
-                      setRoomsLoading(true);
-                      roomApi
-                        .listRooms(socket)
-                        .then(setOpenRooms)
-                        .catch(() => setOpenRooms([]))
-                        .finally(() => setRoomsLoading(false));
-                    }
-                  }}
+                  onClick={refreshRooms}
                 >
                   <RotateCw aria-hidden="true" />
                 </button>
