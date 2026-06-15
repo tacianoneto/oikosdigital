@@ -35,6 +35,26 @@ import {
   pushUniqueWarning,
   toGridPosition
 } from "./state";
+import {
+  defaultCardSiteId,
+  getCardDefinitionOrNull,
+  getForestCardAtPosition,
+  getForestPositionsWithHabitat,
+  getForestPositionsWithResource,
+  getForestSiteOccupancy,
+  getForestSitePieces,
+  getForestSitesAtPosition,
+  hasForestSiteResource
+} from "./forest";
+export {
+  getForestPositionsWithHabitat,
+  getForestPositionsWithResource,
+  getForestSiteOccupancy,
+  getForestSitePieces,
+  getForestSitesAtPosition,
+  hasForestSiteResource
+};
+export type { ForestSiteOccupancy } from "./forest";
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
@@ -54,7 +74,6 @@ import {
 
 export { getCacaIlegalRemovablePieceIds, getCacaIlegalTopResources } from "./scenarios";
 
-const defaultCardSiteId = "main";
 const floodThreatId = "threat_6";
 
 const cardinalDirections = [
@@ -549,64 +568,6 @@ export function getAvailableForestExpansionPositionsForCard(
   return basePositions.filter((position) =>
     isForestCardRiverConnectionValid(game, cardDefinition, position, rotation)
   );
-}
-
-export interface ForestSiteOccupancy {
-  card: ForestCardState;
-  site: ForestCardSiteDefinition;
-  pieces: PieceState[];
-  isOccupied: boolean;
-  isAtCapacity: boolean;
-}
-
-export function getForestSitesAtPosition(game: GameState, location: GridPosition): ForestSiteOccupancy[] {
-  const card = getForestCardAtPosition(game, location);
-  if (!card) {
-    return [];
-  }
-
-  const definition = getCardDefinitionOrNull(card.definitionId);
-  if (!definition) {
-    return [];
-  }
-
-  return definition.sites.map((site) => {
-    const pieces = getForestSitePieces(game, location, site.siteId);
-
-    return {
-      card,
-      site,
-      pieces,
-      isOccupied: pieces.length > 0,
-      isAtCapacity: site.maxPieces !== null && pieces.length >= site.maxPieces
-    };
-  });
-}
-
-export function getForestSiteOccupancy(game: GameState, location: GridPosition, siteId = defaultCardSiteId): ForestSiteOccupancy | null {
-  return getForestSitesAtPosition(game, location).find((siteState) => siteState.site.siteId === siteId) ?? null;
-}
-
-export function getForestSitePieces(game: GameState, location: GridPosition, siteId = defaultCardSiteId): PieceState[] {
-  return game.pieces.filter((piece) => piece.location && isSamePieceLocation(piece.location, { ...location, siteId }));
-}
-
-export function hasForestSiteResource(game: GameState, location: GridPosition, resource: Resource): boolean {
-  return getForestSitesAtPosition(game, location).some((siteState) => siteState.site.resource === resource);
-}
-
-export function getForestPositionsWithResource(game: GameState, resource: Resource): GridPosition[] {
-  return game.forest.cards
-    .filter((card) => hasForestSiteResource(game, card, resource))
-    .map((card) => ({ x: card.x, y: card.y }))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
-}
-
-export function getForestPositionsWithHabitat(game: GameState, habitat: Habitat): GridPosition[] {
-  return game.forest.cards
-    .filter((card) => getCardDefinitionOrNull(card.definitionId)?.habitat === habitat)
-    .map((card) => ({ x: card.x, y: card.y }))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 export function createInitialGameState(
@@ -4275,15 +4236,6 @@ function shouldSkipWolfMeatAction(game: GameState, playerId: string): boolean {
   return getCurrentAction(game) === "D" && getWolfMeatPlacementPositions(game, playerId).length === 0;
 }
 
-function getCardDefinitionOrNull(definitionId: string): ForestCardDefinition | null {
-  const commonCard = commonForestCards.find((card) => card.id === definitionId);
-  if (commonCard) {
-    return commonCard;
-  }
-
-  return initialForestCardCandidates.find((card) => card.id === definitionId) ?? null;
-}
-
 function collectMovementDestinationResource(game: GameState, playerId: string, destination: GridPosition): Resource | null {
   const targetCard = getForestCardAtPosition(game, destination);
   const targetDefinition = targetCard ? getCardDefinitionOrNull(targetCard.definitionId) : null;
@@ -4464,14 +4416,6 @@ function completeActionWithoutOptionalAddition(
 
 function pieceLocationKey(location: PieceLocation): string {
   return `${location.x}:${location.y}:${location.siteId}`;
-}
-
-function isSamePieceLocation(first: PieceLocation, second: PieceLocation): boolean {
-  return first.x === second.x && first.y === second.y && first.siteId === second.siteId;
-}
-
-function getForestCardAtPosition(game: GameState, location: GridPosition): ForestCardState | null {
-  return game.forest.cards.find((card) => card.x === location.x && card.y === location.y) ?? null;
 }
 
 function getPlayedForestCardForCurrentAction(game: GameState): ForestCardState | null {
