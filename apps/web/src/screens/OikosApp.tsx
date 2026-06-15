@@ -63,20 +63,12 @@ import {
   createPreviewInitialForest,
   forceEndPlayerTurn,
   playBotStep,
-  getAvailableJaguarPointSpendCount,
-  getAvailableWolfPointSpendCount,
   getArmadilloHidePieceIds,
-  getArmadilloShareScore,
-  getCapuchinHabitatScore,
-  getGaloSeedCardScore,
   getAvailableForestExpansionPositions,
   getCapuchinScoringHabitats,
   type CapuchinHabitatGroup,
-  getMacawLineScore,
   getMacawScoringLines,
   type MacawScoringLine,
-  getRequiredCoatiRemovalCount,
-  getWolfRemovableBasePieceIds,
   getWolfSpendableResourceTypes,
   getCacaIlegalRemovablePieceIds,
   getCacaIlegalTopResources,
@@ -121,6 +113,7 @@ import type {
 } from "@oikos/shared";
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
 import { useActiveActionState } from "../hooks/useActiveActionState";
+import { useActiveScoringState } from "../hooks/useActiveScoringState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
 import type { HandSortMode } from "../hooks/playerCardState";
@@ -1019,37 +1012,34 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     const alive = new Set(room.game.forest.cards.map((card) => card.instanceId));
     return hoveredSummaryCardIds.filter((id) => alive.has(id));
   }, [hoveredSummaryCardIds, recapCollapsed, room?.game, turnSummary?.key]);
-  const cacaIlegalPending = room?.game?.cacaIlegalPending ?? null;
-  const requiredCoatiRemovalCount =
-    room?.game && room.game.activePlayerId ? getRequiredCoatiRemovalCount(room.game, room.game.activePlayerId) : 0;
-  const availableJaguarPointSpendCount =
-    room?.game && room.game.activePlayerId ? getAvailableJaguarPointSpendCount(room.game, room.game.activePlayerId) : 0;
-  const shouldShowJaguarScoreModal = Boolean(
-    hasStartedGame &&
-      !hasPendingCoatiPairBonus &&
-      room?.game?.status === "active" &&
-      activeGamePlayer &&
-      activeSpecies?.speciesId === "jaguar" &&
-      activeActionId === "C" &&
-      canControlActivePlayer &&
-      (!tutorialActive || tutorialId !== "jaguar" || tutorialGate === "score")
-  );
-  const capuchinReserveCount = activeSpecies?.speciesId === "capuchin" ? activeGamePlayer?.reservePieces.length ?? 0 : 0;
-  const capuchinHabitatScore = room?.game && room.game.activePlayerId ? getCapuchinHabitatScore(room.game, room.game.activePlayerId) : 0;
-  const macawLineScore = room?.game && room.game.activePlayerId ? getMacawLineScore(room.game, room.game.activePlayerId) : 0;
-  const galoSeedCardScore = room?.game && room.game.activePlayerId ? getGaloSeedCardScore(room.game, room.game.activePlayerId) : 0;
-  const armadilloShareScore = room?.game && room.game.activePlayerId ? getArmadilloShareScore(room.game, room.game.activePlayerId) : 0;
+  const {
+    armadilloShareScore,
+    availableJaguarPointSpendCount,
+    availableWolfPointSpendCount,
+    cacaIlegalPending,
+    capuchinHabitatScore,
+    capuchinReserveCount,
+    galoSeedCardScore,
+    macawLineScore,
+    requiredCoatiRemovalCount,
+    shouldShowJaguarScoreModal,
+    wolfRemovableBasePieceIds,
+    wolfSpendableResources
+  } = useActiveScoringState({
+    activeActionId,
+    activeSpeciesId: activeSpecies?.speciesId ?? null,
+    canControlActivePlayer,
+    game: room?.game,
+    hasPendingCoatiPairBonus,
+    tutorialActive,
+    tutorialGate,
+    tutorialId
+  });
   const scoringPreview = useScoringPreview(
     room?.game,
     activeActionId,
     activeSpecies?.speciesId ?? null
   );
-  const wolfRemovableBasePieceIds =
-    room?.game && room.game.activePlayerId ? getWolfRemovableBasePieceIds(room.game, room.game.activePlayerId) : [];
-  const wolfSpendableResources =
-    room?.game && room.game.activePlayerId ? getWolfSpendableResourceTypes(room.game, room.game.activePlayerId) : [];
-  const availableWolfPointSpendCount =
-    room?.game && room.game.activePlayerId ? getAvailableWolfPointSpendCount(room.game, room.game.activePlayerId) : 0;
   const {
     canDiscardSelectedObjective,
     handCards,
