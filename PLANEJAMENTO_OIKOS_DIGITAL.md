@@ -25,11 +25,12 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Preâmbulo comum dos bots (resolução de Caatinga/Cerrado/Caça ilegal/Mata Atlântica) compartilhado entre `playBotStep` e `playRandomStep` via `resolvePendingScenarioStep` em `packages/rules/src/bots.ts`, sem mudar comportamento nem sequência de RNG.
 - Camada de avaliação dos bots (scoring, ranking, consultas de tabuleiro e seletores de candidatos) extraída de `packages/rules/src/bots.ts` para `packages/rules/src/botScoring.ts`; `bots.ts` mantém a orquestração e importa a API de avaliação. Movimento puro, sem mudar comportamento nem RNG.
 - Decisões por espécie separadas por família: handlers `play*` (smart) em `packages/rules/src/botSmart.ts` e `random*` em `packages/rules/src/botRandom.ts`; `completeOrSkip`/`rotations` em `packages/rules/src/botShared.ts`. `bots.ts` ficou só com `playBotStep`/`playRandomStep` e o preâmbulo comum. Movimento puro, sem mudar comportamento nem RNG.
+- Helpers/constantes de nível de módulo de `apps/web/src/screens/OikosApp.tsx` extraídos para `apps/web/src/screens/OikosApp.helpers.tsx` (`getOpenPortraitAsset`, `MobileSheet`, `SERVER_UNAVAILABLE_MESSAGE`, `movementKindLabels`, `SkipExtraTurnNoCardAction`, `TUTORIAL_ROOM_FACTORIES`, `getAuthDisplayName`, tabela add-piece). Movimento puro; smoke da tela de login aprovado.
 - Baseline validada com 238 testes, `typecheck` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** continuar a divisão de `apps/web/src/OikosApp.tsx`: sessão/conexão online primeiro, depois grupos de modais.
+1. **Fazer primeiro:** continuar a divisão de `apps/web/src/screens/OikosApp.tsx` (helpers de módulo já extraídos): agora sessão/conexão online, depois grupos de modais.
 2. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
 3. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
 
