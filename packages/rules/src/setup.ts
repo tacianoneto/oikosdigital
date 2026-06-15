@@ -67,6 +67,16 @@ export {
   getArmadilloShareScore,
   getArmadilloSharingDetails
 };
+import {
+  getCoatiFruitPlacementPositions,
+  getCoatiPairBonusTargets,
+  getRequiredCoatiRemovalCount
+} from "./species/coati";
+export {
+  getCoatiFruitPlacementPositions,
+  getCoatiPairBonusTargets,
+  getRequiredCoatiRemovalCount
+};
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
@@ -1100,27 +1110,6 @@ export function placeForestCard(
   return next;
 }
 
-export function getCoatiFruitPlacementPositions(game: GameState, playerId: string): GridPosition[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  if (game.pendingCoatiPairBonus) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "coati" || getCurrentAction(game) !== "A" || !game.activePlayedForestCardId) {
-    return [];
-  }
-
-  if (player.reservePieces.length === 0) {
-    return [];
-  }
-
-  return getForestPositionsWithResource(game, "fruit");
-}
-
 export function addCoatiForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
   if (game.status !== "active") {
     throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
@@ -1195,23 +1184,6 @@ export function addCoatiForCurrentAction(game: GameState, playerId: string, loca
   }
 
   return next;
-}
-
-export function getCoatiPairBonusTargets(game: GameState, playerId: string): GridPosition[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const pending = game.pendingCoatiPairBonus;
-  if (!pending || pending.playerId !== playerId) {
-    return [];
-  }
-
-  const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
-
-  return getPotentialDestinations(pending.origin, "adjacent")
-    .filter((position) => forestPositions.has(positionKey(position)))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 export function resolveCoatiPairBonus(game: GameState, playerId: string, location: GridPosition): GameState {
@@ -2794,19 +2766,6 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
 
   advanceActiveAction(next);
   return next;
-}
-
-export function getRequiredCoatiRemovalCount(game: GameState, playerId: string): number {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return 0;
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "coati" || getCurrentAction(game) !== "C") {
-    return 0;
-  }
-
-  return player.reservePieces.length < 2 ? 2 : 0;
 }
 
 export function getAvailableJaguarPointSpendCount(game: GameState, playerId: string): number {
