@@ -132,6 +132,15 @@ export {
   getWolfRemovableBasePieceIds,
   getWolfSpendableResourceTypes
 };
+import {
+  getAvailableJaguarPointSpendCount,
+  getJaguarPieceInForest,
+  getValidJaguarMovementDestinations
+} from "./species/jaguar";
+export {
+  getAvailableJaguarPointSpendCount,
+  getValidJaguarMovementDestinations
+};
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
@@ -2389,19 +2398,6 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
   return next;
 }
 
-export function getAvailableJaguarPointSpendCount(game: GameState, playerId: string): number {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return 0;
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "jaguar" || getCurrentAction(game) !== "C") {
-    return 0;
-  }
-
-  return Math.min(3, player.resources.meat);
-}
-
 export function spendJaguarMeatForPoints(game: GameState, playerId: string, count: number): GameState {
   if (game.status !== "active") {
     throw new Error("Acoes so podem acontecer durante a fase ativa.");
@@ -2591,68 +2587,6 @@ export function getValidPieceMovementDestinations(game: GameState, playerId: str
   }
 
   return getDestinationsByPlayedCard(game, player.speciesId, piece.location);
-}
-
-export function getValidJaguarMovementDestinations(game: GameState, playerId: string, pieceId?: string): GridPosition[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  const action = getCurrentAction(game);
-  if (player?.speciesId !== "jaguar" || (action !== "A" && action !== "B")) {
-    return [];
-  }
-
-  const jaguarPiece = getJaguarPieceInForest(game, playerId);
-  if (!jaguarPiece?.location || (pieceId && jaguarPiece.pieceId !== pieceId)) {
-    return [];
-  }
-
-  const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
-  const movementOverride = getMovementKindOverride(game, {
-    playerId,
-    speciesId: "jaguar",
-    origin: jaguarPiece.location,
-    actionId: (action as ActionId | null) ?? null
-  });
-  if (movementOverride) {
-    return getPotentialDestinations(jaguarPiece.location, movementOverride)
-      .filter((position) => forestPositions.has(positionKey(position)))
-      .sort((a, b) => a.y - b.y || a.x - b.x);
-  }
-
-  if (action === "A") {
-    return getPotentialDestinations(jaguarPiece.location, "adjacent")
-      .filter((position) => forestPositions.has(positionKey(position)))
-      .sort((a, b) => a.y - b.y || a.x - b.x);
-  }
-
-  const currentCard = getForestCardAtPosition(game, jaguarPiece.location);
-  const currentDef = currentCard ? getCardDefinitionOrNull(currentCard.definitionId) : null;
-  const currentHabitat = currentDef?.habitat ?? null;
-  if (!currentHabitat) {
-    return [];
-  }
-
-  const pampaActive = (game.activeScenarioIds ?? []).includes("pampa");
-  const allHabitats: Habitat[] = ["forest", "field", "river"];
-  const habitatPool = pampaActive
-    ? allHabitats.filter((habitat) => habitat !== currentHabitat)
-    : [currentHabitat];
-
-  const collected = new Map<string, GridPosition>();
-  for (const habitat of habitatPool) {
-    const kind = getMovementKindForSpecies("jaguar", habitat);
-    for (const position of getPotentialDestinations(jaguarPiece.location, kind)) {
-      const key = positionKey(position);
-      if (forestPositions.has(key) && !collected.has(key)) {
-        collected.set(key, position);
-      }
-    }
-  }
-
-  return Array.from(collected.values()).sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 export function movePieceForCurrentAction(
@@ -4044,10 +3978,6 @@ function getCoatiPiecesByLocation(game: GameState, playerId: string): Map<string
   }
 
   return piecesByLocation;
-}
-
-function getJaguarPieceInForest(game: GameState, playerId: string): PieceState | null {
-  return game.pieces.find((piece) => piece.ownerId === playerId && piece.speciesId === "jaguar" && piece.location) ?? null;
 }
 
 function getRemovablePiecesAtPosition(game: GameState, playerId: string, location: GridPosition): PieceState[] {
