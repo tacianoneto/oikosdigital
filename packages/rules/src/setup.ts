@@ -36,10 +36,14 @@ import {
   toGridPosition
 } from "./state";
 import {
+  connectionDirections,
   createPieceLocation,
   defaultCardSiteId,
+  directionOffsets,
   findFirstForestSiteWithHabitat,
   findFirstForestSiteWithResource,
+  getAvailableForestExpansionPositions,
+  getAvailableForestExpansionPositionsForCard,
   getCardDefinitionOrNull,
   getForestCardAtPosition,
   getForestPositionsWithHabitat,
@@ -47,9 +51,14 @@ import {
   getForestSiteOccupancy,
   getForestSitePieces,
   getForestSitesAtPosition,
-  hasForestSiteResource
+  getRotatedConnections,
+  hasForestSiteResource,
+  isWithinForestLimit,
+  oppositeDirection
 } from "./forest";
 export {
+  getAvailableForestExpansionPositions,
+  getAvailableForestExpansionPositionsForCard,
   getForestPositionsWithHabitat,
   getForestPositionsWithResource,
   getForestSiteOccupancy,
@@ -164,33 +173,6 @@ import {
 export { getCacaIlegalRemovablePieceIds, getCacaIlegalTopResources } from "./scenarios";
 
 const floodThreatId = "threat_6";
-
-const cardinalDirections = [
-  { x: 0, y: -1 },
-  { x: 1, y: 0 },
-  { x: 0, y: 1 },
-  { x: -1, y: 0 }
-];
-
-const FOREST_LIMIT_MIN = -3;
-const FOREST_LIMIT_MAX = 3;
-
-type ConnectionDirection = keyof CardConnections;
-
-const connectionDirections: ConnectionDirection[] = ["north", "east", "south", "west"];
-const directionOffsets: Record<ConnectionDirection, GridPosition> = {
-  north: { x: 0, y: -1 },
-  east: { x: 1, y: 0 },
-  south: { x: 0, y: 1 },
-  west: { x: -1, y: 0 }
-};
-
-const oppositeDirection: Record<ConnectionDirection, ConnectionDirection> = {
-  north: "south",
-  east: "west",
-  south: "north",
-  west: "east"
-};
 
 // Mesas iniciais 3x3 pre-definidas e validadas. Em vez de gerar o grid por
 // algoritmo (que podia produzir rios mal encaixados), cada mesa e uma linha
@@ -601,52 +583,6 @@ export function requiredCommonCardsForPlayers(players: RoomPlayer[]): number {
   }, 0);
 }
 
-export function getAvailableForestExpansionPositions(cards: ForestCardState[]): GridPosition[] {
-  const occupied = new Set(cards.map((card) => positionKey(card)));
-  const targets = new Map<string, GridPosition>();
-
-  for (const card of cards) {
-    for (const direction of cardinalDirections) {
-      const candidate = { x: card.x + direction.x, y: card.y + direction.y };
-      const key = positionKey(candidate);
-
-      if (!occupied.has(key) && isWithinForestLimit(candidate)) {
-        targets.set(key, candidate);
-      }
-    }
-  }
-
-  return [...targets.values()].sort((a, b) => a.y - b.y || a.x - b.x);
-}
-
-function isWithinForestLimit(position: GridPosition): boolean {
-  return (
-    position.x >= FOREST_LIMIT_MIN &&
-    position.x <= FOREST_LIMIT_MAX &&
-    position.y >= FOREST_LIMIT_MIN &&
-    position.y <= FOREST_LIMIT_MAX
-  );
-}
-
-export function getAvailableForestExpansionPositionsForCard(
-  game: GameState,
-  cardId: string,
-  rotation: ForestCardState["rotation"] = 0
-): GridPosition[] {
-  const cardDefinition = commonForestCards.find((card) => card.id === cardId);
-  if (!cardDefinition) {
-    return [];
-  }
-
-  const basePositions =
-    game.activeThreatCardId === "threat_2"
-      ? game.forest.cards.map((card) => ({ x: card.x, y: card.y }))
-      : getAvailableForestExpansionPositions(game.forest.cards);
-
-  return basePositions.filter((position) =>
-    isForestCardRiverConnectionValid(game, cardDefinition, position, rotation)
-  );
-}
 
 export function createInitialGameState(
   gameId: string,
@@ -3712,59 +3648,6 @@ function collectMovementDestinationResource(game: GameState, playerId: string, d
   }
 
   return resource;
-}
-
-function isForestCardRiverConnectionValid(
-  game: GameState,
-  cardDefinition: ForestCardDefinition,
-  location: GridPosition,
-  rotation: ForestCardState["rotation"]
-): boolean {
-  const candidateConnections = getRotatedConnections(cardDefinition, rotation);
-
-  for (const direction of connectionDirections) {
-    const offset = directionOffsets[direction];
-    const neighbor = getForestCardAtPosition(game, { x: location.x + offset.x, y: location.y + offset.y });
-    if (!neighbor) {
-      continue;
-    }
-
-    const neighborDefinition = getCardDefinitionOrNull(neighbor.definitionId);
-    if (!neighborDefinition) {
-      return false;
-    }
-
-    const neighborConnections = getRotatedConnections(neighborDefinition, neighbor.rotation);
-    const candidateHasRiver = candidateConnections[direction] === "river";
-    const neighborHasRiver = neighborConnections[oppositeDirection[direction]] === "river";
-    if (candidateHasRiver !== neighborHasRiver) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function getRotatedConnections(cardDefinition: ForestCardDefinition, rotation: ForestCardState["rotation"]): CardConnections {
-  const connections = cardDefinition.connections ?? noConnections();
-  const rotated = noConnections();
-  const steps = rotation / 90;
-
-  for (const direction of connectionDirections) {
-    const nextDirection = connectionDirections[(connectionDirections.indexOf(direction) + steps) % connectionDirections.length];
-    rotated[nextDirection] = connections[direction];
-  }
-
-  return rotated;
-}
-
-function noConnections(): CardConnections {
-  return {
-    north: null,
-    east: null,
-    south: null,
-    west: null
-  };
 }
 
 function getWolfCompletionLogMessage(playerName: string, action: string | null): string {
