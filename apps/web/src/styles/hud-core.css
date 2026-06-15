@@ -1,0 +1,530 @@
+.tabletop-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.turn-banner {
+  position: absolute;
+  top: 14px;
+  right: clamp(270px, 17vw, 330px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: clamp(180px, 14vw, 220px);
+  justify-content: center;
+  padding: 9px 18px 9px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--species, var(--amber));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--species, var(--amber)) 26%, var(--panel)),
+    var(--panel)
+  );
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5),
+    0 0 0 4px color-mix(in srgb, var(--species, var(--amber)) 22%, transparent);
+  pointer-events: none;
+  animation: turn-banner-settle 260ms ease-out both;
+}
+
+.turn-banner img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  background: var(--slot);
+  border: 2px solid var(--species, var(--amber));
+  border-radius: 50%;
+  padding: 3px;
+}
+
+.turn-banner-label {
+  font-family: Outfit, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--species, var(--amber));
+}
+
+.turn-banner strong {
+  font-family: Outfit, sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--paper);
+  white-space: nowrap;
+}
+
+@keyframes turn-banner-settle {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .turn-banner {
+    top: 12px;
+    right: 12px;
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* Turn transition: a species-colored band sweeps the board while the new
+   active species' portrait slides in, holds, and exits. Pairs with a subtle
+   board parallax settle (.playfield-panel.is-turn-shift). Decorative only. */
+.turn-sweep {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.turn-sweep-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 55%;
+  transform: skewX(-12deg);
+  filter: blur(2px);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--species, var(--amber)) 26%, transparent) 45%,
+    color-mix(in srgb, var(--species, var(--amber)) 44%, transparent) 55%,
+    transparent
+  );
+  animation: turn-sweep-band 1.9s cubic-bezier(0.5, 0, 0.2, 1) forwards;
+}
+
+.turn-sweep-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: clamp(18px, 8vw, 140px);
+  padding: 12px 26px 12px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--species, var(--amber));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--species, var(--amber)) 22%, var(--panel)),
+    var(--panel)
+  );
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55),
+    0 0 0 6px color-mix(in srgb, var(--species, var(--amber)) 18%, transparent);
+  animation: turn-sweep-card 1.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.turn-sweep-card img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 50%;
+  border: 2px solid var(--species, var(--amber));
+  background: var(--slot);
+  padding: 4px;
+}
+
+.turn-sweep-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.turn-sweep-text small {
+  font: 700 12px Outfit, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--species, var(--amber));
+}
+
+.turn-sweep-text strong {
+  font: 800 23px Outfit, sans-serif;
+  color: var(--paper);
+}
+
+@keyframes turn-sweep-band {
+  0% {
+    transform: translateX(0) skewX(-12deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(300%) skewX(-12deg);
+    opacity: 0;
+  }
+}
+
+@keyframes turn-sweep-card {
+  0% {
+    opacity: 0;
+    transform: translateX(-60px) scale(0.92);
+  }
+  18% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(40px) scale(0.98);
+  }
+}
+
+.playfield-panel.is-turn-shift {
+  animation: board-turn-parallax 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes board-turn-parallax {
+  0% {
+    transform: scale(1) translateX(0);
+  }
+  28% {
+    transform: scale(1.014) translateX(-7px);
+  }
+  100% {
+    transform: scale(1) translateX(0);
+  }
+}
+
+@media (max-width: 560px) {
+  .turn-sweep-card img {
+    width: 56px;
+    height: 56px;
+  }
+  .turn-sweep-text strong {
+    font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-sweep-band {
+    display: none;
+  }
+  .turn-sweep-card {
+    animation: turn-sweep-card-fade 1.9s ease forwards;
+  }
+  .playfield-panel.is-turn-shift {
+    animation: none;
+  }
+}
+
+@keyframes turn-sweep-card-fade {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  18%,
+  72% {
+    opacity: 1;
+  }
+}
+
+/* Persistent turn countdown (timed online games). Sits under the turn banner. */
+.turn-countdown {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--amber) 60%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--amber) 18%, var(--panel)), var(--panel));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.turn-countdown svg {
+  width: 16px;
+  height: 16px;
+  color: var(--amber);
+}
+
+.turn-countdown-value {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--paper);
+  min-width: 34px;
+  text-align: center;
+}
+
+.turn-countdown-bar {
+  width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.turn-countdown-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--leaf);
+  transition: width 0.5s linear;
+}
+
+.turn-countdown.is-low {
+  border-color: var(--coral);
+  animation: turn-countdown-pulse 1s ease-in-out infinite;
+}
+
+.turn-countdown.is-low svg {
+  color: var(--coral);
+}
+
+.turn-countdown.is-low .turn-countdown-fill {
+  background: var(--coral);
+}
+
+@keyframes turn-countdown-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45), 0 0 0 4px color-mix(in srgb, var(--coral) 35%, transparent);
+  }
+}
+
+/* Lobby turn-timer host control */
+.lobby-turn-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.lobby-mini-button.is-on {
+  border-color: var(--leaf);
+  color: var(--paper);
+}
+
+.lobby-mini-button.is-on svg {
+  color: var(--leaf);
+}
+
+.lobby-hint-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ---- species accents on active player surfaces ---- */
+.species-hud {
+  border-color: color-mix(in srgb, var(--species, var(--line)) 55%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--species, transparent) 30%, transparent);
+}
+
+.species-hud-header > img,
+.tabletop-turn img {
+  border-color: var(--species, var(--line-soft));
+}
+
+/* ---- animated number roll ---- */
+.num-roll {
+  display: inline-block;
+  transition: color 120ms ease;
+}
+
+.num-roll.active {
+  color: var(--species, var(--amber));
+}
+
+/* ---- floating resource / point gains ---- */
+.resource-bank {
+  position: relative;
+}
+
+.floating-gains {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.floating-gain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(12, 23, 18, 0.92);
+  border: 1px solid var(--species, var(--amber));
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  animation: gain-float 1.5s ease-out forwards;
+}
+
+.floating-gain img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.travel-effect-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.travel-effect {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  transform: translate(calc(var(--from-x) - 18px), calc(var(--from-y) - 18px)) scale(0.8);
+  /* Resource gains travel slowly so the path from the card reads clearly. */
+  animation: travel-to-bank 1800ms cubic-bezier(0.2, 0.9, 0.24, 1) forwards;
+}
+
+/* Resource = bare icon, no circular frame. */
+.travel-effect.piece {
+  border-radius: 999px;
+  background: rgba(244, 236, 216, 0.12);
+  border: 2px solid var(--line);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+  animation-duration: 820ms;
+}
+
+.travel-effect img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+}
+
+.travel-effect.piece img {
+  width: 30px;
+  height: 30px;
+}
+
+@keyframes travel-to-bank {
+  0% {
+    opacity: 0;
+    transform: translate(calc(var(--from-x) - 18px), calc(var(--from-y) - 18px)) scale(0.65);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(calc(var(--from-x) - 18px), calc(var(--from-y) - 28px)) scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: translate(calc(var(--to-x) - 18px), calc(var(--to-y) - 18px)) scale(0.72);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--to-x) - 18px), calc(var(--to-y) - 18px)) scale(0.4);
+  }
+}
+
+@keyframes gain-float {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.85);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-42px) scale(1);
+  }
+}
+
+/* ---- hand: selected vs rest + playable indicator ---- */
+.hand-rail.has-selection .hand-card:not(.selected) {
+  filter: brightness(0.5) blur(1.4px) saturate(0.7);
+  opacity: 0.62;
+  transform: rotate(calc(var(--offset) * 2.4deg)) translateY(calc(var(--dist) * 3px)) scale(0.94);
+}
+
+.hand-rail.has-selection .hand-card:not(.selected):hover {
+  filter: brightness(0.78) blur(0.4px);
+  opacity: 0.92;
+}
+
+.hand-card.playable {
+  border-color: var(--leaf, #6fae5f);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--leaf, #6fae5f) 45%, transparent),
+    0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.hand-card.not-playable {
+  border-color: var(--ink);
+  filter: grayscale(0.35);
+}
+
+.hand-card.selected {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+.final-score-modal {
+  width: min(620px, 96vw);
+}
+
+.final-score-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.final-score-table th,
+.final-score-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.final-score-table th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.final-score-table td small {
+  opacity: 0.65;
+}
+
+.final-score-table tr.winner {
+  background: color-mix(in srgb, var(--species, var(--amber)) 20%, transparent);
+}
+
+.final-score-table tr.winner td:first-child::before {
+  content: "★ ";
+  color: var(--species, var(--amber));
+}
+

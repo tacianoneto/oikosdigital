@@ -1,0 +1,319 @@
+/* =========================================
+   MACACO-PREGO HUD OVERLAY
+   ========================================= */
+
+.hud-overlay-capuchin {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.hud-top-capuchin {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44vw;
+  pointer-events: none;
+}
+
+.hud-top-capuchin-bg {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.hud-top-capuchin-score {
+  position: absolute;
+  top: 73%; 
+  left: 32.5%;
+  transform: translate(-50%, -50%) rotate(-5deg);
+  font-family: "Edo SZ", "Londrina Solid", Outfit, sans-serif !important;
+  font-size: clamp(24px, 3vw, 54px) !important;
+  font-weight: 900;
+  color: #1a1a1a;
+  text-shadow: 0 2px 4px rgba(255,255,255,0.4);
+  pointer-events: auto;
+}
+
+.hud-top-capuchin-meeples {
+  position: absolute;
+  top: 80%;
+  left: 39%;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  grid-auto-rows: auto;
+  gap: 0.2vw 1vw;
+  pointer-events: auto;
+  align-items: center;
+  transform: translateY(-50%);
+}
+
+.hud-top-capuchin-meeples img:nth-child(8) {
+  grid-column: 3;
+}
+
+.hud-top-capuchin-meeples img {
+  width: clamp(32px, 4vw, 70px);
+  height: auto;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.hud-top-capuchin-meeples img.is-in-forest {
+  opacity: 0.7;
+  filter: grayscale(0.55) saturate(0.7) brightness(0.95);
+}
+
+/* CAPUCHIN ACTION CONTENT */
+.capuchin-action-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  text-align: center;
+  gap: clamp(1px, 0.2vw, 5px);
+  padding: clamp(2px, 0.25vw, 6px) clamp(5px, 0.55vw, 10px);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.capuchin-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(5px, 0.55vw, 10px);
+  padding-bottom: clamp(2px, 0.25vw, 5px);
+  border-bottom: 1px solid rgba(255, 183, 77, 0.28);
+}
+
+.capuchin-action-badge {
+  background: linear-gradient(180deg, #66BB6A, #1B5E20);
+  color: #fff;
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-size: clamp(11px, 1.05vw, 18px);
+  width: clamp(18px, 1.65vw, 28px);
+  height: clamp(18px, 1.65vw, 28px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.35);
+  line-height: 1;
+  padding-top: 2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+
+.capuchin-action-titles {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: clamp(4px, 0.4vw, 8px);
+  min-width: 0;
+  line-height: 1;
+}
+
+.capuchin-action-eyebrow {
+  color: rgba(255, 224, 178, 0.75);
+  font-family: Outfit, sans-serif;
+  font-weight: 700;
+  font-size: clamp(7px, 0.65vw, 11px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+}
+
+.capuchin-action-title {
+  color: #FFB74D;
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-weight: 900;
+  font-size: clamp(12px, 1.1vw, 20px);
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,152,0,0.22);
+  line-height: 1;
+}
+
+.capuchin-action-desc {
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: clamp(8px, 0.74vw, 13px);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 0;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+  letter-spacing: 0.01em;
+}
+
+.capuchin-action-hint {
+  background: linear-gradient(180deg, rgba(46, 125, 50, 0.6), rgba(27, 94, 32, 0.48));
+  border: 1px solid rgba(129, 199, 132, 0.42);
+  color: color-mix(in srgb, var(--paper) 96%, transparent);
+  padding: clamp(2px, 0.3vw, 6px) clamp(6px, 0.65vw, 12px);
+  border-radius: 8px;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(7px, 0.64vw, 11px);
+  font-weight: 600;
+  line-height: 1.2;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+  margin: 0 auto;
+  max-width: 100%;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.capuchin-action-hint strong {
+  color: #FFD180;
+  font-weight: 800;
+}
+
+.capuchin-action-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.capuchin-action-btn {
+  background: linear-gradient(180deg, #4CAF50, #2E7D32);
+  color: #fff;
+  border: 2px solid #81C784;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: Outfit, sans-serif;
+  font-weight: 900;
+  font-size: clamp(9px, 0.8vw, 13px);
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  transition: all 0.2s ease;
+}
+
+.capuchin-action-btn.variant-alt {
+  background: linear-gradient(180deg, #546e7a, #263238);
+  border-color: #90a4ae;
+}
+
+.capuchin-action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.8);
+  filter: brightness(1.1);
+}
+
+.capuchin-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.capuchin-action-content.is-waiting {
+  justify-content: center;
+}
+
+.capuchin-waiting-text {
+  color: rgba(255, 224, 178, 0.7);
+  font-family: Outfit, sans-serif;
+  font-size: clamp(10px, 0.9vw, 14px);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+}
+
+.hud-bottom-capuchin {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  pointer-events: none;
+}
+
+.hud-bottom-capuchin-bg {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.hud-bottom-capuchin-action-text {
+  position: absolute;
+  bottom: 43%;
+  left: 1.5%;
+  width: 16%;
+  height: 42%;
+  overflow: hidden;
+  color: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.hud-bottom-capuchin-resources {
+  position: absolute;
+  bottom: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+
+.hud-bottom-capuchin-resource-item {
+  position: absolute;
+  font-family: "Edo SZ", "Londrina Solid", Outfit, sans-serif !important;
+  font-size: clamp(24px, 3.2vw, 48px);
+  color: var(--paper);
+  text-shadow: none;
+  pointer-events: auto;
+  transform: translate(-50%, 50%);
+  line-height: 1;
+}
+
+.hud-bottom-capuchin-movements {
+  position: absolute;
+  bottom: 3%;
+  right: 2.5%;
+  width: 10%; 
+  pointer-events: auto;
+}
+
+.hud-bottom-capuchin-movements img {
+  width: 100%;
+  height: auto;
+}
+
+.hud-bottom-capuchin-expansions {
+  position: absolute;
+  bottom: 3%;
+  right: 13.5%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5vw;
+  pointer-events: auto;
+}
+
+.hud-bottom-capuchin-expansion-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.hud-bottom-capuchin-expansion-btn:hover {
+  transform: scale(1.1);
+}
+
+.hud-bottom-capuchin-expansion-btn img {
+  width: clamp(32px, 4.5vw, 80px);
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+

@@ -1,0 +1,667 @@
+/* ============================================================
+   Unified action panel (CSS-drawn card replacing painted boxes)
+   ============================================================ */
+
+.action-box {
+  --action-accent: #e8a33d;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(7px, 0.6vw, 12px);
+  padding: clamp(10px, 0.85vw, 16px) clamp(12px, 1vw, 20px);
+  border-radius: 14px;
+  background:
+    linear-gradient(160deg, rgba(14, 26, 20, 0.94), rgba(6, 14, 10, 0.96));
+  border: 1px solid color-mix(in srgb, var(--action-accent) 40%, transparent);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 36px color-mix(in srgb, var(--action-accent) 14%, transparent);
+  color: rgba(245, 240, 230, 0.95);
+  pointer-events: auto;
+  overflow: hidden;
+  isolation: isolate;
+  backdrop-filter: blur(6px) saturate(1.1);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+}
+
+.action-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--action-accent) 18%, transparent), transparent 60%),
+    radial-gradient(80% 80% at 100% 100%, rgba(255, 255, 255, 0.04), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.action-box > * {
+  position: relative;
+  z-index: 1;
+}
+
+.action-box-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(9px, 0.75vw, 14px);
+  padding-bottom: clamp(6px, 0.55vw, 10px);
+  border-bottom: 1px solid color-mix(in srgb, var(--action-accent) 26%, transparent);
+}
+
+.action-box-badge {
+  flex-shrink: 0;
+  width: clamp(28px, 2.25vw, 42px);
+  height: clamp(28px, 2.25vw, 42px);
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--action-accent) 92%, white),
+      color-mix(in srgb, var(--action-accent) 55%, #1a0e05));
+  color: #fff;
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-size: clamp(16px, 1.4vw, 24px);
+  font-weight: 900;
+  line-height: 1;
+  padding-top: 3px;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.action-box-titles {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1;
+}
+
+.action-box-eyebrow {
+  font-family: Outfit, sans-serif;
+  font-weight: 700;
+  font-size: clamp(8px, 0.7vw, 12px);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--action-accent) 70%, #fff6e0);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.action-box-title {
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-weight: 900;
+  font-size: clamp(16px, 1.4vw, 26px);
+  letter-spacing: 0.02em;
+  color: #fff;
+  margin-top: clamp(3px, 0.25vw, 6px);
+  line-height: 1;
+  text-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.75),
+    0 0 14px color-mix(in srgb, var(--action-accent) 30%, transparent);
+}
+
+.action-box-desc {
+  margin: 0;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(11px, 0.95vw, 16px);
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(245, 240, 230, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.action-box-desc strong {
+  color: color-mix(in srgb, var(--action-accent) 60%, #fff5e0);
+  font-weight: 700;
+}
+
+.action-box-hint {
+  align-self: stretch;
+  text-align: center;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(10px, 0.85vw, 14px);
+  font-weight: 600;
+  line-height: 1.35;
+  color: rgba(255, 250, 240, 0.96);
+  padding: clamp(6px, 0.55vw, 11px) clamp(10px, 0.9vw, 16px);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--action-accent) 28%, rgba(0, 0, 0, 0.45)),
+      color-mix(in srgb, var(--action-accent) 14%, rgba(0, 0, 0, 0.55)));
+  border: 1px solid color-mix(in srgb, var(--action-accent) 45%, transparent);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.action-box-hint strong {
+  color: #fff;
+  font-weight: 800;
+}
+
+.tatu-share-panel {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(7px, 0.6vw, 11px);
+}
+
+.tatu-share-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(8px, 0.7vw, 13px);
+}
+
+.tatu-share-chip {
+  position: relative;
+  width: clamp(38px, 3vw, 50px);
+  height: clamp(38px, 3vw, 50px);
+  border-radius: 50%;
+  padding: 2px;
+  background: color-mix(in srgb, var(--species-color) 30%, rgba(0, 0, 0, 0.55));
+  box-shadow:
+    0 2px 7px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.18s ease;
+}
+
+.tatu-share-chip img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid color-mix(in srgb, var(--species-color) 65%, rgba(0, 0, 0, 0.4));
+}
+
+.tatu-share-chip.is-shared {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, #57c97a 75%, transparent),
+    0 4px 11px rgba(0, 0, 0, 0.5);
+}
+
+.tatu-share-chip.is-missing {
+  filter: grayscale(0.55) brightness(0.78);
+  opacity: 0.82;
+}
+
+.tatu-share-mark {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: clamp(16px, 1.25vw, 21px);
+  height: clamp(16px, 1.25vw, 21px);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid rgba(8, 16, 12, 0.92);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.tatu-share-chip.is-shared .tatu-share-mark {
+  background: linear-gradient(180deg, #6fe09a, #3da866);
+  color: #06150d;
+}
+
+.tatu-share-chip.is-missing .tatu-share-mark {
+  background: linear-gradient(180deg, #ef8a82, #c9483e);
+  color: #fff;
+}
+
+.tatu-share-mark svg {
+  width: 64%;
+  height: 64%;
+  stroke-width: 3.2;
+}
+
+.tatu-share-total {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(7px, 0.6vw, 12px);
+  padding: clamp(4px, 0.4vw, 7px) clamp(11px, 0.95vw, 17px);
+  border-radius: 999px;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(10px, 0.82vw, 13px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 250, 240, 0.92);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--action-accent) 30%, rgba(0, 0, 0, 0.5)),
+      color-mix(in srgb, var(--action-accent) 15%, rgba(0, 0, 0, 0.6)));
+  border: 1px solid color-mix(in srgb, var(--action-accent) 48%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.tatu-share-total strong {
+  font-size: clamp(14px, 1.1vw, 18px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.action-box-actions {
+  display: flex;
+  gap: clamp(8px, 0.7vw, 14px);
+  justify-content: center;
+}
+
+.action-box-btn {
+  appearance: none;
+  font-family: Outfit, sans-serif;
+  font-weight: 800;
+  font-size: clamp(10px, 0.88vw, 14px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: clamp(7px, 0.6vw, 12px) clamp(14px, 1.2vw, 22px);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--action-accent) 92%, white),
+      color-mix(in srgb, var(--action-accent) 55%, #1a0e05));
+  border: 1px solid color-mix(in srgb, var(--action-accent) 60%, white);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.action-box-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.12);
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.action-box-btn:active:not(:disabled) {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.action-box-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.action-box-btn.is-secondary {
+  background:
+    linear-gradient(180deg, rgba(78, 92, 84, 0.92), rgba(28, 38, 32, 0.96));
+  border-color: rgba(190, 210, 200, 0.4);
+}
+
+.action-box-waiting {
+  text-align: center;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(12px, 1.05vw, 17px);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 240, 220, 0.7);
+  padding: clamp(6px, 0.5vw, 10px) 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+/* Reposition each species' action wrapper now that the painted box is gone.
+   Box is content-sized; wrapper provides anchor only. */
+.hud-bottom-jaguar-action-text,
+.hud-bottom-wolf-action-text,
+.hud-bottom-tatu-action-text,
+.hud-bottom-macaw-action-text,
+.hud-bottom-galo-action-text,
+.hud-bottom-capuchin-action-text,
+.hud-bottom-coati-action-text {
+  position: absolute;
+  bottom: 52%;
+  left: 0.6%;
+  width: 22%;
+  height: auto;
+  display: block;
+  pointer-events: auto;
+}
+
+/* ------------------------------------------------------------------------- */
+/* ActionStepsViewer: tabs for every action of the active species. Active    */
+/* step is strongly highlighted; other steps stay browsable for reference    */
+/* without changing turn state.                                              */
+/* ------------------------------------------------------------------------- */
+.action-steps {
+  --action-accent: #e8a33d;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 0.55vw, 11px);
+}
+
+.action-steps-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(5px, 0.45vw, 9px);
+  padding-bottom: clamp(6px, 0.5vw, 10px);
+  border-bottom: 1px solid color-mix(in srgb, var(--action-accent) 26%, transparent);
+}
+
+.action-steps-tab {
+  position: relative;
+  appearance: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: clamp(30px, 2.35vw, 42px);
+  height: clamp(30px, 2.35vw, 42px);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-weight: 900;
+  font-size: clamp(14px, 1.15vw, 20px);
+  color: rgba(245, 240, 230, 0.7);
+  background: linear-gradient(180deg, rgba(38, 48, 42, 0.85), rgba(16, 24, 20, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  padding: 0;
+  line-height: 1;
+}
+
+.action-steps-tab:hover {
+  transform: translateY(-1px);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--action-accent) 55%, transparent);
+}
+
+.action-steps-tab.is-selected {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--action-accent) 70%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--action-accent) 38%, rgba(0, 0, 0, 0.6)),
+    color-mix(in srgb, var(--action-accent) 16%, rgba(0, 0, 0, 0.85))
+  );
+}
+
+.action-steps-tab.is-active {
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--action-accent) 92%, white),
+    color-mix(in srgb, var(--action-accent) 55%, #1a0e05)
+  );
+  border-color: color-mix(in srgb, var(--action-accent) 70%, white);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.action-steps-tab.is-active.is-selected {
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 0 0 2px color-mix(in srgb, var(--action-accent) 55%, transparent),
+    0 0 14px color-mix(in srgb, var(--action-accent) 45%, transparent);
+}
+
+.action-steps-tab-letter {
+  padding-top: 2px;
+}
+
+.action-steps-tab-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ffeb70;
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.55),
+    0 0 10px rgba(255, 235, 112, 0.85);
+  animation: action-steps-dot-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes action-steps-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.95; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+
+.action-steps-body {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.3vw, 6px);
+  /* Reserve room for ~3 lines of body copy so every step's preview lands at
+     the same vertical size — the panel no longer grows when one action has
+     a longer board text than another. */
+  min-height: calc(clamp(11px, 0.95vw, 16px) * 1.45 * 3 + clamp(8px, 0.7vw, 12px));
+}
+
+.action-steps-eyebrow {
+  font-family: Outfit, sans-serif;
+  font-weight: 700;
+  font-size: clamp(8px, 0.7vw, 12px);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--action-accent) 70%, #fff6e0);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.action-steps-desc {
+  margin: 0;
+  font-family: Outfit, sans-serif;
+  font-size: clamp(11px, 0.95vw, 16px);
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(245, 240, 230, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  /* Match the reserved body height so short steps still fill the slot. */
+  min-height: calc(clamp(11px, 0.95vw, 16px) * 1.45 * 3);
+}
+
+/* Card variant tucks into the side panel; uses panel typography. */
+.action-steps--card {
+  margin-top: 6px;
+}
+
+.action-steps--card .action-steps-tab {
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.action-steps--card .action-steps-desc {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--paper) 88%, transparent);
+  text-shadow: none;
+}
+
+.action-steps--card .action-steps-eyebrow {
+  font-size: 10px;
+}
+
+/* ============================================================
+   Forest main menu — cozy, magical, layered woodland scene
+   ============================================================ */
+
+/* =========================================================
+   Maioria de recurso — pulsa o número no HUD inferior da
+   especie quando o jogador controlado tem a maioria daquele
+   recurso (meat/egg/fruit). Semente nunca qualifica.
+   Mantem o translate(-50%,50%) que ancora o numero no centro.
+   ========================================================= */
+.hud-bottom-jaguar-resource-item.is-majority,
+.hud-bottom-wolf-resource-item.is-majority,
+.hud-bottom-tatu-resource-item.is-majority,
+.hud-bottom-macaw-resource-item.is-majority,
+.hud-bottom-galo-resource-item.is-majority,
+.hud-bottom-capuchin-resource-item.is-majority,
+.hud-bottom-coati-resource-item.is-majority,
+.res-meat.is-majority,
+.res-fruit.is-majority,
+.res-egg.is-majority {
+  z-index: 3;
+  color: #fff1b3 !important;
+  -webkit-text-stroke: 0.65px rgba(255, 196, 69, 0.82);
+  text-shadow:
+    0 0 4px rgba(255, 214, 102, 0.48),
+    0 1px 2px rgba(0, 0, 0, 0.62);
+  animation: hud-res-majority 1.85s ease-in-out infinite;
+}
+
+.res-meat.is-majority::after,
+.res-fruit.is-majority::after,
+.res-egg.is-majority::after {
+  content: none;
+}
+
+.hud-resource-value {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes hud-res-majority {
+  0%, 100% {
+    transform: translate(-50%, 50%) scale(1);
+    text-shadow:
+      0 0 4px rgba(255, 214, 102, 0.42),
+      0 1px 2px rgba(0, 0, 0, 0.62);
+  }
+  50% {
+    transform: translate(-50%, 50%) scale(1.08);
+    text-shadow:
+      0 0 8px rgba(255, 214, 102, 0.68),
+      0 1px 3px rgba(0, 0, 0, 0.68);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-bottom-jaguar-resource-item.is-majority,
+  .hud-bottom-wolf-resource-item.is-majority,
+  .hud-bottom-tatu-resource-item.is-majority,
+  .hud-bottom-macaw-resource-item.is-majority,
+  .hud-bottom-galo-resource-item.is-majority,
+  .hud-bottom-capuchin-resource-item.is-majority,
+  .hud-bottom-coati-resource-item.is-majority,
+  .res-meat.is-majority,
+  .res-fruit.is-majority,
+  .res-egg.is-majority {
+    animation: none;
+    text-shadow: 0 0 5px rgba(255, 214, 102, 0.55), 0 1px 2px rgba(0, 0, 0, 0.62);
+  }
+}
+
+/* Compact desktop layout
+   Browser chrome can leave a 1366x768 display with only ~600px of usable
+   height. Keep the themed HUD, hand and forest in separate vertical bands. */
+@media (min-width: 1024px) and (max-width: 1600px) and (max-height: 800px) {
+  .hud-top-jaguar,
+  .hud-top-wolf,
+  .hud-top-tatu,
+  .hud-top-macaw,
+  .hud-top-capuchin,
+  .hud-top-coati,
+  .hud-top-galo {
+    width: min(44vw, 82vh);
+  }
+
+  .hud-bottom-jaguar,
+  .hud-bottom-wolf,
+  .hud-bottom-tatu,
+  .hud-bottom-macaw,
+  .hud-bottom-capuchin,
+  .hud-bottom-coati,
+  .hud-bottom-galo {
+    height: min(150px, 24vh);
+  }
+
+  .hud-bottom-jaguar-bg,
+  .hud-bottom-wolf-bg,
+  .hud-bottom-tatu-bg,
+  .hud-bottom-macaw-bg,
+  .hud-bottom-capuchin-bg,
+  .hud-bottom-coati-bg,
+  .hud-bottom-galo-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+
+  .is-wolf-active .table-hand,
+  .is-armadillo-active .table-hand,
+  .is-macaw-active .table-hand,
+  .is-capuchin-active .table-hand,
+  .is-coati-active .table-hand,
+  .is-galo-active .table-hand {
+    bottom: 0.5% !important;
+    width: 46vw !important;
+  }
+
+  .is-wolf-active .table-hand .hand-rail,
+  .is-armadillo-active .table-hand .hand-rail,
+  .is-macaw-active .table-hand .hand-rail,
+  .is-capuchin-active .table-hand .hand-rail,
+  .is-coati-active .table-hand .hand-rail,
+  .is-galo-active .table-hand .hand-rail {
+    height: clamp(100px, 18vh, 122px);
+    margin-top: 0;
+  }
+
+  .is-wolf-active .hand-card,
+  .is-armadillo-active .hand-card,
+  .is-macaw-active .hand-card,
+  .is-capuchin-active .hand-card,
+  .is-coati-active .hand-card,
+  .is-galo-active .hand-card {
+    margin-left: -14px;
+    border-width: 2px;
+    border-radius: 9px;
+  }
+
+  .is-wolf-active .hand-card:hover,
+  .is-armadillo-active .hand-card:hover,
+  .is-macaw-active .hand-card:hover,
+  .is-capuchin-active .hand-card:hover,
+  .is-coati-active .hand-card:hover,
+  .is-galo-active .hand-card:hover {
+    transform: rotate(0deg) translateY(-10px) scale(1.04) !important;
+  }
+
+  .is-wolf-active .hand-card.selected,
+  .is-armadillo-active .hand-card.selected,
+  .is-macaw-active .hand-card.selected,
+  .is-capuchin-active .hand-card.selected,
+  .is-coati-active .hand-card.selected,
+  .is-galo-active .hand-card.selected {
+    transform: rotate(0deg) translateY(-14px) scale(1.06) !important;
+  }
+
+  .is-wolf-active .table-hand .hand-sort-toggle,
+  .is-armadillo-active .table-hand .hand-sort-toggle,
+  .is-macaw-active .table-hand .hand-sort-toggle,
+  .is-capuchin-active .table-hand .hand-sort-toggle,
+  .is-coati-active .table-hand .hand-sort-toggle,
+  .is-galo-active .table-hand .hand-sort-toggle {
+    top: 92px;
+    left: -100px;
+    transform: scale(0.88);
+    transform-origin: right center;
+  }
+
+  .action-steps-body,
+  .action-steps-desc {
+    min-height: 0;
+  }
+
+  .action-steps-desc {
+    font-size: clamp(10px, 0.82vw, 12px);
+    line-height: 1.3;
+  }
+}

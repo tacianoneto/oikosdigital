@@ -1,0 +1,937 @@
+/* =====================================================
+   SCENARIO VOTING OVERLAY
+   ===================================================== */
+
+.scenario-vote-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.scenario-vote-panel {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(20, 38, 30, 0.98), rgba(8, 18, 14, 0.98));
+  border: 1px solid rgba(242, 193, 78, 0.4);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  color: var(--paper);
+  overflow-y: auto;
+}
+
+.scenario-vote-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.scenario-vote-header h2 {
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  margin: 6px 0 4px 0;
+  letter-spacing: 0.02em;
+}
+
+.scenario-vote-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.scenario-vote-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: rgba(242, 193, 78, 0.12);
+  border: 1px solid rgba(242, 193, 78, 0.36);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.scenario-vote-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(11, 22, 17, 0.7);
+  border: 1px solid rgba(242, 193, 78, 0.4);
+  font-family: Outfit, Inter, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--paper);
+}
+
+.scenario-vote-timer.is-low {
+  background: rgba(140, 30, 30, 0.55);
+  border-color: rgba(255, 100, 100, 0.55);
+  color: #ffe2e2;
+  animation: scenarioVotePulse 700ms ease-in-out infinite alternate;
+}
+
+@keyframes scenarioVotePulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
+}
+
+.scenario-vote-timer svg {
+  width: 18px;
+  height: 18px;
+}
+
+.scenario-vote-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.scenario-vote-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.scenario-vote-card-wrap {
+  position: relative;
+}
+
+.scenario-vote-card {
+  position: relative;
+  width: 100%;
+  padding: 10px 10px 12px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(170deg, rgba(20, 38, 30, 0.85), rgba(8, 16, 12, 0.95));
+  color: var(--paper);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.scenario-vote-card-img {
+  position: relative;
+  width: 100%;
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+.scenario-vote-card-img::after {
+  content: "🔍";
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--paper);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  opacity: 0.7;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.scenario-vote-card:hover:not(:disabled) .scenario-vote-card-img::after,
+.scenario-vote-card:focus-visible:not(:disabled) .scenario-vote-card-img::after {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.scenario-vote-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.scenario-vote-card-name {
+  font-family: Outfit, Inter, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.scenario-vote-card:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: rgba(242, 193, 78, 0.55);
+  background: linear-gradient(170deg, rgba(36, 64, 52, 0.95), rgba(14, 26, 20, 0.98));
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.55);
+}
+
+.scenario-vote-card.is-selected {
+  border-color: var(--amber);
+  background: linear-gradient(160deg, rgba(242, 193, 78, 0.28), rgba(79, 174, 110, 0.18));
+  box-shadow: 0 0 0 2px rgba(242, 193, 78, 0.3), 0 14px 32px rgba(0, 0, 0, 0.55);
+}
+
+.scenario-vote-card.is-winner {
+  border-color: #5cd28a;
+  background: linear-gradient(160deg, rgba(92, 210, 138, 0.32), rgba(242, 193, 78, 0.16));
+  box-shadow: 0 0 0 2px rgba(92, 210, 138, 0.4), 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+.scenario-vote-card:disabled {
+  cursor: default;
+}
+
+.scenario-vote-card-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  z-index: 2;
+}
+
+/* Hover zoom: floating enlarged preview anchored to the card. */
+.scenario-vote-card-zoom {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  width: min(420px, 92vw);
+  padding: 8px;
+  border-radius: 18px;
+  background: rgba(8, 16, 12, 0.98);
+  border: 2px solid rgba(242, 193, 78, 0.55);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  transform: translate(-50%, 8px) scale(0.92);
+  transform-origin: bottom center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 30;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.scenario-vote-card-zoom img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.scenario-vote-card-wrap:hover .scenario-vote-card-zoom {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+/* Avoid clipping the zoom against the panel edges on small grids. */
+.scenario-vote-card-wrap:first-child .scenario-vote-card-zoom,
+.scenario-vote-card-wrap:nth-child(4n + 1) .scenario-vote-card-zoom {
+  left: 0;
+  transform: translate(0, 8px) scale(0.92);
+}
+
+.scenario-vote-card-wrap:first-child:hover .scenario-vote-card-zoom,
+.scenario-vote-card-wrap:nth-child(4n + 1):hover .scenario-vote-card-zoom {
+  transform: translate(0, 0) scale(1);
+}
+
+.scenario-vote-card-wrap:nth-child(4n) .scenario-vote-card-zoom {
+  left: auto;
+  right: 0;
+  transform: translate(0, 8px) scale(0.92);
+}
+
+.scenario-vote-card-wrap:nth-child(4n):hover .scenario-vote-card-zoom {
+  transform: translate(0, 0) scale(1);
+}
+
+@media (max-width: 640px) {
+  .scenario-vote-card-zoom {
+    display: none;
+  }
+}
+
+.scenario-vote-result {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(92, 210, 138, 0.12);
+  border: 1px solid rgba(92, 210, 138, 0.4);
+  font-size: 13px;
+}
+
+.scenario-vote-result strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #b6f0c8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.scenario-vote-result-tag {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(92, 210, 138, 0.25);
+  color: var(--paper);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.scenario-vote-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.scenario-vote-hint {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .scenario-vote-panel {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  .scenario-vote-header {
+    flex-direction: column;
+  }
+  .scenario-vote-header h2 {
+    font-size: 20px;
+  }
+}
+
+/* Refined scenario voting: readable cards + viewport-safe zoom. */
+.scenario-vote-overlay {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(242, 193, 78, 0.16), transparent 30%),
+    rgba(2, 7, 5, 0.82);
+  backdrop-filter: blur(8px) saturate(1.08);
+}
+
+.scenario-vote-panel {
+  width: min(1120px, calc(100vw - 36px));
+  max-height: none;
+  overflow: visible;
+  gap: 18px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(18, 34, 27, 0.98), rgba(8, 18, 14, 0.99)),
+    var(--panel);
+}
+
+.scenario-vote-copy {
+  max-width: 640px;
+}
+
+.scenario-vote-progress {
+  width: min(360px, 100%);
+  height: 7px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  border: 1px solid rgba(242, 193, 78, 0.14);
+}
+
+.scenario-vote-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--leaf), var(--amber));
+  transition: width 180ms ease;
+}
+
+.scenario-vote-status {
+  padding: 9px 12px;
+  border-radius: 999px;
+  width: fit-content;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scenario-vote-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.scenario-vote-card {
+  min-height: 100%;
+  border-radius: 10px;
+  padding: 10px;
+  gap: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)),
+    rgba(8, 16, 12, 0.78);
+}
+
+.scenario-vote-card-img {
+  width: min(178px, 100%);
+  border-radius: 9px;
+}
+
+.scenario-vote-card-img::after {
+  content: none;
+  display: none;
+}
+
+.scenario-vote-zoom-cue {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--paper);
+  background: rgba(5, 9, 7, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.45);
+}
+
+.scenario-vote-zoom-cue svg {
+  width: 16px;
+  height: 16px;
+}
+
+.scenario-vote-card-copy {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  text-align: left;
+}
+
+.scenario-vote-card-name {
+  display: block;
+  text-align: center;
+}
+
+.scenario-vote-card-desc {
+  display: -webkit-box;
+  min-height: 42px;
+  overflow: hidden;
+  color: rgba(241, 235, 214, 0.72);
+  font-size: 11px;
+  line-height: 1.3;
+  text-transform: none;
+  letter-spacing: 0;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.scenario-vote-card-check svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 4;
+}
+
+.scenario-vote-card-zoom {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  bottom: auto;
+  width: min(470px, calc(100vw - 40px));
+  max-height: min(78vh, 620px);
+  transform: translate(-50%, -48%) scale(0.96);
+  transform-origin: center;
+  z-index: 260;
+}
+
+.scenario-vote-card-wrap:hover .scenario-vote-card-zoom,
+.scenario-vote-card-wrap:first-child:hover .scenario-vote-card-zoom,
+.scenario-vote-card-wrap:nth-child(4n + 1):hover .scenario-vote-card-zoom,
+.scenario-vote-card-wrap:nth-child(4n):hover .scenario-vote-card-zoom {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.scenario-vote-card-wrap:first-child .scenario-vote-card-zoom,
+.scenario-vote-card-wrap:nth-child(4n + 1) .scenario-vote-card-zoom,
+.scenario-vote-card-wrap:nth-child(4n) .scenario-vote-card-zoom {
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -48%) scale(0.96);
+}
+
+.scenario-vote-card-zoom::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  transform: translateZ(0);
+  z-index: -1;
+}
+
+.scenario-vote-card-zoom img {
+  max-height: calc(min(78vh, 620px) - 16px);
+  object-fit: contain;
+  background: #130f0a;
+}
+
+.scenario-vote-footer {
+  position: sticky;
+  bottom: 0;
+  padding-top: 2px;
+}
+
+/* Active scenario reference during setup/game. */
+.scenario-dock {
+  position: fixed;
+  z-index: 11;
+  top: 16px;
+  left: 50%;
+  width: min(520px, calc(100vw - 220px));
+  transform: translateX(-50%);
+  color: var(--paper);
+}
+
+.scenario-dock-toggle {
+  width: 100%;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: var(--bw) solid rgba(242, 193, 78, 0.44);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(24, 38, 29, 0.92), rgba(10, 19, 14, 0.94));
+  color: var(--paper);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.42), 0 18px 34px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+
+.scenario-dock-toggle svg {
+  width: 18px;
+  height: 18px;
+  color: var(--amber);
+}
+
+.scenario-dock-toggle span {
+  font-family: Outfit, Inter, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  text-align: left;
+}
+
+.scenario-dock-toggle strong {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(242, 193, 78, 0.18);
+  color: var(--amber);
+  border: 1px solid rgba(242, 193, 78, 0.36);
+  font-size: 12px;
+}
+
+.scenario-dock-panel {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(242, 193, 78, 0.32);
+  background: linear-gradient(180deg, rgba(15, 28, 21, 0.96), rgba(7, 15, 11, 0.98));
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.scenario-dock-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.scenario-dock-head span {
+  font-weight: 900;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+.scenario-dock-head small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.scenario-dock-list {
+  display: grid;
+  gap: 10px;
+}
+
+.scenario-dock-card,
+
+.scenario-dock-card img,
+
+.scenario-dock-card strong,
+
+.scenario-dock-card p,
+
+.scenario-dock-threat-card {
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(224, 106, 90, 0.45);
+  background: linear-gradient(180deg, rgba(58, 25, 20, 0.62), rgba(24, 15, 12, 0.55));
+}
+
+.scenario-dock-threat-card img {
+  border-color: rgba(224, 106, 90, 0.44);
+  object-position: top;
+}
+
+.scenario-dock-threat-icon {
+  width: 58px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(224, 106, 90, 0.38);
+  color: var(--coral);
+  background: rgba(224, 106, 90, 0.12);
+}
+
+.scenario-dock-threat-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.threat-dock-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 5px;
+  color: var(--coral);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.threat-dock-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.config-threat-icon {
+  width: 58px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(224, 106, 90, 0.38);
+  color: var(--coral);
+  background: rgba(224, 106, 90, 0.12);
+}
+
+.config-threat-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.config-scenarios {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(242, 193, 78, 0.08);
+  border: 1px solid rgba(242, 193, 78, 0.22);
+}
+
+.config-scenarios > strong {
+  color: var(--amber);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.lobby-scenario-picker {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(242, 193, 78, 0.07);
+  border: 1px solid rgba(242, 193, 78, 0.18);
+}
+
+.lobby-scenario-picker-head {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lobby-scenario-picker-head strong {
+  display: block;
+  color: var(--paper);
+  font-weight: 900;
+  font-size: 13px;
+}
+
+.lobby-scenario-picker-head small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.lobby-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  min-width: 0;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(4, 10, 8, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lobby-segmented button {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.lobby-segmented button.is-active {
+  background: var(--amber);
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32);
+}
+
+.lobby-segmented button:disabled {
+  cursor: default;
+}
+
+.lobby-scenario-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.lobby-scenario-card {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line-soft);
+  background: rgba(8, 16, 12, 0.62);
+  color: var(--paper);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.lobby-scenario-card:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(242, 193, 78, 0.48);
+  background: rgba(20, 34, 26, 0.84);
+}
+
+.lobby-scenario-card.is-selected {
+  border-color: var(--amber);
+  background: rgba(242, 193, 78, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(242, 193, 78, 0.22);
+}
+
+.lobby-scenario-card:disabled {
+  opacity: 0.62;
+  cursor: default;
+}
+
+.lobby-scenario-card img {
+  width: 58px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(242, 193, 78, 0.24);
+}
+
+.lobby-scenario-card span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.lobby-scenario-card strong {
+  color: var(--amber);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.lobby-scenario-card small {
+  color: rgba(241, 235, 214, 0.82);
+  font-size: 11px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.lobby-scenario-card > svg {
+  width: 18px;
+  height: 18px;
+  color: var(--amber);
+}
+
+@media (max-width: 900px) {
+  .scenario-vote-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .scenario-dock {
+    left: 16px;
+    right: 128px;
+    width: auto;
+    transform: none;
+  }
+
+  .lobby-scenario-picker-head {
+    flex-direction: column;
+  }
+
+  .lobby-scenario-card-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .scenario-vote-panel {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+
+  .scenario-vote-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-vote-card {
+    display: grid;
+    grid-template-columns: 104px 1fr;
+    align-items: center;
+  }
+
+  .scenario-vote-card-img {
+    width: 104px;
+  }
+
+  .scenario-vote-card-name {
+    text-align: left;
+  }
+
+  .scenario-dock {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 70px;
+    width: auto;
+    transform: none;
+  }
+
+}
+
+@font-face {
+  font-family: "Edo SZ";
+  src: url("/assets/fonts/edosz.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.is-jaguar-active .hud-dock,
+.is-wolf-active .hud-dock,
+.is-armadillo-active .hud-dock,
+.is-macaw-active .hud-dock,
+.is-capuchin-active .hud-dock,
+.is-coati-active .hud-dock,
+.is-galo-active .hud-dock,
+.is-jaguar-active .species-hud,
+.is-wolf-active .species-hud,
+.is-armadillo-active .species-hud,
+.is-macaw-active .species-hud,
+.is-capuchin-active .species-hud,
+.is-coati-active .species-hud,
+.is-galo-active .species-hud,
+.is-jaguar-active .table-hand,
+.is-jaguar-active .scenario-dock-toggle,
+.is-wolf-active .scenario-dock-toggle,
+.is-armadillo-active .scenario-dock-toggle,
+.is-macaw-active .scenario-dock-toggle,
+.is-capuchin-active .scenario-dock-toggle,
+.is-coati-active .scenario-dock-toggle,
+.is-galo-active .scenario-dock-toggle,
+.is-jaguar-active .turn-recap,
+.is-wolf-active .turn-recap,
+.is-armadillo-active .turn-recap,
+.is-macaw-active .turn-recap,
+.is-capuchin-active .turn-recap,
+.is-coati-active .turn-recap,
+.is-galo-active .turn-recap,
+.is-jaguar-active .forest-recenter,
+.is-wolf-active .forest-recenter,
+.is-armadillo-active .forest-recenter,
+.is-macaw-active .forest-recenter,
+.is-capuchin-active .forest-recenter,
+.is-coati-active .forest-recenter,
+.is-galo-active .forest-recenter {
+  display: none !important;
+}
+
+.is-jaguar-active .scenario-dock {
+  z-index: 50 !important;
+}
+
