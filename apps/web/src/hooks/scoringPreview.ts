@@ -12,6 +12,7 @@ import type {
   Habitat,
   SpeciesId
 } from "@oikos/shared";
+import { gridPositionKey } from "@oikos/shared";
 import type {
   ScoringCardHighlight,
   ScoringLineHighlight
@@ -39,10 +40,6 @@ const EMPTY_SCORING_PREVIEW: ScoringPreview = {
   lineHighlights: [],
   lines: 0
 };
-
-function positionKey(position: GridPosition): string {
-  return `${position.x},${position.y}`;
-}
 
 export function getScoringPreview(
   game: GameState | null | undefined,
@@ -92,14 +89,14 @@ export function getScoringPreview(
   if (activeSpeciesId === "galo_de_campina") {
     const seedPositions = getGaloSeedCardPositions(game, game.activePlayerId);
     const fieldPositions = getGaloFieldCardPositions(game, game.activePlayerId);
-    const seedKeys = new Set(seedPositions.map(positionKey));
+    const seedKeys = new Set(seedPositions.map(gridPositionKey));
     return {
       ...EMPTY_SCORING_PREVIEW,
       cardHighlights: [
         ...fieldPositions.map((position) => ({
           position,
-          label: seedKeys.has(positionKey(position)) ? "campina +" : "campina",
-          resource: seedKeys.has(positionKey(position)) ? "seed" as const : undefined,
+          label: seedKeys.has(gridPositionKey(position)) ? "campina +" : "campina",
+          resource: seedKeys.has(gridPositionKey(position)) ? "seed" as const : undefined,
           color: 0x6fae46
         })),
         ...seedPositions
@@ -124,7 +121,7 @@ export function getScoringPreview(
     const rivalSpeciesByTile = new Map<string, SpeciesId[]>();
     for (const piece of game.pieces) {
       if (!piece.location || piece.speciesId === "armadillo") continue;
-      const key = positionKey(piece.location);
+      const key = gridPositionKey(piece.location);
       const speciesIds = rivalSpeciesByTile.get(key) ?? [];
       if (!speciesIds.includes(piece.speciesId)) {
         speciesIds.push(piece.speciesId);
@@ -138,7 +135,7 @@ export function getScoringPreview(
         position,
         label: "compartilha",
         color: 0xf2c14e,
-        speciesIds: rivalSpeciesByTile.get(positionKey(position)) ?? []
+        speciesIds: rivalSpeciesByTile.get(gridPositionKey(position)) ?? []
       }))
     };
   }

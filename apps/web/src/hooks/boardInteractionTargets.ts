@@ -16,6 +16,7 @@ import {
   getWolfMeatPlacementPositions,
   getWolfRemovableBasePieceIds
 } from "@oikos/rules";
+import { gridPositionKey } from "@oikos/shared";
 import type { ActionId, GameState, GridPosition, SpeciesId } from "@oikos/shared";
 import { sameGridPosition } from "../ui/geometry";
 import type { TutorialGate, TutorialStepDef } from "../ui/tutorials";
@@ -116,7 +117,7 @@ export function getCardPlacementTargets({
 
   const rotateFitTargets: RotateFitTarget[] = [];
   if (canPlaceSelectedForestCard && game && selectedHandCardId && !hasPendingPlacement) {
-    const currentKeys = new Set(expansionTargets.map((position) => `${position.x}:${position.y}`));
+    const currentKeys = new Set(expansionTargets.map(gridPositionKey));
     const seen = new Set<string>();
     for (const rotation of [0, 90, 180, 270] as const) {
       if (rotation === selectedCardRotation) continue;
@@ -125,7 +126,7 @@ export function getCardPlacementTargets({
         selectedHandCardId,
         rotation
       )) {
-        const key = `${position.x}:${position.y}`;
+        const key = gridPositionKey(position);
         if (currentKeys.has(key) || seen.has(key)) continue;
         seen.add(key);
         rotateFitTargets.push({

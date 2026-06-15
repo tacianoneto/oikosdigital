@@ -16,6 +16,7 @@ import type {
   Resource,
   SpeciesId
 } from "@oikos/shared";
+import { gridPositionKey } from "@oikos/shared";
 
 export interface FinalScoringDeps {
   findPlayer: (game: GameState, playerId: string) => PlayerState;
@@ -295,7 +296,7 @@ function createDefaultScoringDeps(): FinalScoringDeps {
       commonForestCards.find((card) => card.id === definitionId) ??
       initialForestCardCandidates.find((card) => card.id === definitionId) ??
       null,
-    positionKey: (position) => `${position.x},${position.y}`
+    positionKey: gridPositionKey
   };
 }
 

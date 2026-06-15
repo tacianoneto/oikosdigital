@@ -47,6 +47,10 @@ import {
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "./setup";
+import {
+  gridPositionKey,
+  parseGridPositionKey
+} from "@oikos/shared";
 import type { GameState, GridPosition, Habitat, Resource, SpeciesId } from "@oikos/shared";
 
 const resourcePreference: Record<SpeciesId, Resource[]> = {
@@ -1046,10 +1050,10 @@ function scoreMacawLinePotential(game: GameState, playerId: string, position: Gr
   const ownKeys = new Set(
     game.pieces
       .filter((piece) => piece.ownerId === playerId && piece.speciesId === "macaw" && piece.location)
-      .map((piece) => positionKey(piece.location!))
+      .map((piece) => gridPositionKey(piece.location!))
   );
   const beforeTriples = countLineTriples(ownKeys);
-  ownKeys.add(positionKey(position));
+  ownKeys.add(gridPositionKey(position));
   const afterTriples = countLineTriples(ownKeys);
   const completedTriples = Math.max(0, afterTriples - beforeTriples);
 
@@ -1059,7 +1063,7 @@ function scoreMacawLinePotential(game: GameState, playerId: string, position: Gr
 function scoreMacawMove(game: GameState, playerId: string, pieceId: string, position: GridPosition): number {
   const beforeKeys = getOwnSpeciesPositionKeys(game, playerId, "macaw");
   const afterKeys = getOwnSpeciesPositionKeys(game, playerId, "macaw", pieceId);
-  afterKeys.add(positionKey(position));
+  afterKeys.add(gridPositionKey(position));
 
   const completedTriples = Math.max(0, countLineTriples(afterKeys) - countLineTriples(beforeKeys));
   const brokenTriples = Math.max(0, countLineTriples(beforeKeys) - countLineTriples(afterKeys));
@@ -1249,7 +1253,7 @@ function getOwnSpeciesPositionKeys(game: GameState, playerId: string, speciesId:
           piece.pieceId !== excludedPieceId &&
           piece.location
       )
-      .map((piece) => positionKey(piece.location!))
+      .map((piece) => gridPositionKey(piece.location!))
   );
 }
 
@@ -1281,7 +1285,7 @@ function getCapuchinHabitatStats(
     }
 
     const positions = positionsByHabitat.get(habitat) ?? new Set<string>();
-    positions.add(positionKey(piece.location));
+    positions.add(gridPositionKey(piece.location));
     positionsByHabitat.set(habitat, positions);
   }
 
@@ -1289,7 +1293,7 @@ function getCapuchinHabitatStats(
     const habitat = getHabitatAt(game, replacement);
     if (habitat) {
       const positions = positionsByHabitat.get(habitat) ?? new Set<string>();
-      positions.add(positionKey(replacement));
+      positions.add(gridPositionKey(replacement));
       positionsByHabitat.set(habitat, positions);
     }
   }
@@ -1309,12 +1313,12 @@ function getArmadilloCoveredSpecies(
 ): Set<SpeciesId> {
   const armadilloPositions = getOwnSpeciesPositionKeys(game, playerId, "armadillo", excludedPieceId);
   if (replacement) {
-    armadilloPositions.add(positionKey(replacement));
+    armadilloPositions.add(gridPositionKey(replacement));
   }
 
   return new Set(
     game.pieces
-      .filter((piece) => piece.ownerId !== playerId && piece.location && armadilloPositions.has(positionKey(piece.location)))
+      .filter((piece) => piece.ownerId !== playerId && piece.location && armadilloPositions.has(gridPositionKey(piece.location)))
       .map((piece) => piece.speciesId)
   );
 }
@@ -1347,10 +1351,6 @@ function getResourceAt(game: GameState, position: GridPosition): Resource | null
   return card ? getForestCardDefinition(card.definitionId).resource : null;
 }
 
-function positionKey(position: GridPosition): string {
-  return `${position.x}:${position.y}`;
-}
-
 function countLineTriples(positionKeys: Set<string>): number {
   const directions = [
     { x: 1, y: 0 },
@@ -1361,11 +1361,14 @@ function countLineTriples(positionKeys: Set<string>): number {
   const lineKeys = new Set<string>();
 
   for (const key of positionKeys) {
-    const [x, y] = key.split(":").map(Number);
+    const { x, y } = parseGridPositionKey(key);
     for (const direction of directions) {
-      const before = `${x - direction.x}:${y - direction.y}`;
-      const second = `${x + direction.x}:${y + direction.y}`;
-      const third = `${x + direction.x * 2}:${y + direction.y * 2}`;
+      const before = gridPositionKey({ x: x - direction.x, y: y - direction.y });
+      const second = gridPositionKey({ x: x + direction.x, y: y + direction.y });
+      const third = gridPositionKey({
+        x: x + direction.x * 2,
+        y: y + direction.y * 2
+      });
       if (positionKeys.has(before) || !positionKeys.has(second) || !positionKeys.has(third)) {
         continue;
       }
@@ -1392,7 +1395,7 @@ function countNearLineWindows(positionKeys: Set<string>, focus: GridPosition): n
         x: focus.x + direction.x * (offset + step),
         y: focus.y + direction.y * (offset + step)
       }));
-      const occupied = window.filter((position) => positionKeys.has(positionKey(position))).length;
+      const occupied = window.filter((position) => positionKeys.has(gridPositionKey(position))).length;
       if (occupied === 2) {
         count += 1;
       }

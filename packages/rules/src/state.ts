@@ -1,4 +1,5 @@
 import { speciesDefinitions } from "@oikos/content";
+export { gridPositionKey as positionKey } from "@oikos/shared";
 import type { ActionId, GameState, GridPosition, PlayerState } from "@oikos/shared";
 
 /**
@@ -9,9 +10,6 @@ import type { ActionId, GameState, GridPosition, PlayerState } from "@oikos/shar
  * as the common toolbox that setup.ts and the per-species modules can both use
  * without creating circular imports.
  *
- * NOTE: bots.ts and scoring.ts currently keep their own copies of some of these
- * (with slightly different signatures / key separators). Unifying those is a
- * separate, behavior-sensitive cleanup and is intentionally left untouched here.
  */
 
 export function findPlayer(game: GameState, playerId: string): PlayerState {
@@ -34,10 +32,6 @@ export function getCurrentAction(game: GameState): ActionId | null {
   }
 
   return speciesDefinitions[player.speciesId].actions[game.activeActionIndex] ?? null;
-}
-
-export function positionKey(position: GridPosition): string {
-  return `${position.x}:${position.y}`;
 }
 
 export function toGridPosition(location: GridPosition): GridPosition {

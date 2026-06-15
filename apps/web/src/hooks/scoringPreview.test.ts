@@ -7,6 +7,7 @@ import {
   getGaloSeedCardPositions,
   getMacawScoringLines
 } from "@oikos/rules";
+import { gridPositionKey } from "@oikos/shared";
 import type { GameState, RoomPlayer } from "@oikos/shared";
 import { describe, expect, it } from "vitest";
 import { getScoringPreview } from "./scoringPreview";
@@ -122,7 +123,7 @@ describe("getScoringPreview", () => {
     const preview = getScoringPreview(game, "D", "galo_de_campina");
 
     expect(preview.cardHighlights).toHaveLength(
-      new Set([...seedPositions, ...fieldPositions].map((position) => `${position.x},${position.y}`))
+      new Set([...seedPositions, ...fieldPositions].map(gridPositionKey))
         .size
     );
     expect(

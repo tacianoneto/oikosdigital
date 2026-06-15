@@ -1,5 +1,9 @@
 import Phaser from "phaser";
 import { forestCardsById, getForestCardDefinition, resourceAssets, speciesDefinitions } from "@oikos/content";
+import {
+  gridPositionKey as key,
+  parseGridPositionKey
+} from "@oikos/shared";
 import type { ForestCardState, GridPosition, PieceState, Resource, SpeciesId } from "@oikos/shared";
 
 export interface RotateFitTarget {
@@ -69,10 +73,6 @@ const SELECT = 0x5fd08a;
 const HIDDEN_TINT = 0x7f8780;
 const MEEPLE_ASSET_VERSION = "2026-06-01-new-meeples-v3";
 const MEEPLE_ALPHA_PADDING = 8;
-
-function key(p: GridPosition): string {
-  return `${p.x}:${p.y}`;
-}
 
 // Deterministic -1deg..1deg jitter per card instance, purely cosmetic so cards
 // look hand-placed rather than perfectly aligned. Stable across re-renders.
@@ -1157,7 +1157,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     const byLoc = new Map<string, PieceState[]>();
     for (const p of vm.pieces) {
       if (!p.location) continue;
-      const k = `${p.location.x}:${p.location.y}`;
+      const k = key(p.location);
       byLoc.set(k, [...(byLoc.get(k) ?? []), p]);
     }
 
@@ -1166,7 +1166,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     const alive = new Set<string>();
 
     for (const [k, list] of byLoc) {
-      const [gx, gy] = k.split(":").map(Number);
+      const { x: gx, y: gy } = parseGridPositionKey(k);
       const base = this.worldOf({ x: gx, y: gy });
       const n = list.length;
       const layout = pieceLayout(n);

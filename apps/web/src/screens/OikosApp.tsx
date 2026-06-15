@@ -49,7 +49,13 @@ import {
   resourceLabels,
   speciesDefinitions
 } from "@oikos/content";
-import { MAX_PLAYERS } from "@oikos/shared";
+import {
+  MAX_PLAYERS,
+  TURN_TIMER_DEFAULT_MS,
+  TURN_TIMER_OPTIONS_MS,
+  areScenariosExclusive,
+  formatTurnTimer
+} from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
@@ -140,7 +146,6 @@ import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
 import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
 import { TutorialCoach } from "../ui/TutorialCoach";
-import { formatTurnTimer } from "../ui/format";
 import { renderReserveMeeples } from "../ui/meeples";
 import { movementArtPath } from "../ui/movementArt";
 import { isSmallScreen } from "../ui/responsive";
@@ -199,9 +204,6 @@ const getOpenPortraitAsset = (portraitAsset: string) =>
 
 type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 
-// Selectable turn-timer durations for online rooms (ms).
-const TURN_TIMER_OPTIONS = [30000, 45000, 60000, 90000, 120000, 180000];
-const DEFAULT_TURN_TIMER_MS = 60000;
 const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
 
 const miniExpansionOptions: Array<{
@@ -256,10 +258,6 @@ function SkipExtraTurnNoCardAction({
       </button>
     </div>
   );
-}
-
-function isExclusiveScenarioPair(a: ScenarioCardId, b: ScenarioCardId): boolean {
-  return (a === "pantanal" && b === "mata_atlantica") || (a === "mata_atlantica" && b === "pantanal");
 }
 
 // Maps each tutorial chapter to the factory that builds its scripted local room.
@@ -1567,7 +1565,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }
 
     void run(
-      () => roomApi.setTurnTimer(requireSocket(), room.roomId, turnTimerMs ? null : DEFAULT_TURN_TIMER_MS),
+      () => roomApi.setTurnTimer(requireSocket(), room.roomId, turnTimerMs ? null : TURN_TIMER_DEFAULT_MS),
       turnTimerMs ? "Cronômetro de turno desligado." : "Cronômetro de turno ligado."
     );
   }
@@ -1577,10 +1575,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       return;
     }
 
-    const currentIndex = TURN_TIMER_OPTIONS.indexOf(turnTimerMs);
-    const baseIndex = currentIndex >= 0 ? currentIndex : TURN_TIMER_OPTIONS.indexOf(DEFAULT_TURN_TIMER_MS);
-    const nextIndex = Math.max(0, Math.min(TURN_TIMER_OPTIONS.length - 1, baseIndex + direction));
-    void run(() => roomApi.setTurnTimer(requireSocket(), room.roomId, TURN_TIMER_OPTIONS[nextIndex]));
+    const timerOptions: readonly number[] = TURN_TIMER_OPTIONS_MS;
+    const currentIndex = timerOptions.indexOf(turnTimerMs);
+    const baseIndex = currentIndex >= 0 ? currentIndex : timerOptions.indexOf(TURN_TIMER_DEFAULT_MS);
+    const nextIndex = Math.max(0, Math.min(timerOptions.length - 1, baseIndex + direction));
+    void run(() => roomApi.setTurnTimer(requireSocket(), room.roomId, timerOptions[nextIndex]));
   }
 
   function toggleMiniExpansion(expansionId: MiniExpansionId) {
@@ -1624,7 +1623,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
     if (
       !hostSelectedScenarioIds.includes(scenarioId) &&
-      hostSelectedScenarioIds.some((id) => isExclusiveScenarioPair(id, scenarioId))
+      hostSelectedScenarioIds.some((id) => areScenariosExclusive(id, scenarioId))
     ) {
       setNotice("Pantanal e Mata Atlântica não podem ser jogados juntos.");
       return;
@@ -1668,7 +1667,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         return current;
       }
 
-      if (current.some((id) => isExclusiveScenarioPair(id, scenarioId))) {
+      if (current.some((id) => areScenariosExclusive(id, scenarioId))) {
         setNotice("Pantanal e Mata Atlantica nao podem ser jogados juntos.");
         return current;
       }

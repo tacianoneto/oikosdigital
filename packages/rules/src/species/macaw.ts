@@ -1,3 +1,4 @@
+import { parseGridPositionKey } from "@oikos/shared";
 import type { GameState, GridPosition } from "@oikos/shared";
 import { cloneGameState, findPlayer, getCurrentAction, positionKey } from "../state";
 import {
@@ -111,11 +112,11 @@ export function getMacawLineScore(game: GameState, playerId: string): number {
   const lineKeys = new Set<string>();
 
   for (const key of positionSet) {
-    const [x, y] = key.split(":").map(Number);
+    const { x, y } = parseGridPositionKey(key);
     for (const direction of directions) {
-      const before = `${x - direction.x}:${y - direction.y}`;
-      const second = `${x + direction.x}:${y + direction.y}`;
-      const third = `${x + direction.x * 2}:${y + direction.y * 2}`;
+      const before = positionKey({ x: x - direction.x, y: y - direction.y });
+      const second = positionKey({ x: x + direction.x, y: y + direction.y });
+      const third = positionKey({ x: x + direction.x * 2, y: y + direction.y * 2 });
       if (positionSet.has(before) || !positionSet.has(second) || !positionSet.has(third)) {
         continue;
       }
@@ -157,11 +158,11 @@ export function getMacawScoringLines(game: GameState, playerId: string): MacawSc
   const lines: MacawScoringLine[] = [];
 
   for (const key of positionSet) {
-    const [x, y] = key.split(":").map(Number);
+    const { x, y } = parseGridPositionKey(key);
     for (const direction of directions) {
-      const before = `${x - direction.x}:${y - direction.y}`;
-      const second = `${x + direction.x}:${y + direction.y}`;
-      const third = `${x + direction.x * 2}:${y + direction.y * 2}`;
+      const before = positionKey({ x: x - direction.x, y: y - direction.y });
+      const second = positionKey({ x: x + direction.x, y: y + direction.y });
+      const third = positionKey({ x: x + direction.x * 2, y: y + direction.y * 2 });
       if (positionSet.has(before) || !positionSet.has(second) || !positionSet.has(third)) {
         continue;
       }

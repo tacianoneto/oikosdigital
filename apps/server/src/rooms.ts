@@ -1,5 +1,9 @@
 import { commonForestCards, speciesDefinitions, speciesOrderBySetup } from "@oikos/content";
-import { MAX_PLAYERS } from "@oikos/shared";
+import {
+  MAX_PLAYERS,
+  areScenariosExclusive,
+  clampTurnTimerMs
+} from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
   addCapuchinForCurrentAction,
@@ -75,8 +79,6 @@ interface ServerRoom {
   password?: string | null;
 }
 
-const MIN_TURN_TIMER_MS = 15000;
-const MAX_TURN_TIMER_MS = 300000;
 const defaultMiniExpansions: MiniExpansionId[] = [];
 const defaultScenarioCount: ScenarioCount = 1;
 export const SCENARIO_VOTING_DURATION_MS = 50000;
@@ -92,16 +94,6 @@ function shuffleArr<T>(items: T[], random: () => number): T[] {
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
-}
-
-// Pantanal + Mata Atlântica are mutually exclusive: Pantanal needs personal
-// hands at the end of the last round, but Mata Atlântica replaces personal
-// hands with shared piles, so they can't coexist coherently.
-function isExclusivePair(a: ScenarioCardId, b: ScenarioCardId): boolean {
-  return (
-    (a === "pantanal" && b === "mata_atlantica") ||
-    (a === "mata_atlantica" && b === "pantanal")
-  );
 }
 
 function tallyScenarioVotes(voting: ScenarioVotingState, random: () => number): ScenarioCardId[] {
@@ -127,7 +119,7 @@ function tallyScenarioVotes(voting: ScenarioVotingState, random: () => number): 
       if (selected.length >= scenarioCount) break;
       // Skip ids that would form an exclusive pair with anything already
       // picked. They fall through to the next-most-voted scenario.
-      if (selected.some((picked) => isExclusivePair(picked, id))) continue;
+      if (selected.some((picked) => areScenariosExclusive(picked, id))) continue;
       selected.push(id);
     }
     if (selected.length >= scenarioCount) break;
@@ -585,7 +577,7 @@ export function setTurnTimer(roomId: string, playerId: string, turnTimerMs: numb
     throw new Error("Apenas o anfitriao pode ajustar o cronometro de turno.");
   }
 
-  room.turnTimerMs = turnTimerMs === null ? null : clampTurnTimer(turnTimerMs);
+  room.turnTimerMs = turnTimerMs === null ? null : clampTurnTimerMs(turnTimerMs);
   return toPublicRoom(room);
 }
 
@@ -648,7 +640,7 @@ export function setHostSelectedScenarios(
   if (unique.length > room.scenarioCount) {
     throw new Error(`Escolha no maximo ${room.scenarioCount} cenario(s).`);
   }
-  if (unique.includes("pantanal") && unique.includes("mata_atlantica")) {
+  if (unique.some((id, index) => unique.slice(index + 1).some((other) => areScenariosExclusive(id, other)))) {
     throw new Error("Pantanal e Mata Atlantica nao podem coexistir na mesma partida.");
   }
 
@@ -1285,14 +1277,6 @@ function clampBotTurnDelay(delayMs: number): number {
   }
 
   return Math.max(250, Math.min(8000, Math.round(delayMs)));
-}
-
-function clampTurnTimer(turnTimerMs: number): number {
-  if (!Number.isFinite(turnTimerMs)) {
-    return 60000;
-  }
-
-  return Math.max(MIN_TURN_TIMER_MS, Math.min(MAX_TURN_TIMER_MS, Math.round(turnTimerMs)));
 }
 
 function createRoomId(): string {

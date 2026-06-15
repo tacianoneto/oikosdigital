@@ -9,6 +9,7 @@ import {
   threatCards
 } from "@oikos/content";
 import { MAX_PLAYERS } from "@oikos/shared";
+import { gridPositionKey } from "@oikos/shared";
 import type {
   ActionId,
   CardConnections,
@@ -468,7 +469,7 @@ function buildForestFromTemplate(
   template: ForestTemplate,
   landOrder: readonly string[] = LAND_CARD_IDS
 ): ForestCardState[] {
-  const riverByPos = new Map(template.river.map((spec) => [`${spec.x}:${spec.y}`, spec]));
+  const riverByPos = new Map(template.river.map((spec) => [gridPositionKey(spec), spec]));
   const cards: ForestCardState[] = [];
   let landIndex = 0;
 
@@ -504,7 +505,7 @@ function buildForestFromTemplate(
 }
 
 function assertForestRiverConsistency(cards: ForestCardState[], templateName: string): void {
-  const byPos = new Map(cards.map((card) => [`${card.x}:${card.y}`, card]));
+  const byPos = new Map(cards.map((card) => [gridPositionKey(card), card]));
 
   for (const card of cards) {
     const definition = getCardDefinitionOrNull(card.definitionId);
@@ -515,7 +516,7 @@ function assertForestRiverConsistency(cards: ForestCardState[], templateName: st
     const connections = getRotatedConnections(definition, card.rotation);
     for (const direction of connectionDirections) {
       const offset = directionOffsets[direction];
-      const neighbor = byPos.get(`${card.x + offset.x}:${card.y + offset.y}`);
+      const neighbor = byPos.get(gridPositionKey({ x: card.x + offset.x, y: card.y + offset.y }));
       if (!neighbor) {
         continue;
       }
