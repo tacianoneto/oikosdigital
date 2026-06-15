@@ -175,6 +175,7 @@ import {
 import { finalizeGameState } from "./endgame";
 import { applyFinalScoring, canSpeciesReceiveObjective } from "./scoring";
 import {
+  applyCaatingaTrigger,
   getCacaIlegalRemovablePieceIds,
   getCacaIlegalTopResources,
   getMataAtlanticaPileTops,
@@ -3065,30 +3066,6 @@ function assertMataAtlanticaDiscarded(game: GameState, playerId: string): void {
   if (mataAtlanticaRequiresDiscard(game, playerId)) {
     throw new Error("Descarte 1 carta de uma das pilhas (Mata Atlantica) antes de agir.");
   }
-}
-
-function applyCaatingaTrigger(
-  game: GameState,
-  playerId: string,
-  location: GridPosition,
-  trigger: "add" | "remove"
-): void {
-  if (!(game.activeScenarioIds ?? []).includes("caatinga")) return;
-  if (game.activePlayerId !== playerId) return;
-  const player = findPlayer(game, playerId);
-  if (!player.speciesId) return;
-  if ((game.caatingaUsedByPlayer ?? {})[playerId] === game.round) return;
-  const card = getForestCardAtPosition(game, location);
-  const def = card ? getCardDefinitionOrNull(card.definitionId) : null;
-  const resource = def?.resource ?? null;
-  if (!resource) return;
-  game.caatingaPending = {
-    playerId,
-    resource,
-    location: { x: location.x, y: location.y },
-    trigger,
-    round: game.round
-  };
 }
 
 export function collectCaatingaBonus(
