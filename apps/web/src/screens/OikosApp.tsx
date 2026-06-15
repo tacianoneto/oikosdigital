@@ -70,7 +70,6 @@ import {
   getCapuchinHabitatScore,
   getGaloSeedCardScore,
   getAvailableForestExpansionPositions,
-  getAvailableForestExpansionPositionsForCard,
   getCapuchinScoringHabitats,
   type CapuchinHabitatGroup,
   getMacawLineScore,
@@ -121,6 +120,7 @@ import type {
   ThreatCardId
 } from "@oikos/shared";
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
+import { useActiveActionState } from "../hooks/useActiveActionState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
 import type { HandSortMode } from "../hooks/playerCardState";
@@ -730,35 +730,27 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     controlledPlayerId,
     selectedOpponentPlayerId
   );
-  // In a local game the active species is auto-played when it is a bot, so the
-  // human must not be able to act on its turn.
-  const activeIsLocalBot = Boolean(isLocalRoom && currentPlayer?.isBot);
-  const activeActionId = activeSpecies && room?.game ? activeSpecies.actions[room.game.activeActionIndex] ?? null : null;
-  const mataAtlanticaBlocksTurn = Boolean(
-    room?.game?.mataAtlanticaPiles &&
-      currentGamePlayer?.speciesId &&
-      !speciesDefinitions[currentGamePlayer.speciesId].usesForestCards &&
-      room?.game?.activePlayerId === currentGamePlayer?.playerId &&
-      (room?.game?.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer?.playerId ?? ""] !==
-        currentGamePlayer?.turnsTaken &&
-      (room?.game?.mataAtlanticaPiles ?? []).some((pile) => pile.length > 0)
-  );
-  const canControlActivePlayer = Boolean(
-    room?.game?.activePlayerId &&
-      currentGamePlayer?.playerId === room.game.activePlayerId &&
-      !activeIsLocalBot &&
-      !room.game.caatingaPending &&
-      !room.game.cerradoPending &&
-      !mataAtlanticaBlocksTurn
-  );
-  // Action step viewer should only flag a step as "em andamento" when the
-  // controlled player is the active player. Otherwise the opponent's progress
-  // would steal focus on the local HUD.
-  const ownActiveActionId =
-    room?.game?.activePlayerId && currentGamePlayer?.playerId === room.game.activePlayerId
-      ? activeActionId
-      : null;
   const hasPendingCoatiPairBonus = Boolean(room?.game?.pendingCoatiPairBonus);
+  const {
+    activeActionId,
+    canControlActivePlayer,
+    canPlaceSelectedForestCard,
+    canPlaceSetupPiece,
+    canSelectHandCards,
+    canSkipExtraTurnNoCardAction,
+    handPlayableThisAction,
+    needsEndgameOverflowRepair,
+    ownActiveActionId
+  } = useActiveActionState({
+    activeSpecies,
+    currentGamePlayer,
+    currentPlayer,
+    game: room?.game,
+    hasPendingCoatiPairBonus,
+    isLocalRoom,
+    localPlayerId: playerId,
+    selectedHandCardId
+  });
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
 
@@ -930,68 +922,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   }, []);
   const forestCards = room?.game?.forest.cards ?? createPreviewInitialForest();
   const pieces = room?.game?.pieces ?? [];
-  const canPlaceSetupPiece = Boolean(
-    room?.game?.status === "setup" &&
-      !activeIsLocalBot &&
-      (isLocalRoom || room.game.setupActivePlayerId === playerId)
-  );
-  const playableCardIds = useMemo(() => {
-    const pile = room?.game?.mataAtlanticaPiles
-      ? room.game.mataAtlanticaPiles.map((p) => p[0]).filter((id): id is string => Boolean(id))
-      : [];
-    return new Set<string>([...(currentGamePlayer?.hand ?? []), ...pile]);
-  }, [currentGamePlayer?.hand, room?.game?.mataAtlanticaPiles]);
-  const canPlaceSelectedForestCard = Boolean(
-    room?.game?.status === "active" &&
-      selectedHandCardId &&
-      !hasPendingCoatiPairBonus &&
-      !room.game.activePlayedForestCardId &&
-      canControlActivePlayer &&
-      (activeSpecies?.speciesId === "coati" ||
-        activeSpecies?.speciesId === "capuchin" ||
-        activeSpecies?.speciesId === "macaw" ||
-        activeSpecies?.speciesId === "galo_de_campina" ||
-        activeSpecies?.speciesId === "armadillo" ||
-        activeSpecies?.speciesId === "maned_wolf") &&
-      activeActionId === "A" &&
-      selectedHandCardId &&
-      playableCardIds.has(selectedHandCardId)
-  );
-  const handPlayableThisAction = Boolean(
-    room?.game?.status === "active" &&
-      !hasPendingCoatiPairBonus &&
-      !room.game.activePlayedForestCardId &&
-      canControlActivePlayer &&
-      activeActionId === "A" &&
-      (activeSpecies?.speciesId === "coati" ||
-        activeSpecies?.speciesId === "capuchin" ||
-        activeSpecies?.speciesId === "macaw" ||
-        activeSpecies?.speciesId === "galo_de_campina" ||
-        activeSpecies?.speciesId === "armadillo" ||
-        activeSpecies?.speciesId === "maned_wolf")
-  );
-  const hasPlayableForestCardThisAction = useMemo(() => {
-    if (!room?.game || !handPlayableThisAction) {
-      return false;
-    }
-
-    const rotations: Array<0 | 90 | 180 | 270> = [0, 90, 180, 270];
-    return [...playableCardIds].some((cardId) =>
-      rotations.some((rotation) => getAvailableForestExpansionPositionsForCard(room.game!, cardId, rotation).length > 0)
-    );
-  }, [handPlayableThisAction, playableCardIds, room?.game]);
-  const canSkipExtraTurnNoCardAction = Boolean(
-    room?.game?.extraTurnPlayerId === room?.game?.activePlayerId &&
-      handPlayableThisAction &&
-      !hasPlayableForestCardThisAction
-  );
-  const needsEndgameOverflowRepair = Boolean(
-    room?.game?.status === "active" &&
-      room.game.round > room.game.maxRounds &&
-      room.game.activePlayerId &&
-      !room.game.extraTurnPlayerId &&
-      !room.game.pendingExtraTurnPlayerId
-  );
   const rotateSelectedCard = useCallback((dir: 1 | -1) => {
     setSelectedCardRotation((r) => (((r + (dir === 1 ? 90 : 270)) % 360) as 0 | 90 | 180 | 270));
   }, []);
@@ -1158,7 +1088,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       currentGamePlayer &&
       (room?.game?.status === "setup" || room?.game?.status === "active")
   );
-  const canSelectHandCards = Boolean(room?.game?.status === "active");
   // True while the player must click something on the board (place a card,
   // move/add a piece, pick a bonus, etc). On mobile we auto-close the
   // Jogadores/Mão sheets when this turns on so the board is visible.
