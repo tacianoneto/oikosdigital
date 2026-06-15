@@ -1,8 +1,10 @@
-import type { ActionId, GameState, GridPosition, Habitat, PieceState } from "@oikos/shared";
-import { getCurrentAction, positionKey } from "../state";
+import type { ActionId, GameState, GridPosition, Habitat, PieceState, Resource } from "@oikos/shared";
+import { cloneGameState, findPlayer, getCurrentAction, positionKey } from "../state";
 import { getCardDefinitionOrNull, getForestCardAtPosition } from "../forest";
 import { getMovementKindForSpecies, getPotentialDestinations } from "../movement";
 import { getMovementKindOverride } from "../effects";
+import { assertMataAtlanticaDiscarded } from "../scenarios";
+import { advanceActiveAction } from "../turn";
 
 /**
  * Side-effect-free queries for the Jaguar (onça): locating its single forest
@@ -93,4 +95,57 @@ export function getValidJaguarMovementDestinations(game: GameState, playerId: st
   }
 
   return Array.from(collected.values()).sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+export function spendJaguarMeatForPoints(game: GameState, playerId: string, count: number): GameState {
+  if (game.status !== "active") {
+    throw new Error("Acoes so podem acontecer durante a fase ativa.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  assertMataAtlanticaDiscarded(game, playerId);
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "jaguar") {
+    throw new Error("Pontuacao por carne implementada apenas para a Onca nesta etapa.");
+  }
+
+  if (getCurrentAction(game) !== "C") {
+    throw new Error("A Onca so gasta carne para pontuar durante a acao C.");
+  }
+
+  if (!Number.isInteger(count) || count < 1 || count > 3) {
+    throw new Error("A Onca pode gastar de 1 a 3 carnes na acao C.");
+  }
+
+  if (player.resources.meat < count) {
+    throw new Error("A Onca nao tem carne suficiente para esta pontuacao.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  nextPlayer.resources.meat -= count;
+  nextPlayer.score += count;
+  next.log = [
+    ...next.log,
+    {
+      id: `jaguar_spend_meat_${playerId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} gastou ${count} carne(s) e marcou ${count} ponto(s).`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "spend",
+        actorPlayerId: playerId,
+        points: count,
+        actionId: "C",
+        resources: Array.from({ length: count }, () => "meat" as Resource),
+        count
+      }
+    }
+  ];
+
+  advanceActiveAction(next);
+  return next;
 }

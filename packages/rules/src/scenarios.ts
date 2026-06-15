@@ -65,3 +65,9 @@ export function mataAtlanticaRequiresDiscard(game: GameState, playerId: string):
   if ((game.mataAtlanticaDiscardByPlayer ?? {})[playerId] === player.turnsTaken) return false;
   return getMataAtlanticaPileTops(game).length > 0;
 }
+
+export function assertMataAtlanticaDiscarded(game: GameState, playerId: string): void {
+  if (mataAtlanticaRequiresDiscard(game, playerId)) {
+    throw new Error("Descarte 1 carta de uma das pilhas (Mata Atlantica) antes de agir.");
+  }
+}

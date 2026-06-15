@@ -192,11 +192,13 @@ export {
 import {
   getAvailableJaguarPointSpendCount,
   getJaguarPieceInForest,
-  getValidJaguarMovementDestinations
+  getValidJaguarMovementDestinations,
+  spendJaguarMeatForPoints
 } from "./species/jaguar";
 export {
   getAvailableJaguarPointSpendCount,
-  getValidJaguarMovementDestinations
+  getValidJaguarMovementDestinations,
+  spendJaguarMeatForPoints
 };
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
@@ -210,6 +212,7 @@ import { finalizeGameState } from "./endgame";
 import { applyFinalScoring, canSpeciesReceiveObjective } from "./scoring";
 import {
   applyCaatingaTrigger,
+  assertMataAtlanticaDiscarded,
   getCacaIlegalRemovablePieceIds,
   getCacaIlegalTopResources,
   getMataAtlanticaPileTops,
@@ -1426,59 +1429,6 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
   return next;
 }
 
-export function spendJaguarMeatForPoints(game: GameState, playerId: string, count: number): GameState {
-  if (game.status !== "active") {
-    throw new Error("Acoes so podem acontecer durante a fase ativa.");
-  }
-
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Ainda nao e a vez deste jogador.");
-  }
-
-  assertMataAtlanticaDiscarded(game, playerId);
-
-  const player = findPlayer(game, playerId);
-  if (player.speciesId !== "jaguar") {
-    throw new Error("Pontuacao por carne implementada apenas para a Onca nesta etapa.");
-  }
-
-  if (getCurrentAction(game) !== "C") {
-    throw new Error("A Onca so gasta carne para pontuar durante a acao C.");
-  }
-
-  if (!Number.isInteger(count) || count < 1 || count > 3) {
-    throw new Error("A Onca pode gastar de 1 a 3 carnes na acao C.");
-  }
-
-  if (player.resources.meat < count) {
-    throw new Error("A Onca nao tem carne suficiente para esta pontuacao.");
-  }
-
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  nextPlayer.resources.meat -= count;
-  nextPlayer.score += count;
-  next.log = [
-    ...next.log,
-    {
-      id: `jaguar_spend_meat_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} gastou ${count} carne(s) e marcou ${count} ponto(s).`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "spend",
-        actorPlayerId: playerId,
-        points: count,
-        actionId: "C",
-        resources: Array.from({ length: count }, () => "meat" as Resource),
-        count
-      }
-    }
-  ];
-
-  advanceActiveAction(next);
-  return next;
-}
-
 export function removePiecesForCurrentAction(game: GameState, playerId: string, pieceIds: string[]): GameState {
   if (game.status !== "active") {
     throw new Error("Remocoes so podem acontecer durante a fase ativa.");
@@ -2139,12 +2089,6 @@ export function discardMataAtlanticaPileCard(game: GameState, playerId: string, 
     }
   ];
   return next;
-}
-
-function assertMataAtlanticaDiscarded(game: GameState, playerId: string): void {
-  if (mataAtlanticaRequiresDiscard(game, playerId)) {
-    throw new Error("Descarte 1 carta de uma das pilhas (Mata Atlantica) antes de agir.");
-  }
 }
 
 export function collectCaatingaBonus(
