@@ -107,3 +107,28 @@ export function getForestPositionsWithHabitat(game: GameState, habitat: Habitat)
     .map((card) => ({ x: card.x, y: card.y }))
     .sort((a, b) => a.y - b.y || a.x - b.x);
 }
+
+export function findFirstForestSiteWithResource(game: GameState, location: GridPosition, resource: Resource): ForestCardSiteDefinition | null {
+  return getForestSitesAtPosition(game, location).find((siteState) => siteState.site.resource === resource)?.site ?? null;
+}
+
+export function findFirstForestSiteWithHabitat(game: GameState, location: GridPosition, habitat: Habitat): ForestCardSiteDefinition | null {
+  return getForestSitesAtPosition(game, location).find((siteState) => siteState.site.habitat === habitat)?.site ?? null;
+}
+
+export function createPieceLocation(game: GameState, location: GridPosition, siteId = defaultCardSiteId): PieceLocation {
+  const site = getForestSiteOccupancy(game, location, siteId);
+  if (!site) {
+    throw new Error("Local interno da carta nao encontrado.");
+  }
+
+  if (site.isAtCapacity) {
+    throw new Error("Local interno da carta ja esta ocupado no limite permitido.");
+  }
+
+  return {
+    x: location.x,
+    y: location.y,
+    siteId
+  };
+}
