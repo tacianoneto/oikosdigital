@@ -136,14 +136,18 @@ export {
   scoreGaloSeedCards
 };
 import {
+  addCapuchinForCurrentAction,
   getCapuchinHabitatScore,
   getCapuchinPlacementPositions,
-  getCapuchinScoringHabitats
+  getCapuchinScoringHabitats,
+  scoreCapuchinHabitatPresence
 } from "./species/capuchin";
 export {
+  addCapuchinForCurrentAction,
   getCapuchinHabitatScore,
   getCapuchinPlacementPositions,
-  getCapuchinScoringHabitats
+  getCapuchinScoringHabitats,
+  scoreCapuchinHabitatPresence
 };
 export type { CapuchinHabitatGroup } from "./species/capuchin";
 import {
@@ -1133,123 +1137,6 @@ export function placeForestCard(
     }
   }
 
-  return next;
-}
-
-export function addCapuchinForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
-  if (game.status !== "active") {
-    throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
-  }
-
-  if (game.pendingCoatiPairBonus) {
-    throw new Error("Resolva o bonus da dupla de quatis antes de continuar a acao.");
-  }
-
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Ainda nao e a vez deste jogador.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (player.speciesId !== "capuchin") {
-    throw new Error("Adicao de peca implementada apenas para o Macaco-prego nesta etapa.");
-  }
-
-  const action = getCurrentAction(game);
-  if (action !== "A" && action !== "C") {
-    throw new Error("O Macaco-prego adiciona peca durante as acoes A e C.");
-  }
-
-  if (action === "A" && !game.activePlayedForestCardId) {
-    throw new Error("O Macaco-prego adiciona peca na carta jogada depois de expandir a floresta.");
-  }
-
-  const pieceId = player.reservePieces[0];
-  if (!pieceId) {
-    throw new Error("Nao ha macacos na reserva para adicionar.");
-  }
-
-  const validPositions = getCapuchinPlacementPositions(game, playerId);
-  const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
-  if (!isValidPosition) {
-    throw new Error(action === "A" ? "Adicione o Macaco-prego na carta jogada." : "Escolha um local com outro Macaco-prego.");
-  }
-
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
-  if (!nextPiece) {
-    throw new Error("Peca nao encontrada.");
-  }
-
-  nextPiece.location = createPieceLocation(game, location);
-  nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
-  nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location, "add");
-  const capuchinTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
-  next.log = [
-    ...next.log,
-    {
-      id: `add_capuchin_${pieceId}_${next.log.length + 1}`,
-      message:
-        action === "A"
-          ? `${nextPlayer.name} adicionou 1 macaco-prego na carta jogada.`
-          : `${nextPlayer.name} adicionou 1 macaco-prego em local com outro macaco.`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "add_piece",
-        actorPlayerId: playerId,
-        cardInstanceId: capuchinTargetCard?.instanceId,
-        cardDefinitionId: capuchinTargetCard?.definitionId,
-        habitat: capuchinTargetCard ? getCardDefinitionOrNull(capuchinTargetCard.definitionId)?.habitat ?? undefined : undefined,
-        location: { x: location.x, y: location.y },
-        pieceIds: [pieceId],
-        actionId: action
-      }
-    }
-  ];
-
-  advanceActiveAction(next);
-  return next;
-}
-
-export function scoreCapuchinHabitatPresence(game: GameState, playerId: string): GameState {
-  if (game.status !== "active") {
-    throw new Error("Pontuacao so pode acontecer durante a fase ativa.");
-  }
-
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Ainda nao e a vez deste jogador.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (player.speciesId !== "capuchin") {
-    throw new Error("Pontuacao por habitat implementada apenas para o Macaco-prego nesta etapa.");
-  }
-
-  if (getCurrentAction(game) !== "D") {
-    throw new Error("O Macaco-prego pontua habitats durante a acao D.");
-  }
-
-  const points = getCapuchinHabitatScore(game, playerId);
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  nextPlayer.score += points;
-  next.log = [
-    ...next.log,
-    {
-      id: `capuchin_score_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} marcou ${points} ponto(s) por presenca em habitats diferentes.`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "score",
-        actorPlayerId: playerId,
-        points,
-        actionId: "D"
-      }
-    }
-  ];
-
-  advanceActiveAction(next);
   return next;
 }
 
