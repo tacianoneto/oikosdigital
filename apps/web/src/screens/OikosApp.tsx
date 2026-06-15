@@ -68,30 +68,19 @@ import {
   getAvailableWolfPointSpendCount,
   getArmadilloHidePieceIds,
   getArmadilloSharingDetails,
-  getArmadilloSeedPlacementPositions,
   getArmadilloShareScore,
   getCapuchinHabitatScore,
-  getCapuchinPlacementPositions,
-  getCoatiFruitPlacementPositions,
-  getCoatiPairBonusTargets,
-  getGaloFieldPlacementPositions,
-  getGaloAdjacentAddPositions,
   getGaloSeedCardScore,
   getGaloSeedCardPositions,
   getGaloFieldCardPositions,
   getAvailableForestExpansionPositions,
   getAvailableForestExpansionPositionsForCard,
-  getMacawActionCTargets,
   getCapuchinScoringHabitats,
   type CapuchinHabitatGroup,
-  getMacawEggPlacementPositions,
   getMacawLineScore,
   getMacawScoringLines,
   type MacawScoringLine,
-  getMacawRelocatablePieceIds,
   getRequiredCoatiRemovalCount,
-  getValidPieceMovementDestinations,
-  getWolfMeatPlacementPositions,
   getWolfRemovableBasePieceIds,
   getWolfSpendableResourceTypes,
   getCacaIlegalRemovablePieceIds,
@@ -140,6 +129,7 @@ import type {
 } from "@oikos/shared";
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
 import { useAudioSettings } from "../hooks/useAudioSettings";
+import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
@@ -1139,55 +1129,50 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }
   }, [canPlaceSelectedForestCard, pendingPlacement]);
 
-  const expansionTargets = useMemo(
-    () =>
-      canPlaceSelectedForestCard && room?.game && selectedHandCardId && !pendingPlacement
-        ? getAvailableForestExpansionPositionsForCard(room.game, selectedHandCardId, selectedCardRotation)
-        : [],
-    [canPlaceSelectedForestCard, room?.game, selectedCardRotation, selectedHandCardId, pendingPlacement]
-  );
-  // River cards that only fit after rotating: positions invalid at the current
-  // rotation but valid at another, plus the rotation that connects there.
-  const rotateFitTargets = useMemo(() => {
-    if (!canPlaceSelectedForestCard || !room?.game || !selectedHandCardId || pendingPlacement) return [];
-    const game = room.game;
-    const currentKeys = new Set(expansionTargets.map((p) => `${p.x}:${p.y}`));
-    const seen = new Set<string>();
-    const result: { position: { x: number; y: number }; rotation: 0 | 90 | 180 | 270 }[] = [];
-    for (const rotation of [0, 90, 180, 270] as const) {
-      if (rotation === selectedCardRotation) continue;
-      for (const p of getAvailableForestExpansionPositionsForCard(game, selectedHandCardId, rotation)) {
-        const k = `${p.x}:${p.y}`;
-        if (currentKeys.has(k) || seen.has(k)) continue;
-        seen.add(k);
-        result.push({ position: { x: p.x, y: p.y }, rotation });
-      }
+  const {
+    addPieceTargets,
+    boardSelectablePieceIds,
+    canSkipJaguarMove,
+    capuchinPlacementTargets,
+    coatiPairBonusTargets,
+    displayAddPieceTargets,
+    displayCoatiPairBonusTargets,
+    displayExpansionTargets,
+    displayMovementTargets,
+    displayRotateFitTargets,
+    expansionTargets,
+    highlightedPieceIds,
+    jaguarTargetPieceIds,
+    macawActionCTargets,
+    macawEggTargets,
+    movementTargets,
+    selectablePieceIds,
+    tutorialMarkedSlot,
+    wolfMeatTargets
+  } = useBoardInteractionTargets({
+    activeActionId,
+    activeGamePlayerSeedCount: activeGamePlayer?.resources.seed ?? 0,
+    activeSpeciesId: activeSpecies?.speciesId ?? null,
+    cacaIlegalRemovalMode,
+    canControlActivePlayer,
+    canPlaceSelectedForestCard,
+    controlledPlayerId,
+    game: room?.game,
+    hasPendingCoatiPairBonus,
+    hasPendingPlacement: Boolean(pendingPlacement),
+    selectedCardRotation,
+    selectedHandCardId,
+    selectedJaguarDestination,
+    selectedJaguarTargetPieceId,
+    selectedPieceId,
+    selectedRemovalPieceIds,
+    selectedWolfTargetPieceId,
+    tutorial: {
+      active: tutorialActive,
+      def: tutorialDef,
+      gate: tutorialGate
     }
-    return result;
-  }, [canPlaceSelectedForestCard, room?.game, selectedHandCardId, selectedCardRotation, expansionTargets, pendingPlacement]);
-
-  // During a tutorial placeCard step, restrict placement to a single marked slot.
-  const tutorialPlaceStep = tutorialActive && tutorialGate === "placeCard" && Boolean(tutorialDef?.requiredCardId);
-  const tutorialMarkedSlot = useMemo<GridPosition | null>(() => {
-    if (!tutorialPlaceStep) return null;
-    return tutorialDef?.markedSlot ?? null;
-  }, [tutorialPlaceStep, tutorialDef?.markedSlot]);
-
-  const displayExpansionTargets = useMemo(() => {
-    // Outside a placeCard step, the tutorial board is read-only: never show the
-    // "colocar carta" slots.
-    if (tutorialActive && !tutorialPlaceStep) return [];
-    if (!tutorialPlaceStep || !tutorialMarkedSlot) return expansionTargets;
-    return expansionTargets.filter((p) => p.x === tutorialMarkedSlot.x && p.y === tutorialMarkedSlot.y);
-  }, [tutorialActive, tutorialPlaceStep, tutorialMarkedSlot, expansionTargets]);
-
-  const displayRotateFitTargets = useMemo(() => {
-    if (tutorialActive && !tutorialPlaceStep) return [];
-    if (!tutorialPlaceStep || !tutorialMarkedSlot) return rotateFitTargets;
-    return rotateFitTargets.filter(
-      (t) => t.position.x === tutorialMarkedSlot.x && t.position.y === tutorialMarkedSlot.y
-    );
-  }, [tutorialActive, tutorialPlaceStep, tutorialMarkedSlot, rotateFitTargets]);
+  });
 
   // Keep a ref of the current drop targets so async drag handlers always see the
   // set for the latest rotation (the pointermove closure is captured once).
@@ -1198,86 +1183,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return hoveredSummaryCardIds.filter((id) => alive.has(id));
   }, [hoveredSummaryCardIds, recapCollapsed, room?.game, turnSummary?.key]);
   const cacaIlegalPending = room?.game?.cacaIlegalPending ?? null;
-  const selectablePieceIds = useMemo(() => {
-    if (!room?.game || hasPendingCoatiPairBonus || !canControlActivePlayer) {
-      return [];
-    }
-
-    if (cacaIlegalRemovalMode && room.game.cacaIlegalPending?.playerId === controlledPlayerId) {
-      return getCacaIlegalRemovablePieceIds(room.game, room.game.cacaIlegalPending.playerId);
-    }
-
-    if (activeSpecies?.speciesId === "jaguar" && (activeActionId === "A" || activeActionId === "B")) {
-      return room.game.pieces
-        .filter((piece) => piece.ownerId === room.game?.activePlayerId && piece.speciesId === "jaguar" && piece.location)
-        .map((piece) => piece.pieceId);
-    }
-
-    if (activeSpecies?.speciesId === "macaw" && activeActionId === "C" && room.game.activePlayerId) {
-      return getMacawRelocatablePieceIds(room.game, room.game.activePlayerId);
-    }
-
-    if (activeSpecies?.speciesId === "armadillo" && activeActionId === "C" && room.game.activePlayerId) {
-      return getArmadilloHidePieceIds(room.game, room.game.activePlayerId);
-    }
-
-    if (activeSpecies?.speciesId === "maned_wolf" && activeActionId === "A" && room.game.pendingWolfMoves?.playerId === room.game.activePlayerId) {
-      return room.game.pendingWolfMoves.pieceIds;
-    }
-
-    if (activeSpecies?.speciesId === "maned_wolf" && activeActionId === "B" && room.game.activePlayerId) {
-      return getWolfRemovableBasePieceIds(room.game, room.game.activePlayerId);
-    }
-
-    if (activeSpecies?.speciesId === "galo_de_campina" && activeActionId === "C" && room.game.activePlayerId) {
-      if ((activeGamePlayer?.resources.seed ?? 0) <= 0 || room.game.pendingGaloMovedPiece?.playerId !== room.game.activePlayerId) {
-        return [];
-      }
-
-      return room.game.pieces
-        .filter(
-          (piece) =>
-            piece.ownerId === room.game?.activePlayerId &&
-            piece.speciesId === "galo_de_campina" &&
-            piece.location &&
-            piece.pieceId !== room.game?.pendingGaloMovedPiece?.pieceId
-        )
-        .map((piece) => piece.pieceId);
-    }
-
-    if (
-      activeSpecies?.speciesId !== "coati" &&
-      activeSpecies?.speciesId !== "capuchin" &&
-      activeSpecies?.speciesId !== "macaw" &&
-      activeSpecies?.speciesId !== "galo_de_campina" &&
-      activeSpecies?.speciesId !== "armadillo"
-    ) {
-      return [];
-    }
-
-    if (activeActionId === "C" && getRequiredCoatiRemovalCount(room.game, room.game.activePlayerId ?? "") > 0) {
-      return room.game.pieces
-        .filter((piece) => piece.ownerId === room.game?.activePlayerId && piece.speciesId === "coati" && piece.location)
-        .map((piece) => piece.pieceId);
-    }
-
-    if (activeActionId !== "B") {
-      return [];
-    }
-
-    return room.game.pieces
-      .filter((piece) => piece.ownerId === room.game?.activePlayerId && piece.speciesId === activeSpecies.speciesId && piece.location)
-      .map((piece) => piece.pieceId);
-  }, [
-    activeActionId,
-    activeGamePlayer?.resources.seed,
-    activeSpecies?.speciesId,
-    cacaIlegalRemovalMode,
-    canControlActivePlayer,
-    controlledPlayerId,
-    hasPendingCoatiPairBonus,
-    room?.game
-  ]);
   const requiredCoatiRemovalCount =
     room?.game && room.game.activePlayerId ? getRequiredCoatiRemovalCount(room.game, room.game.activePlayerId) : 0;
   const availableJaguarPointSpendCount =
@@ -1292,205 +1197,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       canControlActivePlayer &&
       (!tutorialActive || tutorialId !== "jaguar" || tutorialGate === "score")
   );
-  const movementTargets = useMemo(() => {
-    if (!room?.game || hasPendingCoatiPairBonus || !room.game.activePlayerId || !selectedPieceId) {
-      return [];
-    }
-
-    return getValidPieceMovementDestinations(room.game, room.game.activePlayerId, selectedPieceId);
-  }, [hasPendingCoatiPairBonus, room?.game, selectedPieceId]);
-  const displayMovementTargets = useMemo(() => {
-    if (!tutorialActive || tutorialGate !== "move" || !tutorialDef?.markedMoveTarget) {
-      return movementTargets;
-    }
-
-    return movementTargets.filter((position) => sameGridPosition(position, tutorialDef.markedMoveTarget));
-  }, [movementTargets, tutorialActive, tutorialDef?.markedMoveTarget, tutorialGate]);
-  const canSkipJaguarMove =
-    useMemo(() => {
-      if (
-        !room?.game ||
-        !canControlActivePlayer ||
-        hasPendingCoatiPairBonus ||
-        activeSpecies?.speciesId !== "jaguar" ||
-        (activeActionId !== "A" && activeActionId !== "B") ||
-        !room.game.activePlayerId
-      ) {
-        return false;
-      }
-
-      const jaguarPieceId = room.game.pieces.find(
-        (piece) => piece.ownerId === room.game?.activePlayerId && piece.speciesId === "jaguar" && piece.location
-      )?.pieceId;
-
-      return Boolean(
-        jaguarPieceId &&
-          getValidPieceMovementDestinations(room.game, room.game.activePlayerId, jaguarPieceId).length === 0
-      );
-    }, [activeActionId, activeSpecies?.speciesId, canControlActivePlayer, hasPendingCoatiPairBonus, room?.game]);
-  const jaguarTargetPieceIds = useMemo(() => {
-    if (
-      !room?.game ||
-      activeSpecies?.speciesId !== "jaguar" ||
-      !selectedPieceId ||
-      !selectedJaguarDestination ||
-      movementTargets.length === 0
-    ) {
-      return [];
-    }
-
-    return room.game.pieces
-      .filter(
-        (piece) =>
-          piece.ownerId !== room.game?.activePlayerId &&
-          piece.location &&
-          !piece.state.hidden &&
-          piece.location.x === selectedJaguarDestination.x &&
-          piece.location.y === selectedJaguarDestination.y
-      )
-      .map((piece) => piece.pieceId);
-  }, [activeSpecies?.speciesId, movementTargets.length, room?.game, selectedJaguarDestination, selectedPieceId]);
-  const boardSelectablePieceIds = useMemo(() => {
-    const ids = [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
-    if (!tutorialActive) {
-      return ids;
-    }
-    // Lock the board during a tutorial: only the exact piece the step asks for is
-    // clickable. A marked piece restricts to it; an unmarked move step (e.g. the
-    // Onça's single meeple) keeps the engine's selectable set; every other gate
-    // (none/placeCard/score/addPiece/resolvePair) locks selection entirely.
-    if (tutorialDef?.markedPieceId) {
-      return ids.filter((pieceId) => pieceId === tutorialDef.markedPieceId);
-    }
-    if (tutorialGate === "move" || tutorialGate === "removeCoati") {
-      return ids;
-    }
-    return [];
-  }, [jaguarTargetPieceIds, selectablePieceIds, tutorialActive, tutorialDef?.markedPieceId, tutorialGate]);
-  const highlightedPieceIds = useMemo(
-    () => [
-      ...(tutorialActive && tutorialDef?.markedPieceId ? [tutorialDef.markedPieceId] : []),
-      ...selectedRemovalPieceIds,
-      ...(selectedJaguarTargetPieceId ? [selectedJaguarTargetPieceId] : []),
-      ...(selectedWolfTargetPieceId ? [selectedWolfTargetPieceId] : [])
-    ],
-    [selectedJaguarTargetPieceId, selectedRemovalPieceIds, selectedWolfTargetPieceId, tutorialActive, tutorialDef?.markedPieceId]
-  );
-  const coatiFruitTargets = useMemo(() => {
-    if (!room?.game || hasPendingCoatiPairBonus || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getCoatiFruitPlacementPositions(room.game, room.game.activePlayerId);
-  }, [canControlActivePlayer, hasPendingCoatiPairBonus, room?.game]);
-  const coatiPairBonusTargets = useMemo(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getCoatiPairBonusTargets(room.game, room.game.activePlayerId);
-  }, [canControlActivePlayer, room?.game]);
-  const displayCoatiPairBonusTargets = useMemo(() => {
-    if (tutorialActive && tutorialGate !== "resolvePair") {
-      return [];
-    }
-    if (!tutorialActive || !tutorialDef?.markedPairTarget) {
-      return coatiPairBonusTargets;
-    }
-
-    return coatiPairBonusTargets.filter((position) => sameGridPosition(position, tutorialDef.markedPairTarget));
-  }, [coatiPairBonusTargets, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]);
-  const capuchinPlacementTargets = useMemo(() => {
-    if (!room?.game || activeSpecies?.speciesId !== "capuchin" || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getCapuchinPlacementPositions(room.game, room.game.activePlayerId);
-  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
   const capuchinReserveCount = activeSpecies?.speciesId === "capuchin" ? activeGamePlayer?.reservePieces.length ?? 0 : 0;
-  const macawEggTargets = useMemo(() => {
-    if (!room?.game || activeSpecies?.speciesId !== "macaw" || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getMacawEggPlacementPositions(room.game, room.game.activePlayerId);
-  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
-  const macawActionCTargets = useMemo(() => {
-    if (!room?.game || activeSpecies?.speciesId !== "macaw" || !room.game.activePlayerId || !canControlActivePlayer || selectedPieceId) {
-      return [];
-    }
-
-    return getMacawActionCTargets(room.game, room.game.activePlayerId);
-  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game, selectedPieceId]);
-  const macawAddTargets = useMemo(
-    () => (activeActionId === "A" ? macawEggTargets : activeActionId === "C" ? macawActionCTargets : []),
-    [activeActionId, macawActionCTargets, macawEggTargets]
-  );
-  const galoFieldTargets = useMemo(() => {
-    if (!room?.game || activeSpecies?.speciesId !== "galo_de_campina" || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getGaloFieldPlacementPositions(room.game, room.game.activePlayerId);
-  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
-  const galoAdjacentTargets = useMemo(() => {
-    if (!room?.game || activeSpecies?.speciesId !== "galo_de_campina" || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getGaloAdjacentAddPositions(room.game, room.game.activePlayerId);
-  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
-  const galoAddTargets = useMemo(
-    () => (galoAdjacentTargets.length > 0 ? galoAdjacentTargets : galoFieldTargets),
-    [galoAdjacentTargets, galoFieldTargets]
-  );
-  const armadilloSeedTargets = useMemo(() => {
-    if (!room?.game || activeSpecies?.speciesId !== "armadillo" || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getArmadilloSeedPlacementPositions(room.game, room.game.activePlayerId);
-  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
-  const wolfMeatTargets = useMemo(() => {
-    if (!room?.game || activeSpecies?.speciesId !== "maned_wolf" || !room.game.activePlayerId || !canControlActivePlayer) {
-      return [];
-    }
-
-    return getWolfMeatPlacementPositions(room.game, room.game.activePlayerId);
-  }, [activeSpecies?.speciesId, canControlActivePlayer, room?.game]);
-  const addPieceTargets = useMemo(
-    () =>
-      activeSpecies?.speciesId === "capuchin"
-        ? capuchinPlacementTargets
-        : activeSpecies?.speciesId === "macaw"
-          ? macawAddTargets
-          : activeSpecies?.speciesId === "galo_de_campina"
-            ? galoAddTargets
-          : activeSpecies?.speciesId === "armadillo"
-            ? armadilloSeedTargets
-            : activeSpecies?.speciesId === "maned_wolf"
-              ? wolfMeatTargets
-          : coatiFruitTargets,
-    [
-      activeSpecies?.speciesId,
-      armadilloSeedTargets,
-      capuchinPlacementTargets,
-      coatiFruitTargets,
-      galoAddTargets,
-      macawAddTargets,
-      wolfMeatTargets
-    ]
-  );
-  const displayAddPieceTargets = useMemo(() => {
-    if (tutorialActive && tutorialGate !== "addPiece" && tutorialGate !== "placeCard") {
-      return [];
-    }
-    if (!tutorialActive || tutorialGate !== "addPiece" || !tutorialDef?.markedAddPieceTarget) {
-      return addPieceTargets;
-    }
-
-    return addPieceTargets.filter((position) => sameGridPosition(position, tutorialDef.markedAddPieceTarget));
-  }, [addPieceTargets, tutorialActive, tutorialDef?.markedAddPieceTarget, tutorialGate]);
   const capuchinHabitatScore = room?.game && room.game.activePlayerId ? getCapuchinHabitatScore(room.game, room.game.activePlayerId) : 0;
   const macawLineScore = room?.game && room.game.activePlayerId ? getMacawLineScore(room.game, room.game.activePlayerId) : 0;
   const galoSeedCardScore = room?.game && room.game.activePlayerId ? getGaloSeedCardScore(room.game, room.game.activePlayerId) : 0;
