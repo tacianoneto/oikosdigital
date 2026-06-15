@@ -114,12 +114,13 @@ import type { HandSortMode } from "../hooks/playerCardState";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
+import { useOikosSocket } from "../hooks/useOikosSocket";
 import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
-import { createSocket, roomApi, type OikosSocket } from "../socket";
+import { roomApi, type OikosSocket } from "../socket";
 import { LobbyScreen } from "./LobbyScreen";
 import { LocalSetupScreen } from "./LocalSetupScreen";
 import { MainMenuScreen, type LandingMode } from "./MainMenuScreen";
@@ -163,10 +164,7 @@ import { elementCenter, sameGridPosition } from "../ui/geometry";
 import {
   clearOnlineSession,
   isMissingRoomError,
-  lastOnlineNameStorageKey,
-  lastOnlineRoomStorageKey,
-  saveOnlineSession,
-  wasSpectatorSession
+  saveOnlineSession
 } from "../ui/session";
 import { speciesVar } from "../ui/speciesStyle";
 import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "../ui/turnSummary";
@@ -212,8 +210,6 @@ interface OikosAppProps {
 }
 
 export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
-  const [socket, setSocket] = useState<OikosSocket | null>(null);
-  const [playerId, setPlayerId] = useState<string | null>(null);
   const [room, setRoom] = useState<PublicRoomState | null>(null);
   const defaultPlayerName = useMemo(() => getAuthDisplayName(authUser), [authUser]);
   const [name, setName] = useState(defaultPlayerName);
@@ -285,7 +281,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<LandingMode>("idle");
-  const { openRooms, roomsLoading, refreshRooms } = useOpenRoomsPolling(socket, landingMode);
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
     lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
     points: number;
@@ -425,75 +420,23 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       landingMode === "create" || landingMode === "join" || Boolean(room && room.roomId !== localRoomId);
   }, [landingMode, room]);
 
-  useEffect(() => {
-    const nextSocket = createSocket(authSession.access_token);
-    setSocket(nextSocket);
+  const { socket, playerId } = useOikosSocket({
+    accessToken: authSession.access_token,
+    defaultPlayerName,
+    applyOnlineRoomState,
+    clearRoomState,
+    setError,
+    setName,
+    setIsSpectator,
+    setNotice,
+    setLandingMode,
+    roomActionEpochRef,
+    ignoredOnlineRoomIdsRef,
+    autoScoredRef,
+    showServerWarningRef
+  });
 
-    nextSocket.on("connect", () => {
-      setError((current) => (current === SERVER_UNAVAILABLE_MESSAGE ? null : current));
-    });
-
-    nextSocket.on("connected", (payload: { playerId: string }) => {
-      setPlayerId(payload.playerId);
-      const savedRoomId = window.localStorage.getItem(lastOnlineRoomStorageKey);
-      const savedName = window.localStorage.getItem(lastOnlineNameStorageKey) ?? defaultPlayerName;
-
-      if (savedRoomId) {
-        const reconnectEpoch = roomActionEpochRef.current;
-        const reconnectAsSpectator = wasSpectatorSession();
-        setName(savedName);
-        const reconnectPromise = reconnectAsSpectator
-          ? roomApi.spectate(nextSocket, savedRoomId)
-          : roomApi.join(nextSocket, savedRoomId, savedName);
-        void reconnectPromise
-          .then((nextRoom) => {
-            if (roomActionEpochRef.current !== reconnectEpoch) {
-              return;
-            }
-
-            setIsSpectator(reconnectAsSpectator);
-            applyOnlineRoomState(nextRoom, { direct: true });
-            setNotice(reconnectAsSpectator ? "Reconectado como espectador." : "Reconectado a sala.");
-          })
-          .catch((err) => {
-            if (roomActionEpochRef.current !== reconnectEpoch) {
-              return;
-            }
-
-            clearOnlineSession();
-            clearRoomState();
-            setNotice(
-              isMissingRoomError(err)
-                ? "A sala anterior expirou no servidor gratuito. Crie uma nova sala para continuar."
-                : "Não foi possível reconectar a sala anterior."
-            );
-          });
-      }
-    });
-
-    nextSocket.on("room:update", (nextRoom: PublicRoomState) => {
-      applyOnlineRoomState(nextRoom);
-    });
-
-    nextSocket.on("room:kicked", (payload: { roomId: string }) => {
-      ignoredOnlineRoomIdsRef.current.add(payload.roomId);
-      clearOnlineSession();
-      setLandingMode("idle");
-      autoScoredRef.current = null;
-      clearRoomState();
-      setError("Você foi removido da sala pelo anfitrião.");
-    });
-
-    nextSocket.on("connect_error", () => {
-      if (showServerWarningRef.current) {
-        setError(SERVER_UNAVAILABLE_MESSAGE);
-      }
-    });
-
-    return () => {
-      nextSocket.disconnect();
-    };
-  }, [applyOnlineRoomState, authSession.access_token, clearRoomState, defaultPlayerName]);
+  const { openRooms, roomsLoading, refreshRooms } = useOpenRoomsPolling(socket, landingMode);
 
   useEffect(() => {
     setName((current) => (current === "Jogador" ? defaultPlayerName : current));
