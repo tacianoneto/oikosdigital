@@ -127,7 +127,6 @@ import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { playLogEvent } from "../ui/audio";
 import { ActionStepsViewer } from "../ui/ActionStepsViewer";
 import { ActiveRulesDock } from "../ui/ActiveRulesDock";
-import { ArmadilloSharePanel } from "../ui/ArmadilloSharePanel";
 import { EndgameCeremony } from "../ui/EndgameCeremony";
 import {
   ExpansionPreviewOverlay,
@@ -138,7 +137,7 @@ import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
 import { SettingsModal } from "../ui/SettingsModal";
-import { SpeciesHudShell } from "../ui/SpeciesHudShell";
+import { SpeciesActionHud } from "../ui/SpeciesActionHud";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
 import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
@@ -5168,9 +5167,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           ))}
         </nav>
       )}
-      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "jaguar" && (
-        <SpeciesHudShell
-          speciesId="jaguar"
+      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId && room?.game && (
+        <SpeciesActionHud
+          game={room.game}
           player={currentGamePlayer}
           activeActionId={ownActiveActionId}
           resourceMajority={currentPlayerResourceMajority}
@@ -5181,443 +5180,29 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           showThreat={Boolean(activeThreatDefinition)}
           setEffectTarget={setEffectTarget}
           onExpansionToggle={toggleExpansionPreview}
-        >
-          {room?.game?.activePlayerId === currentGamePlayer.playerId && (
-            <>
-              {(activeActionId === "A" || activeActionId === "B") && (
-                <div className="action-box-hint">
-                  {canSkipJaguarMove
-                    ? "Nenhum destino válido. Conclua a ação para seguir."
-                    : selectedJaguarDestination
-                      ? "Escolha qual meeple remover no destino selecionado."
-                      : "Selecione a Onça e clique em um destino destacado."}
-                </div>
-              )}
-              {activeActionId === "C" && (
-                <div className="action-box-hint">
-                  <ResourceText text="Defina quantas carnes converter em pontos na janela central." />
-                </div>
-              )}
-
-              {canSkipJaguarMove && (activeActionId === "A" || activeActionId === "B") && (
-                <div className="action-box-actions">
-                  <button type="button" className="action-box-btn is-secondary" onClick={handleCompleteAction}>
-                    Concluir
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </SpeciesHudShell>
-      )}
-      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "maned_wolf" && (
-        <SpeciesHudShell
-          speciesId="maned_wolf"
-          player={currentGamePlayer}
-          activeActionId={ownActiveActionId}
-          resourceMajority={currentPlayerResourceMajority}
-          showObjective={Boolean(objectivePreviewCard)}
-          objectiveCompleted={selectedObjectiveCompleted}
-          objectiveDiscarded={objectiveWasDiscarded}
-          showScenarios={activeScenarioDefinitions.length > 0}
-          showThreat={Boolean(activeThreatDefinition)}
-          setEffectTarget={setEffectTarget}
-          onExpansionToggle={toggleExpansionPreview}
-        >
-          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-            <>
-                    {activeActionId === "A" && (
-                      <div className="action-box-hint">
-                        {room.game.activePlayedForestCardId
-                          ? <>Conduza os lobos destacados pelo padrão da carta. Pendentes: <strong>{room.game.pendingWolfMoves?.pieceIds.length ?? 0}</strong>.</>
-                          : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
-                      </div>
-                    )}
-                    {activeActionId === "B" && (
-                      <>
-                        <div className="action-box-hint">
-                          {wolfRemovableBasePieceIds.length > 0
-                            ? selectedWolfTargetPieceId
-                              ? "Peça de base selecionada. Confirme a remoção ou cancele a ação."
-                              : "Clique em uma peça de base que divida local com um lobo."
-                            : "Nenhuma peça de base partilha local com lobo."}
-                        </div>
-                        <div className="action-box-actions">
-                          <button
-                            className="action-box-btn"
-                            disabled={!selectedWolfTargetPieceId}
-                            onClick={handleRemoveWolfBasePiece}
-                          >
-                            Remover peça
-                          </button>
-                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            Concluir
-                          </button>
-                        </div>
-                      </>
-                    )}
-                    {activeActionId === "C" && (
-                      <div className="action-box-hint">
-                        Escolha na janela central os recursos a converter em pontos.
-                      </div>
-                    )}
-                    {activeActionId === "D" && (
-                      <>
-                        <div className="action-box-hint">
-                          Clique em uma carta de <ResourceIcon resource="meat" /> para abrigar 1 lobo. Locais válidos:{" "}
-                          <strong>{wolfMeatTargets.length}</strong>.
-                        </div>
-                        <div className="action-box-actions">
-                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            Concluir sem adicionar
-                          </button>
-                        </div>
-                      </>
-                    )}
-            </>
-          )}
-        </SpeciesHudShell>
-      )}
-      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "armadillo" && (
-        <SpeciesHudShell
-          speciesId="armadillo"
-          player={currentGamePlayer}
-          activeActionId={ownActiveActionId}
-          resourceMajority={currentPlayerResourceMajority}
-          showObjective={Boolean(objectivePreviewCard)}
-          objectiveCompleted={selectedObjectiveCompleted}
-          objectiveDiscarded={objectiveWasDiscarded}
-          showScenarios={activeScenarioDefinitions.length > 0}
-          showThreat={Boolean(activeThreatDefinition)}
-          setEffectTarget={setEffectTarget}
-          onExpansionToggle={toggleExpansionPreview}
-        >
-          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-            <>
-                    {activeActionId === "A" && (
-                      <>
-                        <div className="action-box-hint">
-                          <ResourceText
-                            text={
-                              room.game.activePlayedForestCardId
-                                ? "Clique em uma carta com semente destacada para abrigar 1 tatu."
-                                : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
-                            }
-                          />
-                        </div>
-                        {room.game.activePlayedForestCardId && (
-                          <div className="action-box-actions">
-                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {activeActionId === "B" && (
-                      <div className="action-box-hint">
-                        Selecione um Tatu-bola e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
-                      </div>
-                    )}
-                    {activeActionId === "C" && (
-                      <>
-                        <div className="action-box-hint">
-                          Selecione um Tatu-bola visível para recolhê-lo em sua carapaça.
-                        </div>
-                        {selectedPieceId ? (
-                          <div className="action-box-actions">
-                            <button className="action-box-btn" onClick={handleHideArmadillo}>
-                              Esconder Tatu-bola
-                            </button>
-                          </div>
-                        ) : getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length === 0 ? (
-                          <div className="action-box-actions">
-                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Concluir ação
-                            </button>
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                    {activeActionId === "D" && (
-                      <>
-                        <div className="action-box-hint">
-                          Cada espécie no mesmo local de um Tatu-bola conta como compartilhamento.
-                        </div>
-                        {scoringPreview.armadillo && <ArmadilloSharePanel details={scoringPreview.armadillo} />}
-                      </>
-                    )}
-            </>
-          )}
-        </SpeciesHudShell>
-      )}
-      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "macaw" && (
-        <SpeciesHudShell
-          speciesId="macaw"
-          player={currentGamePlayer}
-          activeActionId={ownActiveActionId}
-          resourceMajority={currentPlayerResourceMajority}
-          showObjective={Boolean(objectivePreviewCard)}
-          objectiveCompleted={selectedObjectiveCompleted}
-          objectiveDiscarded={objectiveWasDiscarded}
-          showScenarios={activeScenarioDefinitions.length > 0}
-          showThreat={Boolean(activeThreatDefinition)}
-          setEffectTarget={setEffectTarget}
-          onExpansionToggle={toggleExpansionPreview}
-        >
-          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-            <>
-                    {activeActionId === "A" && (
-                      <>
-                        <div className="action-box-hint">
-                          <ResourceText
-                            text={
-                              room.game.activePlayedForestCardId
-                                ? "Clique em uma carta com ovo destacada para abrigar 1 arara."
-                                : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
-                            }
-                          />
-                        </div>
-                        {room.game.activePlayedForestCardId && (
-                          <div className="action-box-actions">
-                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {activeActionId === "B" && (
-                      <div className="action-box-hint">
-                        Selecione uma Arara-azul e clique em um destino destacado para conduzi-la pelo padrão da carta jogada.
-                      </div>
-                    )}
-                    {activeActionId === "C" && (
-                      <>
-                        <div className="action-box-hint">
-                          Adicione uma arara da reserva ou realoque outra ao redor da que acabou de se mover.
-                        </div>
-                        <div className="action-box-actions">
-                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            {macawActionCTargets.length === 0 && !selectedPieceId ? "Concluir (sem espaço válido)" : "Avançar sem adicionar"}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                    {activeActionId === "D" && (
-                      <div className="action-box-hint">
-                        Pontuação automática: <strong>+{macawLineScore}</strong> {macawLineScore === 1 ? "ponto" : "pontos"} pelas formações lineares.
-                      </div>
-                    )}
-            </>
-          )}
-        </SpeciesHudShell>
-      )}
-      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "galo_de_campina" && (
-        <SpeciesHudShell
-          speciesId="galo_de_campina"
-          player={currentGamePlayer}
-          activeActionId={ownActiveActionId}
-          resourceMajority={currentPlayerResourceMajority}
-          showObjective={Boolean(objectivePreviewCard)}
-          objectiveCompleted={selectedObjectiveCompleted}
-          objectiveDiscarded={objectiveWasDiscarded}
-          showScenarios={activeScenarioDefinitions.length > 0}
-          showThreat={Boolean(activeThreatDefinition)}
-          setEffectTarget={setEffectTarget}
-          onExpansionToggle={toggleExpansionPreview}
-        >
-          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-            <>
-                    {activeActionId === "A" && (
-                      <>
-                        <div className="action-box-hint">
-                          {room.game.activePlayedForestCardId
-                            ? "Clique em uma carta de campo destacada para abrigar 1 galo-de-campina."
-                            : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
-                        </div>
-                        {room.game.activePlayedForestCardId && (
-                          <div className="action-box-actions">
-                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {activeActionId === "B" && (
-                      <div className="action-box-hint">
-                        Selecione um Galo-de-campina e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
-                      </div>
-                    )}
-                    {activeActionId === "C" && (
-                      <>
-                        <div className="action-box-hint">
-                          <ResourceText
-                            text={
-                              room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
-                                ? "Clique em um local destacado adjacente ao galo movido para adicionar 1 galo-de-campina."
-                                : (currentGamePlayer.resources.seed ?? 0) <= 0
-                                  ? "Sem semente disponível: conclua a ação para seguir."
-                                  : "Opcional: gaste 1 semente ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."
-                            }
-                          />
-                        </div>
-                        <div className="action-box-actions">
-                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            {room?.game?.pendingGaloAdjacentAdd?.playerId === currentGamePlayer.playerId
-                              ? "Concluir sem adicionar"
-                              : "Concluir sem gastar"}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                    {activeActionId === "D" && (
-                      <div className="action-box-hint">
-                        Pontuação automática: <strong>+{galoSeedCardScore}</strong> {galoSeedCardScore === 1 ? "ponto" : "pontos"}:
-                        +1 se presente em 3+ campinas, +1 se presente em 3+ locais de <ResourceIcon resource="seed" />.
-                      </div>
-                    )}
-            </>
-          )}
-        </SpeciesHudShell>
-      )}
-      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "capuchin" && (
-        <SpeciesHudShell
-          speciesId="capuchin"
-          player={currentGamePlayer}
-          activeActionId={ownActiveActionId}
-          resourceMajority={currentPlayerResourceMajority}
-          showObjective={Boolean(objectivePreviewCard)}
-          objectiveCompleted={selectedObjectiveCompleted}
-          objectiveDiscarded={objectiveWasDiscarded}
-          showScenarios={activeScenarioDefinitions.length > 0}
-          showThreat={Boolean(activeThreatDefinition)}
-          setEffectTarget={setEffectTarget}
-          onExpansionToggle={toggleExpansionPreview}
-        >
-          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-            <>
-                    {activeActionId === "A" && (
-                      <>
-                        <div className="action-box-hint">
-                          {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                            ? "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
-                            : <>Clique na carta recém-revelada para abrigar 1 macaco. Reserva disponível: <strong>{capuchinReserveCount}</strong>.</>}
-                        </div>
-                        {room.game.activePlayedForestCardId && (
-                          <div className="action-box-actions">
-                            <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                              Avançar sem adicionar
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                    {activeActionId === "B" && (
-                      <div className="action-box-hint">
-                        Selecione um Macaco-prego e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
-                      </div>
-                    )}
-                    {activeActionId === "C" && (
-                      <>
-                        <div className="action-box-hint">
-                          {capuchinReserveCount === 0 || capuchinPlacementTargets.length === 0
-                            ? "Sem locais elegíveis ou reserva esgotada. Conclua a ação para seguir."
-                            : <>Clique em um local com macaco já estabelecido para reforçar o bando. Reserva: <strong>{capuchinReserveCount}</strong>.</>}
-                        </div>
-                        <div className="action-box-actions">
-                          <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                            {capuchinPlacementTargets.length === 0 ? "Concluir ação" : "Avançar sem reforçar"}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                    {activeActionId === "D" && (
-                      <div className="action-box-hint">
-                        Pontuação automática: <strong>+{capuchinHabitatScore}</strong> {capuchinHabitatScore === 1 ? "ponto" : "pontos"} pelos habitats dominados.
-                      </div>
-                    )}
-            </>
-          )}
-        </SpeciesHudShell>
-      )}
-      {hasStartedGame && !cleanBoardMode && !isBasicTutorial && currentGamePlayer?.speciesId === "coati" && (
-        <SpeciesHudShell
-          speciesId="coati"
-          player={currentGamePlayer}
-          activeActionId={ownActiveActionId}
-          resourceMajority={currentPlayerResourceMajority}
-          showObjective={Boolean(objectivePreviewCard)}
-          objectiveCompleted={selectedObjectiveCompleted}
-          objectiveDiscarded={objectiveWasDiscarded}
-          showScenarios={activeScenarioDefinitions.length > 0}
-          showThreat={Boolean(activeThreatDefinition)}
-          setEffectTarget={setEffectTarget}
-          onExpansionToggle={toggleExpansionPreview}
-        >
-          {room?.game?.activePlayerId === currentGamePlayer.playerId && room.game && (
-            hasPendingCoatiPairBonus ? (
-              <div className="action-box-hint">
-                Passiva ativada! Adicione 1 quati da reserva em uma carta adjacente. Essa adição marca 1 ponto.
-              </div>
-            ) : (
-              <>
-                      {activeActionId === "A" && (
-                        <>
-                          <div className="action-box-hint">
-                            <ResourceText
-                              text={
-                                room.game.activePlayedForestCardId
-                                  ? "Clique em uma carta com fruta destacada para abrigar 1 quati."
-                                  : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."
-                              }
-                            />
-                          </div>
-                          {room.game.activePlayedForestCardId && !tutorialActive && (
-                            <div className="action-box-actions">
-                              <button className="action-box-btn is-secondary" onClick={handleCompleteAction}>
-                                Avançar sem adicionar
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {activeActionId === "B" && (
-                        <div className="action-box-hint">
-                          Selecione um quati no tabuleiro e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
-                        </div>
-                      )}
-                      {activeActionId === "C" && (
-                        <>
-                          {requiredCoatiRemovalCount === 0 ? (
-                            <div className="action-box-actions">
-                              <button className="action-box-btn is-secondary" disabled={tutorialActive} onClick={handleCompleteAction}>
-                                Concluir ação
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="action-box-hint">
-                                Selecione <strong>{requiredCoatiRemovalCount}</strong> {requiredCoatiRemovalCount === 1 ? "quati" : "quatis"} para retirar. Marcados: <strong>{selectedRemovalPieceIds.length}/{requiredCoatiRemovalCount}</strong>.
-                              </div>
-                              <div className="action-box-actions">
-                                <button
-                                  className="action-box-btn"
-                                  disabled={selectedRemovalPieceIds.length !== requiredCoatiRemovalCount}
-                                  onClick={handleRemoveSelectedPieces}
-                                >
-                                  Retirar quatis
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )}
-              </>
-            )
-          )}
-        </SpeciesHudShell>
+          tutorialActive={tutorialActive}
+          canSkipJaguarMove={canSkipJaguarMove}
+          selectedJaguarDestination={selectedJaguarDestination}
+          selectedPieceId={selectedPieceId}
+          selectedWolfTargetPieceId={selectedWolfTargetPieceId}
+          selectedRemovalPieceIds={selectedRemovalPieceIds}
+          wolfRemovableBasePieceCount={wolfRemovableBasePieceIds.length}
+          wolfMeatTargetCount={wolfMeatTargets.length}
+          armadilloHideablePieceCount={getArmadilloHidePieceIds(room.game, room.game.activePlayerId ?? "").length}
+          armadilloSharing={scoringPreview.armadillo}
+          macawActionCTargetCount={macawActionCTargets.length}
+          macawLineScore={macawLineScore}
+          galoSeedCardScore={galoSeedCardScore}
+          capuchinReserveCount={capuchinReserveCount}
+          capuchinPlacementTargetCount={capuchinPlacementTargets.length}
+          capuchinHabitatScore={capuchinHabitatScore}
+          requiredCoatiRemovalCount={requiredCoatiRemovalCount}
+          hasPendingCoatiPairBonus={hasPendingCoatiPairBonus}
+          onCompleteAction={handleCompleteAction}
+          onHideArmadillo={handleHideArmadillo}
+          onRemoveWolfBasePiece={handleRemoveWolfBasePiece}
+          onRemoveSelectedPieces={handleRemoveSelectedPieces}
+        />
       )}
     </main>
   );
