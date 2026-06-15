@@ -105,6 +105,21 @@ export {
   getCapuchinScoringHabitats
 };
 export type { CapuchinHabitatGroup } from "./species/capuchin";
+import {
+  getMacawActionCTargets,
+  getMacawEggPlacementPositions,
+  getMacawLineScore,
+  getMacawRelocatablePieceIds,
+  getMacawScoringLines
+} from "./species/macaw";
+export {
+  getMacawActionCTargets,
+  getMacawEggPlacementPositions,
+  getMacawLineScore,
+  getMacawRelocatablePieceIds,
+  getMacawScoringLines
+};
+export type { MacawScoringLine } from "./species/macaw";
 import { getMovementKindForSpecies, getPotentialDestinations } from "./movement";
 import { applyEndTurnRuleEffects, getCollectionBlockReason, getMovementKindOverride } from "./effects";
 import {
@@ -135,17 +150,6 @@ const cardinalDirections = [
 
 const FOREST_LIMIT_MIN = -3;
 const FOREST_LIMIT_MAX = 3;
-
-const surroundingDirections = [
-  { x: -1, y: -1 },
-  { x: 0, y: -1 },
-  { x: 1, y: -1 },
-  { x: -1, y: 0 },
-  { x: 1, y: 0 },
-  { x: -1, y: 1 },
-  { x: 0, y: 1 },
-  { x: 1, y: 1 }
-];
 
 type ConnectionDirection = keyof CardConnections;
 
@@ -1585,23 +1589,6 @@ export function scoreCapuchinHabitatPresence(game: GameState, playerId: string):
   return next;
 }
 
-export function getMacawEggPlacementPositions(game: GameState, playerId: string): GridPosition[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "macaw" || getCurrentAction(game) !== "A" || !game.activePlayedForestCardId) {
-    return [];
-  }
-
-  if (player.reservePieces.length === 0) {
-    return [];
-  }
-
-  return getForestPositionsWithResource(game, "egg");
-}
-
 export function addMacawForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
   if (game.status !== "active") {
     throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
@@ -1670,36 +1657,6 @@ export function addMacawForCurrentAction(game: GameState, playerId: string, loca
   return next;
 }
 
-export function getMacawActionCTargets(game: GameState, playerId: string): GridPosition[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  const pending = game.pendingMacawMovedPiece;
-  if (player?.speciesId !== "macaw" || getCurrentAction(game) !== "C" || pending?.playerId !== playerId) {
-    return [];
-  }
-
-  return getSurroundingDestinations(game, pending.location);
-}
-
-export function getMacawRelocatablePieceIds(game: GameState, playerId: string): string[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  const pending = game.pendingMacawMovedPiece;
-  if (player?.speciesId !== "macaw" || getCurrentAction(game) !== "C" || pending?.playerId !== playerId) {
-    return [];
-  }
-
-  return game.pieces
-    .filter((piece) => piece.ownerId === playerId && piece.speciesId === "macaw" && piece.location && piece.pieceId !== pending.pieceId)
-    .map((piece) => piece.pieceId);
-}
-
 export function relocateMacawForCurrentAction(game: GameState, playerId: string, pieceId: string, location: GridPosition): GameState {
   if (game.status !== "active") {
     throw new Error("Movimentos so podem acontecer durante a fase ativa.");
@@ -1757,99 +1714,6 @@ export function relocateMacawForCurrentAction(game: GameState, playerId: string,
   return next;
 }
 
-export function getMacawLineScore(game: GameState, playerId: string): number {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return 0;
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "macaw" || getCurrentAction(game) !== "D") {
-    return 0;
-  }
-
-  const positionSet = new Set(
-    game.pieces
-      .filter((piece) => piece.ownerId === playerId && piece.speciesId === "macaw" && piece.location)
-      .map((piece) => positionKey(piece.location!))
-  );
-  const directions = [
-    { x: 1, y: 0 },
-    { x: 0, y: 1 },
-    { x: 1, y: 1 },
-    { x: 1, y: -1 }
-  ];
-  const lineKeys = new Set<string>();
-
-  for (const key of positionSet) {
-    const [x, y] = key.split(":").map(Number);
-    for (const direction of directions) {
-      const before = `${x - direction.x}:${y - direction.y}`;
-      const second = `${x + direction.x}:${y + direction.y}`;
-      const third = `${x + direction.x * 2}:${y + direction.y * 2}`;
-      if (positionSet.has(before) || !positionSet.has(second) || !positionSet.has(third)) {
-        continue;
-      }
-
-      lineKeys.add(`${x}:${y}|${direction.x}:${direction.y}`);
-    }
-  }
-
-  return lineKeys.size;
-}
-
-export interface MacawScoringLine {
-  origin: GridPosition;
-  direction: GridPosition;
-  positions: [GridPosition, GridPosition, GridPosition];
-}
-
-export function getMacawScoringLines(game: GameState, playerId: string): MacawScoringLine[] {
-  if (game.status !== "active" || game.activePlayerId !== playerId) {
-    return [];
-  }
-
-  const player = game.players.find((candidate) => candidate.playerId === playerId);
-  if (player?.speciesId !== "macaw" || getCurrentAction(game) !== "D") {
-    return [];
-  }
-
-  const positionSet = new Set(
-    game.pieces
-      .filter((piece) => piece.ownerId === playerId && piece.speciesId === "macaw" && piece.location)
-      .map((piece) => positionKey(piece.location!))
-  );
-  const directions: GridPosition[] = [
-    { x: 1, y: 0 },
-    { x: 0, y: 1 },
-    { x: 1, y: 1 },
-    { x: 1, y: -1 }
-  ];
-  const lines: MacawScoringLine[] = [];
-
-  for (const key of positionSet) {
-    const [x, y] = key.split(":").map(Number);
-    for (const direction of directions) {
-      const before = `${x - direction.x}:${y - direction.y}`;
-      const second = `${x + direction.x}:${y + direction.y}`;
-      const third = `${x + direction.x * 2}:${y + direction.y * 2}`;
-      if (positionSet.has(before) || !positionSet.has(second) || !positionSet.has(third)) {
-        continue;
-      }
-
-      lines.push({
-        origin: { x, y },
-        direction,
-        positions: [
-          { x, y },
-          { x: x + direction.x, y: y + direction.y },
-          { x: x + direction.x * 2, y: y + direction.y * 2 }
-        ]
-      });
-    }
-  }
-
-  return lines;
-}
 
 export function scoreMacawLines(game: GameState, playerId: string): GameState {
   if (game.status !== "active") {
@@ -4027,15 +3891,6 @@ function noConnections(): CardConnections {
     south: null,
     west: null
   };
-}
-
-function getSurroundingDestinations(game: GameState, origin: GridPosition): GridPosition[] {
-  const forestPositions = new Set(game.forest.cards.map((card) => positionKey(card)));
-
-  return surroundingDirections
-    .map((direction) => ({ x: origin.x + direction.x, y: origin.y + direction.y }))
-    .filter((position) => forestPositions.has(positionKey(position)))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
 function getWolfCompletionLogMessage(playerName: string, action: string | null): string {
