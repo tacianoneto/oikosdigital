@@ -28,7 +28,6 @@ import {
   X
 } from "lucide-react";
 import {
-  getForestCardDefinition,
   getObjectiveCardDefinition,
   habitatLabels,
   movementLabels,
@@ -137,6 +136,13 @@ import {
 import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceIcon, ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
+import {
+  CaatingaChoiceModal,
+  CacaIlegalChoiceModal,
+  CacaIlegalRemovalBanner,
+  CerradoChoiceModal,
+  MataAtlanticaDiscardModal
+} from "../ui/ScenarioPendingDialogs";
 import { JaguarScoreModal, WolfScoreModal } from "../ui/ScoreSpendModals";
 import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesActionHud } from "../ui/SpeciesActionHud";
@@ -2659,155 +2665,44 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         </div>
       )}
       {cacaIlegalPending && canResolveCacaIlegal && !cacaIlegalRemovalMode && (
-        <div className="caatinga-choice-backdrop" role="presentation">
-          <section className="caatinga-choice-modal caca-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caca-choice-title">
-            <div className="caatinga-choice-head caca-choice-head">
-              <AlertTriangle aria-hidden="true" />
-              <span>Ameaca Caca ilegal</span>
-            </div>
-            <h2 id="caca-choice-title">Escolha a perda do turno</h2>
-            <p>
-              {cacaIlegalGamePlayer?.name ?? "Jogador"}, ao final do seu turno remova 1 peca sua do tabuleiro
-              ou gaste 1 recurso entre os que voce mais possui.
-            </p>
-            {cacaIlegalTopResources.length > 0 && (
-              <div className="caca-choice-section">
-                <strong>Gastar recurso</strong>
-                <div className="caca-resource-grid">
-                  {cacaIlegalTopResources.map((resource) => (
-                    <button
-                      key={resource}
-                      type="button"
-                      className="caatinga-collect-btn caca-resource-btn"
-                      onClick={() => resolveCacaIlegalChoice({ kind: "spend_resource", resource })}
-                    >
-                      <img src={encodeURI(resourceAssets[resource])} alt="" />
-                      {resourceLabels[resource]} ({cacaIlegalGamePlayer?.resources[resource] ?? 0})
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {cacaIlegalRemovablePieces.length > 0 && (
-              <div className="caca-choice-section">
-                <strong>Remover peca</strong>
-                <button
-                  type="button"
-                  className="caatinga-collect-btn caca-remove-mode-btn"
-                  onClick={() => {
-                    setSelectedRemovalPieceIds([]);
-                    setCacaIlegalRemovalMode(true);
-                  }}
-                >
-                  Voltar para a floresta e escolher peca
-                </button>
-              </div>
-            )}
-          </section>
-        </div>
+        <CacaIlegalChoiceModal
+          playerName={cacaIlegalGamePlayer?.name ?? "Jogador"}
+          topResources={cacaIlegalTopResources}
+          resources={cacaIlegalGamePlayer?.resources ?? {}}
+          hasRemovablePieces={cacaIlegalRemovablePieces.length > 0}
+          onSpendResource={(resource) => resolveCacaIlegalChoice({ kind: "spend_resource", resource })}
+          onEnterRemovalMode={() => {
+            setSelectedRemovalPieceIds([]);
+            setCacaIlegalRemovalMode(true);
+          }}
+        />
       )}
       {cacaIlegalPending && canResolveCacaIlegal && cacaIlegalRemovalMode && (
-        <div className="caca-board-removal-floating" role="status" aria-live="polite">
-          <span>
-            Selecione uma peca sua na floresta. Selecionada: <strong>{selectedRemovalPieceIds.length}/1</strong>.
-          </span>
-          <button
-            type="button"
-            className="caca-board-confirm-btn"
-            disabled={selectedRemovalPieceIds.length !== 1}
-            onClick={resolveSelectedCacaIlegalPiece}
-          >
-            Remover peca
-          </button>
-          <button
-            type="button"
-            className="caca-board-cancel-btn"
-            onClick={() => {
-              setCacaIlegalRemovalMode(false);
-              setSelectedRemovalPieceIds([]);
-            }}
-          >
-            Voltar
-          </button>
-        </div>
+        <CacaIlegalRemovalBanner
+          selectedCount={selectedRemovalPieceIds.length}
+          confirmDisabled={selectedRemovalPieceIds.length !== 1}
+          onConfirm={resolveSelectedCacaIlegalPiece}
+          onBack={() => {
+            setCacaIlegalRemovalMode(false);
+            setSelectedRemovalPieceIds([]);
+          }}
+        />
       )}
       {caatingaPending && canResolveCaatinga && (
-        <div className="caatinga-choice-backdrop" role="presentation">
-          <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="caatinga-choice-title">
-            <div className="caatinga-choice-head">
-              <AlertTriangle aria-hidden="true" />
-              <span>Cenário Caatinga</span>
-            </div>
-            <h2 id="caatinga-choice-title">
-              {caatingaPending.trigger === "remove" ? "Você removeu uma peça" : "Você adicionou uma peça"}
-            </h2>
-            <p>
-              {caatingaGamePlayer?.name ?? "Jogador"}, escolha o efeito no local:{" "}
-              <strong>{resourceLabels[caatingaPending.resource]}</strong>.
-              Você só pode usar Caatinga uma vez nesta rodada.
-            </p>
-            <div className="caatinga-choice-resource">
-              <img src={encodeURI(resourceAssets[caatingaPending.resource])} alt="" />
-              <span>{resourceLabels[caatingaPending.resource]}</span>
-            </div>
-            <div className="caatinga-choice-actions">
-              <button type="button" className="caatinga-collect-btn" onClick={() => resolveCaatingaChoice("gain")}>
-                <img src={encodeURI(resourceAssets[caatingaPending.resource])} alt="" />
-                Ganhar +1
-              </button>
-              <button
-                type="button"
-                className="caatinga-collect-btn caatinga-collect-btn--lose"
-                onClick={() => resolveCaatingaChoice("lose")}
-                disabled={(caatingaGamePlayer?.resources[caatingaPending.resource] ?? 0) <= 0}
-                title={(caatingaGamePlayer?.resources[caatingaPending.resource] ?? 0) <= 0 ? "Sem recurso para perder" : undefined}
-              >
-                <img src={encodeURI(resourceAssets[caatingaPending.resource])} alt="" />
-                Perder -1
-              </button>
-              <button
-                type="button"
-                className="caatinga-collect-btn caatinga-collect-btn--skip"
-                onClick={() => resolveCaatingaChoice("skip")}
-              >
-                Agora não
-              </button>
-            </div>
-          </section>
-        </div>
+        <CaatingaChoiceModal
+          playerName={caatingaGamePlayer?.name ?? "Jogador"}
+          trigger={caatingaPending.trigger}
+          resource={caatingaPending.resource}
+          currentResourceCount={caatingaGamePlayer?.resources[caatingaPending.resource] ?? 0}
+          onChoice={resolveCaatingaChoice}
+        />
       )}
       {cerradoPending && canResolveCerrado && (
-        <div className="caatinga-choice-backdrop" role="presentation">
-          <section className="caatinga-choice-modal" role="dialog" aria-modal="true" aria-labelledby="cerrado-choice-title">
-            <div className="caatinga-choice-head">
-              <Leaf aria-hidden="true" />
-              <span>Cenário Cerrado</span>
-            </div>
-            <h2 id="cerrado-choice-title">Você encontrou um novo recurso</h2>
-            <p>
-              {cerradoGamePlayer?.name ?? "Jogador"}, você ainda não possui{" "}
-              <strong>{resourceLabels[cerradoPending.resource]}</strong>. Ative o Cerrado agora para coletar 2,
-              ou deixe para tentar em outro momento desta rodada.
-            </p>
-            <div className="caatinga-choice-resource">
-              <img src={encodeURI(resourceAssets[cerradoPending.resource])} alt="" />
-              <span>{resourceLabels[cerradoPending.resource]}</span>
-            </div>
-            <div className="caatinga-choice-actions caatinga-choice-actions--stack">
-              <button type="button" className="caatinga-collect-btn" onClick={() => resolveCerradoChoice("collect")}>
-                <img src={encodeURI(resourceAssets[cerradoPending.resource])} alt="" />
-                Coletar 2
-              </button>
-              <button
-                type="button"
-                className="caatinga-collect-btn caatinga-collect-btn--skip"
-                onClick={() => resolveCerradoChoice("skip")}
-              >
-                Agora não
-              </button>
-            </div>
-          </section>
-        </div>
+        <CerradoChoiceModal
+          playerName={cerradoGamePlayer?.name ?? "Jogador"}
+          resource={cerradoPending.resource}
+          onChoice={resolveCerradoChoice}
+        />
       )}
       {room?.game?.pendingExtraTurnPlayerId && canResolveExtraTurn && (
         <div className="caatinga-choice-backdrop" role="presentation">
@@ -2881,36 +2776,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         </div>
       )}
       {mataAtlanticaForcedDiscard && (
-        <div className="caatinga-choice-backdrop" role="presentation">
-          <section className="caatinga-choice-modal mata-discard-modal" role="dialog" aria-modal="true" aria-labelledby="mata-discard-title">
-            <div className="caatinga-choice-head">
-              <Leaf aria-hidden="true" />
-              <span>Cenário Mata Atlântica</span>
-            </div>
-            <h2 id="mata-discard-title">Escolha 1 carta para descartar</h2>
-            <p>
-              {currentGamePlayer?.name ?? "Jogador"}, sua espécie não usa cartas. No início do turno você deve
-              descartar 1 carta aberta de uma das 3 pilhas.
-            </p>
-            <div className="mata-discard-grid">
-              {mataAtlanticaPileTopIds.map((cardId, index) => {
-                const def = getForestCardDefinition(cardId);
-                return (
-                  <button
-                    key={cardId}
-                    type="button"
-                    className="mata-discard-option"
-                    onClick={() => resolveMataAtlanticaDiscard(cardId)}
-                    title={`Descartar carta da pilha ${index + 1}`}
-                  >
-                    <span className="mata-discard-pile-label">Pilha {index + 1}</span>
-                    <img src={encodeURI(def.imagePath)} alt={`Carta da pilha ${index + 1}`} />
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        </div>
+        <MataAtlanticaDiscardModal
+          playerName={currentGamePlayer?.name ?? "Jogador"}
+          pileTopIds={mataAtlanticaPileTopIds}
+          onDiscard={resolveMataAtlanticaDiscard}
+        />
       )}
       {travelEffects.length > 0 && (
         <div className="travel-effect-layer" aria-hidden="true">

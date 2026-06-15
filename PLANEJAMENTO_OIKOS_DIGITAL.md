@@ -29,11 +29,12 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Polling de salas abertas do lobby extraído de `OikosApp.tsx` para `apps/web/src/hooks/useOpenRoomsPolling.ts` (estado `openRooms`/`roomsLoading`, efeito de poll 4s e refresh manual). Movimento puro; `typecheck`/`build` ok. (Smoke pós-login bloqueado: automação de login no preview não dispara o POST de auth; boot/login limpos.)
 - Conexão/sessão online (socket autoritativo) extraída de `OikosApp.tsx` para `apps/web/src/hooks/useOikosSocket.ts`: detém os estados `socket`/`playerId` e o efeito de ciclo de vida (connect, connected/reconnect, room:update, room:kicked, connect_error, teardown). Refs/callbacks compartilhados passados por parâmetro. Movimento puro, sem mudar comportamento; `typecheck`/`test`/`build` ok e smoke da tela de login aprovado.
 - Modais de pontuação inline (Onça-pintada · Ação C "gastar carne" e Lobo-guará · Ação C "gastar recursos") extraídos de `OikosApp.tsx` para componentes presentacionais `JaguarScoreModal`/`WolfScoreModal` em `apps/web/src/ui/ScoreSpendModals.tsx`. Condições de visibilidade ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
+- Diálogos de cenário/ameaça pendente inline (Caça ilegal: modal de escolha + faixa de remoção; Caatinga; Cerrado; Mata Atlântica) extraídos de `OikosApp.tsx` para componentes presentacionais em `apps/web/src/ui/ScenarioPendingDialogs.tsx` (`CacaIlegalChoiceModal`, `CacaIlegalRemovalBanner`, `CaatingaChoiceModal`, `CerradoChoiceModal`, `MataAtlanticaDiscardModal`). Condições de visibilidade e resolvers ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
 - Baseline validada com `typecheck`, `test` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** continuar a divisão de `apps/web/src/screens/OikosApp.tsx` (helpers de módulo, hook de conexão/sessão e modais de pontuação já extraídos): seguir com os demais grupos de modais/diálogos inline (cenários pendentes Caatinga/Cerrado/Caça ilegal/Mata Atlântica, objetivo de sementes, board modal, modal de movimentos), depois os blocos de HUD.
+1. **Fazer primeiro:** continuar a divisão de `apps/web/src/screens/OikosApp.tsx` (helpers de módulo, hook de conexão/sessão, modais de pontuação e diálogos de cenário pendente já extraídos): seguir com os diálogos de objetivo de fim de jogo (turno extra, gastar sementes), depois o board modal e o modal de movimentos, e por fim os blocos de HUD.
 2. Dividir `apps/web/src/game/ForestPhaserScene.ts` por responsabilidades: câmera, ambiente, destaques e peças. Fazer smoke test visual.
 3. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
 
