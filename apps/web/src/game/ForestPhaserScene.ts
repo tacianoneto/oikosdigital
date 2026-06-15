@@ -5,6 +5,13 @@ import {
   parseGridPositionKey
 } from "@oikos/shared";
 import type { ForestCardState, GridPosition, PieceState, Resource, SpeciesId } from "@oikos/shared";
+import {
+  getForestCameraFit,
+  getForestContentBounds,
+  gridToWorld,
+  worldToScreenPoint
+} from "./forestCamera";
+import type { ForestBounds } from "./forestCamera";
 
 export interface RotateFitTarget {
   position: GridPosition;
@@ -358,12 +365,7 @@ export class ForestPhaserScene extends Phaser.Scene {
     }
 
     const world = this.worldOf(position);
-    const camera = this.cameras.main;
-    // Account for camera display offset (camera.x/y) plus world-to-screen transform via zoom + scroll.
-    return {
-      x: camera.x + (world.x - camera.scrollX) * camera.zoom,
-      y: camera.y + (world.y - camera.scrollY) * camera.zoom
-    };
+    return worldToScreenPoint(world, this.cameras.main);
   }
 
   getCardScreenSize(): number {
@@ -377,15 +379,11 @@ export class ForestPhaserScene extends Phaser.Scene {
     if (!this.ready) return null;
     const world = this.lastPieceWorld.get(pieceId);
     if (!world) return null;
-    const camera = this.cameras.main;
-    return {
-      x: camera.x + (world.x - camera.scrollX) * camera.zoom,
-      y: camera.y + (world.y - camera.scrollY) * camera.zoom
-    };
+    return worldToScreenPoint(world, this.cameras.main);
   }
 
   private worldOf(p: GridPosition): { x: number; y: number } {
-    return { x: p.x * STEP, y: p.y * STEP };
+    return gridToWorld(p, STEP);
   }
 
   private render(): void {
@@ -1613,22 +1611,8 @@ export class ForestPhaserScene extends Phaser.Scene {
     }
   }
 
-  private contentBounds(vm: ForestViewModel): Phaser.Geom.Rectangle {
-    const slots = [
-      ...vm.cards,
-      ...vm.expansionTargets,
-      ...(vm.placementPreview ? [vm.placementPreview.position] : [])
-    ];
-    if (slots.length === 0) {
-      return new Phaser.Geom.Rectangle(-CARD * 1.5, -CARD * 1.5, CARD * 3, CARD * 3);
-    }
-    const xs = slots.map((s) => s.x);
-    const ys = slots.map((s) => s.y);
-    const minX = Math.min(...xs) * STEP - CARD / 2;
-    const maxX = Math.max(...xs) * STEP + CARD / 2;
-    const minY = Math.min(...ys) * STEP - CARD / 2;
-    const maxY = Math.max(...ys) * STEP + CARD / 2;
-    return new Phaser.Geom.Rectangle(minX, minY, maxX - minX, maxY - minY);
+  private contentBounds(vm: ForestViewModel): ForestBounds {
+    return getForestContentBounds(vm, CARD, STEP);
   }
 
   private fitCamera(immediate: boolean): void {
@@ -1642,29 +1626,14 @@ export class ForestPhaserScene extends Phaser.Scene {
       return;
     }
 
-    const compactDesktop = fullWidth >= 1024 && fullWidth <= 1600 && fullHeight <= 800;
-    const topInset = compactDesktop ? Math.min(120, Math.round(fullHeight * 0.2)) : 0;
-    const bottomInset = compactDesktop ? Math.min(150, Math.round(fullHeight * 0.24)) : 0;
-    const viewportHeight = Math.max(240, fullHeight - topInset - bottomInset);
-    cam.setViewport(0, topInset, fullWidth, viewportHeight);
-
-    const pad = compactDesktop ? 60 : 120;
-    const zoom = Phaser.Math.Clamp(
-      Math.min(
-        fullWidth / (b.width + pad * 2),
-        viewportHeight / (b.height + pad * 2)
-      ),
-      0.28,
-      1
-    );
-    const cx = b.centerX;
-    const cy = b.centerY;
+    const fit = getForestCameraFit(b, fullWidth, fullHeight);
+    cam.setViewport(fit.viewport.x, fit.viewport.y, fit.viewport.width, fit.viewport.height);
     if (immediate) {
-      cam.setZoom(zoom);
-      cam.centerOn(cx, cy);
+      cam.setZoom(fit.zoom);
+      cam.centerOn(fit.center.x, fit.center.y);
     } else {
-      this.tweens.add({ targets: cam, zoom, duration: 460, ease: "Cubic.easeOut" });
-      cam.pan(cx, cy, 460, "Cubic.easeOut");
+      this.tweens.add({ targets: cam, zoom: fit.zoom, duration: 460, ease: "Cubic.easeOut" });
+      cam.pan(fit.center.x, fit.center.y, 460, "Cubic.easeOut");
     }
   }
 
