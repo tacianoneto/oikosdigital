@@ -11,27 +11,20 @@ import {
   ChevronRight,
   ChevronUp,
   Clock,
-  Copy,
   Eye,
   EyeOff,
-  GraduationCap,
   Leaf,
   ListFilter,
   Lock,
   LogIn,
   LogOut,
   MapPin,
-  Minus,
   Play,
-  Plus,
   RotateCcw,
   RotateCw,
   Settings,
-  ShieldCheck,
   Trophy,
   Users,
-  Volume2,
-  VolumeX,
   X
 } from "lucide-react";
 import {
@@ -39,11 +32,7 @@ import {
   getObjectiveCardDefinition,
   habitatLabels,
   movementLabels,
-  objectiveCardBackPath,
-  scenarioCardBackPath,
-  scenarioCards,
   scenarioCardsById,
-  threatCardBackPath,
   threatCardsById,
   resourceAssets,
   resourceLabels,
@@ -131,6 +120,9 @@ import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import { createSocket, roomApi, type OikosSocket } from "../socket";
+import { LobbyScreen } from "./LobbyScreen";
+import { LocalSetupScreen } from "./LocalSetupScreen";
+import { MainMenuScreen, type LandingMode } from "./MainMenuScreen";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { playLogEvent } from "../ui/audio";
 import { ActionStepsViewer } from "../ui/ActionStepsViewer";
@@ -205,33 +197,6 @@ const getOpenPortraitAsset = (portraitAsset: string) =>
 type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 
 const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
-
-const miniExpansionOptions: Array<{
-  id: MiniExpansionId;
-  label: string;
-  description: string;
-  iconPath: string;
-}> = [
-  {
-    id: "objectives",
-    label: "Cartas de objetivo",
-    description: "Cada jogador escolhe 1 de 2 objetivos e pode ganhar ponto extra no fim do turno.",
-    iconPath: objectiveCardBackPath
-  },
-  {
-    id: "scenarios",
-    label: "Cartas de cenário",
-    description:
-      "Antes da partida, jogadores votam em 1 ou 2 cenarios (bioma do Brasil) que alteram regras durante todo o jogo.",
-    iconPath: scenarioCardBackPath
-  },
-  {
-    id: "threats",
-    label: "Cartas de ameaca",
-    description: "Revela 1 ameaca aleatoria no inicio de cada turno, sem repetir cartas na partida.",
-    iconPath: threatCardBackPath
-  }
-];
 
 const movementKindLabels: Record<MovementKind, string> = {
   adjacent: "Adjacente",
@@ -415,7 +380,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   // open (toggle is hidden and the collapse CSS lives only in the phone query).
   const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
-  const [landingMode, setLandingMode] = useState<"idle" | "create" | "join" | "local" | "tutorials">("idle");
+  const [landingMode, setLandingMode] = useState<LandingMode>("idle");
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
     lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
     points: number;
@@ -3349,89 +3314,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         </div>
       )}
       {!hasStartedGame && !room && landingMode === "idle" && (
-        <div className="forest-menu" role="main">
-          {/* Ambient backdrop: gradient glows, soft grid, drifting fireflies */}
-          <div className="forest-menu-bg" aria-hidden="true">
-            <span className="fm-glow fm-glow-green" />
-            <span className="fm-glow fm-glow-amber" />
-            <span className="fm-firefly fm-firefly-1" />
-            <span className="fm-firefly fm-firefly-2" />
-            <span className="fm-firefly fm-firefly-3" />
-            <span className="fm-firefly fm-firefly-4" />
-            <span className="fm-vignette" />
-          </div>
-
-          <div className="forest-menu-content">
-            <div className="menu-brand">
-              <img src="/oikos-logo.webp" alt="Oikos Digital" />
-              <p className="menu-brand-tagline">
-                Jogo de tabuleiro multiplayer
-                <span className="menu-brand-badge">v0.1 beta</span>
-              </p>
-            </div>
-
-            <div className="forest-panel">
-              <label className="forest-name-field">
-                <Users aria-hidden="true" />
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  maxLength={24}
-                  placeholder="Seu nome"
-                  aria-label="Seu nome"
-                />
-              </label>
-
-              <div className="forest-actions">
-                {[
-                  { mode: "create" as const, icon: Play, title: "Criar Sala", sub: "Hospede uma partida online", primary: true },
-                  { mode: "join" as const, icon: LogIn, title: "Entrar em Sala", sub: "Sala aberta ou código", primary: false },
-                  { mode: "local" as const, icon: MapPin, title: "Teste Local", sub: "Controle 2-6 espécies nesta tela", primary: false },
-                  { mode: "tutorials" as const, icon: GraduationCap, title: "Tutoriais", sub: "Aprenda a jogar passo a passo", primary: false }
-                ].map(({ mode, icon: Icon, title, sub, primary }) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    className={`forest-btn ${primary ? "is-primary" : ""}`}
-                    onClick={() => setLandingMode(mode)}
-                  >
-                    <span className="forest-btn-glow" aria-hidden="true" />
-                    <span className="forest-btn-icon">
-                      <Icon aria-hidden="true" />
-                    </span>
-                    <span className="forest-btn-text">
-                      <strong>{title}</strong>
-                      <small>{sub}</small>
-                    </span>
-                    <ChevronRight className="forest-btn-chevron" aria-hidden="true" />
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  className="forest-btn"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <span className="forest-btn-glow" aria-hidden="true" />
-                  <span className="forest-btn-icon">
-                    <Settings aria-hidden="true" />
-                  </span>
-                  <span className="forest-btn-text">
-                    <strong>Configurações</strong>
-                    <small>Som e preferências</small>
-                  </span>
-                  <ChevronRight className="forest-btn-chevron" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <footer className="forest-footer">
-            <span>Oikos Digital</span>
-            <span className="forest-footer-sep">·</span>
-            <span>Servidor autoritativo · Socket.IO</span>
-          </footer>
-        </div>
+        <MainMenuScreen
+          name={name}
+          onNameChange={setName}
+          onNavigate={setLandingMode}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
       )}
 
       {settingsOpen && (
@@ -3705,208 +3593,22 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {!hasStartedGame && !room && landingMode === "local" && (
-        <div className="flow-screen flow-screen-local" role="main">
-          <div className="landing-bg-orbs" aria-hidden="true">
-            <span className="orb orb-1" />
-            <span className="orb orb-3" />
-          </div>
-
-          <header className="flow-header">
-            <button
-              type="button"
-              className="flow-back"
-              onClick={() => setLandingMode("idle")}
-              aria-label="Voltar"
-            >
-              <ChevronLeft aria-hidden="true" />
-              <span>Voltar</span>
-            </button>
-            <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
-            </div>
-            <span className="flow-spacer" aria-hidden="true" />
-          </header>
-
-          <div className="flow-body flow-body-wide">
-            <div className="flow-icon-large flow-icon-amber">
-              <MapPin aria-hidden="true" />
-            </div>
-            <h2 className="flow-title">Teste Local</h2>
-            <p className="flow-subtitle">
-              Controle de 2 a 6 espécies nesta mesma tela. Ideal para aprender as regras e testar estratégias.
-            </p>
-
-            <div className="flow-card flow-card-local">
-              <div className="flow-card-header">
-                <span>Escolha as espécies</span>
-                <span className="flow-counter">
-                  {localSpeciesIds.length}/{MAX_PLAYERS}
-                </span>
-              </div>
-              <div className="flow-species-grid">
-                {speciesList.map((species) => {
-                  const selected = localSpeciesIds.includes(species.speciesId);
-                  const isBotSlot = localBotSpeciesIds.includes(species.speciesId);
-                  const selectionLimitReached = localSpeciesIds.length >= MAX_PLAYERS && !selected;
-                  return (
-                    <div
-                      key={species.speciesId}
-                      className={`flow-species-card-wrap ${isBotSlot ? "is-bot" : ""}`}
-                      data-species={species.speciesId}
-                      style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
-                    >
-                      <button
-                        type="button"
-                        className={`flow-species-card ${selected ? "selected" : ""}`}
-                        onClick={() => toggleLocalSpecies(species.speciesId)}
-                        disabled={selectionLimitReached}
-                        title={selectionLimitReached ? `Máximo de ${MAX_PLAYERS} espécies atingido` : undefined}
-                      >
-                        <div className="flow-species-thumb">
-                          <img src={encodeURI(species.meepleAsset)} alt="" />
-                        </div>
-                        <div className="flow-species-text">
-                          <strong>{species.displayName}</strong>
-                          <small>{categoryLabels[species.category]}</small>
-                        </div>
-                        {isBotSlot ? (
-                          <span className="flow-species-bot-tag" aria-hidden="true">
-                            <Bot /> Bot
-                          </span>
-                        ) : (
-                          selected && (
-                            <span className="flow-species-check" aria-hidden="true">
-                              <Check />
-                            </span>
-                          )
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className={`flow-species-bot-btn ${isBotSlot ? "active" : ""}`}
-                        title={isBotSlot ? "Controlar manualmente" : "Controlar por bot"}
-                        aria-label={isBotSlot ? "Controlar manualmente" : "Controlar por bot"}
-                        onClick={() => toggleLocalBot(species.speciesId)}
-                        disabled={selectionLimitReached}
-                      >
-                        {isBotSlot ? <X aria-hidden="true" /> : <Bot aria-hidden="true" />}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="lobby-expansions-block">
-                <div className="lobby-expansions-head">
-                  <strong>Mini-expansoes</strong>
-                  <span className="lobby-expansions-count">
-                    {localEnabledMiniExpansions.filter((id) => miniExpansionOptions.some((opt) => opt.id === id)).length}/{miniExpansionOptions.length}
-                  </span>
-                </div>
-                <ul className="lobby-expansion-list">
-                  {miniExpansionOptions.map((expansion) => {
-                    const enabled = localEnabledMiniExpansions.includes(expansion.id);
-                    return (
-                      <li key={expansion.id}>
-                        <label className={`lobby-expansion-card ${enabled ? "is-on" : ""}`}>
-                          <span className="lobby-expansion-thumb" aria-hidden="true">
-                            <img src={encodeURI(expansion.iconPath)} alt="" />
-                          </span>
-                          <span className="lobby-expansion-text">
-                            <strong>{expansion.label}</strong>
-                            <small>{expansion.description}</small>
-                          </span>
-                          <span className="lobby-switch" aria-hidden="true">
-                            <span className="lobby-switch-knob" />
-                          </span>
-                          <input
-                            type="checkbox"
-                            className="lobby-expansion-input"
-                            checked={enabled}
-                            onChange={() => toggleLocalMiniExpansion(expansion.id)}
-                            aria-label={`${enabled ? "Desligar" : "Ligar"} ${expansion.label}. ${expansion.description}`}
-                          />
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {localEnabledMiniExpansions.includes("scenarios") && (
-                  <div className="lobby-scenario-picker">
-                    <div className="lobby-scenario-picker-head">
-                      <div>
-                        <strong>Cenarios</strong>
-                        <small>Escolha 1 cenario para o teste local ({localSelectedScenarioIds.length}/1).</small>
-                      </div>
-                    </div>
-                    <ul className="lobby-scenario-card-list">
-                      {scenarioCards.map((scenario) => {
-                        const selected = localSelectedScenarioIds.includes(scenario.id);
-                        const disabled = !selected && localSelectedScenarioIds.length >= localScenarioCount;
-                        return (
-                          <li key={scenario.id}>
-                            <button
-                              type="button"
-                              className={`lobby-scenario-card ${selected ? "is-selected" : ""}`}
-                              disabled={disabled}
-                              onClick={() => toggleLocalScenario(scenario.id)}
-                              aria-pressed={selected}
-                            >
-                              <img src={encodeURI(scenario.imagePath)} alt="" />
-                              <span>
-                                <strong>{scenario.label}</strong>
-                                <small><ScenarioDescription text={scenario.description} /></small>
-                              </span>
-                              {selected && <Check aria-hidden="true" />}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              <div className="flow-bot-speed" aria-label="Velocidade dos bots no teste local">
-                <button
-                  type="button"
-                  className="icon-button compact"
-                  title="Bots mais rápidos"
-                  aria-label="Bots mais rápidos"
-                  onClick={() => adjustLocalBotSpeed(-botTurnDelayStepMs)}
-                >
-                  <Minus aria-hidden="true" />
-                </button>
-                <span>Bots {formatBotDelay(localBotTurnDelayMs)}</span>
-                <button
-                  type="button"
-                  className="icon-button compact"
-                  title="Bots mais lentos"
-                  aria-label="Bots mais lentos"
-                  onClick={() => adjustLocalBotSpeed(botTurnDelayStepMs)}
-                >
-                  <Plus aria-hidden="true" />
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className="flow-submit"
-                onClick={startLocalTest}
-                disabled={localSpeciesIds.length < 2 || localSpeciesIds.length > MAX_PLAYERS}
-              >
-                <Play aria-hidden="true" />
-                Iniciar Partida ({localSpeciesIds.length} espécies)
-              </button>
-              {localSpeciesIds.length < 2 && (
-                <small className="flow-hint">Mínimo 2 espécies para iniciar.</small>
-              )}
-              {localSpeciesIds.length === MAX_PLAYERS && (
-                <small className="flow-hint">Limite de {MAX_PLAYERS} espécies atingido.</small>
-              )}
-            </div>
-          </div>
-        </div>
+        <LocalSetupScreen
+          speciesIds={localSpeciesIds}
+          botSpeciesIds={localBotSpeciesIds}
+          botTurnDelayMs={localBotTurnDelayMs}
+          enabledMiniExpansions={localEnabledMiniExpansions}
+          scenarioCount={localScenarioCount}
+          selectedScenarioIds={localSelectedScenarioIds}
+          formatBotDelay={formatBotDelay}
+          onBack={() => setLandingMode("idle")}
+          onToggleSpecies={toggleLocalSpecies}
+          onToggleBot={toggleLocalBot}
+          onToggleMiniExpansion={toggleLocalMiniExpansion}
+          onToggleScenario={toggleLocalScenario}
+          onAdjustBotSpeed={adjustLocalBotSpeed}
+          onStart={startLocalTest}
+        />
       )}
 
       {!hasStartedGame && !room && landingMode === "tutorials" && (
@@ -3926,498 +3628,73 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {!hasStartedGame && room && (
-        <div className="flow-screen flow-screen-lobby" role="main">
-          <header className="flow-header">
-            <button
-              type="button"
-              className="flow-back"
-              onClick={() => {
-                if (isLocalRoom) {
-                  stopLocalTest();
-                } else {
-                  leaveTable();
-                }
-                setLandingMode("idle");
-              }}
-              aria-label="Sair da sala"
-            >
-              <LogOut aria-hidden="true" />
-              <span>Sair</span>
-            </button>
-            <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
-            </div>
-            <span className="flow-spacer" aria-hidden="true" />
-          </header>
-
-          <div className="flow-body flow-body-lobby">
-            <div className="lobby-hero">
-              <div className="lobby-hero-copy">
-                <span className="lobby-badge">
-                  {isLocalRoom ? "Teste Local" : isSpectator ? "Espectador" : "Sala Online"}
-                </span>
-                <h2 className="flow-title lobby-title">
-                  {isLocalRoom ? "Mesa Local" : isSpectator ? "Assistindo" : "Sala de Espera"}
-                </h2>
-                <div className="lobby-status-strip" aria-label="Status da sala">
-                  <span>
-                    <Users aria-hidden="true" />
-                    {room.players.length}/{MAX_PLAYERS} jogadores
-                  </span>
-                  <span>
-                    <Check aria-hidden="true" />
-                    {readyPlayerCount}/{room.players.length} prontos
-                  </span>
-                  <span>
-                    <Leaf aria-hidden="true" />
-                    {enabledMiniExpansions.includes("objectives") ? "Objetivos ligados" : "Objetivos desligados"}
-                  </span>
-                </div>
-              </div>
-              {!isLocalRoom && (
-                <div className="lobby-code-card">
-                  <span className="lobby-code-label">Código da Sala</span>
-                  <div className="lobby-code-display">
-                    <span className="lobby-code-value">{room.roomId}</span>
-                    <button
-                      type="button"
-                      className="lobby-code-copy"
-                      title="Copiar código"
-                      onClick={() => {
-                        void navigator.clipboard?.writeText(room.roomId);
-                        setNotice("Código copiado.");
-                      }}
-                    >
-                      <Copy aria-hidden="true" />
-                    </button>
-                  </div>
-                  <small>Compartilhe com seus amigos para entrarem.</small>
-                </div>
-              )}
-            </div>
-
-            <div className="lobby-columns">
-              <div className="lobby-side-stack">
-              <section className="lobby-card lobby-players">
-                <header className="lobby-card-header">
-                  <Users aria-hidden="true" />
-                  <h3>Jogadores</h3>
-                  <span className="lobby-count">{room.players.length}</span>
-                  {Boolean(room.spectatorCount) && (
-                    <span className="lobby-spectator-count" title="Espectadores assistindo">
-                      <Eye aria-hidden="true" />
-                      {room.spectatorCount}
-                    </span>
-                  )}
-                </header>
-                <ul className="lobby-player-list">
-                  {room.players.map((player) => {
-                    const species = player.speciesId ? speciesDefinitions[player.speciesId] : null;
-                    const isYou = player.playerId === playerId;
-                    const isThisHost = player.playerId === room.hostPlayerId;
-                    return (
-                      <li
-                        key={player.playerId}
-                        className={`lobby-player ${player.ready ? "ready" : ""} ${isYou ? "you" : ""}`}
-                        style={
-                          species
-                            ? ({ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties)
-                            : undefined
-                        }
-                      >
-                        <div className="lobby-player-avatar">
-                          {species ? (
-                            <img className="is-portrait" src={encodeURI(species.portraitAsset)} alt="" />
-                          ) : (
-                            <Users aria-hidden="true" />
-                          )}
-                        </div>
-                        <div className="lobby-player-text">
-                          <strong>
-                            {player.name || "Jogador"}
-                            {isYou && <span className="lobby-tag lobby-tag-you">Você</span>}
-                            {isThisHost && !isLocalRoom && <span className="lobby-tag lobby-tag-host">Host</span>}
-                            {player.isBot && <span className="lobby-tag lobby-tag-bot">Bot</span>}
-                          </strong>
-                          <small>
-                            {species ? species.displayName : "Sem espécie"}
-                            {player.ready && " · Pronto"}
-                          </small>
-                        </div>
-                        {player.ready && (
-                          <span className="lobby-player-check" aria-hidden="true">
-                            <Check />
-                          </span>
-                        )}
-                        {!isLocalRoom && isYou && !player.isBot && (
-                          <button
-                            type="button"
-                            className="lobby-player-action"
-                            onClick={handleRenameSelf}
-                            title="Renomear"
-                            aria-label="Renomear"
-                          >
-                            ✎
-                          </button>
-                        )}
-                        {!isLocalRoom && isHost && !isYou && !player.isBot && (
-                          <button
-                            type="button"
-                            className="lobby-player-action is-danger"
-                            onClick={() => handleKickPlayer(player.playerId, player.name)}
-                            title="Remover jogador"
-                            aria-label="Remover jogador"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-
-              </section>
-
-              {!isLocalRoom && (
-                <section className="lobby-card lobby-settings">
-                  <header className="lobby-card-header">
-                    <Settings aria-hidden="true" />
-                    <h3>Configuração da Mesa</h3>
-                    {isHost ? <span className="lobby-count">Host</span> : <span className="lobby-count">Leitura</span>}
-                  </header>
-
-                  <details className="lobby-settings-details">
-                    <summary>
-                      <span>
-                        <strong>Regras da partida</strong>
-                        <small>
-                          {enabledMiniExpansions.length} mini-expansão
-                          {enabledMiniExpansions.length === 1 ? "" : "es"} ativa
-                          {enabledMiniExpansions.length === 1 ? "" : "s"} ·{" "}
-                          {turnTimerMs ? formatTurnTimer(turnTimerMs) : "sem cronômetro"}
-                        </small>
-                      </span>
-                      <ChevronDown aria-hidden="true" />
-                    </summary>
-
-                  <div className="lobby-setting-list">
-                    <div className="lobby-expansions-block">
-                      <div className="lobby-expansions-head">
-                        <strong>Mini-expansões</strong>
-                        <span className="lobby-expansions-count">
-                          {enabledMiniExpansions.filter((id) => miniExpansionOptions.some((opt) => opt.id === id)).length}/{miniExpansionOptions.length}
-                        </span>
-                      </div>
-                      <ul className="lobby-expansion-list">
-                        {miniExpansionOptions.map((expansion) => {
-                          const enabled = enabledMiniExpansions.includes(expansion.id);
-                          const locked = !isHost || room.status !== "lobby";
-                          return (
-                            <li key={expansion.id}>
-                              <label
-                                className={`lobby-expansion-card ${enabled ? "is-on" : ""} ${locked ? "is-locked" : ""}`}
-                              >
-                                <span className="lobby-expansion-thumb" aria-hidden="true">
-                                  <img src={encodeURI(expansion.iconPath)} alt="" />
-                                </span>
-                                <span className="lobby-expansion-text">
-                                  <strong>{expansion.label}</strong>
-                                  <small>{expansion.description}</small>
-                                </span>
-                                <span className="lobby-switch" aria-hidden="true">
-                                  <span className="lobby-switch-knob" />
-                                </span>
-                                <input
-                                  type="checkbox"
-                                  className="lobby-expansion-input"
-                                  checked={enabled}
-                                  disabled={locked}
-                                  onChange={() => toggleMiniExpansion(expansion.id)}
-                                  aria-label={`${enabled ? "Desligar" : "Ligar"} ${expansion.label}. ${expansion.description}`}
-                                />
-                              </label>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                      {enabledMiniExpansions.includes("scenarios") && (
-                        <div className="lobby-scenario-picker">
-                          <div className="lobby-scenario-picker-head">
-                            <div>
-                              <strong>Cenários</strong>
-                              <small>
-                                {scenarioSelectionMode === "vote"
-                                  ? "Jogadores votam em 1 carta antes do setup."
-                                  : `Definido pelo host (${hostSelectedScenarioIds.length}/1).`}
-                              </small>
-                            </div>
-                            <div className="lobby-segmented" role="group" aria-label="Modo de escolha dos cenários">
-                              <button
-                                type="button"
-                                className={scenarioSelectionMode === "vote" ? "is-active" : ""}
-                                disabled={!isHost || room.status !== "lobby"}
-                                onClick={() => setScenarioMode("vote")}
-                              >
-                                Votação
-                              </button>
-                              <button
-                                type="button"
-                                className={scenarioSelectionMode === "host" ? "is-active" : ""}
-                                disabled={!isHost || room.status !== "lobby"}
-                                onClick={() => setScenarioMode("host")}
-                              >
-                                Definido
-                              </button>
-                            </div>
-                          </div>
-
-                          {scenarioSelectionMode === "host" && (
-                            <ul className="lobby-scenario-card-list">
-                              {scenarioCards.map((scenario) => {
-                                const selected = hostSelectedScenarioIds.includes(scenario.id);
-                                const disabled =
-                                  !isHost ||
-                                  room.status !== "lobby" ||
-                                  (!selected && hostSelectedScenarioIds.length >= scenarioCount);
-                                return (
-                                  <li key={scenario.id}>
-                                    <button
-                                      type="button"
-                                      className={`lobby-scenario-card ${selected ? "is-selected" : ""}`}
-                                      disabled={disabled}
-                                      onClick={() => toggleHostScenario(scenario.id)}
-                                      aria-pressed={selected}
-                                    >
-                                      <img src={encodeURI(scenario.imagePath)} alt="" />
-                                      <span>
-                                        <strong>{scenario.label}</strong>
-                                        <small><ScenarioDescription text={scenario.description} /></small>
-                                      </span>
-                                      {selected && <Check aria-hidden="true" />}
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="lobby-setting-row">
-                      <div className="lobby-setting-copy">
-                        <strong>Cronômetro</strong>
-                        <small>{turnTimerMs ? `${formatTurnTimer(turnTimerMs)} por turno` : "Sem limite por turno."}</small>
-                      </div>
-                      <div className="lobby-setting-actions">
-                        <button
-                          type="button"
-                          className={`lobby-mini-button ${turnTimerMs ? "is-on" : ""}`}
-                          disabled={!isHost}
-                          onClick={toggleTurnTimer}
-                        >
-                          <Clock aria-hidden="true" />
-                          {turnTimerMs ? "Ligado" : "Desligado"}
-                        </button>
-                        {turnTimerMs && (
-                          <div className="lobby-stepper">
-                            <button
-                              type="button"
-                              className="icon-button compact"
-                              title="Menos tempo por turno"
-                              disabled={!isHost}
-                              onClick={() => adjustTurnTimer(-1)}
-                            >
-                              <Minus aria-hidden="true" />
-                            </button>
-                            <span>{formatTurnTimer(turnTimerMs)}</span>
-                            <button
-                              type="button"
-                              className="icon-button compact"
-                              title="Mais tempo por turno"
-                              disabled={!isHost}
-                              onClick={() => adjustTurnTimer(1)}
-                            >
-                              <Plus aria-hidden="true" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="lobby-setting-row">
-                      <div className="lobby-setting-copy">
-                        <strong>Bots</strong>
-                        <small>Velocidade: {formatBotDelay(botTurnDelayMs)}</small>
-                      </div>
-                      <div className="lobby-setting-actions">
-                        {isHost && roomHasBots && (
-                          <button
-                            type="button"
-                            className="lobby-mini-button"
-                            onClick={() => run(() => roomApi.removeBots(requireSocket(), room.roomId), "Bots removidos.")}
-                          >
-                            <X aria-hidden="true" />
-                            Remover bots
-                          </button>
-                        )}
-                        <div className="lobby-stepper">
-                          <button
-                            type="button"
-                            className="icon-button compact"
-                            title="Bots mais rápidos"
-                            disabled={!isHost}
-                            onClick={() => adjustBotSpeed(-botTurnDelayStepMs)}
-                          >
-                            <Minus aria-hidden="true" />
-                          </button>
-                          <span>{formatBotDelay(botTurnDelayMs)}</span>
-                          <button
-                            type="button"
-                            className="icon-button compact"
-                            title="Bots mais lentos"
-                            disabled={!isHost}
-                            onClick={() => adjustBotSpeed(botTurnDelayStepMs)}
-                          >
-                            <Plus aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  </details>
-                </section>
-              )}
-              </div>
-
-              {isSpectator ? (
-                <section className="lobby-card lobby-species">
-                  <header className="lobby-card-header">
-                    <Eye aria-hidden="true" />
-                    <h3>Modo Espectador</h3>
-                  </header>
-                  <div className="lobby-spectator-note">
-                    <Eye aria-hidden="true" />
-                    <p>
-                      Você está assistindo a esta sala. Quando o anfitrião iniciar, a partida
-                      aparecerá aqui automaticamente.
-                    </p>
-                  </div>
-                </section>
-              ) : (
-              <section className="lobby-card lobby-species">
-                <header className="lobby-card-header">
-                  <ShieldCheck aria-hidden="true" />
-                  <h3>Escolha sua Espécie</h3>
-                </header>
-                <div className="lobby-species-grid">
-                  {speciesList.map((species) => {
-                    const takenBy = room.players.find((player) => player.speciesId === species.speciesId);
-                    const selected =
-                      currentPlayer?.speciesId === species.speciesId || selectedSpecies === species.speciesId;
-                    const takenByOther = Boolean(takenBy && takenBy.playerId !== controlledPlayerId);
-                    const isBotSlot = Boolean(takenBy?.isBot);
-                    const isHumanSlot = Boolean(takenBy && !takenBy.isBot);
-                    const disabled = takenByOther || room.status !== "lobby";
-                    const canToggleBot = isHost && !isLocalRoom && room.status === "lobby" && !isHumanSlot;
-                    return (
-                      <div
-                        key={species.speciesId}
-                        className={`lobby-species-card-wrap ${isBotSlot ? "is-bot" : ""}`}
-                        data-species={species.speciesId}
-                        style={{ "--species-color": SPECIES_HEX[species.speciesId] } as CSSProperties}
-                      >
-                        <button
-                          type="button"
-                          className={`lobby-species-card ${selected ? "selected" : ""}`}
-                          disabled={disabled}
-                          onClick={() => {
-                            setSelectedSpecies(species.speciesId);
-                            void run(() => roomApi.selectSpecies(requireSocket(), room.roomId, species.speciesId));
-                          }}
-                        >
-                          <img
-                            className="lobby-species-portrait"
-                            src={encodeURI(getOpenPortraitAsset(species.portraitAsset))}
-                            alt=""
-                          />
-                          <div className="lobby-species-text">
-                            <strong>{species.displayName}</strong>
-                            <small>{categoryLabels[species.category]}</small>
-                          </div>
-                          {isBotSlot && (
-                            <span className="lobby-species-taken lobby-species-bot-tag">
-                              <Bot aria-hidden="true" />
-                              Bot
-                            </span>
-                          )}
-                          {isHumanSlot && takenBy?.playerId !== controlledPlayerId && (
-                            <span className="lobby-species-taken">{takenBy?.name || "Em uso"}</span>
-                          )}
-                        </button>
-                        {canToggleBot && (
-                          <button
-                            type="button"
-                            className={`lobby-species-bot-btn ${isBotSlot ? "active" : ""}`}
-                            title={isBotSlot ? "Remover bot" : "Adicionar bot"}
-                            aria-label={isBotSlot ? "Remover bot" : "Adicionar bot"}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              if (isBotSlot) {
-                                void run(
-                                  () => roomApi.removeBotSpecies(requireSocket(), room.roomId, species.speciesId),
-                                  "Bot removido."
-                                );
-                              } else {
-                                void run(
-                                  () => roomApi.addBotSpecies(requireSocket(), room.roomId, species.speciesId),
-                                  "Bot adicionado."
-                                );
-                              }
-                            }}
-                          >
-                            {isBotSlot ? <X aria-hidden="true" /> : <Bot aria-hidden="true" />}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-              )}
-            </div>
-
-            <div className="lobby-footer-actions">
-              {!isLocalRoom && !isSpectator && (
-                <button
-                  type="button"
-                  className={`lobby-ready-btn ${currentPlayer?.ready ? "is-ready" : ""}`}
-                  onClick={() =>
-                    run(() => roomApi.ready(requireSocket(), requireRoom().roomId, !currentPlayer?.ready))
-                  }
-                  disabled={!currentPlayer?.speciesId}
-                >
-                  <Check aria-hidden="true" />
-                  {currentPlayer?.ready ? "Pronto!" : "Marcar Pronto"}
-                </button>
-              )}
-              {isHost && !isLocalRoom && (
-                <button
-                  type="button"
-                  className="flow-submit lobby-start-btn"
-                  onClick={() => run(() => roomApi.start(requireSocket(), room.roomId))}
-                  disabled={needsHostScenarioSelection}
-                  title={needsHostScenarioSelection ? `Escolha ${scenarioCount} cenario(s) antes de iniciar.` : undefined}
-                >
-                  <Play aria-hidden="true" />
-                  Iniciar Partida
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <LobbyScreen
+          room={room}
+          playerId={playerId}
+          controlledPlayerId={controlledPlayerId}
+          currentPlayer={currentPlayer}
+          selectedSpecies={selectedSpecies}
+          isLocalRoom={isLocalRoom}
+          isSpectator={isSpectator}
+          isHost={isHost}
+          readyPlayerCount={readyPlayerCount}
+          enabledMiniExpansions={enabledMiniExpansions}
+          scenarioSelectionMode={scenarioSelectionMode}
+          scenarioCount={scenarioCount}
+          hostSelectedScenarioIds={hostSelectedScenarioIds}
+          turnTimerMs={turnTimerMs}
+          botTurnDelayMs={botTurnDelayMs}
+          roomHasBots={roomHasBots}
+          needsHostScenarioSelection={needsHostScenarioSelection}
+          formatBotDelay={formatBotDelay}
+          onExit={() => {
+            if (isLocalRoom) {
+              stopLocalTest();
+            } else {
+              leaveTable();
+            }
+            setLandingMode("idle");
+          }}
+          onCopyCode={() => {
+            void navigator.clipboard?.writeText(room.roomId);
+            setNotice("Código copiado.");
+          }}
+          onRenameSelf={handleRenameSelf}
+          onKickPlayer={handleKickPlayer}
+          onToggleMiniExpansion={toggleMiniExpansion}
+          onSetScenarioMode={setScenarioMode}
+          onToggleHostScenario={toggleHostScenario}
+          onToggleTurnTimer={toggleTurnTimer}
+          onAdjustTurnTimer={adjustTurnTimer}
+          onRemoveBots={() => {
+            void run(() => roomApi.removeBots(requireSocket(), room.roomId), "Bots removidos.");
+          }}
+          onAdjustBotSpeed={adjustBotSpeed}
+          onSelectSpecies={(speciesId) => {
+            setSelectedSpecies(speciesId);
+            void run(() => roomApi.selectSpecies(requireSocket(), room.roomId, speciesId));
+          }}
+          onToggleBotSpecies={(speciesId, remove) => {
+            if (remove) {
+              void run(
+                () => roomApi.removeBotSpecies(requireSocket(), room.roomId, speciesId),
+                "Bot removido."
+              );
+            } else {
+              void run(
+                () => roomApi.addBotSpecies(requireSocket(), room.roomId, speciesId),
+                "Bot adicionado."
+              );
+            }
+          }}
+          onReady={(ready) => {
+            void run(() => roomApi.ready(requireSocket(), requireRoom().roomId, ready));
+          }}
+          onStart={() => {
+            void run(() => roomApi.start(requireSocket(), room.roomId));
+          }}
+        />
       )}
-
 
       {room?.status === "scenario_voting" && room.scenarioVoting && (
         <ScenarioVotingOverlay
