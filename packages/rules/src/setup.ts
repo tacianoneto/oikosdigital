@@ -151,18 +151,24 @@ export {
 };
 export type { CapuchinHabitatGroup } from "./species/capuchin";
 import {
+  addMacawForCurrentAction,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawLineScore,
   getMacawRelocatablePieceIds,
-  getMacawScoringLines
+  getMacawScoringLines,
+  relocateMacawForCurrentAction,
+  scoreMacawLines
 } from "./species/macaw";
 export {
+  addMacawForCurrentAction,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawLineScore,
   getMacawRelocatablePieceIds,
-  getMacawScoringLines
+  getMacawScoringLines,
+  relocateMacawForCurrentAction,
+  scoreMacawLines
 };
 export type { MacawScoringLine } from "./species/macaw";
 import {
@@ -1137,164 +1143,6 @@ export function placeForestCard(
     }
   }
 
-  return next;
-}
-
-export function addMacawForCurrentAction(game: GameState, playerId: string, location: GridPosition): GameState {
-  if (game.status !== "active") {
-    throw new Error("Pecas so podem ser adicionadas durante a fase ativa.");
-  }
-
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Ainda nao e a vez deste jogador.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (player.speciesId !== "macaw") {
-    throw new Error("Adicao de peca implementada apenas para a Arara-azul nesta etapa.");
-  }
-
-  const action = getCurrentAction(game);
-  if (action !== "A" && action !== "C") {
-    throw new Error("A Arara-azul adiciona peca durante as acoes A e C.");
-  }
-
-  const validPositions = action === "A" ? getMacawEggPlacementPositions(game, playerId) : getMacawActionCTargets(game, playerId);
-  const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
-  if (!isValidPosition) {
-    throw new Error(action === "A" ? "Escolha uma carta com local de ovo." : "Escolha uma carta ao redor da arara movida.");
-  }
-
-  const pieceId = player.reservePieces[0];
-  if (!pieceId) {
-    throw new Error("Nao ha araras na reserva para adicionar.");
-  }
-
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
-  if (!nextPiece) {
-    throw new Error("Peca nao encontrada.");
-  }
-
-  nextPiece.location = createPieceLocation(game, location, action === "A" ? findFirstForestSiteWithResource(game, location, "egg")?.siteId : undefined);
-  nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
-  nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
-  applyCaatingaTrigger(next, playerId, location, "add");
-  const macawTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
-  next.log = [
-    ...next.log,
-    {
-      id: `add_macaw_${pieceId}_${next.log.length + 1}`,
-      message: action === "A" ? `${nextPlayer.name} adicionou 1 arara em local de ovo.` : `${nextPlayer.name} adicionou 1 arara ao redor da arara movida.`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "add_piece",
-        actorPlayerId: playerId,
-        cardInstanceId: macawTargetCard?.instanceId,
-        cardDefinitionId: macawTargetCard?.definitionId,
-        habitat: macawTargetCard ? getCardDefinitionOrNull(macawTargetCard.definitionId)?.habitat ?? undefined : undefined,
-        location: { x: location.x, y: location.y },
-        pieceIds: [pieceId],
-        actionId: action
-      }
-    }
-  ];
-
-  if (action === "C") {
-    next.pendingMacawMovedPiece = null;
-  }
-  advanceActiveAction(next);
-  return next;
-}
-
-export function relocateMacawForCurrentAction(game: GameState, playerId: string, pieceId: string, location: GridPosition): GameState {
-  if (game.status !== "active") {
-    throw new Error("Movimentos so podem acontecer durante a fase ativa.");
-  }
-
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Ainda nao e a vez deste jogador.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (player.speciesId !== "macaw" || getCurrentAction(game) !== "C") {
-    throw new Error("A Arara-azul realoca outra arara durante a acao C.");
-  }
-
-  if (!getMacawRelocatablePieceIds(game, playerId).includes(pieceId)) {
-    throw new Error("Selecione uma arara diferente da arara movida na acao B.");
-  }
-
-  const validPositions = getMacawActionCTargets(game, playerId);
-  const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
-  if (!isValidPosition) {
-    throw new Error("Escolha uma carta ao redor da arara movida.");
-  }
-
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
-  if (!nextPiece) {
-    throw new Error("Peca nao encontrada.");
-  }
-
-  nextPiece.location = createPieceLocation(game, location);
-  next.pendingMacawMovedPiece = null;
-  const relocateTargetCard = next.forest.cards.find((card) => card.x === location.x && card.y === location.y);
-  next.log = [
-    ...next.log,
-    {
-      id: `relocate_macaw_${pieceId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} realocou 1 arara ao redor da arara movida.`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "move_piece",
-        actorPlayerId: playerId,
-        cardInstanceId: relocateTargetCard?.instanceId,
-        cardDefinitionId: relocateTargetCard?.definitionId,
-        habitat: relocateTargetCard ? getCardDefinitionOrNull(relocateTargetCard.definitionId)?.habitat ?? undefined : undefined,
-        location: { x: location.x, y: location.y },
-        pieceIds: [pieceId],
-        actionId: "C"
-      }
-    }
-  ];
-
-  advanceActiveAction(next);
-  return next;
-}
-
-
-export function scoreMacawLines(game: GameState, playerId: string): GameState {
-  if (game.status !== "active") {
-    throw new Error("Pontuacao so pode acontecer durante a fase ativa.");
-  }
-
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Ainda nao e a vez deste jogador.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (player.speciesId !== "macaw" || getCurrentAction(game) !== "D") {
-    throw new Error("A Arara-azul pontua linhas durante a acao D.");
-  }
-
-  const points = getMacawLineScore(game, playerId);
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-  nextPlayer.score += points;
-  next.log = [
-    ...next.log,
-    {
-      id: `macaw_score_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} marcou ${points} ponto(s) por linhas retas de 3 araras.`,
-      createdAt: Date.now(),
-      payload: { kind: "score", actorPlayerId: playerId, points, actionId: "D" }
-    }
-  ];
-
-  advanceActiveAction(next);
   return next;
 }
 
