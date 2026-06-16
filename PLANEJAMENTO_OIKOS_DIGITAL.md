@@ -39,12 +39,12 @@ Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima
 - Helpers de câmera do tabuleiro extraídos de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestCamera.ts` (`gridToWorld`, `worldToScreenPoint`, bounds de conteúdo e fit da câmera). `ForestPhaserScene.ts` mantém lifecycle/controles/renderização; comportamento visual preservado. `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (Teste Local → partida) sem erros de console.
 - Ambiente do tabuleiro extraído de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestAmbient.ts` (`ForestAmbientMotes`: spawn/update/reflow das partículas). A cena mantém a configuração da camada/câmera ambiente; ordem de chamadas e uso de aleatoriedade preservados. `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (Teste Local → partida) sem erros de console.
 - Destaques/highlights do tabuleiro extraídos de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestHighlights.ts` (`drawForestHighlights`: alvos de expansão, anéis de movimento/add-peça/bônus, highlights de carta/linha de pontuação e spotlights). A cena mantém os callbacks, layer, pulses e helpers (`worldOf`, `dashedRoundRect`, `createRoundPortraitTexture`), passados por parâmetro; chamadas de desenho idênticas, só locais renomeados. Movimento puro, sem mudar comportamento. `typecheck`/`test`/`build` ok e boot limpo (smoke in-game gated por login Supabase, sem credencial nesta sessão).
+- Peças/meeples extraídos de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestPieces.ts` (classe `ForestPieces`: layout, sprites, animação de spawn/movimento em arco, glow de seleção, tint de estado oculto, flourish de remoção). Detém `pieceObjs`/`lastPieceWorld`; a cena instancia em `create`, chama `sync(vm, pulses, cb)` em `render` e lê `getPieceWorld` para `getPieceScreenPoint`. Helpers de textura e FX de pouso de carta ficaram na cena; `createTrimmedMeepleTexture` passado por parâmetro. Movimento puro, lógica idêntica (só `this.`→`scene.`). `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (login Supabase → Teste Local → partida): meeples renderizam nas cartas, sem erros de console.
 - Baseline validada com `typecheck`, `test` e `build` aprovados.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** extrair peças/meeples de `apps/web/src/game/ForestPhaserScene.ts` para módulo dedicado, preservando animações, posições de remoção e paridade local/online.
-2. Por último, separar lobby/votação das rooms e schedulers do entrypoint do servidor.
+1. **Fazer primeiro:** separar lobby/votação das rooms e schedulers do entrypoint do servidor.
 
 ### Regras para cada etapa
 
