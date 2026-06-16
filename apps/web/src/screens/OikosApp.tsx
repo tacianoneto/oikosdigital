@@ -44,13 +44,6 @@ import {
   formatTurnTimer
 } from "@oikos/shared";
 import {
-  addArmadilloForCurrentAction,
-  addCapuchinForCurrentAction,
-  addCoatiForCurrentAction,
-  addGaloForCurrentAction,
-  addGaloAdjacentForCurrentAction,
-  addMacawForCurrentAction,
-  addWolfForCurrentAction,
   completeCurrentAction,
   createInitialGameState,
   createPreviewInitialForest,
@@ -261,7 +254,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     landingMode,
     setLandingMode,
     pendingPlacement,
-    setPendingPlacement
+    setPendingPlacement,
+    clearActionSelection,
+    clearWolfActionSelection,
+    handleExpansionTargetClick,
+    handleRotateFitTargetClick,
+    clearPendingPlacement
   } = useActionSelection();
   const {
     localSpeciesIds,
@@ -1299,18 +1297,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }
   }, [applyOnlineRoomState, clearRoomState, name]);
 
-  const clearActionSelection = useCallback(() => {
-    setSelectedHandCardId(null);
-    setSelectedPieceId(null);
-    setSelectedRemovalPieceIds([]);
-  }, []);
-
-  const clearWolfActionSelection = useCallback(() => {
-    clearActionSelection();
-    setSelectedWolfTargetPieceId(null);
-    setSelectedWolfResources([]);
-  }, [clearActionSelection]);
-
   const applyLocalAction = useCallback((nextGame: GameState, notice: string) => {
     setRoom((current) =>
       current
@@ -1632,33 +1618,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     ]
   );
 
-  // Selecting a slot does not place immediately: it stages a preview the player
-  // then confirms or cancels, avoiding accidental placements from a misclick.
-  const handleExpansionTargetClick = useCallback(
-    (position: { x: number; y: number }) =>
-      setPendingPlacement({ position, rotation: selectedCardRotation }),
-    [selectedCardRotation]
-  );
-
-  // Choosing a rotate-to-fit ghost stages the placement at the rotation that
-  // connects there.
-  const handleRotateFitTargetClick = useCallback(
-    (position: { x: number; y: number }, rotation: number) =>
-      setPendingPlacement({ position, rotation: (rotation % 360) as 0 | 90 | 180 | 270 }),
-    []
-  );
-
   const handleConfirmPlacement = useCallback(() => {
     if (!pendingPlacement) return;
     placeCard(pendingPlacement.position, pendingPlacement.rotation);
-    setPendingPlacement(null);
-  }, [pendingPlacement, placeCard]);
+    clearPendingPlacement();
+  }, [clearPendingPlacement, pendingPlacement, placeCard]);
 
   // Cancel returns the card to the hand (still selected) so the player can place
   // the same or another card anywhere valid.
-  const handleCancelPlacement = useCallback(() => {
-    setPendingPlacement(null);
-  }, []);
+  const handleCancelPlacement = clearPendingPlacement;
 
   // Enter confirms / Escape cancels the staged placement.
   useEffect(() => {

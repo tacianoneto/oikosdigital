@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useState, type Dispatch, type SetStateAction } from "react";
 import type { Resource, SpeciesId } from "@oikos/shared";
 import type { ExpansionPreviewKind } from "../ui/GameOverlays";
 import type { LandingMode } from "../screens/MainMenuScreen";
@@ -47,17 +47,15 @@ export interface ActionSelection {
   setLandingMode: Dispatch<SetStateAction<LandingMode>>;
   pendingPlacement: PendingPlacement | null;
   setPendingPlacement: Dispatch<SetStateAction<PendingPlacement | null>>;
+  clearActionSelection: () => void;
+  clearWolfActionSelection: () => void;
+  handleExpansionTargetClick: (position: { x: number; y: number }) => void;
+  handleRotateFitTargetClick: (position: { x: number; y: number }, rotation: number) => void;
+  clearPendingPlacement: () => void;
 }
 
-// Groups the current-action selection state of the in-game screen: chosen
-// species, selected hand card + its rotation, selected piece, jaguar/wolf
-// targets (destination, target piece, resources), removal selection (+ the
-// caça-ilegal removal mode), inspected opponent, forest-expansion preview (+ its
-// fly-from origin), the movement preview popover, the lobby landing mode and the
-// chosen-but-unconfirmed card placement. Pure state container — every effect
-// that resets/syncs these on game changes, every handler that dispatches the
-// local/online action and all derived values stay in OikosApp, which reads and
-// writes through these setters.
+// Groups the current-action selection state and local-only selection helpers.
+// Game dispatch, sync effects and derived values stay in OikosApp.
 export function useActionSelection(): ActionSelection {
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
   const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
@@ -75,6 +73,33 @@ export function useActionSelection(): ActionSelection {
   const [movementPreview, setMovementPreview] = useState<MovementPreview | null>(null);
   const [landingMode, setLandingMode] = useState<LandingMode>("idle");
   const [pendingPlacement, setPendingPlacement] = useState<PendingPlacement | null>(null);
+
+  const clearActionSelection = useCallback(() => {
+    setSelectedHandCardId(null);
+    setSelectedPieceId(null);
+    setSelectedRemovalPieceIds([]);
+  }, []);
+
+  const clearWolfActionSelection = useCallback(() => {
+    clearActionSelection();
+    setSelectedWolfTargetPieceId(null);
+    setSelectedWolfResources([]);
+  }, [clearActionSelection]);
+
+  const handleExpansionTargetClick = useCallback(
+    (position: { x: number; y: number }) => {
+      setPendingPlacement({ position, rotation: selectedCardRotation });
+    },
+    [selectedCardRotation]
+  );
+
+  const handleRotateFitTargetClick = useCallback((position: { x: number; y: number }, rotation: number) => {
+    setPendingPlacement({ position, rotation: (rotation % 360) as 0 | 90 | 180 | 270 });
+  }, []);
+
+  const clearPendingPlacement = useCallback(() => {
+    setPendingPlacement(null);
+  }, []);
 
   return {
     selectedSpecies,
@@ -108,6 +133,11 @@ export function useActionSelection(): ActionSelection {
     landingMode,
     setLandingMode,
     pendingPlacement,
-    setPendingPlacement
+    setPendingPlacement,
+    clearActionSelection,
+    clearWolfActionSelection,
+    handleExpansionTargetClick,
+    handleRotateFitTargetClick,
+    clearPendingPlacement
   };
 }
