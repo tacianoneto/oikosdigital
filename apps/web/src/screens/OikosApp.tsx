@@ -61,7 +61,6 @@ import {
   placeForestCard,
   placeInitialPiece,
   resolveCoatiPairBonus,
-  resolveCacaIlegal,
   scoreCapuchinHabitatPresence,
   scoreMacawLines,
 } from "@oikos/rules";
@@ -87,6 +86,7 @@ import { useActiveActionState } from "../hooks/useActiveActionState";
 import { useActiveScoringState } from "../hooks/useActiveScoringState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
+import { useCacaIlegalHandlers } from "../hooks/useCacaIlegalHandlers";
 import { useGameFeedback } from "../hooks/useGameFeedback";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
@@ -2340,30 +2340,25 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setNotice
   });
 
-  const resolveCacaIlegalChoice = (choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }) => {
-    if (!room?.game || !cacaIlegalPending || !canResolveCacaIlegal) return;
-    if (isLocalRoom) {
-      try {
-        const nextGame = resolveCacaIlegal(room.game, cacaIlegalPending.playerId, choice);
-        setRoom((current) => (current ? { ...current, game: nextGame } : current));
-        setCacaIlegalRemovalMode(false);
-        setSelectedRemovalPieceIds([]);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao resolver Caca ilegal.");
-      }
-    } else {
-      const rid = room.roomId;
-      run(() => roomApi.resolveCacaIlegal(requireSocket(), rid, choice)).then(() => {
-        setCacaIlegalRemovalMode(false);
-        setSelectedRemovalPieceIds([]);
-      });
-    }
-  };
-  const resolveSelectedCacaIlegalPiece = () => {
-    const pieceId = selectedRemovalPieceIds[0];
-    if (!pieceId) return;
-    resolveCacaIlegalChoice({ kind: "remove_piece", pieceId });
-  };
+  const {
+    clearCacaIlegalRemoval,
+    enterCacaIlegalRemovalMode,
+    resolveCacaIlegalChoice,
+    resolveSelectedCacaIlegalPiece
+  } = useCacaIlegalHandlers({
+    room,
+    setRoom,
+    cacaIlegalPending,
+    canResolveCacaIlegal,
+    cacaIlegalRemovalMode,
+    setCacaIlegalRemovalMode,
+    selectedRemovalPieceIds,
+    setSelectedRemovalPieceIds,
+    isLocalRoom,
+    run,
+    requireSocket,
+    setError
+  });
   const mataAtlanticaForcedDiscard = Boolean(
     room?.game &&
       room.game.status === "active" &&
@@ -2426,10 +2421,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           resources={cacaIlegalGamePlayer?.resources ?? {}}
           hasRemovablePieces={cacaIlegalRemovablePieces.length > 0}
           onSpendResource={(resource) => resolveCacaIlegalChoice({ kind: "spend_resource", resource })}
-          onEnterRemovalMode={() => {
-            setSelectedRemovalPieceIds([]);
-            setCacaIlegalRemovalMode(true);
-          }}
+          onEnterRemovalMode={enterCacaIlegalRemovalMode}
         />
       )}
       {cacaIlegalPending && canResolveCacaIlegal && cacaIlegalRemovalMode && (
@@ -2437,10 +2429,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           selectedCount={selectedRemovalPieceIds.length}
           confirmDisabled={selectedRemovalPieceIds.length !== 1}
           onConfirm={resolveSelectedCacaIlegalPiece}
-          onBack={() => {
-            setCacaIlegalRemovalMode(false);
-            setSelectedRemovalPieceIds([]);
-          }}
+          onBack={clearCacaIlegalRemoval}
         />
       )}
       {caatingaPending && canResolveCaatinga && (
@@ -3105,10 +3094,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             tutorialActive={tutorialActive}
             wolfMeatTargetCount={wolfMeatTargets.length}
             wolfRemovableBasePieceCount={wolfRemovableBasePieceIds.length}
-            onCancelCacaIlegalRemoval={() => {
-              setCacaIlegalRemovalMode(false);
-              setSelectedRemovalPieceIds([]);
-            }}
+            onCancelCacaIlegalRemoval={clearCacaIlegalRemoval}
             onCompleteAction={handleCompleteAction}
             onHideArmadillo={handleHideArmadillo}
             onRemoveSelectedPieces={handleRemoveSelectedPieces}
