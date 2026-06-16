@@ -103,6 +103,7 @@ import type {
   ThreatCardId
 } from "@oikos/shared";
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
+import { useActionSelection } from "../hooks/useActionSelection";
 import { useActiveActionState } from "../hooks/useActiveActionState";
 import { useActiveScoringState } from "../hooks/useActiveScoringState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
@@ -122,16 +123,12 @@ import { useTurnTimer } from "../hooks/useTurnTimer";
 import { roomApi, type OikosSocket } from "../socket";
 import { LobbyScreen } from "./LobbyScreen";
 import { LocalSetupScreen } from "./LocalSetupScreen";
-import { MainMenuScreen, type LandingMode } from "./MainMenuScreen";
+import { MainMenuScreen } from "./MainMenuScreen";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { playLogEvent } from "../ui/audio";
 import { ActiveRulesDock } from "../ui/ActiveRulesDock";
 import { EndgameCeremony } from "../ui/EndgameCeremony";
-import {
-  ExpansionPreviewOverlay,
-  ThreatRevealOverlay,
-  type ExpansionPreviewKind
-} from "../ui/GameOverlays";
+import { ExpansionPreviewOverlay, ThreatRevealOverlay } from "../ui/GameOverlays";
 import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
@@ -232,7 +229,40 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     isSpectator,
     setIsSpectator
   } = useLobbyForm(defaultPlayerName);
-  const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
+  const {
+    selectedSpecies,
+    setSelectedSpecies,
+    selectedHandCardId,
+    setSelectedHandCardId,
+    selectedCardRotation,
+    setSelectedCardRotation,
+    selectedPieceId,
+    setSelectedPieceId,
+    selectedJaguarDestination,
+    setSelectedJaguarDestination,
+    selectedJaguarTargetPieceId,
+    setSelectedJaguarTargetPieceId,
+    selectedWolfTargetPieceId,
+    setSelectedWolfTargetPieceId,
+    selectedWolfResources,
+    setSelectedWolfResources,
+    selectedRemovalPieceIds,
+    setSelectedRemovalPieceIds,
+    cacaIlegalRemovalMode,
+    setCacaIlegalRemovalMode,
+    selectedOpponentPlayerId,
+    setSelectedOpponentPlayerId,
+    expansionPreview,
+    setExpansionPreview,
+    expansionOrigin,
+    setExpansionOrigin,
+    movementPreview,
+    setMovementPreview,
+    landingMode,
+    setLandingMode,
+    pendingPlacement,
+    setPendingPlacement
+  } = useActionSelection();
   const {
     localSpeciesIds,
     setLocalSpeciesIds,
@@ -247,16 +277,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     localSelectedScenarioIds,
     setLocalSelectedScenarioIds
   } = useLocalGameConfig();
-  const [selectedHandCardId, setSelectedHandCardId] = useState<string | null>(null);
-  const [selectedCardRotation, setSelectedCardRotation] = useState<0 | 90 | 180 | 270>(0);
-  const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
-  const [selectedJaguarDestination, setSelectedJaguarDestination] = useState<{ x: number; y: number } | null>(null);
-  const [selectedJaguarTargetPieceId, setSelectedJaguarTargetPieceId] = useState<string | null>(null);
-  const [selectedWolfTargetPieceId, setSelectedWolfTargetPieceId] = useState<string | null>(null);
-  const [selectedWolfResources, setSelectedWolfResources] = useState<Resource[]>([]);
-  const [selectedRemovalPieceIds, setSelectedRemovalPieceIds] = useState<string[]>([]);
-  const [cacaIlegalRemovalMode, setCacaIlegalRemovalMode] = useState(false);
-  const [selectedOpponentPlayerId, setSelectedOpponentPlayerId] = useState<string | null>(null);
   const {
     error,
     setError,
@@ -311,11 +331,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     recapCollapsed,
     setRecapCollapsed
   } = usePanelState();
-  const [expansionPreview, setExpansionPreview] = useState<ExpansionPreviewKind | null>(null);
-  // Viewport point (icon center) the preview should grow out from, for the
-  // fly-from-origin open animation. Recomputed on each open.
-  const [expansionOrigin, setExpansionOrigin] = useState<{ x: number; y: number } | null>(null);
-  // threatReveal (full-screen threat announcement) lives in useGameFeedback; its
+  // expansionPreview/expansionOrigin (fly-from-origin open animation) live in
+  // useActionSelection. threatReveal (full-screen threat announcement) lives in useGameFeedback; its
   // auto-dismiss timer and the reveal effect stay below. Tracks the last threat
   // seen per game so the announcement fires only on an actual change, not on the
   // initial load / reconnect into an ongoing game.
@@ -329,14 +346,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const { audioSettings, updateAudio } = useAudioSettings();
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
-  const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
-  const [landingMode, setLandingMode] = useState<LandingMode>("idle");
-  // Chosen-but-unconfirmed card placement: shows a preview with confirm/cancel
-  // over the slot to guard against misclicks.
-  const [pendingPlacement, setPendingPlacement] = useState<{
-    position: { x: number; y: number };
-    rotation: 0 | 90 | 180 | 270;
-  } | null>(null);
+  // movementPreview, landingMode and pendingPlacement (chosen-but-unconfirmed
+  // card placement) live in useActionSelection.
   const turnSummary =
     turnRecap.visible && turnRecap.index >= 0 ? turnRecap.history[turnRecap.index] ?? null : null;
 
