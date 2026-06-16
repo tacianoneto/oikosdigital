@@ -108,13 +108,13 @@ import { useActiveActionState } from "../hooks/useActiveActionState";
 import { useActiveScoringState } from "../hooks/useActiveScoringState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
-import type { HandSortMode } from "../hooks/playerCardState";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
 import { useLobbyForm } from "../hooks/useLobbyForm";
 import { useOikosSocket } from "../hooks/useOikosSocket";
 import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
+import { usePanelState } from "../hooks/usePanelState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTutorialController } from "../hooks/useTutorialController";
@@ -155,8 +155,7 @@ import { TurnCountdown } from "../ui/TurnCountdown";
 import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
 import { TutorialCoach } from "../ui/TutorialCoach";
 import { movementArtPath } from "../ui/movementArt";
-import { isSmallScreen } from "../ui/responsive";
-import { getVisualAccessibilityPreference, setVisualAccessibilityPreference } from "../ui/visualAccessibility";
+import { setVisualAccessibilityPreference } from "../ui/visualAccessibility";
 import {
   SPECIES_HEX,
   botTurnDelayStepMs,
@@ -205,8 +204,7 @@ import {
   movementKindLabels,
   SkipExtraTurnNoCardAction,
   SERVER_UNAVAILABLE_MESSAGE,
-  TUTORIAL_ROOM_FACTORIES,
-  type MobileSheet
+  TUTORIAL_ROOM_FACTORIES
 } from "./OikosApp.helpers";
 
 const ForestCanvas = lazy(() =>
@@ -263,13 +261,32 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [pendingObjectiveCardId, setPendingObjectiveCardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [handCollapsed, setHandCollapsed] = useState(isSmallScreen);
-  const [handSortMode, setHandSortMode] = useState<HandSortMode>("habitat");
-  const [cleanBoardMode, setCleanBoardMode] = useState(false);
-  const [boardSpecies, setBoardSpecies] = useState<SpeciesId | null>(null);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [scenarioDockOpen, setScenarioDockOpen] = useState(false);
+  const {
+    handCollapsed,
+    setHandCollapsed,
+    handSortMode,
+    setHandSortMode,
+    cleanBoardMode,
+    setCleanBoardMode,
+    boardSpecies,
+    setBoardSpecies,
+    configOpen,
+    setConfigOpen,
+    settingsOpen,
+    setSettingsOpen,
+    scenarioDockOpen,
+    setScenarioDockOpen,
+    mobileSheet,
+    setMobileSheet,
+    visualAccessibility,
+    setVisualAccessibility,
+    hudLeftCollapsed,
+    setHudLeftCollapsed,
+    hudSpeciesCollapsed,
+    setHudSpeciesCollapsed,
+    recapCollapsed,
+    setRecapCollapsed
+  } = usePanelState();
   const [expansionPreview, setExpansionPreview] = useState<ExpansionPreviewKind | null>(null);
   // Viewport point (icon center) the preview should grow out from, for the
   // fly-from-origin open animation. Recomputed on each open.
@@ -286,15 +303,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   // Mobile-only HUD: below this width the floating docks become bottom sheets
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
   const { isMobile, isBelowDesktop } = useResponsiveLayout();
-  const [mobileSheet, setMobileSheet] = useState<MobileSheet>(null);
   const { audioSettings, updateAudio } = useAudioSettings();
-  const [visualAccessibility, setVisualAccessibility] = useState(() => getVisualAccessibilityPreference());
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
-  const [hudLeftCollapsed, setHudLeftCollapsed] = useState(isSmallScreen);
-  // Mobile-only: the species panel can collapse to its header. Desktop keeps it
-  // open (toggle is hidden and the collapse CSS lives only in the phone query).
-  const [hudSpeciesCollapsed, setHudSpeciesCollapsed] = useState(isSmallScreen);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<LandingMode>("idle");
   const [macawScoreAnim, setMacawScoreAnim] = useState<{
@@ -318,7 +329,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   } | null>(null);
   const [turnRecap, setTurnRecap] = useState<TurnRecapState>({ history: [], index: -1, visible: false });
   const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
-  const [recapCollapsed, setRecapCollapsed] = useState(true);
   const turnSummary =
     turnRecap.visible && turnRecap.index >= 0 ? turnRecap.history[turnRecap.index] ?? null : null;
 

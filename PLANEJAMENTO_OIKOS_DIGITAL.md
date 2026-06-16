@@ -18,13 +18,13 @@ Aberto em 2026-06-15. Seção temporária. Alvo único desta rodada: reduzir o g
 ### Concluído nesta rodada
 
 - Formulário de lobby (`name`, `joinCode`, `joinPassword`, `createPassword`, `isSpectator`) + efeito de seed/sync do nome extraídos para `apps/web/src/hooks/useLobbyForm.ts` (`useLobbyForm`). `room` (estado autoritativo da partida online) ficou no componente, fora de escopo. `typecheck`/`test`/`build` ok; smoke in-game real (login Supabase → menu → Entrar em Sala): nome editável e persistente entre telas, código com uppercase, espectador presente, sem erros de console.
+- Toggles de painel/layout (`handCollapsed`, `handSortMode`, `cleanBoardMode`, `boardSpecies`, `configOpen`, `settingsOpen`, `scenarioDockOpen`, `mobileSheet`, `visualAccessibility`, `hudLeftCollapsed`, `hudSpeciesCollapsed`, `recapCollapsed`) extraídos para `apps/web/src/hooks/usePanelState.ts` (`usePanelState`). Container puro de estado; efeitos e handlers que dirigem esses toggles ficaram em `OikosApp`. Seeds preservados (colapsos por breakpoint, acessibilidade por preferência salva). `typecheck`/`test`/`build` ok; smoke in-game real (login → Teste Local → partida): painel de configurações abre/fecha, toggle de alto contraste alterna o estado, controles da mão disparam, HUD intacto, sem erros de console.
 
 ### Ordem obrigatória recomendada
 
-1. **Fazer primeiro:** extrair toggles de painel/layout (`handCollapsed`, `handSortMode`, `cleanBoardMode`, `boardSpecies`, `configOpen`, `settingsOpen`, `scenarioDockOpen`, `mobileSheet`, `visualAccessibility`, `hudLeftCollapsed`, `hudSpeciesCollapsed`, `recapCollapsed`) para `usePanelState`.
-2. Extrair efeitos/feedback transitórios (`error`, `notice`, `threatReveal`, `macawScoreAnim`, `capuchinScoreAnim`, `turnBanner`, `floatingGains`, `travelEffects`, `turnRecap`, `hoveredSummaryCardIds`, `showJaguarScoreModal`, `expandedObjectiveCardId`, `pendingObjectiveCardId`) para `useGameFeedback`.
-3. Extrair seleção de ação corrente (`selectedSpecies`, `selectedHandCardId`, `selectedCardRotation`, `selectedPieceId`, alvos de onça/lobo, `selectedRemovalPieceIds`, `cacaIlegalRemovalMode`, `selectedOpponentPlayerId`, `pendingPlacement`, `expansionPreview`/`expansionOrigin`, `movementPreview`, `landingMode`) para `useActionSelection` — o maior e mais entrelaçado; fazer por último.
-4. Após cada extração, reavaliar se os 26 handlers podem migrar junto do estado que consomem (dispatch local/online), reduzindo o corpo do componente.
+1. **Fazer primeiro:** extrair efeitos/feedback transitórios (`error`, `notice`, `threatReveal`, `macawScoreAnim`, `capuchinScoreAnim`, `turnBanner`, `floatingGains`, `travelEffects`, `turnRecap`, `hoveredSummaryCardIds`, `showJaguarScoreModal`, `expandedObjectiveCardId`, `pendingObjectiveCardId`) para `useGameFeedback`.
+2. Extrair seleção de ação corrente (`selectedSpecies`, `selectedHandCardId`, `selectedCardRotation`, `selectedPieceId`, alvos de onça/lobo, `selectedRemovalPieceIds`, `cacaIlegalRemovalMode`, `selectedOpponentPlayerId`, `pendingPlacement`, `expansionPreview`/`expansionOrigin`, `movementPreview`, `landingMode`) para `useActionSelection` — o maior e mais entrelaçado; fazer por último.
+3. Após cada extração, reavaliar se os 26 handlers podem migrar junto do estado que consomem (dispatch local/online), reduzindo o corpo do componente.
 
 ### Fora de escopo nesta rodada
 
