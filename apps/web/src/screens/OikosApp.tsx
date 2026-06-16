@@ -62,15 +62,8 @@ import {
   placeInitialPiece,
   resolveCoatiPairBonus,
   resolveCacaIlegal,
-  selectObjectiveCard,
   scoreCapuchinHabitatPresence,
   scoreMacawLines,
-  collectCaatingaBonus,
-  collectCerradoBonus,
-  discardMataAtlanticaPileCard,
-  discardObjectiveForResources,
-  resolveExtraTurnObjective,
-  resolveSeedSpendObjective
 } from "@oikos/rules";
 import type {
   GameState,
@@ -101,6 +94,7 @@ import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
 import { useLobbyForm } from "../hooks/useLobbyForm";
 import { useOikosSocket } from "../hooks/useOikosSocket";
 import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
+import { useObjectiveExpansionHandlers } from "../hooks/useObjectiveExpansionHandlers";
 import { usePanelState } from "../hooks/usePanelState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
@@ -1964,75 +1958,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return () => window.clearTimeout(id);
   }, [canSkipExtraTurnNoCardAction, handleCompleteAction, needsEndgameOverflowRepair, tutorialActive]);
 
-  const handleSelectObjective = useCallback(
-    async (objectiveCardId: string) => {
-      if (!room?.game || !currentGamePlayer || pendingObjectiveCardId) {
-        return;
-      }
-
-      setPendingObjectiveCardId(objectiveCardId);
-      setError(null);
-      setNotice(null);
-
-      if (isLocalRoom) {
-        try {
-          const nextGame = selectObjectiveCard(room.game, currentGamePlayer.playerId, objectiveCardId);
-          setRoom({
-            ...room,
-            game: nextGame,
-            warnings: nextGame.contentWarnings
-          });
-          setNotice("Objetivo escolhido.");
-        } catch (err) {
-          setPendingObjectiveCardId(null);
-          setError(err instanceof Error ? err.message : "Falha ao escolher objetivo.");
-        }
-        return;
-      }
-
-      try {
-        const nextRoom = await roomApi.selectObjective(requireSocket(), room.roomId, objectiveCardId);
-        applyOnlineRoomState(nextRoom, { direct: true });
-        saveOnlineSession(nextRoom, name);
-        setNotice("Objetivo escolhido.");
-      } catch (err) {
-        setPendingObjectiveCardId(null);
-        setError(err instanceof Error ? err.message : "Falha ao escolher objetivo.");
-      }
-    },
-    [currentGamePlayer, isLocalRoom, name, pendingObjectiveCardId, room, socket]
-  );
-
-  const handleDiscardObjective = useCallback(async () => {
-    if (!room?.game || !currentGamePlayer || !canDiscardSelectedObjective) {
-      return;
-    }
-
-    setError(null);
-    setNotice(null);
-
-    if (isLocalRoom) {
-      try {
-        const nextGame = discardObjectiveForResources(room.game, currentGamePlayer.playerId);
-        setRoom({
-          ...room,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setExpansionPreview(null);
-        setExpandedObjectiveCardId(null);
-        setNotice("Objetivo descartado: +1 recurso de cada.");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Falha ao descartar objetivo.");
-      }
-      return;
-    }
-
-    await run(() => roomApi.discardObjective(requireSocket(), room.roomId), "Objetivo descartado: +1 recurso de cada.");
-    setExpansionPreview(null);
-    setExpandedObjectiveCardId(null);
-  }, [canDiscardSelectedObjective, currentGamePlayer, isLocalRoom, room, socket]);
-
   // Toggle the centered card preview, capturing the clicked icon's center so the
   // modal can grow out from it.
   const toggleExpansionPreview = useCallback(
@@ -2379,6 +2304,42 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       !room.game.pendingExtraTurnPlayerId &&
       (isLocalRoom || controlledPlayerId === room.game.pendingSeedSpendObjectivePlayerId)
   );
+
+  const {
+    handleSelectObjective,
+    handleDiscardObjective,
+    resolveCaatingaChoice,
+    resolveCerradoChoice,
+    resolveExtraTurnChoice,
+    resolveSeedSpendChoice,
+    resolveMataAtlanticaDiscard
+  } = useObjectiveExpansionHandlers({
+    room,
+    setRoom,
+    currentGamePlayer,
+    canDiscardSelectedObjective,
+    pendingObjectiveCardId,
+    setPendingObjectiveCardId,
+    setExpandedObjectiveCardId,
+    setExpansionPreview,
+    caatingaPending,
+    cerradoPending,
+    canResolveCaatinga,
+    canResolveCerrado,
+    canResolveExtraTurn,
+    canResolveSeedSpend,
+    pendingSeedSpendCount,
+    pendingSeedSpendPoints,
+    isLocalRoom,
+    name,
+    applyOnlineRoomState,
+    saveOnlineSession,
+    run,
+    requireSocket,
+    setError,
+    setNotice
+  });
+
   const resolveCacaIlegalChoice = (choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }) => {
     if (!room?.game || !cacaIlegalPending || !canResolveCacaIlegal) return;
     if (isLocalRoom) {
@@ -2403,80 +2364,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     if (!pieceId) return;
     resolveCacaIlegalChoice({ kind: "remove_piece", pieceId });
   };
-  const resolveCaatingaChoice = (mode: "gain" | "lose" | "skip") => {
-    if (!room?.game || !caatingaPending || !canResolveCaatinga) return;
-    if (isLocalRoom) {
-      try {
-        const nextGame = collectCaatingaBonus(room.game, caatingaPending.playerId, mode);
-        setRoom((current) => (current ? { ...current, game: nextGame } : current));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao resolver Caatinga.");
-      }
-    } else {
-      const rid = room.roomId;
-      run(() => roomApi.collectCaatinga(requireSocket(), rid, mode));
-    }
-  };
-  const resolveCerradoChoice = (mode: "collect" | "skip") => {
-    if (!room?.game || !cerradoPending || !canResolveCerrado) return;
-    if (isLocalRoom) {
-      try {
-        const nextGame = collectCerradoBonus(room.game, cerradoPending.playerId, mode);
-        setRoom((current) => (current ? { ...current, game: nextGame } : current));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao resolver Cerrado.");
-      }
-    } else {
-      const rid = room.roomId;
-      run(() => roomApi.collectCerrado(requireSocket(), rid, mode));
-    }
-  };
-  const resolveExtraTurnChoice = (accept: boolean) => {
-    if (!room?.game?.pendingExtraTurnPlayerId || !canResolveExtraTurn) return;
-
-    const pendingPlayerId = room.game.pendingExtraTurnPlayerId;
-    if (isLocalRoom) {
-      try {
-        const nextGame = resolveExtraTurnObjective(room.game, pendingPlayerId, accept);
-        setRoom({
-          ...room,
-          status: nextGame.status === "finished" ? "finished" : "active",
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setNotice(accept ? "Turno extra iniciado: -1 ponto." : "Turno extra recusado.");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao resolver turno extra.");
-      }
-      return;
-    }
-
-    const rid = room.roomId;
-    run(() => roomApi.resolveExtraTurn(requireSocket(), rid, accept));
-  };
-  const resolveSeedSpendChoice = (accept: boolean) => {
-    if (!room?.game?.pendingSeedSpendObjectivePlayerId || !canResolveSeedSpend) return;
-
-    const pendingPlayerId = room.game.pendingSeedSpendObjectivePlayerId;
-    if (isLocalRoom) {
-      try {
-        const nextGame = resolveSeedSpendObjective(room.game, pendingPlayerId, accept);
-        setRoom({
-          ...room,
-          status: nextGame.status === "finished" ? "finished" : "active",
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setNotice(accept ? `Objetivo ativado: -${pendingSeedSpendCount} sementes, +${pendingSeedSpendPoints} pontos.` : "Objetivo recusado.");
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao resolver objetivo de sementes.");
-      }
-      return;
-    }
-
-    const rid = room.roomId;
-    run(() => roomApi.resolveSeedSpend(requireSocket(), rid, accept));
-  };
   const mataAtlanticaForcedDiscard = Boolean(
     room?.game &&
       room.game.status === "active" &&
@@ -2491,20 +2378,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       !cerradoPending &&
       !cacaIlegalPending
   );
-  const resolveMataAtlanticaDiscard = (cardId: string) => {
-    if (!room?.game || !currentGamePlayer) return;
-    if (isLocalRoom) {
-      try {
-        const nextGame = discardMataAtlanticaPileCard(room.game, currentGamePlayer.playerId, cardId);
-        setRoom((current) => (current ? { ...current, game: nextGame } : current));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Falha ao descartar (Mata Atlantica).");
-      }
-    } else {
-      const rid = room.roomId;
-      run(() => roomApi.discardMataAtlantica(requireSocket(), rid, cardId));
-    }
-  };
 
   if (isBelowDesktop) {
     return (
@@ -3480,17 +3353,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                               title="Descartar (Mata Atlântica)"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                if (isLocalRoom) {
-                                  try {
-                                    const nextGame = discardMataAtlanticaPileCard(room.game!, currentGamePlayer.playerId, card.id);
-                                    setRoom((current) => (current ? { ...current, game: nextGame } : current));
-                                  } catch (e) {
-                                    setError(e instanceof Error ? e.message : "Falha ao descartar.");
-                                  }
-                                } else {
-                                  const rid = room.roomId;
-                                  run(() => roomApi.discardMataAtlantica(requireSocket(), rid, card.id));
-                                }
+                                resolveMataAtlanticaDiscard(card.id);
                               }}
                             >
                               <X aria-hidden="true" />

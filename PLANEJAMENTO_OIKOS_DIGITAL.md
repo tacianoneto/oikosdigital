@@ -25,10 +25,11 @@ Aberto em 2026-06-15. Seção temporária. Alvo único desta rodada: reduzir o g
 - Reavaliação dos handlers: resets de seleção e staging/cancelamento de colocação migrados para `useActionSelection`; handlers com dispatch local/online seguem em `OikosApp` por dependerem de `room`, socket, tutorial gates e animações. Imports órfãos de regras de adição removidos. `typecheck`/`test`/`build` ok; smoke local em `http://localhost:5187/` renderizou login sem erros de console.
 - Primeiro cluster de handlers de dispatch simples (`handleSpendJaguarMeat`, `handleScoreGalo`, `handleScoreArmadillo`, `handleCompleteAction`) extraído para `apps/web/src/hooks/useSimpleActionHandlers.ts` (`useSimpleActionHandlers`). `executeGameAction` permanece como fronteira local/online em `OikosApp`; handlers com animações (`Macaco`/`Arara`) ficaram fora do recorte. `typecheck`/`test`/`build` ok; smoke in-game real (login Supabase → Teste Local → partida) sem erros de console.
 - Handlers de resolução dependentes de seleção/reset (`handleRemoveSelectedPieces`, `handleHideArmadillo`, `handleRemoveWolfBasePiece`, `handleSpendWolfResources`) extraídos para `apps/web/src/hooks/useSelectionResolutionHandlers.ts` (`useSelectionResolutionHandlers`). `executeGameAction` e seleção seguem injetados pelo componente para preservar paridade local/online e resets existentes. `typecheck`/`test`/`build` ok; smoke in-game real (login Supabase → Teste Local → partida) sem erros de console.
+- Handlers de objetivos e mini-expansões de bioma/objetivo (`handleSelectObjective`, `handleDiscardObjective`, `resolveCaatingaChoice`, `resolveCerradoChoice`, `resolveExtraTurnChoice`, `resolveSeedSpendChoice`, `resolveMataAtlanticaDiscard`) extraídos para `apps/web/src/hooks/useObjectiveExpansionHandlers.ts` (`useObjectiveExpansionHandlers`). Caca Ilegal/ameaça ficou fora por depender de modo de remoção e seleção própria. `typecheck`/`test`/`build` ok; smoke in-game real (login Supabase → Teste Local → partida) sem erros de console.
 
 ### Ordem obrigatória recomendada
 
-1. Extrair handlers de objetivos/mini-expansões (`handleSelectObjective`, `handleDiscardObjective` e resoluções relacionadas) para hook dedicado, sem alterar fluxo online/local.
+1. Extrair resolução da ameaça Caca Ilegal (`resolveCacaIlegalChoice`, `resolveSelectedCacaIlegalPiece` e resets de modo de remoção) para hook dedicado, preservando seleção e paridade local/online.
 
 ### Fora de escopo nesta rodada
 
