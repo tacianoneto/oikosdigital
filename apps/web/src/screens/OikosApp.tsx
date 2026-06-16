@@ -112,6 +112,7 @@ import type { HandSortMode } from "../hooks/playerCardState";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
+import { useLobbyForm } from "../hooks/useLobbyForm";
 import { useOikosSocket } from "../hooks/useOikosSocket";
 import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
@@ -221,11 +222,18 @@ interface OikosAppProps {
 export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [room, setRoom] = useState<PublicRoomState | null>(null);
   const defaultPlayerName = useMemo(() => getAuthDisplayName(authUser), [authUser]);
-  const [name, setName] = useState(defaultPlayerName);
-  const [joinCode, setJoinCode] = useState("");
-  const [joinPassword, setJoinPassword] = useState("");
-  const [createPassword, setCreatePassword] = useState("");
-  const [isSpectator, setIsSpectator] = useState(false);
+  const {
+    name,
+    setName,
+    joinCode,
+    setJoinCode,
+    joinPassword,
+    setJoinPassword,
+    createPassword,
+    setCreatePassword,
+    isSpectator,
+    setIsSpectator
+  } = useLobbyForm(defaultPlayerName);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesId | "">("");
   const {
     localSpeciesIds,
@@ -445,10 +453,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   });
 
   const { openRooms, roomsLoading, refreshRooms } = useOpenRoomsPolling(socket, landingMode);
-
-  useEffect(() => {
-    setName((current) => (current === "Jogador" ? defaultPlayerName : current));
-  }, [defaultPlayerName]);
 
   useEffect(() => {
     if ((landingMode === "create" || landingMode === "join") && socket && !socket.connected) {
