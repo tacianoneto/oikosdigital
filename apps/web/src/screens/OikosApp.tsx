@@ -66,6 +66,7 @@ import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
 import { useLocalGameHandlers } from "../hooks/useLocalGameHandlers";
 import { useLobbyForm } from "../hooks/useLobbyForm";
 import { useOikosSocket } from "../hooks/useOikosSocket";
+import { useOnlineRoom } from "../hooks/useOnlineRoom";
 import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { useObjectiveExpansionHandlers } from "../hooks/useObjectiveExpansionHandlers";
 import { usePanelState } from "../hooks/usePanelState";
@@ -330,12 +331,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const forestCanvasRef = useRef<ForestCanvasHandle | null>(null);
   const effectTargetRefs = useRef(new Map<string, HTMLElement>());
   const autoScoredRef = useRef<string | null>(null);
-  const lastOnlineRoomSnapshotRef = useRef("");
-  const onlineActionInFlightRef = useRef(false);
-  const activeOnlineRoomIdRef = useRef<string | null>(null);
-  const showServerWarningRef = useRef(false);
-  const ignoredOnlineRoomIdsRef = useRef<Set<string>>(new Set());
-  const roomActionEpochRef = useRef(0);
 
   const showMovementPreview = useCallback((speciesId: SpeciesId, rect: DOMRect) => {
     const previewWidth = 220;
@@ -353,63 +348,39 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setMovementPreview({ speciesId, left, top });
   }, []);
 
-  const resetRoomUiState = useCallback(() => {
-    setConfigOpen(false);
-    setBoardSpecies(null);
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    setSelectedJaguarDestination(null);
-    setSelectedJaguarTargetPieceId(null);
-    setSelectedWolfTargetPieceId(null);
-    setSelectedWolfResources([]);
-    setSelectedRemovalPieceIds([]);
-    setPendingPlacement(null);
-    setHoveredSummaryCardIds([]);
-    setTurnRecap({ history: [], index: -1, visible: false });
-    setRecapCollapsed(true);
-  }, []);
-
-  const applyOnlineRoomState = useCallback((nextRoom: PublicRoomState, options?: { direct?: boolean }) => {
-    const direct = options?.direct ?? false;
-
-    if (!direct) {
-      if (ignoredOnlineRoomIdsRef.current.has(nextRoom.roomId)) {
-        return false;
-      }
-
-      const activeRoomId = activeOnlineRoomIdRef.current;
-      if (!activeRoomId || activeRoomId !== nextRoom.roomId) {
-        return false;
-      }
-    }
-
-    activeOnlineRoomIdRef.current = nextRoom.roomId;
-    ignoredOnlineRoomIdsRef.current.delete(nextRoom.roomId);
-
-    const snapshot = JSON.stringify(nextRoom);
-    if (lastOnlineRoomSnapshotRef.current === snapshot) {
-      return false;
-    }
-
-    lastOnlineRoomSnapshotRef.current = snapshot;
-    setRoom(nextRoom);
-    return true;
-  }, []);
-
-  const clearRoomState = useCallback(() => {
-    roomActionEpochRef.current += 1;
-    lastOnlineRoomSnapshotRef.current = "";
-    activeOnlineRoomIdRef.current = null;
-    resetRoomUiState();
-    setIsSpectator(false);
-    setRoom(null);
-  }, [resetRoomUiState]);
-
-  useEffect(() => {
-    showServerWarningRef.current =
-      landingMode === "create" || landingMode === "join" || Boolean(room && room.roomId !== localRoomId);
-  }, [landingMode, room]);
+  const {
+    lastOnlineRoomSnapshotRef,
+    onlineActionInFlightRef,
+    showServerWarningRef,
+    ignoredOnlineRoomIdsRef,
+    roomActionEpochRef,
+    applyOnlineRoomState,
+    clearRoomState,
+    run
+  } = useOnlineRoom({
+    room,
+    landingMode,
+    name,
+    setConfigOpen,
+    setBoardSpecies,
+    setSelectedHandCardId,
+    setSelectedCardRotation,
+    setSelectedPieceId,
+    setSelectedJaguarDestination,
+    setSelectedJaguarTargetPieceId,
+    setSelectedWolfTargetPieceId,
+    setSelectedWolfResources,
+    setSelectedRemovalPieceIds,
+    setPendingPlacement,
+    setHoveredSummaryCardIds,
+    setTurnRecap,
+    setRecapCollapsed,
+    setIsSpectator,
+    setRoom,
+    setError,
+    setNotice,
+    setJoinCode
+  });
 
   const { socket, playerId } = useOikosSocket({
     accessToken: authSession.access_token,
@@ -937,42 +908,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setRecapCollapsed,
     setHoveredSummaryCardIds
   });
-
-  const run = useCallback(async (action: () => Promise<PublicRoomState>, success?: string) => {
-    if (onlineActionInFlightRef.current) {
-      return;
-    }
-
-    const actionEpoch = roomActionEpochRef.current;
-    onlineActionInFlightRef.current = true;
-    setError(null);
-    setNotice(null);
-
-    try {
-      const nextRoom = await action();
-      if (roomActionEpochRef.current !== actionEpoch) {
-        return;
-      }
-
-      applyOnlineRoomState(nextRoom, { direct: true });
-      saveOnlineSession(nextRoom, name);
-      if (success) {
-        setNotice(success);
-      }
-    } catch (err) {
-      if (isMissingRoomError(err)) {
-        clearOnlineSession();
-        clearRoomState();
-        setJoinCode("");
-        setNotice("Essa sala não existe mais no servidor gratuito. Crie uma nova sala para continuar.");
-        return;
-      }
-
-      setError(err instanceof Error ? err.message : "Erro desconhecido.");
-    } finally {
-      onlineActionInFlightRef.current = false;
-    }
-  }, [applyOnlineRoomState, clearRoomState, name]);
 
   const applyLocalAction = useCallback((nextGame: GameState, notice: string) => {
     setRoom((current) =>
