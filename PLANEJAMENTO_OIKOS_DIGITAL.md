@@ -23,10 +23,11 @@ Aberto em 2026-06-15. Seção temporária. Alvo único desta rodada: reduzir o g
 
 - Seleção de ação corrente (`selectedSpecies`, `selectedHandCardId`, `selectedCardRotation`, `selectedPieceId`, alvos de onça/lobo — `selectedJaguarDestination`, `selectedJaguarTargetPieceId`, `selectedWolfTargetPieceId`, `selectedWolfResources` —, `selectedRemovalPieceIds`, `cacaIlegalRemovalMode`, `selectedOpponentPlayerId`, `expansionPreview`/`expansionOrigin`, `movementPreview`, `landingMode`, `pendingPlacement`) extraída para `apps/web/src/hooks/useActionSelection.ts` (`useActionSelection`). Container de estado com resets/staging locais; efeitos de reset/sync, handlers de dispatch local/online e derivações seguem em `OikosApp`. Imports órfãos removidos (`type LandingMode`, `type ExpansionPreviewKind`). `typecheck`/`test`/`build` ok; smoke = boot do dev server sem erros de console (telas in-game gatadas por login Supabase).
 - Reavaliação dos handlers: resets de seleção e staging/cancelamento de colocação migrados para `useActionSelection`; handlers com dispatch local/online seguem em `OikosApp` por dependerem de `room`, socket, tutorial gates e animações. Imports órfãos de regras de adição removidos. `typecheck`/`test`/`build` ok; smoke local em `http://localhost:5187/` renderizou login sem erros de console.
+- Primeiro cluster de handlers de dispatch simples (`handleSpendJaguarMeat`, `handleScoreGalo`, `handleScoreArmadillo`, `handleCompleteAction`) extraído para `apps/web/src/hooks/useSimpleActionHandlers.ts` (`useSimpleActionHandlers`). `executeGameAction` permanece como fronteira local/online em `OikosApp`; handlers com animações (`Macaco`/`Arara`) ficaram fora do recorte. `typecheck`/`test`/`build` ok; smoke in-game real (login Supabase → Teste Local → partida) sem erros de console.
 
 ### Ordem obrigatória recomendada
 
-1. Extrair o primeiro cluster de handlers de dispatch simples (pontuação/conclusão sem animação complexa) para um hook dedicado, mantendo `executeGameAction` como fronteira local/online.
+1. Extrair handlers de resolução que dependem de seleção/reset (`handleRemoveSelectedPieces`, `handleHideArmadillo`, `handleRemoveWolfBasePiece`, `handleSpendWolfResources`) para hook dedicado, mantendo paridade local/online.
 
 ### Fora de escopo nesta rodada
 

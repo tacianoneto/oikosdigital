@@ -66,11 +66,8 @@ import {
   resolveCacaIlegal,
   selectObjectiveCard,
   hideArmadilloForCurrentAction,
-  scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
-  scoreGaloSeedCards,
   scoreMacawLines,
-  spendJaguarMeatForPoints,
   spendWolfResourcesForPoints,
   collectCaatingaBonus,
   collectCerradoBonus,
@@ -111,6 +108,7 @@ import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { usePanelState } from "../hooks/usePanelState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
+import { useSimpleActionHandlers } from "../hooks/useSimpleActionHandlers";
 import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import { roomApi, type OikosSocket } from "../socket";
@@ -1337,6 +1335,17 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return socket;
   }
 
+  const { handleSpendJaguarMeat, handleScoreGalo, handleScoreArmadillo, handleCompleteAction } =
+    useSimpleActionHandlers({
+      room,
+      canControlActivePlayer,
+      tutorialActive,
+      tutorialDef,
+      executeGameAction,
+      requireSocket,
+      setNotice
+    });
+
   async function spectate(roomId: string, password?: string | null) {
     if (onlineActionInFlightRef.current) {
       return;
@@ -1892,25 +1901,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     socket
   ]);
 
-  const handleSpendJaguarMeat = useCallback(
-    (count: number) => {
-      if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
-        return;
-      }
-      if (tutorialActive && tutorialDef?.requiredSpendCount && count !== tutorialDef.requiredSpendCount) {
-        setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} carnes para ver a pontuação completa.`);
-        return;
-      }
-
-      executeGameAction(
-        () => spendJaguarMeatForPoints(room.game!, room.game!.activePlayerId!, count),
-        () => roomApi.spendJaguarMeat(requireSocket(), room.roomId, count),
-        "Carne gasta e pontos marcados."
-      );
-    },
-    [canControlActivePlayer, executeGameAction, room, socket, tutorialActive, tutorialDef?.requiredSpendCount]
-  );
-
   const handleScoreCapuchin = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
       return;
@@ -1975,18 +1965,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     }, 2400);
   }, [canControlActivePlayer, executeGameAction, room, socket]);
 
-  const handleScoreGalo = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
-      return;
-    }
-
-    executeGameAction(
-      () => scoreGaloSeedCards(room.game!, room.game!.activePlayerId!),
-      () => roomApi.scoreGalo(requireSocket(), room.roomId),
-      "Galo-de-campina pontuado."
-    );
-  }, [canControlActivePlayer, executeGameAction, room, socket]);
-
   const handleHideArmadillo = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedPieceId) {
       return;
@@ -2001,18 +1979,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       "Tatu-bola escondido."
     );
   }, [canControlActivePlayer, executeGameAction, room, selectedPieceId, socket, tutorialActive, tutorialDef?.markedPieceId]);
-
-  const handleScoreArmadillo = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
-      return;
-    }
-
-    executeGameAction(
-      () => scoreArmadilloSharing(room.game!, room.game!.activePlayerId!),
-      () => roomApi.scoreArmadillo(requireSocket(), room.roomId),
-      "Tatu-bola pontuado."
-    );
-  }, [canControlActivePlayer, executeGameAction, room, socket]);
 
   const handleRemoveWolfBasePiece = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedWolfTargetPieceId) {
@@ -2068,21 +2034,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     tutorialActive,
     tutorialDef?.requiredSpendCount
   ]);
-
-  const handleCompleteAction = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
-      return;
-    }
-    if (tutorialActive) {
-      return;
-    }
-
-    executeGameAction(
-      () => completeCurrentAction(room.game!, room.game!.activePlayerId!),
-      () => roomApi.completeAction(requireSocket(), room.roomId),
-      "Ação concluída."
-    );
-  }, [canControlActivePlayer, executeGameAction, room, socket, tutorialActive]);
 
   useEffect(() => {
     if ((!canSkipExtraTurnNoCardAction && !needsEndgameOverflowRepair) || tutorialActive) {
