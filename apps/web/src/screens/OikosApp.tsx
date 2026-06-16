@@ -57,6 +57,7 @@ import { useActiveScoringState } from "../hooks/useActiveScoringState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardCardHandlers } from "../hooks/useBoardCardHandlers";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
+import { useBoardOverlays } from "../hooks/useBoardOverlays";
 import { useBoardPieceHandlers } from "../hooks/useBoardPieceHandlers";
 import { useCacaIlegalHandlers } from "../hooks/useCacaIlegalHandlers";
 import { useGameFeedback } from "../hooks/useGameFeedback";
@@ -329,24 +330,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     );
   }, [room?.game?.gameId, room?.game?.status]);
   const forestCanvasRef = useRef<ForestCanvasHandle | null>(null);
-  const effectTargetRefs = useRef(new Map<string, HTMLElement>());
   const autoScoredRef = useRef<string | null>(null);
 
-  const showMovementPreview = useCallback((speciesId: SpeciesId, rect: DOMRect) => {
-    const previewWidth = 220;
-    const previewHeight = 300;
-    const gap = 12;
-    const safeMargin = 12;
-    const left = Math.max(
-      safeMargin,
-      Math.min(window.innerWidth - previewWidth - safeMargin, rect.left - previewWidth - gap)
-    );
-    const top = Math.max(
-      safeMargin,
-      Math.min(window.innerHeight - previewHeight - safeMargin, rect.top - 8)
-    );
-    setMovementPreview({ speciesId, left, top });
-  }, []);
+  const { effectTargetRefs, setEffectTarget, toggleExpansionPreview } = useBoardOverlays({
+    setMovementPreview,
+    setExpansionOrigin,
+    setExpansionPreview
+  });
 
   const {
     lastOnlineRoomSnapshotRef,
@@ -647,13 +637,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const showTurnCountdown = Boolean(
     !isLocalRoom && room?.game?.status === "active" && turnTimerMs && room?.activeTurnStartedAt
   );
-  const setEffectTarget = useCallback((key: string, element: HTMLElement | null) => {
-    if (element) {
-      effectTargetRefs.current.set(key, element);
-    } else {
-      effectTargetRefs.current.delete(key);
-    }
-  }, []);
   const forestCards = room?.game?.forest.cards ?? createPreviewInitialForest();
   const pieces = room?.game?.pieces ?? [];
 
@@ -1143,15 +1126,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
   // Toggle the centered card preview, capturing the clicked icon's center so the
   // modal can grow out from it.
-  const toggleExpansionPreview = useCallback(
-    (kind: "objective" | "scenarios" | "threat", event: React.MouseEvent<HTMLButtonElement>) => {
-      const rect = event.currentTarget.getBoundingClientRect();
-      setExpansionOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-      setExpansionPreview((current) => (current === kind ? null : kind));
-    },
-    []
-  );
-
   const {
     toggleLocalSpecies,
     toggleLocalBot,
