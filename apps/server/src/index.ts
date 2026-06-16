@@ -6,7 +6,8 @@ import type { MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, Scenar
 import { getUserIdFromAccessToken } from "./auth";
 import { projectRoomForViewer } from "./projection";
 import { canUseSpecies } from "./speciesAccess";
-import { deleteRoom, purgeRoomsOlderThan, saveRoom } from "./store";
+import { purgeRoomsOlderThan } from "./store";
+import { RoomScheduler } from "./roomScheduler";
 import {
   addBots,
   addBotForSpecies,
@@ -18,25 +19,14 @@ import {
   addGaloAdjacent,
   addMacaw,
   addWolf,
-  advanceAutomaticScore,
-  advanceBot,
-  advanceTurnTimeoutBot,
   completeAction,
   createRoom,
-  getActiveBotPlayer,
-  getActiveHumanPlayer,
-  getAutomaticScorePlayer,
-  getBotTurnDelay,
-  getTurnTimerMs,
   setTurnTimer,
   chooseObjective,
   discardObjective,
   resolveExtraTurn,
   resolveSeedSpend,
-  forceSkipActivePlayer,
-  getActiveDisconnectedPlayer,
   getPublicRoom,
-  hasRoom,
   listOpenRooms,
   hideArmadillo,
   joinRoom,
@@ -73,8 +63,7 @@ import {
   collectCaatinga,
   collectCerrado,
   discardMataAtlanticaCard,
-  resolveCacaIlegalThreat,
-  SCENARIO_VOTING_DURATION_MS
+  resolveCacaIlegalThreat
 } from "./rooms";
 
 const port = Number(process.env.PORT ?? 4173);
@@ -82,16 +71,6 @@ const app = Fastify({ logger: true });
 const configuredOrigin = process.env.CLIENT_ORIGIN;
 const allowedOrigin = configuredOrigin && configuredOrigin !== "true" ? configuredOrigin : true;
 const socketsByPlayerId = new Map<string, Set<string>>();
-const turnSkipTimers = new Map<string, NodeJS.Timeout>();
-const botTurnTimers = new Map<string, NodeJS.Timeout>();
-const automaticScoreTimers = new Map<string, NodeJS.Timeout>();
-const turnPunishmentTimers = new Map<string, NodeJS.Timeout>();
-const scenarioVotingTimers = new Map<string, NodeJS.Timeout>();
-// Tracks when the current active turn began, per room, so clients can render a
-// countdown and the punishment timer fires at the right moment.
-const turnStartByRoom = new Map<string, { playerId: string; at: number }>();
-const pendingRoomSaves = new Map<string, PublicRoomState>();
-let roomSaveTimer: NodeJS.Timeout | null = null;
 const turnTimeoutMs = Number(process.env.TURN_TIMEOUT_MS ?? 90000);
 const botTurnDelayMs = Number(process.env.BOT_TURN_DELAY_MS ?? 2500);
 const automaticScoreDelayMs = Number(process.env.AUTO_SCORE_DELAY_MS ?? 1500);
@@ -109,6 +88,14 @@ const io = new Server(app.server, {
   }
 });
 
+const scheduler = new RoomScheduler({
+  io,
+  log: app.log,
+  turnTimeoutMs,
+  botTurnDelayMs,
+  automaticScoreDelayMs
+});
+
 io.use(async (socket, next) => {
   try {
     const accessToken = socket.handshake.auth.accessToken;
@@ -124,275 +111,6 @@ io.use(async (socket, next) => {
     next(new Error("Sessao invalida. Entre novamente."));
   }
 });
-
-function clearTurnSkipTimer(roomId: string): void {
-  const timer = turnSkipTimers.get(roomId);
-  if (timer) {
-    clearTimeout(timer);
-    turnSkipTimers.delete(roomId);
-  }
-}
-
-function reconcileTurnTimer(roomId: string): void {
-  clearTurnSkipTimer(roomId);
-
-  if (turnTimeoutMs <= 0) {
-    return;
-  }
-
-  const disconnectedPlayerId = getActiveDisconnectedPlayer(roomId);
-  if (!disconnectedPlayerId) {
-    return;
-  }
-
-  const timer = setTimeout(() => {
-    turnSkipTimers.delete(roomId);
-    if (!getActiveDisconnectedPlayer(roomId)) {
-      return;
-    }
-
-    try {
-      const result = forceSkipActivePlayer(roomId, "jogador desconectado");
-      if (result.skipped) {
-        broadcastRoom(result.room);
-      }
-    } catch (error) {
-      app.log.error({ err: error, roomId }, "Falha ao pular turno por desconexao.");
-    }
-  }, turnTimeoutMs);
-
-  turnSkipTimers.set(roomId, timer);
-}
-
-function clearBotTurnTimer(roomId: string): void {
-  const timer = botTurnTimers.get(roomId);
-  if (timer) {
-    clearTimeout(timer);
-    botTurnTimers.delete(roomId);
-  }
-}
-
-function scheduleBotTurn(roomId: string): void {
-  const roomBotTurnDelayMs = getBotTurnDelay(roomId) ?? botTurnDelayMs;
-  if (roomBotTurnDelayMs < 0 || botTurnTimers.has(roomId) || !getActiveBotPlayer(roomId)) {
-    return;
-  }
-
-  const timer = setTimeout(() => {
-    botTurnTimers.delete(roomId);
-    if (!getActiveBotPlayer(roomId)) {
-      return;
-    }
-
-    try {
-      const room = advanceBot(roomId);
-      if (room) {
-        broadcastRoom(room);
-      }
-    } catch (error) {
-      app.log.error({ err: error, roomId }, "Falha ao executar turno de bot.");
-    }
-  }, roomBotTurnDelayMs);
-
-  timer.unref();
-  botTurnTimers.set(roomId, timer);
-}
-
-function clearAutomaticScoreTimer(roomId: string): void {
-  const timer = automaticScoreTimers.get(roomId);
-  if (timer) {
-    clearTimeout(timer);
-    automaticScoreTimers.delete(roomId);
-  }
-}
-
-function scheduleAutomaticScore(roomId: string): void {
-  if (automaticScoreDelayMs < 0 || automaticScoreTimers.has(roomId) || !getAutomaticScorePlayer(roomId)) {
-    return;
-  }
-
-  const timer = setTimeout(() => {
-    automaticScoreTimers.delete(roomId);
-    if (!getAutomaticScorePlayer(roomId)) {
-      return;
-    }
-
-    try {
-      const room = advanceAutomaticScore(roomId);
-      if (room) {
-        broadcastRoom(room);
-      }
-    } catch (error) {
-      app.log.error({ err: error, roomId }, "Falha ao pontuar acao automatica.");
-    }
-  }, automaticScoreDelayMs);
-
-  timer.unref();
-  automaticScoreTimers.set(roomId, timer);
-}
-
-function clearTurnPunishmentTimer(roomId: string): void {
-  const timer = turnPunishmentTimers.get(roomId);
-  if (timer) {
-    clearTimeout(timer);
-    turnPunishmentTimers.delete(roomId);
-  }
-}
-
-// Records when the active turn began (resets only when the active player
-// changes) and returns that timestamp for the client countdown.
-function trackActiveTurn(room: PublicRoomState): number | null {
-  const activePlayerId = room.game?.status === "active" ? room.game.activePlayerId : null;
-  if (!activePlayerId) {
-    turnStartByRoom.delete(room.roomId);
-    return null;
-  }
-
-  const existing = turnStartByRoom.get(room.roomId);
-  if (!existing || existing.playerId !== activePlayerId) {
-    const entry = { playerId: activePlayerId, at: Date.now() };
-    turnStartByRoom.set(room.roomId, entry);
-    return entry.at;
-  }
-
-  return existing.at;
-}
-
-function reconcileTurnPunishmentTimer(roomId: string): void {
-  clearTurnPunishmentTimer(roomId);
-
-  const turnTimerMs = getTurnTimerMs(roomId);
-  if (!turnTimerMs || turnTimerMs <= 0) {
-    return;
-  }
-
-  const humanPlayerId = getActiveHumanPlayer(roomId);
-  if (!humanPlayerId) {
-    return;
-  }
-
-  const started = turnStartByRoom.get(roomId);
-  const elapsed = started && started.playerId === humanPlayerId ? Date.now() - started.at : 0;
-  const remaining = Math.max(0, turnTimerMs - elapsed);
-
-  const timer = setTimeout(() => {
-    turnPunishmentTimers.delete(roomId);
-    if (getActiveHumanPlayer(roomId) !== humanPlayerId || !getTurnTimerMs(roomId)) {
-      return;
-    }
-
-    try {
-      const result = advanceTurnTimeoutBot(roomId, humanPlayerId);
-      if (result.ended) {
-        broadcastRoom(result.room);
-      }
-    } catch (error) {
-      app.log.error({ err: error, roomId }, "Falha ao resolver turno por tempo esgotado.");
-    }
-  }, remaining);
-
-  timer.unref();
-  turnPunishmentTimers.set(roomId, timer);
-}
-
-function clearScenarioVotingTimer(roomId: string): void {
-  const timer = scenarioVotingTimers.get(roomId);
-  if (timer) {
-    clearTimeout(timer);
-    scenarioVotingTimers.delete(roomId);
-  }
-}
-
-function scheduleScenarioVotingDeadline(room: PublicRoomState): void {
-  clearScenarioVotingTimer(room.roomId);
-  if (room.status !== "scenario_voting" || !room.scenarioVoting) return;
-  const remaining = Math.max(0, room.scenarioVoting.deadline - Date.now());
-  const timer = setTimeout(() => {
-    scenarioVotingTimers.delete(room.roomId);
-    try {
-      const finalized = finalizeScenarioVoting(room.roomId);
-      broadcastRoom(finalized);
-    } catch (error) {
-      app.log.error({ err: error, roomId: room.roomId }, "Falha ao finalizar votacao de cenarios.");
-    }
-  }, remaining);
-  timer.unref();
-  scenarioVotingTimers.set(room.roomId, timer);
-}
-
-function broadcastRoom(room: PublicRoomState): void {
-  room.activeTurnStartedAt = trackActiveTurn(room);
-  emitRoomUpdateProjected(room);
-  scheduleRoomSave(room);
-  reconcileTurnTimer(room.roomId);
-  if (room.status === "finished") {
-    clearBotTurnTimer(room.roomId);
-    clearAutomaticScoreTimer(room.roomId);
-    clearTurnPunishmentTimer(room.roomId);
-    clearScenarioVotingTimer(room.roomId);
-    turnStartByRoom.delete(room.roomId);
-    return;
-  }
-  if (room.status === "scenario_voting") {
-    scheduleScenarioVotingDeadline(room);
-  } else {
-    clearScenarioVotingTimer(room.roomId);
-  }
-  scheduleAutomaticScore(room.roomId);
-  scheduleBotTurn(room.roomId);
-  reconcileTurnPunishmentTimer(room.roomId);
-}
-
-// Emits "room:update" individually per connected socket so each player only
-// receives their own projection of the state (own hand, redacted decks). The
-// projection is cached per viewer because a player can have multiple sockets.
-function emitRoomUpdateProjected(room: PublicRoomState): void {
-  const socketIds = io.sockets.adapter.rooms.get(room.roomId);
-  if (!socketIds) {
-    return;
-  }
-
-  const viewCache = new Map<string | null, PublicRoomState>();
-  for (const socketId of socketIds) {
-    const target = io.sockets.sockets.get(socketId);
-    if (!target) {
-      continue;
-    }
-
-    const viewerId = typeof target.data.playerId === "string" ? target.data.playerId : null;
-    let view = viewCache.get(viewerId);
-    if (!view) {
-      view = projectRoomForViewer(room, viewerId);
-      viewCache.set(viewerId, view);
-    }
-    target.emit("room:update", view);
-  }
-}
-
-function scheduleRoomSave(room: PublicRoomState): void {
-  pendingRoomSaves.set(room.roomId, room);
-
-  if (roomSaveTimer) {
-    return;
-  }
-
-  roomSaveTimer = setTimeout(flushPendingRoomSaves, 250);
-  roomSaveTimer.unref();
-}
-
-function flushPendingRoomSaves(): void {
-  roomSaveTimer = null;
-  const roomsToSave = [...pendingRoomSaves.values()];
-  pendingRoomSaves.clear();
-
-  for (const room of roomsToSave) {
-    if (hasRoom(room.roomId)) {
-      saveRoom(room);
-    } else {
-      deleteRoom(room.roomId);
-    }
-  }
-}
 
 io.on("connection", (socket) => {
   const playerId = getPlayerId(socket);
@@ -423,7 +141,7 @@ io.on("connection", (socket) => {
     socket.on(event, (payload: P, reply: unknown) => {
       withReply(reply, () => {
         const room = run(payload, playerId);
-        broadcastRoom(room);
+        scheduler.broadcastRoom(room);
         return room;
       });
     });
@@ -447,7 +165,7 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = createRoom(playerId, payload.name, payload.password);
       socket.join(room.roomId);
-      scheduleRoomSave(room);
+      scheduler.scheduleRoomSave(room);
       return room;
     });
   });
@@ -456,7 +174,7 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = joinRoom(payload.roomId, playerId, payload.name, payload.password);
       socket.join(room.roomId);
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
       return room;
     });
   });
@@ -465,7 +183,7 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = spectateRoom(payload.roomId, playerId, payload.password);
       socket.join(room.roomId);
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
       return room;
     });
   });
@@ -474,7 +192,7 @@ io.on("connection", (socket) => {
     withReply(reply, () => {
       const room = leaveRoom(payload.roomId, playerId);
       socket.leave(room.roomId);
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
       return room;
     });
   });
@@ -484,7 +202,7 @@ io.on("connection", (socket) => {
       const room = quitRoom(payload.roomId, playerId);
       socket.leave(payload.roomId);
       if (room) {
-        broadcastRoom(room);
+        scheduler.broadcastRoom(room);
         return room;
       }
       return { roomId: payload.roomId, status: "closed" as const };
@@ -504,7 +222,7 @@ io.on("connection", (socket) => {
           }
         }
       }
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
       return room;
     });
   });
@@ -523,8 +241,8 @@ io.on("connection", (socket) => {
   socket.on("bots:speed", (payload: { roomId: string; delayMs: number }, reply) => {
     withReply(reply, () => {
       const room = setBotTurnDelay(payload.roomId, playerId, payload.delayMs);
-      clearBotTurnTimer(room.roomId);
-      broadcastRoom(room);
+      scheduler.clearBotTurnTimer(room.roomId);
+      scheduler.broadcastRoom(room);
       return room;
     });
   });
@@ -532,8 +250,8 @@ io.on("connection", (socket) => {
   socket.on("turn-timer:set", (payload: { roomId: string; turnTimerMs: number | null }, reply) => {
     withReply(reply, () => {
       const room = setTurnTimer(payload.roomId, playerId, payload.turnTimerMs);
-      clearTurnPunishmentTimer(room.roomId);
-      broadcastRoom(room);
+      scheduler.clearTurnPunishmentTimer(room.roomId);
+      scheduler.broadcastRoom(room);
       return room;
     });
   });
@@ -550,7 +268,7 @@ io.on("connection", (socket) => {
       }
 
       const room = selectSpecies(payload.roomId, playerId, payload.speciesId);
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
       return room;
     });
   });
@@ -560,10 +278,10 @@ io.on("connection", (socket) => {
   socket.on("game:start", (payload: { roomId: string }, reply) => {
     withReply(reply, () => {
       const room = startGame(payload.roomId, playerId);
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
       if (room.status === "scenario_voting" && isScenarioVotingComplete(room.roomId)) {
         const finalized = finalizeScenarioVoting(room.roomId);
-        broadcastRoom(finalized);
+        scheduler.broadcastRoom(finalized);
         return finalized;
       }
       return room;
@@ -592,10 +310,10 @@ io.on("connection", (socket) => {
   socket.on("scenario:vote", (payload: { roomId: string; votes: ScenarioCardId[] }, reply) => {
     withReply(reply, () => {
       const room = castScenarioVote(payload.roomId, playerId, payload.votes);
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
       if (isScenarioVotingComplete(room.roomId)) {
         const finalized = finalizeScenarioVoting(room.roomId);
-        broadcastRoom(finalized);
+        scheduler.broadcastRoom(finalized);
         return finalized;
       }
       return room;
@@ -639,7 +357,7 @@ io.on("connection", (socket) => {
     }
 
     for (const room of leaveRooms(playerId)) {
-      broadcastRoom(room);
+      scheduler.broadcastRoom(room);
     }
   });
 });
@@ -712,7 +430,7 @@ async function sendReplyAsync<T>(reply: unknown, viewerPlayerId: string, fn: () 
 const roomMaxAgeMs = Number(process.env.ROOM_MAX_AGE_MS ?? 24 * 60 * 60 * 1000);
 const roomPurgeIntervalMs = 60 * 60 * 1000;
 const purgeTimer = setInterval(() => {
-  flushPendingRoomSaves();
+  scheduler.flushPendingRoomSaves();
   const removed = purgeRoomsOlderThan(roomMaxAgeMs);
   if (removed > 0) {
     app.log.info({ removed }, "Salas antigas removidas do armazenamento.");
@@ -721,12 +439,12 @@ const purgeTimer = setInterval(() => {
 purgeTimer.unref();
 
 process.once("SIGINT", () => {
-  flushPendingRoomSaves();
+  scheduler.flushPendingRoomSaves();
   process.exit(0);
 });
 
 process.once("SIGTERM", () => {
-  flushPendingRoomSaves();
+  scheduler.flushPendingRoomSaves();
   process.exit(0);
 });
 

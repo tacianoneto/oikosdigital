@@ -11,54 +11,6 @@ Data do levantamento: 2026-05-13
 - Rodar `npm run typecheck` e `npm run test` antes de subir, quando aplicável.
 - Nunca usar `--no-verify` nem pular hooks; corrigir a causa raiz de falhas.
 
-## 0.1 Handoff de Refatoração para o Próximo Chat
-
-Atualizado em 2026-06-15. Esta seção é temporária e deve orientar a próxima rodada de refatoração.
-
-### Refatorações já concluídas
-
-- HUD e conteúdo das ações de espécie extraídos para `apps/web/src/ui/SpeciesActionHud.tsx`.
-- Execução de ações locais e online centralizada em `apps/web/src/OikosApp.tsx`.
-- Configuração da floresta inicial extraída de `packages/rules/src/setup.ts` para `packages/rules/src/initialForest.ts`.
-- Criação da partida (ordem de setup/turno, jogadores e peças, distribuição de mãos e montagem do `GameState` inicial) extraída de `packages/rules/src/setup.ts` para `packages/rules/src/createGame.ts`, com `setup.ts` reexportando a API pública.
-- Regras e utilitários de movimentação extraídos de `packages/rules/src/setup.ts` para `packages/rules/src/movementActions.ts` (`getValidPieceMovementDestinations`, `movePieceForCurrentAction`, `moveJaguarForCurrentAction` e helpers); `setup.ts` reexporta a API pública.
-- Preâmbulo comum dos bots (resolução de Caatinga/Cerrado/Caça ilegal/Mata Atlântica) compartilhado entre `playBotStep` e `playRandomStep` via `resolvePendingScenarioStep` em `packages/rules/src/bots.ts`, sem mudar comportamento nem sequência de RNG.
-- Camada de avaliação dos bots (scoring, ranking, consultas de tabuleiro e seletores de candidatos) extraída de `packages/rules/src/bots.ts` para `packages/rules/src/botScoring.ts`; `bots.ts` mantém a orquestração e importa a API de avaliação. Movimento puro, sem mudar comportamento nem RNG.
-- Decisões por espécie separadas por família: handlers `play*` (smart) em `packages/rules/src/botSmart.ts` e `random*` em `packages/rules/src/botRandom.ts`; `completeOrSkip`/`rotations` em `packages/rules/src/botShared.ts`. `bots.ts` ficou só com `playBotStep`/`playRandomStep` e o preâmbulo comum. Movimento puro, sem mudar comportamento nem RNG.
-- Helpers/constantes de nível de módulo de `apps/web/src/screens/OikosApp.tsx` extraídos para `apps/web/src/screens/OikosApp.helpers.tsx` (`getOpenPortraitAsset`, `MobileSheet`, `SERVER_UNAVAILABLE_MESSAGE`, `movementKindLabels`, `SkipExtraTurnNoCardAction`, `TUTORIAL_ROOM_FACTORIES`, `getAuthDisplayName`, tabela add-piece). Movimento puro; smoke da tela de login aprovado.
-- Polling de salas abertas do lobby extraído de `OikosApp.tsx` para `apps/web/src/hooks/useOpenRoomsPolling.ts` (estado `openRooms`/`roomsLoading`, efeito de poll 4s e refresh manual). Movimento puro; `typecheck`/`build` ok. (Smoke pós-login bloqueado: automação de login no preview não dispara o POST de auth; boot/login limpos.)
-- Conexão/sessão online (socket autoritativo) extraída de `OikosApp.tsx` para `apps/web/src/hooks/useOikosSocket.ts`: detém os estados `socket`/`playerId` e o efeito de ciclo de vida (connect, connected/reconnect, room:update, room:kicked, connect_error, teardown). Refs/callbacks compartilhados passados por parâmetro. Movimento puro, sem mudar comportamento; `typecheck`/`test`/`build` ok e smoke da tela de login aprovado.
-- Modais de pontuação inline (Onça-pintada · Ação C "gastar carne" e Lobo-guará · Ação C "gastar recursos") extraídos de `OikosApp.tsx` para componentes presentacionais `JaguarScoreModal`/`WolfScoreModal` em `apps/web/src/ui/ScoreSpendModals.tsx`. Condições de visibilidade ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
-- Diálogos de cenário/ameaça pendente inline (Caça ilegal: modal de escolha + faixa de remoção; Caatinga; Cerrado; Mata Atlântica) extraídos de `OikosApp.tsx` para componentes presentacionais em `apps/web/src/ui/ScenarioPendingDialogs.tsx` (`CacaIlegalChoiceModal`, `CacaIlegalRemovalBanner`, `CaatingaChoiceModal`, `CerradoChoiceModal`, `MataAtlanticaDiscardModal`). Condições de visibilidade e resolvers ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
-- Diálogos de objetivo de fim de jogo inline (turno extra e gastar sementes) extraídos de `OikosApp.tsx` para componentes presentacionais em `apps/web/src/ui/EndgameObjectiveDialogs.tsx` (`ExtraTurnObjectiveModal`, `SeedSpendObjectiveModal`). Condições de visibilidade e resolvers ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
-- Board modal de espécie e tooltip flutuante de movimento inline extraídos de `OikosApp.tsx` para `apps/web/src/ui/BoardModals.tsx` (`SpeciesBoardModal`, `MovementGuideFloating`). Condições de visibilidade e o wrapper `createPortal` do guia de movimento ficaram no pai; JSX idêntico. Movimento puro; `typecheck`/`test`/`build` ok e smoke de boot/login limpo.
-- Painel direito "Jogadores" do HUD removido de `OikosApp.tsx`: estava sob `{false && ...}` (código morto desde 04/06, commit d4c8418), nunca renderizava. Deletado o bloco (~107 linhas). `typecheck`/`test`/`build` ok; smoke in-game real (login Supabase → Teste Local → HUD) confirmou HUD intacto, sem regressão nem erros de console. Fluxo de smoke in-game validado: `preview_eval` com setter nativo + `form.requestSubmit()` para logar, viewport ≥1024px.
-- Barra de espécie `hud-species` extraída de `OikosApp.tsx` para o componente presentacional `apps/web/src/ui/SpeciesStatusHud.tsx`. Condições de visibilidade, estado de colapso e alvos de efeitos ficaram no pai; JSX e comportamento preservados. `typecheck`/`test`/`build` ok e smoke in-game real (login Supabase → Teste Local → HUD) sem erros de console.
-- Dock de ação esquerdo `hud-left` extraído de `OikosApp.tsx` para o componente presentacional `apps/web/src/ui/LeftActionDock.tsx`. Estado, callbacks e regras ficaram no pai; JSX e comportamento preservados. `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (login Supabase → Teste Local → partida) sem erros de console.
-- Tabbar mobile extraído de `OikosApp.tsx` para o componente presentacional `apps/web/src/ui/MobileTabbar.tsx`; seleção das abas continua no pai. Removidos os remanescentes mortos `hudRightCollapsed` e `highlightedMovementGuideSpecies`. `typecheck`/`test`/`build` ok; smoke jogável com usuário de teste em largura suportada (login Supabase → Teste Local → partida) sem erros de console. Smoke mobile in-game não aplicável enquanto o app bloqueia larguras abaixo de 1024px.
-- Helpers de câmera do tabuleiro extraídos de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestCamera.ts` (`gridToWorld`, `worldToScreenPoint`, bounds de conteúdo e fit da câmera). `ForestPhaserScene.ts` mantém lifecycle/controles/renderização; comportamento visual preservado. `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (Teste Local → partida) sem erros de console.
-- Ambiente do tabuleiro extraído de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestAmbient.ts` (`ForestAmbientMotes`: spawn/update/reflow das partículas). A cena mantém a configuração da camada/câmera ambiente; ordem de chamadas e uso de aleatoriedade preservados. `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (Teste Local → partida) sem erros de console.
-- Destaques/highlights do tabuleiro extraídos de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestHighlights.ts` (`drawForestHighlights`: alvos de expansão, anéis de movimento/add-peça/bônus, highlights de carta/linha de pontuação e spotlights). A cena mantém os callbacks, layer, pulses e helpers (`worldOf`, `dashedRoundRect`, `createRoundPortraitTexture`), passados por parâmetro; chamadas de desenho idênticas, só locais renomeados. Movimento puro, sem mudar comportamento. `typecheck`/`test`/`build` ok e boot limpo (smoke in-game gated por login Supabase, sem credencial nesta sessão).
-- Peças/meeples extraídos de `apps/web/src/game/ForestPhaserScene.ts` para `apps/web/src/game/forestPieces.ts` (classe `ForestPieces`: layout, sprites, animação de spawn/movimento em arco, glow de seleção, tint de estado oculto, flourish de remoção). Detém `pieceObjs`/`lastPieceWorld`; a cena instancia em `create`, chama `sync(vm, pulses, cb)` em `render` e lê `getPieceWorld` para `getPieceScreenPoint`. Helpers de textura e FX de pouso de carta ficaram na cena; `createTrimmedMeepleTexture` passado por parâmetro. Movimento puro, lógica idêntica (só `this.`→`scene.`). `typecheck`/`test`/`build` ok e smoke in-game real com usuário de teste (login Supabase → Teste Local → partida): meeples renderizam nas cartas, sem erros de console.
-- Baseline validada com `typecheck`, `test` e `build` aprovados.
-
-### Ordem obrigatória recomendada
-
-1. **Fazer primeiro:** separar lobby/votação das rooms e schedulers do entrypoint do servidor.
-
-### Regras para cada etapa
-
-- Criar e enviar backup (`tag` e branch) antes de alterar.
-- Preservar paridade local/online, API pública e comportamento observável.
-- Rodar testes, `typecheck` e `build`; em mudanças visuais, fazer também smoke test no navegador.
-- Fazer commit pequeno e enviar para o GitHub após cada etapa aprovada.
-
-### Manutenção obrigatória deste planejamento
-
-- Após concluir uma etapa, removê-la da lista pendente, registrar uma linha curta em “Refatorações já concluídas” e renumerar/reorganizar o restante.
-- Remover instruções concluídas, referências antigas e caminhos que deixarem de existir. Não deixar o planejamento acumular histórico obsoleto.
-- Quando toda esta rodada terminar, remover a seção `0.1` e consolidar apenas os resultados permanentes nas seções adequadas do documento.
-
 ## 1. Objetivo do Projeto
 
 Criar um port digital multiplayer fiel ao jogo de tabuleiro Oikos, seguindo 100% o GDD fornecido e sem adicionar regras, modos, espécies, cartas ou efeitos que não estejam documentados ou aprovados.
@@ -259,6 +211,13 @@ Exemplos de intenções enviadas pelo cliente:
 - `confirmActionStep`
 
 Nenhuma intenção deve ser aplicada sem validação do servidor.
+
+Organização de módulos (resultado da rodada de refatoração):
+
+- Regras (`packages/rules/src`): `setup.ts` reexporta a API pública; criação de partida em `createGame.ts`, floresta inicial em `initialForest.ts`, movimentação em `movementActions.ts`. Bots divididos em `bots.ts` (orquestração), `botScoring.ts` (avaliação), `botSmart.ts`/`botRandom.ts`/`botShared.ts` (decisões por família).
+- Web — tela (`apps/web/src/screens`, `ui`, `hooks`): `OikosApp.tsx` mantém estado/regras; helpers em `OikosApp.helpers.tsx`; HUD e diálogos em componentes presentacionais sob `ui/`; polling de salas e socket online em hooks dedicados (`useOpenRoomsPolling.ts`, `useOikosSocket.ts`).
+- Web — tabuleiro (`apps/web/src/game`): `ForestPhaserScene.ts` mantém lifecycle/câmera/cartas; câmera em `forestCamera.ts`, partículas em `forestAmbient.ts`, destaques em `forestHighlights.ts`, peças/meeples em `forestPieces.ts`.
+- Servidor (`apps/server/src`): `index.ts` mantém wiring de sockets e handlers; timers por sala, persistência debounced e `broadcastRoom` em `roomScheduler.ts` (`RoomScheduler`).
 
 ## 6. Roadmap Zero a 100
 
