@@ -37,46 +37,16 @@ import {
   speciesDefinitions
 } from "@oikos/content";
 import {
-  MAX_PLAYERS,
-  TURN_TIMER_DEFAULT_MS,
-  TURN_TIMER_OPTIONS_MS,
-  areScenariosExclusive,
-  formatTurnTimer
-} from "@oikos/shared";
-import {
-  completeCurrentAction,
-  createInitialGameState,
   createPreviewInitialForest,
-  forceEndPlayerTurn,
-  playBotStep,
   getArmadilloHidePieceIds,
-  getAvailableForestExpansionPositions,
-  getCapuchinScoringHabitats,
-  getMacawScoringLines,
-  type MacawScoringLine,
   getWolfSpendableResourceTypes,
   getCacaIlegalRemovablePieceIds,
   getCacaIlegalTopResources,
-  movePieceForCurrentAction,
-  placeForestCard,
-  placeInitialPiece,
-  resolveCoatiPairBonus,
-  scoreCapuchinHabitatPresence,
-  scoreMacawLines,
 } from "@oikos/rules";
 import type {
   GameState,
-  GridPosition,
-  Habitat,
-  MiniExpansionId,
-  MovementKind,
-  PlayerState,
   PublicRoomState,
-  Resource,
-  RoomPlayer,
-  ScenarioCount,
   ScenarioCardDefinition,
-  ScenarioCardId,
   SpeciesId,
   ThreatCardId
 } from "@oikos/shared";
@@ -85,19 +55,24 @@ import { useActionSelection } from "../hooks/useActionSelection";
 import { useActiveActionState } from "../hooks/useActiveActionState";
 import { useActiveScoringState } from "../hooks/useActiveScoringState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
+import { useBoardCardHandlers } from "../hooks/useBoardCardHandlers";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
+import { useBoardPieceHandlers } from "../hooks/useBoardPieceHandlers";
 import { useCacaIlegalHandlers } from "../hooks/useCacaIlegalHandlers";
 import { useGameFeedback } from "../hooks/useGameFeedback";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
+import { useLocalGameHandlers } from "../hooks/useLocalGameHandlers";
 import { useLobbyForm } from "../hooks/useLobbyForm";
 import { useOikosSocket } from "../hooks/useOikosSocket";
 import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { useObjectiveExpansionHandlers } from "../hooks/useObjectiveExpansionHandlers";
 import { usePanelState } from "../hooks/usePanelState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { useRoomSettingsHandlers } from "../hooks/useRoomSettingsHandlers";
 import { useScoringPreview } from "../hooks/useScoringPreview";
+import { useTurnTransitionEffects } from "../hooks/useTurnTransitionEffects";
 import { useSelectionResolutionHandlers } from "../hooks/useSelectionResolutionHandlers";
 import { useSimpleActionHandlers } from "../hooks/useSimpleActionHandlers";
 import { useTutorialController } from "../hooks/useTutorialController";
@@ -141,21 +116,15 @@ import {
   categoryLabels,
   defaultBotTurnDelayMs,
   localRoomId,
-  maxBotTurnDelayMs,
-  maxTurnHistory,
-  minBotTurnDelayMs,
   resourceOrder,
   speciesList
 } from "../ui/gameConstants";
-import type { FloatingGain, TravelEffect } from "../ui/gameEffects";
-import { elementCenter, sameGridPosition } from "../ui/geometry";
 import {
   clearOnlineSession,
   isMissingRoomError,
   saveOnlineSession
 } from "../ui/session";
 import { speciesVar } from "../ui/speciesStyle";
-import { buildTurnSummaryEntries, type TurnSummary } from "../ui/turnSummary";
 import {
   createArmadilloTutorialRoom,
   createCapuchinTutorialRoom,
@@ -171,19 +140,16 @@ import {
   isTutorialJaguarDone,
   isTutorialMacawDone,
   isTutorialWolfDone,
-  markTutorialDone,
   TUTORIAL_NONRIVER_CARD,
   type TutorialId,
   type TutorialStepDef
 } from "../ui/tutorials";
 import {
-  getAddPieceHandler,
   getAuthDisplayName,
   getOpenPortraitAsset,
   movementKindLabels,
   SkipExtraTurnNoCardAction,
-  SERVER_UNAVAILABLE_MESSAGE,
-  TUTORIAL_ROOM_FACTORIES
+  SERVER_UNAVAILABLE_MESSAGE
 } from "./OikosApp.helpers";
 
 const ForestCanvas = lazy(() =>
@@ -361,14 +327,8 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       current.history.length > 0 || current.visible ? { history: [], index: -1, visible: false } : current
     );
   }, [room?.game?.gameId, room?.game?.status]);
-  const prevTurnRef = useRef<string | null>(null);
-  const prevSnapshotRef = useRef<{ playerId: string; score: number; resources: Record<string, number> } | null>(null);
-  const prevGameRef = useRef<GameState | null>(null);
-  const turnSnapshotRef = useRef<{ playerId: string; score: number; logLength: number; name: string; speciesId: SpeciesId | null } | null>(null);
   const forestCanvasRef = useRef<ForestCanvasHandle | null>(null);
-  const travelSeqRef = useRef(0);
   const effectTargetRefs = useRef(new Map<string, HTMLElement>());
-  const gainSeqRef = useRef(0);
   const autoScoredRef = useRef<string | null>(null);
   const lastOnlineRoomSnapshotRef = useRef("");
   const onlineActionInFlightRef = useRef(false);
@@ -725,49 +685,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   }, []);
   const forestCards = room?.game?.forest.cards ?? createPreviewInitialForest();
   const pieces = room?.game?.pieces ?? [];
-  const rotateSelectedCard = useCallback((dir: 1 | -1) => {
-    setSelectedCardRotation((r) => (((r + (dir === 1 ? 90 : 270)) % 360) as 0 | 90 | 180 | 270));
-  }, []);
-
-  useEffect(() => {
-    // No rotation while a placement is awaiting confirmation: the preview is at a
-    // fixed orientation; the player confirms or cancels first.
-    if (!selectedHandCardId || !canPlaceSelectedForestCard || pendingPlacement) {
-      return;
-    }
-
-    const onKey = (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase();
-      if (key === "q") {
-        event.preventDefault();
-        rotateSelectedCard(-1);
-      } else if (key === "e" || key === "r") {
-        event.preventDefault();
-        rotateSelectedCard(1);
-      }
-    };
-
-    // Right-click rotates while a placeable card is selected (e.g. mid-drag).
-    const onContextMenu = (event: MouseEvent) => {
-      event.preventDefault();
-      rotateSelectedCard(1);
-    };
-
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("contextmenu", onContextMenu);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("contextmenu", onContextMenu);
-    };
-  }, [canPlaceSelectedForestCard, rotateSelectedCard, selectedHandCardId, pendingPlacement]);
-
-  // Drop the staged placement if the card can no longer be played (turn change,
-  // card left the hand, etc.).
-  useEffect(() => {
-    if (pendingPlacement && !canPlaceSelectedForestCard) {
-      setPendingPlacement(null);
-    }
-  }, [canPlaceSelectedForestCard, pendingPlacement]);
 
   const {
     addPieceTargets,
@@ -908,15 +825,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return [...new Set(warnings)];
   }, [room]);
 
-  function appendTurnSummary(summary: TurnSummary): void {
-    setTurnRecap((current) => {
-      const history = [...current.history, summary].slice(-maxTurnHistory);
-      return { history, index: history.length - 1, visible: true };
-    });
-    setRecapCollapsed(true);
-    setHoveredSummaryCardIds([]);
-  }
-
   function closeTurnRecap(): void {
     setTurnRecap((current) => ({ ...current, visible: false }));
     setHoveredSummaryCardIds([]);
@@ -1016,239 +924,19 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return () => window.clearTimeout(timer);
   }, [room?.game?.activePlayerId, room?.game?.activeActionIndex, shouldShowJaguarScoreModal]);
 
-  useEffect(() => {
-    if (room?.game?.status !== "active") {
-      prevTurnRef.current = null;
-      return;
-    }
-    const activeId = room.game.activePlayerId ?? null;
-    if (!activeId || prevTurnRef.current === activeId) {
-      return;
-    }
-    const first = prevTurnRef.current === null;
-    prevTurnRef.current = activeId;
-    if (first) {
-      return;
-    }
-    const player = room.game.players.find((candidate) => candidate.playerId === activeId);
-    const sp = player?.speciesId ? speciesDefinitions[player.speciesId] : null;
-    setTurnBanner({
-      key: Date.now(),
-      label: sp?.displayName ?? player?.name ?? "Próximo jogador",
-      speciesId: player?.speciesId ?? null
-    });
-  }, [room?.game?.activePlayerId, room?.game?.status, room?.game?.players]);
-
-  useEffect(() => {
-    if (!turnBanner) {
-      return;
-    }
-    const timer = window.setTimeout(() => setTurnBanner(null), 2200);
-    return () => window.clearTimeout(timer);
-  }, [turnBanner]);
-
-  useEffect(() => {
-    if (!hudGamePlayer) {
-      prevSnapshotRef.current = null;
-      return;
-    }
-    const snap = {
-      playerId: hudGamePlayer.playerId,
-      score: hudGamePlayer.score,
-      resources: { ...hudGamePlayer.resources } as Record<string, number>
-    };
-    const prev = prevSnapshotRef.current;
-    prevSnapshotRef.current = snap;
-    if (!prev || prev.playerId !== snap.playerId) {
-      return;
-    }
-    const gains: FloatingGain[] = [];
-    const scoreDelta = snap.score - prev.score;
-    if (scoreDelta > 0) {
-      gains.push({ id: ++gainSeqRef.current, resource: "point", amount: scoreDelta });
-    }
-    for (const resource of resourceOrder) {
-      const delta = (snap.resources[resource] ?? 0) - (prev.resources[resource] ?? 0);
-      if (delta > 0) {
-        gains.push({ id: ++gainSeqRef.current, resource, amount: delta });
-      }
-    }
-    if (gains.length === 0) {
-      return;
-    }
-    setFloatingGains((current) => [...current, ...gains]);
-    const ids = new Set(gains.map((gain) => gain.id));
-    const timer = window.setTimeout(() => {
-      setFloatingGains((current) => current.filter((gain) => !ids.has(gain.id)));
-    }, 1500);
-    return () => window.clearTimeout(timer);
-  }, [hudGamePlayer]);
-
-  useEffect(() => {
-    const game = room?.game;
-    if (!game) {
-      prevGameRef.current = null;
-      turnSnapshotRef.current = null;
-      return;
-    }
-
-    const prevGame = prevGameRef.current;
-    const activePlayerId = game.status === "active" ? game.activePlayerId : null;
-
-    if (!activePlayerId) {
-      turnSnapshotRef.current = null;
-    } else if (!turnSnapshotRef.current) {
-      const activePlayer = game.players.find((candidate) => candidate.playerId === activePlayerId);
-      if (activePlayer) {
-        turnSnapshotRef.current = {
-          playerId: activePlayer.playerId,
-          score: activePlayer.score,
-          logLength: game.log.length,
-          name: activePlayer.name,
-          speciesId: activePlayer.speciesId
-        };
-      }
-    } else if (turnSnapshotRef.current.playerId !== activePlayerId) {
-      const finishedSnapshot = turnSnapshotRef.current;
-      const finishedPlayer = game.players.find((candidate) => candidate.playerId === finishedSnapshot.playerId);
-      if (finishedPlayer) {
-        const scoreDelta = Math.max(0, finishedPlayer.score - finishedSnapshot.score);
-        const turnLog = game.log.slice(finishedSnapshot.logLength).filter((entry) => {
-          const payload = entry.payload;
-          if (payload?.actorPlayerId) {
-            return payload.actorPlayerId === finishedPlayer.playerId;
-          }
-          return entry.message?.startsWith(finishedPlayer.name) ?? false;
-        });
-        appendTurnSummary({
-          key: Date.now(),
-          playerName: finishedPlayer.name,
-          speciesId: finishedPlayer.speciesId,
-          scoreDelta,
-          entries: buildTurnSummaryEntries(turnLog, finishedPlayer.speciesId, scoreDelta, game.pieces)
-        });
-      }
-
-      const nextPlayer = game.players.find((candidate) => candidate.playerId === activePlayerId);
-      turnSnapshotRef.current = nextPlayer
-        ? {
-            playerId: nextPlayer.playerId,
-            score: nextPlayer.score,
-            logLength: game.log.length,
-            name: nextPlayer.name,
-            speciesId: nextPlayer.speciesId
-          }
-        : null;
-    }
-
-    if (prevGame) {
-      const prevPieces = new Map(prevGame.pieces.map((piece) => [piece.pieceId, piece]));
-      const currentPieces = new Map(game.pieces.map((piece) => [piece.pieceId, piece]));
-      const sourcesByOwner = new Map<string, GridPosition[]>();
-      const removedPieces: Array<{ pieceId: string; ownerId: string; speciesId: SpeciesId; location: GridPosition }> = [];
-
-      for (const piece of game.pieces) {
-        const previous = prevPieces.get(piece.pieceId);
-        if (piece.location && (!previous?.location || !sameGridPosition(previous.location, piece.location))) {
-          const sources = sourcesByOwner.get(piece.ownerId) ?? [];
-          sources.push(piece.location);
-          sourcesByOwner.set(piece.ownerId, sources);
-        }
-      }
-
-      for (const previous of prevGame.pieces) {
-        const current = currentPieces.get(previous.pieceId);
-        if (previous.location && !current?.location) {
-          removedPieces.push({
-            pieceId: previous.pieceId,
-            ownerId: previous.ownerId,
-            speciesId: previous.speciesId,
-            location: previous.location
-          });
-        }
-      }
-
-      const nextEffects: TravelEffect[] = [];
-      const sourceFallbacks = [
-        ...Array.from(sourcesByOwner.values()).flat(),
-        ...removedPieces.map((piece) => piece.location)
-      ];
-
-      for (const player of game.players) {
-        const prevPlayer = prevGame.players.find((candidate) => candidate.playerId === player.playerId);
-        if (!prevPlayer) {
-          continue;
-        }
-
-        for (const resource of resourceOrder) {
-          const delta = (player.resources[resource] ?? 0) - (prevPlayer.resources[resource] ?? 0);
-          if (delta <= 0) {
-            continue;
-          }
-
-          const source =
-            sourcesByOwner.get(player.playerId)?.[0] ??
-            removedPieces.find((piece) => piece.ownerId === player.playerId)?.location ??
-            sourceFallbacks[0];
-          const from = source ? forestCanvasRef.current?.getCardCenter(source) : null;
-          // Own resources fly to the new species HUD bar; an opponent's fly
-          // straight to their portrait in the rail. Legacy keys remain as
-          // fallbacks for spectators / when the new HUD is not mounted.
-          const isOwnPlayer = hudGamePlayer?.playerId === player.playerId;
-          const target = isOwnPlayer
-            ? effectTargetRefs.current.get(`hudbar:${resource}`) ??
-              effectTargetRefs.current.get(`hud:${resource}`)
-            : effectTargetRefs.current.get(`portrait:${player.playerId}`) ??
-              effectTargetRefs.current.get(`${player.playerId}:${resource}`);
-          const to = elementCenter(target);
-          if (from && to) {
-            nextEffects.push({
-              id: ++travelSeqRef.current,
-              kind: "resource",
-              resource,
-              from,
-              to
-            });
-          }
-        }
-      }
-
-      for (const removed of removedPieces) {
-        // Exact last meeple position (card-local offset included); fall back to
-        // the card center only if the piece was never rendered. The shrink +
-        // red flash + particle burst itself is drawn inside the Phaser scene
-        // (camera-locked); here we only fly a token to the reserve/portrait.
-        const from =
-          forestCanvasRef.current?.getPieceCenter(removed.pieceId) ??
-          forestCanvasRef.current?.getCardCenter(removed.location);
-        const isOwnPlayer = hudGamePlayer?.playerId === removed.ownerId;
-        const target = isOwnPlayer
-          ? effectTargetRefs.current.get("hudbar:reserve") ?? effectTargetRefs.current.get("hud:reserve")
-          : effectTargetRefs.current.get(`portrait:${removed.ownerId}`) ??
-            effectTargetRefs.current.get(`${removed.ownerId}:reserve`);
-        const to = elementCenter(target);
-        if (from && to) {
-          nextEffects.push({
-            id: ++travelSeqRef.current,
-            kind: "piece",
-            speciesId: removed.speciesId,
-            from,
-            to
-          });
-        }
-      }
-
-      if (nextEffects.length > 0) {
-        setTravelEffects((current) => [...current, ...nextEffects]);
-        const ids = new Set(nextEffects.map((effect) => effect.id));
-        window.setTimeout(() => {
-          setTravelEffects((current) => current.filter((effect) => !ids.has(effect.id)));
-        }, 1850);
-      }
-    }
-
-    prevGameRef.current = game;
-  }, [hudGamePlayer?.playerId, room?.game]);
+  useTurnTransitionEffects({
+    game: room?.game ?? null,
+    hudGamePlayer,
+    turnBanner,
+    forestCanvasRef,
+    effectTargetRefs,
+    setTurnBanner,
+    setFloatingGains,
+    setTravelEffects,
+    setTurnRecap,
+    setRecapCollapsed,
+    setHoveredSummaryCardIds
+  });
 
   const run = useCallback(async (action: () => Promise<PublicRoomState>, success?: string) => {
     if (onlineActionInFlightRef.current) {
@@ -1397,556 +1085,116 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     return room;
   }
 
-  function formatBotDelay(delayMs: number): string {
-    return delayMs >= 1000 ? `${(delayMs / 1000).toFixed(delayMs % 1000 === 0 ? 0 : 1)}s` : `${delayMs}ms`;
-  }
+  const {
+    formatBotDelay,
+    adjustLocalBotSpeed,
+    adjustBotSpeed,
+    toggleTurnTimer,
+    adjustTurnTimer,
+    toggleMiniExpansion,
+    setScenarioMode,
+    toggleLocalMiniExpansion,
+    toggleLocalScenario,
+    toggleHostScenario
+  } = useRoomSettingsHandlers({
+    room,
+    isHost,
+    isLocalRoom,
+    botTurnDelayMs,
+    turnTimerMs,
+    enabledMiniExpansions,
+    scenarioSelectionMode,
+    scenarioCount,
+    hostSelectedScenarioIds,
+    localScenarioCount,
+    setRoom,
+    setLocalBotTurnDelayMs,
+    setLocalEnabledMiniExpansions,
+    setLocalScenarioCount,
+    setLocalSelectedScenarioIds,
+    run,
+    requireSocket,
+    setNotice
+  });
 
-  function clampBotSpeed(delayMs: number): number {
-    return Math.max(minBotTurnDelayMs, Math.min(maxBotTurnDelayMs, delayMs));
-  }
-
-  function adjustLocalBotSpeed(deltaMs: number) {
-    setLocalBotTurnDelayMs((current) => clampBotSpeed(current + deltaMs));
-  }
-
-  function adjustBotSpeed(deltaMs: number) {
-    if (!room) {
-      return;
-    }
-
-    const nextDelay = clampBotSpeed(botTurnDelayMs + deltaMs);
-    if (isLocalRoom) {
-      setLocalBotTurnDelayMs(nextDelay);
-      setRoom((current) =>
-        current?.roomId === localRoomId
-          ? {
-              ...current,
-              botTurnDelayMs: nextDelay
-            }
-          : current
-      );
-      return;
-    }
-
-    if (!isHost) {
-      return;
-    }
-
-    void run(() => roomApi.setBotSpeed(requireSocket(), room.roomId, nextDelay));
-  }
-
-  function toggleTurnTimer() {
-    if (!room || !isHost) {
-      return;
-    }
-
-    void run(
-      () => roomApi.setTurnTimer(requireSocket(), room.roomId, turnTimerMs ? null : TURN_TIMER_DEFAULT_MS),
-      turnTimerMs ? "Cronômetro de turno desligado." : "Cronômetro de turno ligado."
-    );
-  }
-
-  function adjustTurnTimer(direction: number) {
-    if (!room || !isHost || !turnTimerMs) {
-      return;
-    }
-
-    const timerOptions: readonly number[] = TURN_TIMER_OPTIONS_MS;
-    const currentIndex = timerOptions.indexOf(turnTimerMs);
-    const baseIndex = currentIndex >= 0 ? currentIndex : timerOptions.indexOf(TURN_TIMER_DEFAULT_MS);
-    const nextIndex = Math.max(0, Math.min(timerOptions.length - 1, baseIndex + direction));
-    void run(() => roomApi.setTurnTimer(requireSocket(), room.roomId, timerOptions[nextIndex]));
-  }
-
-  function toggleMiniExpansion(expansionId: MiniExpansionId) {
-    if (!room || !isHost || room.status !== "lobby") {
-      return;
-    }
-
-    const enabled = !enabledMiniExpansions.includes(expansionId);
-    void run(
-      () => roomApi.setMiniExpansion(requireSocket(), room.roomId, expansionId, enabled),
-      enabled ? "Mini-expansão ligada." : "Mini-expansão desligada."
-    );
-  }
-
-  function setScenarioMode(mode: "vote" | "host") {
-    if (!room || !isHost || room.status !== "lobby" || scenarioSelectionMode === mode) {
-      return;
-    }
-
-    void run(
-      () => roomApi.setScenarioSelectionMode(requireSocket(), room.roomId, mode),
-      mode === "vote" ? "Cenários serão votados." : "Host escolherá os cenários."
-    );
-  }
-
-  function setRoomScenarioCount(nextCount: ScenarioCount) {
-    if (!room || !isHost || room.status !== "lobby" || scenarioCount === nextCount) {
-      return;
-    }
-
-    void run(
-      () => roomApi.setScenarioCount(requireSocket(), room.roomId, 1),
-      "1 cenario por partida."
-    );
-  }
-
-  function toggleHostScenario(scenarioId: ScenarioCardId) {
-    if (!room || !isHost || room.status !== "lobby") {
-      return;
-    }
-
-    if (
-      !hostSelectedScenarioIds.includes(scenarioId) &&
-      hostSelectedScenarioIds.some((id) => areScenariosExclusive(id, scenarioId))
-    ) {
-      setNotice("Pantanal e Mata Atlântica não podem ser jogados juntos.");
-      return;
-    }
-
-    const next = hostSelectedScenarioIds.includes(scenarioId)
-      ? hostSelectedScenarioIds.filter((id) => id !== scenarioId)
-      : hostSelectedScenarioIds.length >= scenarioCount
-        ? hostSelectedScenarioIds
-        : [...hostSelectedScenarioIds, scenarioId];
-
-    if (next === hostSelectedScenarioIds) {
-      setNotice(`Escolha no maximo ${scenarioCount} cenario(s).`);
-      return;
-    }
-
-    void run(() => roomApi.setHostSelectedScenarios(requireSocket(), room.roomId, next));
-  }
-
-  function toggleLocalMiniExpansion(expansionId: MiniExpansionId) {
-    setLocalEnabledMiniExpansions((current) =>
-      current.includes(expansionId)
-        ? current.filter((candidate) => candidate !== expansionId)
-        : [...current, expansionId]
-    );
-  }
-
-  function setLocalScenarioCountValue(nextCount: ScenarioCount) {
-    setLocalScenarioCount(1);
-    setLocalSelectedScenarioIds((current) => current.slice(0, 1));
-  }
-
-  function toggleLocalScenario(scenarioId: ScenarioCardId) {
-    setLocalSelectedScenarioIds((current) => {
-      if (current.includes(scenarioId)) {
-        return current.filter((candidate) => candidate !== scenarioId);
-      }
-
-      if (current.length >= localScenarioCount) {
-        setNotice(`Escolha no maximo ${localScenarioCount} cenario(s).`);
-        return current;
-      }
-
-      if (current.some((id) => areScenariosExclusive(id, scenarioId))) {
-        setNotice("Pantanal e Mata Atlantica nao podem ser jogados juntos.");
-        return current;
-      }
-
-      return [...current, scenarioId];
-    });
-  }
-
-  const handleCardClick = useCallback(
-    (position: { x: number; y: number }) => {
-      if (!room || !canPlaceSetupPiece) {
-        return;
-      }
-      if (tutorialBlocks("setupPlace")) return;
-
-      if (isLocalRoom && room.game?.setupActivePlayerId) {
-        const nextGame = placeInitialPiece(room.game, room.game.setupActivePlayerId, position);
-        setRoom({
-          ...room,
-          status: nextGame.status === "active" ? "active" : "setup",
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        return;
-      }
-
-      void run(() => roomApi.placeSetupPiece(requireSocket(), room.roomId, position.x, position.y));
-    },
-    [canPlaceSetupPiece, isLocalRoom, room, socket, tutorialBlocks]
-  );
-
-  const placeCard = useCallback(
-    (position: { x: number; y: number }, rotation: 0 | 90 | 180 | 270) => {
-      if (!room?.game || !selectedHandCardId || !canPlaceSelectedForestCard || !room.game.activePlayerId) {
-        return;
-      }
-      if (tutorialBlocks("placeCard")) return;
-      // Tutorial: enforce the marked card and the marked slot.
-      if (tutorialActive) {
-        const def = tutorialStep !== null ? tutorialSteps[tutorialStep] : null;
-        if (def?.requiredCardId && selectedHandCardId !== def.requiredCardId) return;
-        if (tutorialMarkedSlot && (position.x !== tutorialMarkedSlot.x || position.y !== tutorialMarkedSlot.y)) return;
-      }
-
-      if (isLocalRoom) {
-        const game = room.game;
-        const activePlayerId = game.activePlayerId;
-        if (!activePlayerId) {
-          return;
-        }
-        const cardId = selectedHandCardId;
-        const nextGame = placeForestCard(game, activePlayerId, cardId, position, rotation);
-        setRoom((current) => current ? {
-          ...current,
-          status: "active",
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        } : current);
-        setSelectedHandCardId(null);
-        setSelectedCardRotation(0);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setPendingPlacement(null);
-        setNotice("Carta colocada na floresta.");
-        return;
-      }
-
-      void run(() =>
-        roomApi.placeForestCard(requireSocket(), room.roomId, selectedHandCardId, position.x, position.y, rotation)
-      ).then(() => {
-        setSelectedHandCardId(null);
-        setSelectedCardRotation(0);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setPendingPlacement(null);
-      });
-    },
-    [
-      canPlaceSelectedForestCard,
-      isLocalRoom,
+  const { rotateSelectedCard, handleCardClick, placeCard, handleConfirmPlacement, handleCancelPlacement } =
+    useBoardCardHandlers({
       room,
+      isLocalRoom,
+      canPlaceSetupPiece,
+      canPlaceSelectedForestCard,
       selectedHandCardId,
-      socket,
-      tutorialBlocks,
+      pendingPlacement,
       tutorialActive,
       tutorialStep,
       tutorialSteps,
-      tutorialMarkedSlot
-    ]
-  );
-
-  const handleConfirmPlacement = useCallback(() => {
-    if (!pendingPlacement) return;
-    placeCard(pendingPlacement.position, pendingPlacement.rotation);
-    clearPendingPlacement();
-  }, [clearPendingPlacement, pendingPlacement, placeCard]);
-
-  // Cancel returns the card to the hand (still selected) so the player can place
-  // the same or another card anywhere valid.
-  const handleCancelPlacement = clearPendingPlacement;
-
-  // Enter confirms / Escape cancels the staged placement.
-  useEffect(() => {
-    if (!pendingPlacement) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        handleConfirmPlacement();
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        handleCancelPlacement();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pendingPlacement, handleConfirmPlacement, handleCancelPlacement]);
-
-  const executeSelectedPieceMove = useCallback(
-    (position: { x: number; y: number }, targetPieceId?: string) => {
-      if (!room?.game || !room.game.activePlayerId || !selectedPieceId) {
-        return;
-      }
-      if (tutorialBlocks("move")) return;
-      if (tutorialActive && tutorialGate === "move" && tutorialDef?.markedMoveTarget) {
-        if (!sameGridPosition(position, tutorialDef.markedMoveTarget)) {
-          return;
-        }
-      }
-
-      const currentGame = room.game;
-      const movingPieceId = selectedPieceId!;
-      const activePlayerId = currentGame.activePlayerId!;
-
-      if (isLocalRoom) {
-        const nextGame = movePieceForCurrentAction(currentGame, activePlayerId, movingPieceId, position, targetPieceId);
-        setRoom({
-          ...room,
-          status: nextGame.status === "active" ? "active" : room.status,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setSelectedPieceId(null);
-        setSelectedJaguarDestination(null);
-        setSelectedJaguarTargetPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice(
-          activeSpecies?.speciesId === "jaguar"
-            ? "Onça movida."
-            : activeSpecies?.speciesId === "capuchin"
-              ? "Macaco-prego movido."
-              : activeSpecies?.speciesId === "macaw"
-              ? activeActionId === "C"
-                ? "Arara realocada."
-                : "Arara movida."
-              : activeSpecies?.speciesId === "armadillo"
-                ? "Tatu-bola movido."
-                : activeSpecies?.speciesId === "maned_wolf"
-                  ? "Lobo-guará movido."
-                : "Quati movido."
-        );
-        return;
-      }
-
-      void run(() => roomApi.movePiece(requireSocket(), room.roomId, movingPieceId, position.x, position.y, targetPieceId)).then(() => {
-        setSelectedPieceId(null);
-        setSelectedJaguarDestination(null);
-        setSelectedJaguarTargetPieceId(null);
-      });
-    },
-    [
-      activeActionId,
-      activeSpecies?.speciesId,
-      isLocalRoom,
-      room,
-      selectedPieceId,
-      socket,
-      tutorialActive,
+      tutorialMarkedSlot,
       tutorialBlocks,
-      tutorialDef?.markedMoveTarget,
-      tutorialGate
-    ]
-  );
-
-  const handlePieceClick = useCallback(
-    (pieceId: string) => {
-      if (!boardSelectablePieceIds.includes(pieceId)) {
-        return;
-      }
-
-      if (cacaIlegalRemovalMode && cacaIlegalPending?.playerId === controlledPlayerId) {
-        setSelectedRemovalPieceIds((current) => (current.includes(pieceId) ? [] : [pieceId]));
-        return;
-      }
-
-      if (jaguarTargetPieceIds.includes(pieceId)) {
-        if (selectedJaguarDestination) {
-          executeSelectedPieceMove(selectedJaguarDestination, pieceId);
-        } else {
-          setSelectedJaguarTargetPieceId((current) => (current === pieceId ? null : pieceId));
-        }
-        return;
-      }
-
-      if (activeSpecies?.speciesId === "maned_wolf" && activeActionId === "B") {
-        setSelectedWolfTargetPieceId((current) => (current === pieceId ? null : pieceId));
-        return;
-      }
-
-      if (activeSpecies?.speciesId === "coati" && activeActionId === "C") {
-        setSelectedRemovalPieceIds((current) => {
-          if (current.includes(pieceId)) {
-            return current.filter((candidate) => candidate !== pieceId);
-          }
-
-          if (current.length >= requiredCoatiRemovalCount) {
-            return [...current.slice(1), pieceId];
-          }
-
-          return [...current, pieceId];
-        });
-        return;
-      }
-
-      setSelectedPieceId((current) => {
-        const next = current === pieceId ? null : pieceId;
-        setSelectedJaguarDestination(null);
-        setSelectedJaguarTargetPieceId(null);
-        return next;
-      });
-    },
-    [
-      activeActionId,
-      activeSpecies?.speciesId,
-      boardSelectablePieceIds,
-      cacaIlegalPending?.playerId,
-      cacaIlegalRemovalMode,
-      controlledPlayerId,
-      executeSelectedPieceMove,
-      jaguarTargetPieceIds,
-      requiredCoatiRemovalCount,
-      selectedJaguarDestination
-    ]
-  );
-
-  const handleMovementTargetClick = useCallback(
-    (position: { x: number; y: number }) => {
-      if (!room?.game || !room.game.activePlayerId || !selectedPieceId || movementTargets.length === 0) {
-        return;
-      }
-
-      const currentGame = room.game;
-
-      if (activeSpecies?.speciesId === "jaguar") {
-        const removablePieces = currentGame.pieces.filter(
-          (piece) =>
-            piece.ownerId !== currentGame.activePlayerId &&
-            !piece.state.hidden &&
-            piece.location?.x === position.x &&
-            piece.location.y === position.y
-        );
-
-        if (removablePieces.length > 1) {
-          setSelectedJaguarDestination(position);
-          setSelectedJaguarTargetPieceId(null);
-          setNotice("Escolha qual meeple a Onça deve remover neste local.");
-          return;
-        }
-
-        executeSelectedPieceMove(position);
-        return;
-      }
-
-      executeSelectedPieceMove(position);
-    },
-    [activeSpecies?.speciesId, executeSelectedPieceMove, movementTargets.length, room, selectedPieceId]
-  );
-
-  const handleAddPieceTargetClick = useCallback(
-    (position: { x: number; y: number }) => {
-      if (!room?.game || !room.game.activePlayerId || addPieceTargets.length === 0) {
-        return;
-      }
-      const galoAdjacentPending = room.game.pendingGaloAdjacentAdd?.playerId === room.game.activePlayerId;
-      // Some tutorials teach adding as part of action A; Lobo teaches it in D.
-      if (tutorialActive && tutorialGate !== "placeCard" && tutorialGate !== "addPiece") return;
-      if (
-        tutorialActive &&
-        tutorialGate === "addPiece" &&
-        tutorialDef?.markedAddPieceTarget &&
-        !sameGridPosition(position, tutorialDef.markedAddPieceTarget)
-      ) {
-        return;
-      }
-
-      const addHandler = getAddPieceHandler(activeSpecies?.speciesId);
-
-      executeGameAction(
-        () => addHandler.local(room.game!, room.game!.activePlayerId!, position, galoAdjacentPending),
-        () => addHandler.api(requireSocket(), room.roomId, position.x, position.y, galoAdjacentPending),
-        addHandler.notice
-      );
-    },
-    [
-      activeSpecies?.speciesId,
-      addPieceTargets.length,
-      executeGameAction,
-      room,
       socket,
-      tutorialActive,
-      tutorialDef?.markedAddPieceTarget,
-      tutorialGate
-    ]
-  );
-
-  const handleCoatiPairBonusTargetClick = useCallback(
-    (position: { x: number; y: number }) => {
-      if (!room?.game || !room.game.activePlayerId || coatiPairBonusTargets.length === 0) {
-        return;
-      }
-      if (tutorialActive && tutorialGate !== "resolvePair") {
-        return;
-      }
-      if (
-        tutorialActive &&
-        tutorialDef?.markedPairTarget &&
-        !sameGridPosition(position, tutorialDef.markedPairTarget)
-      ) {
-        return;
-      }
-
-      executeGameAction(
-        () => resolveCoatiPairBonus(room.game!, room.game!.activePlayerId!, position),
-        () => roomApi.resolveCoatiPair(requireSocket(), room.roomId, position.x, position.y),
-        "Quati da passiva adicionado e 1 ponto marcado."
-      );
-    },
-    [coatiPairBonusTargets.length, executeGameAction, room, socket, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]
-  );
-
-  const handleScoreCapuchin = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
-      return;
-    }
-
-    const activeId = room.game.activePlayerId;
-    const groups = getCapuchinScoringHabitats(room.game, activeId);
-    const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Macaco-prego";
-
-    const finalize = () => {
-      executeGameAction(
-        () => scoreCapuchinHabitatPresence(room.game!, activeId),
-        () => roomApi.scoreCapuchin(requireSocket(), room.roomId),
-        "Macaco-prego pontuado."
-      );
-    };
-
-    if (groups.length === 0) {
-      finalize();
-      return;
-    }
-
-    setCapuchinScoreAnim({ groups, points: groups.length, playerName });
-
-    window.setTimeout(() => {
-      setCapuchinScoreAnim(null);
-      finalize();
-    }, 2400);
-  }, [canControlActivePlayer, executeGameAction, room, socket]);
-
-  const handleScoreMacaw = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
-      return;
-    }
-
-    const activeId = room.game.activePlayerId;
-    const lines: MacawScoringLine[] = getMacawScoringLines(room.game, activeId);
-    const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Arara-azul";
-
-    const finalize = () => {
-      executeGameAction(
-        () => scoreMacawLines(room.game!, activeId),
-        () => roomApi.scoreMacaw(requireSocket(), room.roomId),
-        "Arara-azul pontuada."
-      );
-    };
-
-    if (lines.length === 0) {
-      finalize();
-      return;
-    }
-
-    setMacawScoreAnim({
-      lines: lines.map((line) => ({ positions: line.positions })),
-      points: lines.length,
-      playerName
+      setRoom,
+      setSelectedHandCardId,
+      setSelectedCardRotation,
+      setSelectedPieceId,
+      setSelectedRemovalPieceIds,
+      setPendingPlacement,
+      setNotice,
+      clearPendingPlacement,
+      run,
+      requireSocket
     });
 
-    window.setTimeout(() => {
-      setMacawScoreAnim(null);
-      finalize();
-    }, 2400);
-  }, [canControlActivePlayer, executeGameAction, room, socket]);
+  const {
+    executeSelectedPieceMove,
+    handlePieceClick,
+    handleMovementTargetClick,
+    handleAddPieceTargetClick,
+    handleCoatiPairBonusTargetClick,
+    handleScoreCapuchin,
+    handleScoreMacaw
+  } = useBoardPieceHandlers({
+    room,
+    isLocalRoom,
+    activeActionId,
+    activeSpeciesId: activeSpecies?.speciesId ?? null,
+    selectedPieceId,
+    selectedJaguarDestination,
+    boardSelectablePieceIds,
+    jaguarTargetPieceIds,
+    movementTargets,
+    addPieceTargets,
+    coatiPairBonusTargets,
+    cacaIlegalRemovalMode,
+    cacaIlegalPending,
+    controlledPlayerId,
+    requiredCoatiRemovalCount,
+    canControlActivePlayer,
+    canSkipExtraTurnNoCardAction,
+    needsEndgameOverflowRepair,
+    hasPendingCoatiPairBonus,
+    tutorialActive,
+    tutorialGate,
+    tutorialDef,
+    tutorialBlocks,
+    socket,
+    autoScoredRef,
+    executeGameAction,
+    run,
+    requireSocket,
+    handleScoreGalo,
+    handleScoreArmadillo,
+    setRoom,
+    setSelectedPieceId,
+    setSelectedJaguarDestination,
+    setSelectedJaguarTargetPieceId,
+    setSelectedWolfTargetPieceId,
+    setSelectedRemovalPieceIds,
+    setNotice,
+    setCapuchinScoreAnim,
+    setMacawScoreAnim
+  });
 
+  // Auto-completing the skip/no-card extra turn and endgame overflow repair stays
+  // here since it drives the shared completeCurrentAction boundary.
   useEffect(() => {
     if ((!canSkipExtraTurnNoCardAction && !needsEndgameOverflowRepair) || tutorialActive) {
       return;
@@ -1969,217 +1217,49 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     []
   );
 
-  function toggleLocalSpecies(speciesId: SpeciesId) {
-    const speciesAlreadySelected = localSpeciesIds.includes(speciesId);
-    if (!speciesAlreadySelected && localSpeciesIds.length >= MAX_PLAYERS) {
-      setError(`O máximo é ${MAX_PLAYERS} espécies por partida.`);
-      return;
-    }
-    setError(null);
-    setLocalSpeciesIds((current) =>
-      speciesAlreadySelected ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
-    );
-    // Dropping a species also clears its bot flag.
-    setLocalBotSpeciesIds((current) => current.filter((candidate) => candidate !== speciesId));
-  }
-
-  function toggleLocalBot(speciesId: SpeciesId) {
-    const speciesAlreadySelected = localSpeciesIds.includes(speciesId);
-    if (!speciesAlreadySelected && localSpeciesIds.length >= MAX_PLAYERS) {
-      setError(`O máximo é ${MAX_PLAYERS} espécies por partida.`);
-      return;
-    }
-    setError(null);
-    setLocalSpeciesIds((current) => (current.includes(speciesId) ? current : [...current, speciesId]));
-    setLocalBotSpeciesIds((current) =>
-      current.includes(speciesId) ? current.filter((candidate) => candidate !== speciesId) : [...current, speciesId]
-    );
-  }
-
-  function startLocalTest() {
-    setError(null);
-    setNotice(null);
-
-    if (localSpeciesIds.length < 2) {
-      setError("Escolha pelo menos 2 espécies para o teste local.");
-      return;
-    }
-    if (localSpeciesIds.length > MAX_PLAYERS) {
-      setError(`O máximo é ${MAX_PLAYERS} espécies por partida.`);
-      return;
-    }
-
-    const localScenarioIds = localEnabledMiniExpansions.includes("scenarios") ? localSelectedScenarioIds : [];
-    if (localEnabledMiniExpansions.includes("scenarios") && localScenarioIds.length !== localScenarioCount) {
-      setError(`Escolha exatamente ${localScenarioCount} cenario(s) para usar a mini-expansao no teste local.`);
-      return;
-    }
-
-    const localPlayers: RoomPlayer[] = localSpeciesIds.map((speciesId) => ({
-      playerId: `local_${speciesId}`,
-      name: speciesDefinitions[speciesId].displayName,
-      speciesId,
-      ready: true,
-      connected: true,
-      isBot: localBotSpeciesIds.includes(speciesId)
-    }));
-    const game = createInitialGameState(localRoomId, localPlayers, Math.random, undefined, {
-      enabledMiniExpansions: localEnabledMiniExpansions,
-      activeScenarioIds: localScenarioIds
-    });
-
-    lastOnlineRoomSnapshotRef.current = "";
-    setRoom({
-      roomId: localRoomId,
-      status: "setup",
-      hostPlayerId: "local_host",
-      players: localPlayers,
-      enabledMiniExpansions: game.enabledMiniExpansions,
-      game,
-      warnings: game.contentWarnings,
-      botTurnDelayMs: localBotTurnDelayMs,
-      scenarioSelectionMode: "host",
-      scenarioCount: localScenarioCount,
-      hostSelectedScenarioIds: localScenarioIds
-    });
-    setNotice("Teste local iniciado.");
-  }
-
-  function stopLocalTest() {
-    clearRoomState();
-    setNotice("Teste local encerrado.");
-  }
-
-  // Drives bot-controlled species in local test games. When the active player
-  // (setup or active phase) is a local bot, it steps the bot AI after a short
-  // delay; each state change re-runs the effect, advancing the bot until the
-  // turn passes to a human or the game ends.
-  useEffect(() => {
-    if (room?.roomId !== localRoomId || !room.game) {
-      return;
-    }
-
-    const game = room.game;
-    const activeId =
-      game.status === "setup" ? game.setupActivePlayerId : game.status === "active" ? game.activePlayerId : null;
-    if (!activeId) {
-      return;
-    }
-
-    const activePlayer = room.players.find((player) => player.playerId === activeId);
-    if (!activePlayer?.isBot) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setRoom((current) => {
-        if (!current || current.roomId !== localRoomId || !current.game) {
-          return current;
-        }
-
-        const liveGame = current.game;
-        const liveActiveId =
-          liveGame.status === "setup"
-            ? liveGame.setupActivePlayerId
-            : liveGame.status === "active"
-              ? liveGame.activePlayerId
-              : null;
-        const livePlayer = current.players.find((player) => player.playerId === liveActiveId);
-        if (!liveActiveId || !livePlayer?.isBot) {
-          return current;
-        }
-
-        let nextGame: typeof liveGame;
-        try {
-          nextGame = playBotStep(liveGame, liveActiveId);
-          if (nextGame === liveGame) {
-            nextGame = completeCurrentAction(liveGame, liveActiveId);
-          }
-        } catch {
-          try {
-            nextGame = completeCurrentAction(liveGame, liveActiveId);
-          } catch {
-            nextGame = forceEndPlayerTurn(liveGame, liveActiveId, "bot local sem jogada valida");
-          }
-        }
-
-        return {
-          ...current,
-          status: nextGame.status === "finished" ? "finished" : current.status,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        };
-      });
-    }, room.botTurnDelayMs ?? localBotTurnDelayMs);
-
-    return () => window.clearTimeout(timer);
-  }, [localBotTurnDelayMs, room]);
-
-  // Rematch for a local test: rebuild a fresh game with the same species.
-  function playAgainLocal() {
-    startLocalTest();
-  }
-
-  // Launch a scripted tutorial chapter on a real local game. Resets the same
-  // shared interaction state every chapter needs, plus the species-specific
-  // selection state used by that chapter, then loads its scripted room.
-  function startTutorial(id: TutorialId) {
-    setError(null);
-    setNotice(null);
-    lastOnlineRoomSnapshotRef.current = "";
-    autoScoredRef.current = null;
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setSelectedPieceId(null);
-    if (id === "jaguar") {
-      setSelectedJaguarDestination(null);
-      setSelectedJaguarTargetPieceId(null);
-    } else if (id === "wolf") {
-      setSelectedWolfTargetPieceId(null);
-      setSelectedWolfResources([]);
-    } else if (id !== "initial") {
-      setSelectedRemovalPieceIds([]);
-    }
-    setPendingPlacement(null);
-    setRoom(TUTORIAL_ROOM_FACTORIES[id]());
-    beginTutorial(id);
-  }
-
-  function exitTutorial(completed: boolean) {
-    if (completed && tutorialId) markTutorialDone(tutorialId);
-    autoScoredRef.current = null;
-    clearTutorial();
-    setBoardSpecies(null);
-    setSelectedHandCardId(null);
-    setSelectedCardRotation(0);
-    setPendingPlacement(null);
-    clearRoomState();
-    setLandingMode("tutorials");
-    setNotice(completed ? "Tutorial concluído!" : "Tutorial encerrado.");
-  }
-
-  function leaveTable() {
-    const leavingRoomId = room?.roomId ?? null;
-    const inLobby = room?.status === "lobby";
-
-    if (leavingRoomId && leavingRoomId !== localRoomId) {
-      ignoredOnlineRoomIdsRef.current.add(leavingRoomId);
-      clearOnlineSession();
-      if (socket?.connected) {
-        const call = inLobby ? roomApi.quit(socket, leavingRoomId) : roomApi.leave(socket, leavingRoomId);
-        void call.catch(() => {
-          // Local UI already left; stale updates are ignored by room id.
-        });
-      }
-    }
-
-    clearTutorial();
-    setLandingMode("idle");
-    autoScoredRef.current = null;
-    clearRoomState();
-    setError(null);
-    setNotice(isLocalRoom ? "Teste local encerrado." : "Voce saiu da mesa.");
-  }
+  const {
+    toggleLocalSpecies,
+    toggleLocalBot,
+    startLocalTest,
+    stopLocalTest,
+    playAgainLocal,
+    startTutorial,
+    exitTutorial,
+    leaveTable
+  } = useLocalGameHandlers({
+    room,
+    isLocalRoom,
+    localSpeciesIds,
+    localBotSpeciesIds,
+    localEnabledMiniExpansions,
+    localSelectedScenarioIds,
+    localScenarioCount,
+    localBotTurnDelayMs,
+    tutorialId,
+    socket,
+    lastOnlineRoomSnapshotRef,
+    autoScoredRef,
+    ignoredOnlineRoomIdsRef,
+    clearRoomState,
+    beginTutorial,
+    clearTutorial,
+    setError,
+    setNotice,
+    setLocalSpeciesIds,
+    setLocalBotSpeciesIds,
+    setRoom,
+    setSelectedHandCardId,
+    setSelectedCardRotation,
+    setSelectedPieceId,
+    setSelectedJaguarDestination,
+    setSelectedJaguarTargetPieceId,
+    setSelectedWolfTargetPieceId,
+    setSelectedWolfResources,
+    setSelectedRemovalPieceIds,
+    setPendingPlacement,
+    setBoardSpecies,
+    setLandingMode
+  });
 
   function handleKickPlayer(targetPlayerId: string, targetName: string) {
     if (!socket || !room) return;

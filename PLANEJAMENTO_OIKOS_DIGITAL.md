@@ -11,45 +11,6 @@ Data do levantamento: 2026-05-13
 - Rodar `npm run typecheck` e `npm run test` antes de subir, quando aplicável.
 - Nunca usar `--no-verify` nem pular hooks; corrigir a causa raiz de falhas.
 
-## 0.1 Handoff de Refatoração — Rodada 3 (OikosApp)
-
-Aberto em 2026-06-16. Seção temporária. Estado pós-Rodada 2: `OikosApp.tsx` em 3775 linhas; 2 `useState`, 34 `useEffect`, 42 `useCallback`/`useRef`. Estratégia idêntica à Rodada 2: extrair clusters coesos de lógica para hooks dedicados, sem mudar comportamento, API, determinismo nem paridade local/online.
-
-### Concluído nesta rodada
-
-_(nenhum ainda)_
-
-### Ordem obrigatória
-
-1. **`useRoomSettingsHandlers`** — extrair os dispatchers de configuração de sala: `adjustBotSpeed`, `adjustLocalBotSpeed`, `formatBotDelay`, `clampBotSpeed`, `toggleTurnTimer`, `adjustTurnTimer`, `toggleMiniExpansion`, `setScenarioMode`, `setRoomScenarioCount`, `toggleHostScenario`, `toggleLocalMiniExpansion`, `setLocalScenarioCountValue`, `toggleLocalScenario`. Funções puras de despacho; não têm estado interno nem refs. Deps injetadas: `run`, `requireSocket`, `room`, `isHost`, `isLocalRoom`, setters de config local. Smoke: boot + typecheck + build (telas de configuração gatadas por login).
-
-2. **`useTurnTransitionEffects`** — extrair o observador de diff de partida: refs `prevTurnRef`, `prevSnapshotRef`, `prevGameRef`, `turnSnapshotRef`, `travelSeqRef`, `gainSeqRef` + efeitos que disparam `setTurnBanner`/auto-dismiss, `setFloatingGains`, `setTravelEffects` e `appendTurnSummary` ao detectar mudança de turno. Inputs injetados: `room?.game`, `hudGamePlayer`, `forestCanvasRef`, `effectTargetRefs`, setters de `useGameFeedback`. Smoke: in-game real (recursos voando para HUD ao marcar ponto, banner de troca de turno, recap).
-
-3. **`useBoardCardHandlers`** — extrair handlers de interação com cartas da floresta: `showMovementPreview`, `setEffectTarget`, `rotateSelectedCard`, `handleCardClick` (colocação de peça no setup), `placeCard`, `handleConfirmPlacement`, `handleCancelPlacement`, efeito de teclado Enter/Esc para confirmação de placement. Deps injetadas: `run`, `requireSocket`, `room`, `isLocalRoom`, `canPlaceSetupPiece`, estado de seleção, gates de tutorial. Smoke: in-game real (colocar carta na floresta, girar com botão direito, confirmar/cancelar placement).
-
-4. **`useBoardPieceHandlers`** — extrair handlers de interação com peças: `executeSelectedPieceMove`, `handlePieceClick`, `handleMovementTargetClick`, `handleAddPieceTargetClick`, `handleCoatiPairBonusTargetClick`, `handleScoreCapuchin`, `handleScoreMacaw`, `toggleExpansionPreview`, efeito de auto-score (ação D de Macaco/Arara/Armadillo/Galo). Deps injetadas: `executeGameAction`, `run`, `requireSocket`, `room`, estado de seleção, gates de tutorial. Smoke: in-game real (mover peça, adicionar peça, score de Macaco/Arara dispara automaticamente).
-
-5. **`useLocalGameHandlers`** — extrair ciclo de vida do jogo local/tutorial: `startLocalTest`, `playAgainLocal`, `toggleLocalSpecies`, `toggleLocalBot`, `startTutorial`, `exitTutorial`, efeito do loop de bot (2057-2116), `leaveTable`. Deps injetadas: setters de config local, `clearRoomState`, `beginTutorial`/`clearTutorial`, `run`, `socket`. Smoke: Teste Local completo do início ao fim com bot, tutorial inicial.
-
-### Fora de escopo nesta rodada
-
-- `rooms.ts` (1291 linhas): máquina de estado coesa; só dividir em rodada própria se virar gargalo.
-- `run`/`spectate`/`applyOnlineRoomState`/`clearRoomState`/`resetRoomUiState` e refs de room online (`lastOnlineRoomSnapshotRef`, `onlineActionInFlightRef`, etc.): fortemente acopladas a `useOikosSocket` e aos setters de múltiplos hooks; extração deixada para rodada dedicada quando todas as demais dependências estiverem estáveis.
-- Mudanças de comportamento, layout ou regras.
-
-### Regras para cada etapa
-
-- Criar e enviar backup (`tag` e branch) antes de alterar.
-- Preservar paridade local/online, API pública e comportamento observável.
-- Rodar testes, `typecheck` e `build`; em mudança de interface, smoke in-game real (login Supabase com usuário de teste → Teste Local → partida), conferindo console sem erros.
-- Fazer commit pequeno e enviar para o GitHub após cada etapa aprovada.
-
-### Manutenção obrigatória deste planejamento
-
-- Após concluir uma etapa, removê-la da lista pendente, registrar uma linha curta de resultado e renumerar o restante.
-- Remover instruções concluídas e caminhos que deixarem de existir. Não acumular histórico obsoleto.
-- Ao terminar a rodada, remover a seção `0.1` e consolidar o resultado permanente na seção 5.
-
 ## 1. Objetivo do Projeto
 
 Criar um port digital multiplayer fiel ao jogo de tabuleiro Oikos, seguindo 100% o GDD fornecido e sem adicionar regras, modos, espécies, cartas ou efeitos que não estejam documentados ou aprovados.
@@ -254,7 +215,7 @@ Nenhuma intenção deve ser aplicada sem validação do servidor.
 Organização de módulos (resultado da rodada de refatoração):
 
 - Regras (`packages/rules/src`): `setup.ts` reexporta a API pública; criação de partida em `createGame.ts`, floresta inicial em `initialForest.ts`, movimentação em `movementActions.ts`. Bots divididos em `bots.ts` (orquestração), `botScoring.ts` (avaliação), `botSmart.ts`/`botRandom.ts`/`botShared.ts` (decisões por família).
-- Web — tela (`apps/web/src/screens`, `ui`, `hooks`): `OikosApp.tsx` é casca de orquestração (3775 linhas pós-Rodada 2); helpers em `OikosApp.helpers.tsx`; HUD e diálogos em componentes presentacionais sob `ui/`. Hooks extraídos: socket e polling em `useOikosSocket.ts`/`useOpenRoomsPolling.ts`; formulário de lobby em `useLobbyForm.ts`; toggles de painel em `usePanelState.ts`; efeitos transitórios/feedback em `useGameFeedback.ts`; seleção de ação em `useActionSelection.ts`; handlers simples de ação em `useSimpleActionHandlers.ts`; handlers de resolução com seleção em `useSelectionResolutionHandlers.ts`; handlers de objetivo/mini-expansão em `useObjectiveExpansionHandlers.ts`; handlers de Caça Ilegal em `useCacaIlegalHandlers.ts`.
+- Web — tela (`apps/web/src/screens`, `ui`, `hooks`): `OikosApp.tsx` é casca de orquestração (~2855 linhas pós-Rodada 3); helpers em `OikosApp.helpers.tsx`; HUD e diálogos em componentes presentacionais sob `ui/`. Hooks extraídos: socket e polling em `useOikosSocket.ts`/`useOpenRoomsPolling.ts`; formulário de lobby em `useLobbyForm.ts`; toggles de painel em `usePanelState.ts`; efeitos transitórios/feedback em `useGameFeedback.ts`; seleção de ação em `useActionSelection.ts`; handlers simples de ação em `useSimpleActionHandlers.ts`; handlers de resolução com seleção em `useSelectionResolutionHandlers.ts`; handlers de objetivo/mini-expansão em `useObjectiveExpansionHandlers.ts`; handlers de Caça Ilegal em `useCacaIlegalHandlers.ts`; dispatchers de configuração de sala em `useRoomSettingsHandlers.ts`; observador de diff de turno (banner, ganhos flutuantes, travel effects, recap) em `useTurnTransitionEffects.ts`; handlers de colocação de carta em `useBoardCardHandlers.ts`; handlers de peça/score em `useBoardPieceHandlers.ts`; ciclo de vida local/tutorial (incl. loop de bot) em `useLocalGameHandlers.ts`. Permanecem em `OikosApp.tsx` os utilitários `showMovementPreview`/`setEffectTarget`/`toggleExpansionPreview` e o cluster de sala online (`run`/`spectate`/`applyOnlineRoomState`/`clearRoomState`), candidatos a uma rodada futura dedicada.
 - Web — tabuleiro (`apps/web/src/game`): `ForestPhaserScene.ts` mantém lifecycle/câmera/cartas; câmera em `forestCamera.ts`, partículas em `forestAmbient.ts`, destaques em `forestHighlights.ts`, peças/meeples em `forestPieces.ts`.
 - Servidor (`apps/server/src`): `index.ts` mantém wiring de sockets e handlers; timers por sala, persistência debounced e `broadcastRoom` em `roomScheduler.ts` (`RoomScheduler`).
 
