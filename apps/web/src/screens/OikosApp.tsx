@@ -60,15 +60,11 @@ import {
   movePieceForCurrentAction,
   placeForestCard,
   placeInitialPiece,
-  removeBasePieceForWolfAction,
-  removePiecesForCurrentAction,
   resolveCoatiPairBonus,
   resolveCacaIlegal,
   selectObjectiveCard,
-  hideArmadilloForCurrentAction,
   scoreCapuchinHabitatPresence,
   scoreMacawLines,
-  spendWolfResourcesForPoints,
   collectCaatingaBonus,
   collectCerradoBonus,
   discardMataAtlanticaPileCard,
@@ -108,6 +104,7 @@ import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { usePanelState } from "../hooks/usePanelState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useScoringPreview } from "../hooks/useScoringPreview";
+import { useSelectionResolutionHandlers } from "../hooks/useSelectionResolutionHandlers";
 import { useSimpleActionHandlers } from "../hooks/useSimpleActionHandlers";
 import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
@@ -1346,6 +1343,23 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setNotice
     });
 
+  const { handleRemoveSelectedPieces, handleHideArmadillo, handleRemoveWolfBasePiece, handleSpendWolfResources } =
+    useSelectionResolutionHandlers({
+      room,
+      canControlActivePlayer,
+      tutorialActive,
+      tutorialDef,
+      selectedPieceId,
+      selectedRemovalPieceIds,
+      selectedWolfTargetPieceId,
+      selectedWolfResources,
+      requiredCoatiRemovalCount,
+      clearWolfActionSelection,
+      executeGameAction,
+      requireSocket,
+      setNotice
+    });
+
   async function spectate(roomId: string, password?: string | null) {
     if (onlineActionInFlightRef.current) {
       return;
@@ -1875,32 +1889,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     [coatiPairBonusTargets.length, executeGameAction, room, socket, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]
   );
 
-  const handleRemoveSelectedPieces = useCallback(() => {
-    if (
-      !room?.game ||
-      !room.game.activePlayerId ||
-      !canControlActivePlayer ||
-      selectedRemovalPieceIds.length !== requiredCoatiRemovalCount
-    ) {
-      return;
-    }
-
-    executeGameAction(
-      () => removePiecesForCurrentAction(room.game!, room.game!.activePlayerId!, selectedRemovalPieceIds),
-      () => roomApi.removePieces(requireSocket(), room.roomId, selectedRemovalPieceIds),
-      "Quatis removidos da floresta.",
-      clearWolfActionSelection
-    );
-  }, [
-    canControlActivePlayer,
-    clearWolfActionSelection,
-    executeGameAction,
-    requiredCoatiRemovalCount,
-    room,
-    selectedRemovalPieceIds,
-    socket
-  ]);
-
   const handleScoreCapuchin = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
       return;
@@ -1964,76 +1952,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       finalize();
     }, 2400);
   }, [canControlActivePlayer, executeGameAction, room, socket]);
-
-  const handleHideArmadillo = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedPieceId) {
-      return;
-    }
-    if (tutorialActive && tutorialDef?.markedPieceId && selectedPieceId !== tutorialDef.markedPieceId) {
-      return;
-    }
-
-    executeGameAction(
-      () => hideArmadilloForCurrentAction(room.game!, room.game!.activePlayerId!, selectedPieceId),
-      () => roomApi.hideArmadillo(requireSocket(), room.roomId, selectedPieceId),
-      "Tatu-bola escondido."
-    );
-  }, [canControlActivePlayer, executeGameAction, room, selectedPieceId, socket, tutorialActive, tutorialDef?.markedPieceId]);
-
-  const handleRemoveWolfBasePiece = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedWolfTargetPieceId) {
-      return;
-    }
-    if (tutorialActive && tutorialDef?.markedPieceId && selectedWolfTargetPieceId !== tutorialDef.markedPieceId) {
-      return;
-    }
-
-    executeGameAction(
-      () => removeBasePieceForWolfAction(room.game!, room.game!.activePlayerId!, selectedWolfTargetPieceId),
-      () => roomApi.removeWolfBasePiece(requireSocket(), room.roomId, selectedWolfTargetPieceId),
-      "Lobo-guará removeu peça de base.",
-      clearWolfActionSelection
-    );
-  }, [
-    canControlActivePlayer,
-    clearWolfActionSelection,
-    executeGameAction,
-    room,
-    selectedWolfTargetPieceId,
-    socket,
-    tutorialActive,
-    tutorialDef?.markedPieceId
-  ]);
-
-  const handleSpendWolfResources = useCallback(() => {
-    if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || selectedWolfResources.length === 0) {
-      return;
-    }
-    if (
-      tutorialActive &&
-      tutorialDef?.requiredSpendCount &&
-      selectedWolfResources.length !== tutorialDef.requiredSpendCount
-    ) {
-      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuação completa.`);
-      return;
-    }
-
-    executeGameAction(
-      () => spendWolfResourcesForPoints(room.game!, room.game!.activePlayerId!, selectedWolfResources),
-      () => roomApi.spendWolfResources(requireSocket(), room.roomId, selectedWolfResources),
-      "Lobo-guará gastou recursos e marcou pontos.",
-      clearWolfActionSelection
-    );
-  }, [
-    canControlActivePlayer,
-    clearWolfActionSelection,
-    executeGameAction,
-    room,
-    selectedWolfResources,
-    socket,
-    tutorialActive,
-    tutorialDef?.requiredSpendCount
-  ]);
 
   useEffect(() => {
     if ((!canSkipExtraTurnNoCardAction && !needsEndgameOverflowRepair) || tutorialActive) {
