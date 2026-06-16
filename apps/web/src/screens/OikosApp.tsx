@@ -59,7 +59,6 @@ import {
   getArmadilloHidePieceIds,
   getAvailableForestExpansionPositions,
   getCapuchinScoringHabitats,
-  type CapuchinHabitatGroup,
   getMacawScoringLines,
   type MacawScoringLine,
   getWolfSpendableResourceTypes,
@@ -108,6 +107,7 @@ import { useActiveActionState } from "../hooks/useActiveActionState";
 import { useActiveScoringState } from "../hooks/useActiveScoringState";
 import { useAudioSettings } from "../hooks/useAudioSettings";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
+import { useGameFeedback } from "../hooks/useGameFeedback";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
@@ -176,7 +176,7 @@ import {
   saveOnlineSession
 } from "../ui/session";
 import { speciesVar } from "../ui/speciesStyle";
-import { buildTurnSummaryEntries, type TurnRecapState, type TurnSummary } from "../ui/turnSummary";
+import { buildTurnSummaryEntries, type TurnSummary } from "../ui/turnSummary";
 import {
   createArmadilloTutorialRoom,
   createCapuchinTutorialRoom,
@@ -257,10 +257,34 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const [selectedRemovalPieceIds, setSelectedRemovalPieceIds] = useState<string[]>([]);
   const [cacaIlegalRemovalMode, setCacaIlegalRemovalMode] = useState(false);
   const [selectedOpponentPlayerId, setSelectedOpponentPlayerId] = useState<string | null>(null);
-  const [expandedObjectiveCardId, setExpandedObjectiveCardId] = useState<string | null>(null);
-  const [pendingObjectiveCardId, setPendingObjectiveCardId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const {
+    error,
+    setError,
+    notice,
+    setNotice,
+    threatReveal,
+    setThreatReveal,
+    macawScoreAnim,
+    setMacawScoreAnim,
+    capuchinScoreAnim,
+    setCapuchinScoreAnim,
+    turnBanner,
+    setTurnBanner,
+    floatingGains,
+    setFloatingGains,
+    travelEffects,
+    setTravelEffects,
+    turnRecap,
+    setTurnRecap,
+    hoveredSummaryCardIds,
+    setHoveredSummaryCardIds,
+    showJaguarScoreModal,
+    setShowJaguarScoreModal,
+    expandedObjectiveCardId,
+    setExpandedObjectiveCardId,
+    pendingObjectiveCardId,
+    setPendingObjectiveCardId
+  } = useGameFeedback();
   const {
     handCollapsed,
     setHandCollapsed,
@@ -291,11 +315,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   // Viewport point (icon center) the preview should grow out from, for the
   // fly-from-origin open animation. Recomputed on each open.
   const [expansionOrigin, setExpansionOrigin] = useState<{ x: number; y: number } | null>(null);
-  // Full-screen threat announcement shown to everyone when a new round reveals a
-  // threat. Auto-dismisses after 5s or when the player clicks the close button.
-  const [threatReveal, setThreatReveal] = useState<ThreatCardId | null>(null);
-  // Tracks the last threat seen per game so the announcement fires only on an
-  // actual change, not on the initial load / reconnect into an ongoing game.
+  // threatReveal (full-screen threat announcement) lives in useGameFeedback; its
+  // auto-dismiss timer and the reveal effect stay below. Tracks the last threat
+  // seen per game so the announcement fires only on an actual change, not on the
+  // initial load / reconnect into an ongoing game.
   const lastThreatRef = useRef<{ gameId: string | null; threatId: ThreatCardId | null }>({
     gameId: null,
     threatId: null
@@ -308,27 +331,12 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const logInitializedRef = useRef(false);
   const [movementPreview, setMovementPreview] = useState<{ speciesId: SpeciesId; left: number; top: number } | null>(null);
   const [landingMode, setLandingMode] = useState<LandingMode>("idle");
-  const [macawScoreAnim, setMacawScoreAnim] = useState<{
-    lines: Array<{ positions: [GridPosition, GridPosition, GridPosition] }>;
-    points: number;
-    playerName: string;
-  } | null>(null);
-  const [capuchinScoreAnim, setCapuchinScoreAnim] = useState<{
-    groups: CapuchinHabitatGroup[];
-    points: number;
-    playerName: string;
-  } | null>(null);
-  const [turnBanner, setTurnBanner] = useState<{ key: number; label: string; speciesId: SpeciesId | null } | null>(null);
-  const [floatingGains, setFloatingGains] = useState<FloatingGain[]>([]);
-  const [travelEffects, setTravelEffects] = useState<TravelEffect[]>([]);
   // Chosen-but-unconfirmed card placement: shows a preview with confirm/cancel
   // over the slot to guard against misclicks.
   const [pendingPlacement, setPendingPlacement] = useState<{
     position: { x: number; y: number };
     rotation: 0 | 90 | 180 | 270;
   } | null>(null);
-  const [turnRecap, setTurnRecap] = useState<TurnRecapState>({ history: [], index: -1, visible: false });
-  const [hoveredSummaryCardIds, setHoveredSummaryCardIds] = useState<string[]>([]);
   const turnSummary =
     turnRecap.visible && turnRecap.index >= 0 ? turnRecap.history[turnRecap.index] ?? null : null;
 
@@ -355,7 +363,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       current.history.length > 0 || current.visible ? { history: [], index: -1, visible: false } : current
     );
   }, [room?.game?.gameId, room?.game?.status]);
-  const [showJaguarScoreModal, setShowJaguarScoreModal] = useState(false);
   const prevTurnRef = useRef<string | null>(null);
   const prevSnapshotRef = useRef<{ playerId: string; score: number; resources: Record<string, number> } | null>(null);
   const prevGameRef = useRef<GameState | null>(null);
