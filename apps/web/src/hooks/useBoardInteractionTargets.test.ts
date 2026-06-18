@@ -544,4 +544,57 @@ describe("getBoardPieceTargets", () => {
     expect(result.jaguarTargetPieceIds).toEqual(expectedTargets);
     expect(result.boardSelectablePieceIds).toEqual([ownPieceId, ...expectedTargets]);
   });
+
+  it("prioritizes Galo interrupt pieces over pending Jaguar removal targets", () => {
+    const game = createJaguarTutorialRoom().game!;
+    const galoOwnerId = "galo-player";
+    const pendingLocation = { x: 1, y: 0 };
+    const galoPieceId = "galo-piece";
+    const removablePieceId = "wolf-piece";
+    const pendingGame = {
+      ...game,
+      pendingGaloInterrupt: {
+        ownerId: galoOwnerId,
+        interruptedPlayerId: game.activePlayerId!,
+        location: pendingLocation
+      },
+      pendingJaguarRemoval: {
+        playerId: game.activePlayerId!,
+        location: pendingLocation
+      },
+      pieces: [
+        ...game.pieces,
+        {
+          pieceId: galoPieceId,
+          ownerId: galoOwnerId,
+          speciesId: "galo_de_campina" as const,
+          location: { ...pendingLocation, siteId: "main" },
+          state: { hidden: false }
+        },
+        {
+          pieceId: removablePieceId,
+          ownerId: "wolf-player",
+          speciesId: "maned_wolf" as const,
+          location: { ...pendingLocation, siteId: "main" },
+          state: { hidden: false }
+        }
+      ]
+    };
+
+    const result = getBoardPieceTargets({
+      activeSpeciesId: "jaguar",
+      game: pendingGame,
+      movementTargetCount: 0,
+      selectablePieceIds: [galoPieceId],
+      selectedJaguarDestination: null,
+      selectedJaguarTargetPieceId: null,
+      selectedPieceId: null,
+      selectedRemovalPieceIds: [],
+      selectedWolfTargetPieceId: null,
+      tutorial: inactiveTutorial
+    });
+
+    expect(result.jaguarTargetPieceIds).toEqual([]);
+    expect(result.boardSelectablePieceIds).toEqual([galoPieceId]);
+  });
 });

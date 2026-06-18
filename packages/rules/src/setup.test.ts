@@ -1720,7 +1720,7 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(1);
   });
 
-  it("removes the remaining galo after the interrupt when Onca entered a field with two galos", () => {
+  it("automatically removes the remaining galo after the interrupt when Onca entered a field with two galos", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
     const placeFor = (playerId: string, location: { x: number; y: number }) => {
       game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
@@ -1747,13 +1747,6 @@ describe("setup placement", () => {
 
     const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
     game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
-
-    expect(game.pendingJaguarRemoval).toEqual({
-      playerId: "jaguar",
-      location: { x: 1, y: 0 }
-    });
-
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 });
 
     expect(game.pendingJaguarRemoval).toBeNull();
     expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);

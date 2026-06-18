@@ -462,8 +462,10 @@ export function getBoardPieceTargets({
   selectedWolfTargetPieceId,
   tutorial
 }: BoardPieceTargetInput) {
+  const resolvingGaloInterrupt = Boolean(game?.pendingGaloInterrupt);
   const jaguarTargetPieceIds =
     game &&
+    !resolvingGaloInterrupt &&
     activeSpeciesId === "jaguar" &&
     ((selectedPieceId && selectedJaguarDestination && movementTargetCount > 0) || game.pendingJaguarRemoval)
       ? game.pieces
@@ -483,7 +485,10 @@ export function getBoardPieceTargets({
           .map((piece) => piece.pieceId)
       : [];
 
-  const combinedIds = game?.pendingJaguarRemoval ? jaguarTargetPieceIds : [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
+  const combinedIds =
+    game?.pendingJaguarRemoval && !resolvingGaloInterrupt
+      ? jaguarTargetPieceIds
+      : [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
   const boardSelectablePieceIds = !tutorial.active
     ? combinedIds
     : tutorial.def?.markedPieceId
