@@ -12,6 +12,7 @@ import {
   addBots,
   createRoom,
   joinRoom,
+  leaveRoom,
   leaveRooms,
   listOpenRooms,
   movePiece,
@@ -73,19 +74,33 @@ describe("room lifecycle", () => {
     quitRoom(replacement.roomId, hostId);
   });
 
-  it("still limits four connected rooms for the same host", () => {
+  it("still limits six connected rooms for the same host", () => {
     const hostId = "host-with-active-lobbies";
-    const activeRooms = Array.from({ length: 4 }, (_, index) => {
+    const activeRooms = Array.from({ length: 6 }, (_, index) => {
       const room = createRoom(hostId, "Host");
       joinRoom(room.roomId, `guest-${index}`, `Guest ${index}`);
       return room;
     });
 
-    expect(() => createRoom(hostId, "Host")).toThrow("Você já tem 4 salas abertas.");
+    expect(() => createRoom(hostId, "Host")).toThrow("Você já tem 6 salas abertas.");
 
     for (const room of activeRooms) {
       quitRoom(room.roomId, hostId);
     }
+  });
+
+  it("closes a started room immediately when the last human leaves", () => {
+    const hostId = "host-leaving-started-room";
+    const room = createRoom(hostId, "Host");
+    selectSpecies(room.roomId, hostId, "jaguar");
+    addBots(room.roomId, hostId);
+    setReady(room.roomId, hostId, true);
+    startGame(room.roomId, hostId);
+
+    leaveRoom(room.roomId, hostId);
+
+    expect(deleteRoom).toHaveBeenCalledWith(room.roomId);
+    expect(listOpenRooms().some((open) => open.roomId === room.roomId)).toBe(false);
   });
 
   it("deletes the persisted lobby when its last human quits", () => {

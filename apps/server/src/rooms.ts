@@ -179,7 +179,7 @@ function normalizePassword(password?: string | null): string | null {
 }
 
 const MAX_NAME_LENGTH = 24;
-const MAX_ACTIVE_ROOMS_PER_HOST = 4;
+const MAX_ACTIVE_ROOMS_PER_HOST = 6;
 
 function sanitizeName(raw: unknown, fallback: string): string {
   const trimmed = typeof raw === "string" ? raw.trim().slice(0, MAX_NAME_LENGTH) : "";
@@ -217,11 +217,14 @@ function removeRoom(roomId: string): void {
 
 function removeAbandonedHostedLobbies(hostPlayerId: string): void {
   for (const room of [...rooms.values()]) {
-    const emptyLobby =
-      room.hostPlayerId === hostPlayerId &&
-      room.status === "lobby" &&
-      !hasOtherHuman(room, hostPlayerId);
-    if (emptyLobby || (room.hostPlayerId === hostPlayerId && isAbandonedPristineSetup(room, hostPlayerId))) {
+    if (room.hostPlayerId !== hostPlayerId) {
+      continue;
+    }
+    const emptyLobby = room.status === "lobby" && !hasOtherHuman(room, hostPlayerId);
+    // A deserted room (no connected human, any status) must never block the host
+    // from creating a new one, so it is dropped on sight regardless of phase.
+    const deserted = !hasConnectedHuman(room);
+    if (emptyLobby || deserted || isAbandonedPristineSetup(room, hostPlayerId)) {
       removeRoom(room.roomId);
     }
   }
@@ -379,7 +382,13 @@ export function leaveRoom(roomId: string, playerId: string): PublicRoomState {
     room.spectators.delete(playerId);
   }
 
-  return toPublicRoom(room);
+  const snapshot = toPublicRoom(room);
+  // Close the room the moment nobody is left connected. An explicit leave should
+  // not leave a deserted room lingering (and counting against the host's limit).
+  if (!hasConnectedHuman(room)) {
+    removeRoom(room.roomId);
+  }
+  return snapshot;
 }
 
 function removePlayerFromRoom(room: ServerRoom, targetPlayerId: string): void {
