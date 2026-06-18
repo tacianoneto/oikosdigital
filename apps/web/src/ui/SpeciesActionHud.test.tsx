@@ -44,11 +44,20 @@ function createGame(activePlayerId = "player-1"): GameState {
   } as unknown as GameState;
 }
 
-function renderHud(speciesId: SpeciesId, activeActionId: ActionId, activePlayerId = "player-1") {
+function renderHud(
+  speciesId: SpeciesId,
+  activeActionId: ActionId,
+  activePlayerId = "player-1",
+  gameOverride: Partial<GameState> = {}
+) {
   const player = createPlayer(speciesId);
+  const game = {
+    ...createGame(activePlayerId),
+    ...gameOverride
+  } as GameState;
   return renderToStaticMarkup(
     <SpeciesActionHud
-      game={createGame(activePlayerId)}
+      game={game}
       player={player}
       activeActionId={activeActionId}
       resourceMajority={resourceMajority}
@@ -103,5 +112,21 @@ describe("SpeciesActionHud", () => {
 
     expect(markup).toContain("hud-overlay-macaw");
     expect(markup).not.toContain("formações lineares");
+  });
+  it("shows Galo wait copy instead of Jaguar removal during an interrupt", () => {
+    const markup = renderHud("jaguar", "A", "player-1", {
+      pendingJaguarRemoval: {
+        playerId: "player-1",
+        location: { x: 1, y: 1 }
+      },
+      pendingGaloInterrupt: {
+        ownerId: "player-2",
+        interruptedPlayerId: "player-1",
+        location: { x: 1, y: 1 }
+      }
+    });
+
+    expect(markup).toContain("Aguarde o jogador realizar");
+    expect(markup).not.toContain("local de entrada da Onca");
   });
 });

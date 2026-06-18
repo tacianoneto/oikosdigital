@@ -219,6 +219,17 @@ export function useBoardPieceHandlers({
       }
 
       if (jaguarTargetPieceIds.includes(pieceId)) {
+        if (room?.game?.pendingGaloInterrupt) {
+          setSelectedJaguarDestination(null);
+          setSelectedJaguarTargetPieceId(null);
+          setNotice(
+            room.game.pendingGaloInterrupt.ownerId === controlledPlayerId
+              ? "Entre turnos ativo: mova 1 galo-de-campina antes da Onca remover."
+              : "Aguarde o Galo-de-campina resolver a acao entre turnos."
+          );
+          return;
+        }
+
         const pendingJaguarRemoval = room?.game?.pendingJaguarRemoval;
         if (pendingJaguarRemoval && room?.game?.activePlayerId === pendingJaguarRemoval.playerId) {
           const jaguarPieceId = room.game.pieces.find(
@@ -328,6 +339,18 @@ export function useBoardPieceHandlers({
       const currentGame = room.game;
 
       if (activeSpeciesId === "jaguar") {
+        if (currentGame.pendingGaloInterrupt) {
+          setSelectedJaguarDestination(null);
+          setSelectedJaguarTargetPieceId(null);
+          setSelectedPieceId(null);
+          setNotice(
+            currentGame.pendingGaloInterrupt.ownerId === controlledPlayerId
+              ? "Entre turnos ativo: mova 1 galo-de-campina antes da Onca remover."
+              : "Aguarde o Galo-de-campina resolver a acao entre turnos."
+          );
+          return;
+        }
+
         if (currentGame.pendingJaguarRemoval) {
           setSelectedJaguarDestination(null);
           setSelectedJaguarTargetPieceId(null);

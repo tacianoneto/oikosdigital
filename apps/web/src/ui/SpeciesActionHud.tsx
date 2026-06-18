@@ -78,6 +78,14 @@ function JaguarActionContent({
   selectedJaguarDestination,
   onCompleteAction
 }: ActionContentProps) {
+  if (game.pendingGaloInterrupt) {
+    return (
+      <div className="action-box-hint action-box-hint--waiting">
+        Aguarde o Galo-de-campina resolver a acao entre turnos.
+      </div>
+    );
+  }
+
   if (game.pendingJaguarRemoval && (activeActionId === "A" || activeActionId === "B")) {
     return (
       <div className="action-box-hint">
