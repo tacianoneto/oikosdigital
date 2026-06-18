@@ -1,6 +1,6 @@
 import { getForestCardDefinition, speciesDefinitions } from "@oikos/content";
 import { gridPositionKey, parseGridPositionKey } from "@oikos/shared";
-import type { GameState, GridPosition, Habitat, Resource, SpeciesId } from "@oikos/shared";
+import type { ActionId, GameState, GridPosition, Habitat, Resource, SpeciesId } from "@oikos/shared";
 
 const resourcePreference: Record<SpeciesId, Resource[]> = {
   jaguar: ["meat", "meat", "egg", "fruit", "seed"],
@@ -537,7 +537,7 @@ function adjacencyScore(game: GameState, position: GridPosition): number {
   return game.forest.cards.filter((card) => Math.abs(card.x - position.x) + Math.abs(card.y - position.y) === 1).length;
 }
 
-export function getCurrentAction(game: GameState, speciesId: SpeciesId): string | null {
+export function getCurrentAction(game: GameState, speciesId: SpeciesId): ActionId | null {
   return speciesDefinitions[speciesId].actions[game.activeActionIndex] ?? null;
 }
 

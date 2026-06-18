@@ -14,30 +14,9 @@ import {
 } from "./setup";
 import { getCurrentAction, pickOne, pickPosition } from "./botScoring";
 import { completeOrSkip } from "./botShared";
-import {
-  moveBestPiece,
-  playArmadillo,
-  playCapuchin,
-  playCoati,
-  playForestCard,
-  playGalo,
-  playJaguar,
-  playMacaw,
-  playSetupStep,
-  playWolf
-} from "./botSmart";
-import {
-  moveRandomAmong,
-  playRandomForestCard,
-  playRandomSetupStep,
-  randomArmadillo,
-  randomCapuchin,
-  randomCoati,
-  randomGalo,
-  randomJaguar,
-  randomMacaw,
-  randomWolf
-} from "./botRandom";
+import { playForestCard, playSetupStep } from "./botSmart";
+import { playRandomForestCard, playRandomSetupStep } from "./botRandom";
+import { getSpeciesModule, speciesActionRequiresForestCard } from "./speciesModules";
 import type { GameState, PlayerState } from "@oikos/shared";
 
 // Shared bot preamble: resolve scenario prompts (Caatinga/Cerrado/Caca ilegal)
@@ -132,30 +111,17 @@ export function playBotStep(game: GameState, playerId: string): GameState {
     return game;
   }
 
-  if (player.speciesId !== "jaguar" && action === "A" && !game.activePlayedForestCardId) {
+  if (speciesActionRequiresForestCard(player.speciesId, action) && !game.activePlayedForestCardId) {
     return playForestCard(game, playerId, player.speciesId);
   }
 
-  if (player.speciesId === "maned_wolf" && game.pendingWolfMoves?.playerId === playerId) {
-    return moveBestPiece(game, playerId, player.speciesId, game.pendingWolfMoves.pieceIds);
+  const speciesModule = getSpeciesModule(player.speciesId);
+
+  if (game.pendingWolfMoves?.playerId === playerId && speciesModule.bots.playSmartPendingMovement) {
+    return speciesModule.bots.playSmartPendingMovement(game, playerId, player.speciesId, game.pendingWolfMoves.pieceIds);
   }
 
-  switch (player.speciesId) {
-    case "jaguar":
-      return playJaguar(game, playerId, action);
-    case "coati":
-      return playCoati(game, playerId, action);
-    case "capuchin":
-      return playCapuchin(game, playerId, action);
-    case "macaw":
-      return playMacaw(game, playerId, action);
-    case "galo_de_campina":
-      return playGalo(game, playerId, action);
-    case "armadillo":
-      return playArmadillo(game, playerId, action);
-    case "maned_wolf":
-      return playWolf(game, playerId, action);
-  }
+  return speciesModule.bots.playSmartAction(game, playerId, action);
 }
 
 // Turn-timeout takeover bot: makes only legal moves, but chooses among them at
@@ -201,28 +167,15 @@ export function playRandomStep(game: GameState, playerId: string): GameState {
     return game;
   }
 
-  if (speciesId !== "jaguar" && action === "A" && !game.activePlayedForestCardId) {
+  if (speciesActionRequiresForestCard(speciesId, action) && !game.activePlayedForestCardId) {
     return playRandomForestCard(game, playerId);
   }
 
-  if (speciesId === "maned_wolf" && game.pendingWolfMoves?.playerId === playerId) {
-    return moveRandomAmong(game, playerId, speciesId, game.pendingWolfMoves.pieceIds);
+  const speciesModule = getSpeciesModule(speciesId);
+
+  if (game.pendingWolfMoves?.playerId === playerId && speciesModule.bots.playRandomPendingMovement) {
+    return speciesModule.bots.playRandomPendingMovement(game, playerId, speciesId, game.pendingWolfMoves.pieceIds);
   }
 
-  switch (speciesId) {
-    case "jaguar":
-      return randomJaguar(game, playerId, action);
-    case "coati":
-      return randomCoati(game, playerId, action);
-    case "capuchin":
-      return randomCapuchin(game, playerId, action);
-    case "macaw":
-      return randomMacaw(game, playerId, action);
-    case "galo_de_campina":
-      return randomGalo(game, playerId, action);
-    case "armadillo":
-      return randomArmadillo(game, playerId, action);
-    case "maned_wolf":
-      return randomWolf(game, playerId, action);
-  }
+  return speciesModule.bots.playRandomAction(game, playerId, action);
 }
