@@ -111,6 +111,18 @@ describe("player limit", () => {
       `O máximo é ${MAX_PLAYERS} jogadores por partida.`
     );
   });
+  it("orders Galo-de-campina before Arara because it has more pieces", () => {
+    const game = createInitialGameState(
+      "turn-order-game",
+      [player("galo", "galo_de_campina"), player("macaw", "macaw")],
+      () => 0.999999,
+      createPreviewInitialForest()
+    );
+
+    expect(speciesDefinitions.galo_de_campina.totalPieces).toBe(7);
+    expect(speciesDefinitions.macaw.totalPieces).toBe(6);
+    expect(game.turnOrder).toEqual(["galo", "macaw"]);
+  });
 });
 
 describe("setup placement", () => {

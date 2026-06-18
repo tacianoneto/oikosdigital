@@ -162,8 +162,8 @@ export const speciesOrderBySetup: SpeciesId[] = [
 export const speciesOrderByTurn: SpeciesId[] = [
   "coati",
   "capuchin",
-  "macaw",
   "galo_de_campina",
+  "macaw",
   "armadillo",
   "maned_wolf",
   "jaguar"
