@@ -1,13 +1,11 @@
 import { useCallback, useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import {
+  applyGameIntent,
   getCapuchinScoringHabitats,
   getMacawScoringLines,
   type MacawScoringLine,
-  movePieceForCurrentAction,
   resolveGaloInterruptMove,
-  resolveCoatiPairBonus,
-  scoreCapuchinHabitatPresence,
-  scoreMacawLines
+  resolveCoatiPairBonus
 } from "@oikos/rules";
 import type { GameState, PublicRoomState, SpeciesId } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
@@ -151,7 +149,13 @@ export function useBoardPieceHandlers({
       const activePlayerId = currentGame.activePlayerId!;
 
       if (isLocalRoom) {
-        const nextGame = movePieceForCurrentAction(currentGame, activePlayerId, movingPieceId, position, targetPieceId);
+        const nextGame = applyGameIntent(currentGame, activePlayerId, {
+          type: "piece.move",
+          pieceId: movingPieceId,
+          x: position.x,
+          y: position.y,
+          targetPieceId
+        });
         setRoom({
           ...room,
           status: nextGame.status === "active" ? "active" : room.status,
@@ -369,7 +373,7 @@ export function useBoardPieceHandlers({
 
     const finalize = () => {
       executeGameAction(
-        () => scoreCapuchinHabitatPresence(room.game!, activeId),
+        () => applyGameIntent(room.game!, activeId, { type: "species.score", speciesId: "capuchin" }),
         () => roomApi.scoreCapuchin(requireSocket(), room.roomId),
         "Macaco-prego pontuado."
       );
@@ -399,7 +403,7 @@ export function useBoardPieceHandlers({
 
     const finalize = () => {
       executeGameAction(
-        () => scoreMacawLines(room.game!, activeId),
+        () => applyGameIntent(room.game!, activeId, { type: "species.score", speciesId: "macaw" }),
         () => roomApi.scoreMacaw(requireSocket(), room.roomId),
         "Arara-azul pontuada."
       );

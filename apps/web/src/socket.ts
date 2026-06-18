@@ -1,6 +1,7 @@
 import { io, type Socket } from "socket.io-client";
 import type {
   ForestCardState,
+  GameIntent,
   MiniExpansionId,
   PublicRoomState,
   Resource,
@@ -84,6 +85,10 @@ export function emitWithReply<T>(socket: OikosSocket, event: string, payload: un
   });
 }
 
+function sendIntent(socket: OikosSocket, roomId: string, intent: GameIntent): Promise<PublicRoomState> {
+  return emitWithReply<PublicRoomState>(socket, "game:intent", { roomId, intent });
+}
+
 export const roomApi = {
   ping: (socket: OikosSocket, roomId: string) => emitWithReply<{ ok: true; roomId: string | null; now: number }>(socket, "presence:ping", { roomId }),
   listRooms: (socket: OikosSocket) => emitWithReply<RoomSummary[]>(socket, "rooms:list", {}),
@@ -156,42 +161,37 @@ export const roomApi = {
     rotation: ForestCardState["rotation"] = 0
   ) =>
     emitWithReply<PublicRoomState>(socket, "forest:place-card", { roomId, cardId, x, y, rotation }),
-  completeAction: (socket: OikosSocket, roomId: string) =>
-    emitWithReply<PublicRoomState>(socket, "action:complete", { roomId }),
+  completeAction: (socket: OikosSocket, roomId: string) => sendIntent(socket, roomId, { type: "action.complete" }),
   addCoati: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "coati:add", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "coati", x, y }),
   addGalo: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "galo:add", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "galo_de_campina", x, y }),
   resolveGaloInterrupt: (socket: OikosSocket, roomId: string, pieceId: string | undefined, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "galo:resolve-interrupt", { roomId, pieceId, x, y }),
   resolveCoatiPair: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     emitWithReply<PublicRoomState>(socket, "coati:resolve-pair", { roomId, x, y }),
   addCapuchin: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "capuchin:add", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "capuchin", x, y }),
   addMacaw: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "macaw:add", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "macaw", x, y }),
   addArmadillo: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "armadillo:add", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "armadillo", x, y }),
   addWolf: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "wolf:add", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "maned_wolf", x, y }),
   movePiece: (socket: OikosSocket, roomId: string, pieceId: string, x: number, y: number, targetPieceId?: string) =>
-    emitWithReply<PublicRoomState>(socket, "piece:move", { roomId, pieceId, x, y, targetPieceId }),
+    sendIntent(socket, roomId, { type: "piece.move", pieceId, x, y, targetPieceId }),
   removePieces: (socket: OikosSocket, roomId: string, pieceIds: string[]) =>
-    emitWithReply<PublicRoomState>(socket, "pieces:remove", { roomId, pieceIds }),
+    sendIntent(socket, roomId, { type: "pieces.remove", pieceIds }),
   spendJaguarMeat: (socket: OikosSocket, roomId: string, count: number) =>
-    emitWithReply<PublicRoomState>(socket, "jaguar:spend-meat", { roomId, count }),
-  scoreCapuchin: (socket: OikosSocket, roomId: string) =>
-    emitWithReply<PublicRoomState>(socket, "capuchin:score", { roomId }),
-  scoreMacaw: (socket: OikosSocket, roomId: string) =>
-    emitWithReply<PublicRoomState>(socket, "macaw:score", { roomId }),
-  scoreGalo: (socket: OikosSocket, roomId: string) =>
-    emitWithReply<PublicRoomState>(socket, "galo:score", { roomId }),
+    sendIntent(socket, roomId, { type: "jaguar.spend-meat", count }),
+  scoreCapuchin: (socket: OikosSocket, roomId: string) => sendIntent(socket, roomId, { type: "species.score", speciesId: "capuchin" }),
+  scoreMacaw: (socket: OikosSocket, roomId: string) => sendIntent(socket, roomId, { type: "species.score", speciesId: "macaw" }),
+  scoreGalo: (socket: OikosSocket, roomId: string) => sendIntent(socket, roomId, { type: "species.score", speciesId: "galo_de_campina" }),
   hideArmadillo: (socket: OikosSocket, roomId: string, pieceId: string) =>
-    emitWithReply<PublicRoomState>(socket, "armadillo:hide", { roomId, pieceId }),
-  scoreArmadillo: (socket: OikosSocket, roomId: string) =>
-    emitWithReply<PublicRoomState>(socket, "armadillo:score", { roomId }),
+    sendIntent(socket, roomId, { type: "species.hide-piece", speciesId: "armadillo", pieceId }),
+  scoreArmadillo: (socket: OikosSocket, roomId: string) => sendIntent(socket, roomId, { type: "species.score", speciesId: "armadillo" }),
   removeWolfBasePiece: (socket: OikosSocket, roomId: string, pieceId: string) =>
-    emitWithReply<PublicRoomState>(socket, "wolf:remove-base", { roomId, pieceId }),
+    sendIntent(socket, roomId, { type: "wolf.remove-base", pieceId }),
   spendWolfResources: (socket: OikosSocket, roomId: string, resources: Resource[]) =>
-    emitWithReply<PublicRoomState>(socket, "wolf:spend-resources", { roomId, resources })
+    sendIntent(socket, roomId, { type: "wolf.spend-resources", resources })
 };

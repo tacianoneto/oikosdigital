@@ -2,7 +2,7 @@ import "./env";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { Server } from "socket.io";
-import type { MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
+import type { GameIntent, MiniExpansionId, PublicRoomState, Resource, ScenarioCardId, ScenarioCount, SpeciesId } from "@oikos/shared";
 import { getUserIdFromAccessToken } from "./auth";
 import { projectRoomForViewer } from "./projection";
 import { canUseSpecies } from "./speciesAccess";
@@ -63,7 +63,8 @@ import {
   collectCaatinga,
   collectCerrado,
   discardMataAtlanticaCard,
-  resolveCacaIlegalThreat
+  resolveCacaIlegalThreat,
+  applyRoomGameIntent
 } from "./rooms";
 
 const port = Number(process.env.PORT ?? 4173);
@@ -330,6 +331,7 @@ io.on("connection", (socket) => {
     (p: { roomId: string; cardId: string; x: number; y: number; rotation: 0 | 90 | 180 | 270 }, pid) =>
       placeCardInForest(p.roomId, pid, p.cardId, p.x, p.y, p.rotation)
   );
+  onRoomAction("game:intent", (p: { roomId: string; intent: GameIntent }, pid) => applyRoomGameIntent(p.roomId, pid, p.intent));
   onRoomAction("action:complete", (p: { roomId: string }, pid) => completeAction(p.roomId, pid));
   onRoomAction("coati:add", (p: { roomId: string; x: number; y: number }, pid) => addCoati(p.roomId, pid, p.x, p.y));
   onRoomAction("galo:add", (p: { roomId: string; x: number; y: number }, pid) => addGalo(p.roomId, pid, p.x, p.y));

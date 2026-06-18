@@ -1,12 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import {
-  addArmadilloForCurrentAction,
-  addCapuchinForCurrentAction,
-  addCoatiForCurrentAction,
-  addGaloForCurrentAction,
-  addMacawForCurrentAction,
-  addWolfForCurrentAction
-} from "@oikos/rules";
+import { applyGameIntent } from "@oikos/rules";
 import type { GameState, GridPosition, MovementKind, PublicRoomState, SpeciesId } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 import {
@@ -84,34 +77,40 @@ export type AddPieceHandler = {
 };
 
 const ADD_PIECE_DEFAULT: AddPieceHandler = {
-  local: (game, playerId, position) => addCoatiForCurrentAction(game, playerId, position),
+  local: (game, playerId, position) =>
+    applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "coati", x: position.x, y: position.y }),
   api: (socket, roomId, x, y) => roomApi.addCoati(socket, roomId, x, y),
   notice: "Quati adicionado em local de fruta."
 };
 
 const ADD_PIECE_HANDLERS: Partial<Record<SpeciesId, AddPieceHandler>> = {
   capuchin: {
-    local: (game, playerId, position) => addCapuchinForCurrentAction(game, playerId, position),
+    local: (game, playerId, position) =>
+      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "capuchin", x: position.x, y: position.y }),
     api: (socket, roomId, x, y) => roomApi.addCapuchin(socket, roomId, x, y),
     notice: "Macaco-prego adicionado."
   },
   macaw: {
-    local: (game, playerId, position) => addMacawForCurrentAction(game, playerId, position),
+    local: (game, playerId, position) =>
+      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "macaw", x: position.x, y: position.y }),
     api: (socket, roomId, x, y) => roomApi.addMacaw(socket, roomId, x, y),
     notice: "Arara adicionada."
   },
   galo_de_campina: {
-    local: (game, playerId, position) => addGaloForCurrentAction(game, playerId, position),
+    local: (game, playerId, position) =>
+      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "galo_de_campina", x: position.x, y: position.y }),
     api: (socket, roomId, x, y) => roomApi.addGalo(socket, roomId, x, y),
     notice: "Galo-de-campina adicionado."
   },
   armadillo: {
-    local: (game, playerId, position) => addArmadilloForCurrentAction(game, playerId, position),
+    local: (game, playerId, position) =>
+      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "armadillo", x: position.x, y: position.y }),
     api: (socket, roomId, x, y) => roomApi.addArmadillo(socket, roomId, x, y),
     notice: "Tatu-bola adicionado."
   },
   maned_wolf: {
-    local: (game, playerId, position) => addWolfForCurrentAction(game, playerId, position),
+    local: (game, playerId, position) =>
+      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "maned_wolf", x: position.x, y: position.y }),
     api: (socket, roomId, x, y) => roomApi.addWolf(socket, roomId, x, y),
     notice: "Lobo-guará adicionado."
   }

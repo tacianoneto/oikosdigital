@@ -2,7 +2,8 @@ import { commonForestCards, speciesDefinitions, speciesOrderBySetup } from "@oik
 import {
   MAX_PLAYERS,
   areScenariosExclusive,
-  clampTurnTimerMs
+  clampTurnTimerMs,
+  type GameIntent
 } from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
@@ -36,7 +37,8 @@ import {
   scoreGaloFieldPresence,
   scoreMacawLines,
   spendJaguarMeatForPoints,
-  spendWolfResourcesForPoints
+  spendWolfResourcesForPoints,
+  applyGameIntent
 } from "@oikos/rules";
 import type {
   ForestCardState,
@@ -1059,6 +1061,17 @@ export function removePieces(roomId: string, playerId: string, pieceIds: string[
 
 export function spendJaguarMeat(roomId: string, playerId: string, count: number): PublicRoomState {
   return withActiveGame(roomId, (game) => spendJaguarMeatForPoints(game, playerId, count), statusActiveOrKeep);
+}
+
+export function applyRoomGameIntent(roomId: string, playerId: string, intent: GameIntent): PublicRoomState {
+  return withActiveGame(
+    roomId,
+    (game, room) =>
+      intent.type === "species.score" && isStaleScoreRequest(room, playerId, intent.speciesId)
+        ? null
+        : applyGameIntent(game, playerId, intent),
+    statusActiveOrKeep
+  );
 }
 
 export function getPublicRoom(roomId: string): PublicRoomState {

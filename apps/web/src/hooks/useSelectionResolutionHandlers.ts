@@ -1,9 +1,6 @@
 import { useCallback } from "react";
 import {
-  hideArmadilloForCurrentAction,
-  removeBasePieceForWolfAction,
-  removePiecesForCurrentAction,
-  spendWolfResourcesForPoints
+  applyGameIntent
 } from "@oikos/rules";
 import type { PublicRoomState, Resource } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
@@ -52,7 +49,7 @@ export function useSelectionResolutionHandlers({
     }
 
     executeGameAction(
-      () => removePiecesForCurrentAction(room.game!, room.game!.activePlayerId!, selectedRemovalPieceIds),
+      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "pieces.remove", pieceIds: selectedRemovalPieceIds }),
       () => roomApi.removePieces(requireSocket(), room.roomId, selectedRemovalPieceIds),
       "Quatis removidos da floresta.",
       clearWolfActionSelection
@@ -76,7 +73,7 @@ export function useSelectionResolutionHandlers({
     }
 
     executeGameAction(
-      () => hideArmadilloForCurrentAction(room.game!, room.game!.activePlayerId!, selectedPieceId),
+      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "species.hide-piece", speciesId: "armadillo", pieceId: selectedPieceId }),
       () => roomApi.hideArmadillo(requireSocket(), room.roomId, selectedPieceId),
       "Tatu-bola escondido."
     );
@@ -91,7 +88,7 @@ export function useSelectionResolutionHandlers({
     }
 
     executeGameAction(
-      () => removeBasePieceForWolfAction(room.game!, room.game!.activePlayerId!, selectedWolfTargetPieceId),
+      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "wolf.remove-base", pieceId: selectedWolfTargetPieceId }),
       () => roomApi.removeWolfBasePiece(requireSocket(), room.roomId, selectedWolfTargetPieceId),
       "Lobo-guará removeu peça de base.",
       clearWolfActionSelection
@@ -121,7 +118,7 @@ export function useSelectionResolutionHandlers({
     }
 
     executeGameAction(
-      () => spendWolfResourcesForPoints(room.game!, room.game!.activePlayerId!, selectedWolfResources),
+      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "wolf.spend-resources", resources: selectedWolfResources }),
       () => roomApi.spendWolfResources(requireSocket(), room.roomId, selectedWolfResources),
       "Lobo-guará gastou recursos e marcou pontos.",
       clearWolfActionSelection

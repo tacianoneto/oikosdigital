@@ -66,7 +66,7 @@ npm.cmd run build
 
 Objetivo: adicionar ou alterar uma especie tocando um modulo principal, nao varios arquivos espalhados.
 
-Status atual: em andamento. Bloco concluido nesta rodada:
+Status atual: concluido para a base necessaria ao protocolo unificado. Blocos entregues:
 
 - Criado `SpeciesModule` em `packages/rules/src/speciesModules.ts`.
 - Registry cobre todas as especies de `packages/content`.
@@ -103,15 +103,13 @@ Status atual: em andamento. Bloco concluido nesta rodada:
 
 Entregas pendentes:
 
-- Completar o `SpeciesModule` com:
-  - validadores/aplicadores restantes que ainda estao especificos no servidor/web/setup, principalmente movimentos especiais, resolucoes de passiva e fluxos de cartas/cenarios.
-  - efeitos passivos
-  - pontuacao de acao restante fora da familia migrada, se novas especies/expansoes exigirem
-  - metadados de UI necessarios
-- Consolidar consumidores externos de funcoes como `addCoatiForCurrentAction`, `scoreMacawLines`, `hideArmadilloForCurrentAction`, `removePiecesForCurrentAction`, `removeBasePieceForWolfAction`, `spendWolfResourcesForPoints` e `spendJaguarMeatForPoints` para chamar runtimes quando a migracao do protocolo permitir.
-- Remover decisoes por especie restantes em `botScoring.ts` somente onde o registry reduzir duplicacao sem piorar legibilidade. As heuristicas internas especificas, como calcular linhas da Arara ou habitats do Macaco, continuam em funcoes dedicadas por enquanto.
-- Migrar proxima familia de aplicadores/validadores de acao para o registry em ciclo seguinte: movimentos especiais ou passivas com escolha pendente.
-- Manter exports antigos temporariamente ate os consumidores migrarem.
+- Validadores/aplicadores restantes que ainda estao especificos no servidor/web/setup ficam para ciclos futuros quando houver reducao real de duplicacao:
+  - movimentos especiais
+  - resolucoes de passiva
+  - fluxos de cartas/cenarios
+- Metadados de UI por especie ainda nao foram movidos para `SpeciesModule`.
+- Exports antigos permanecem temporariamente para compatibilidade e para APIs ainda nao migradas.
+- Heuristicas internas especificas, como calcular linhas da Arara ou habitats do Macaco, continuam em funcoes dedicadas por enquanto.
 
 Arquivos-alvo:
 
@@ -162,19 +160,41 @@ Aceite:
 
 Objetivo: reduzir duplicacao entre local, socket client e servidor.
 
-Entregas:
+Status atual: em andamento. Blocos concluidos nesta rodada:
 
-- Criar tipo compartilhado `GameIntent` em `packages/shared`.
-- Criar aplicador autoritativo em `packages/rules` ou camada fina do servidor:
-  - `applyGameIntent(game, playerId, intent)`
-  - validacao centralizada de payload
-  - erro claro para intencao invalida
-- Criar evento online unico para acoes de jogo, por exemplo `game:intent`.
-- Manter eventos antigos por compatibilidade durante migracao.
-- Migrar web para usar dispatcher comum:
-  - local: aplica intent direto no estado local
-  - online: envia intent ao servidor
-- Reduzir `roomApi` especifico por especie.
+- Criado tipo compartilhado `GameIntent` em `packages/shared`.
+- Criado `applyGameIntent(game, playerId, intent)` em `packages/rules/src/gameIntent.ts`.
+- Criado wrapper online `applyRoomGameIntent` em `apps/server/src/rooms.ts`.
+- Criado evento socket `game:intent` em `apps/server/src/index.ts`.
+- Eventos antigos foram mantidos para compatibilidade.
+- `apps/web/src/socket.ts` passou a enviar `game:intent` para:
+  - concluir acao
+  - adicionar peca por especie
+  - mover peca
+  - remover multiplos quatis
+  - gastar carne da Onca
+  - pontuar D de Macaco/Arara/Galo/Tatu
+  - esconder Tatu
+  - remover peca de base com Lobo
+  - gastar recursos com Lobo
+- O dispatcher local da web passou a usar `applyGameIntent` para a mesma familia de acoes migradas:
+  - `useSimpleActionHandlers`
+  - `useBoardPieceHandlers`
+  - `useSelectionResolutionHandlers`
+  - `getAddPieceHandler` em `OikosApp.helpers.tsx`
+- `roomApi` especifico por especie foi preservado como fachada temporaria, mas agora boa parte dele encaminha para `game:intent`.
+
+Entregas pendentes:
+
+- Migrar intent para colocar carta de floresta.
+- Migrar intent para setup inicial.
+- Migrar intent para resolucoes especiais ainda fora do envelope:
+  - bonus passivo do Quati
+  - interrupcao entre turnos do Galo
+  - efeitos de cenario
+  - objetivos/ameacas
+- Reduzir a fachada `roomApi` especifica por especie depois que os consumidores estiverem todos no dispatcher comum.
+- Adicionar testes de servidor cobrindo o handler socket completo `game:intent`; nesta rodada foi coberto o aplicador de regras e a integracao tipada servidor/web.
 
 Arquivos-alvo:
 
@@ -190,9 +210,19 @@ Arquivos-alvo:
 
 Validacao:
 
-- Testes de servidor cobrindo `game:intent`.
-- Testes existentes de hooks.
-- Partida online com carta, movimento, remocao, pontuacao, passiva e fim de turno.
+- Feito nesta rodada:
+  - `npm.cmd run typecheck`: passou antes e depois da migracao local/online por intent.
+  - `npm.cmd run test`: passou.
+  - `npm.cmd run build`: passou.
+  - Adicionado `packages/rules/src/gameIntent.test.ts`, comparando `applyGameIntent` com o aplicador legado de pontuacao.
+  - Smoke manual com Chrome headless:
+    - login Supabase com `taciano_neto@hotmail.com`: passou.
+    - partida local: abriu `Teste Local`, iniciou partida local e renderizou canvas na rodada 1/setup.
+    - sala online local: criou sala `WT4M2`, selecionou Lobo-guara, marcou pronto e reconectou na mesma sala apos reload.
+    - Console ficou sem erros de runtime; apareceram apenas respostas 404 de recurso estatico durante carregamento.
+- Pendencias de validacao desta rodada:
+  - Teste de servidor especifico para `game:intent` ainda pendente; o caminho esta exposto e tipado, mas falta teste socket/room dedicado.
+  - Partida online com dois jogadores/bot ate carta, movimento, remocao, pontuacao, passiva e fim de turno nao foi executada nesta rodada; o lobby online criado no smoke nao expunha controle de bot e o servidor exigiu minimo de 2 jogadores.
 
 Aceite:
 

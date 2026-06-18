@@ -1,10 +1,5 @@
 import { useCallback } from "react";
-import {
-  completeCurrentAction,
-  scoreArmadilloSharing,
-  scoreGaloFieldPresence,
-  spendJaguarMeatForPoints
-} from "@oikos/rules";
+import { applyGameIntent } from "@oikos/rules";
 import type { GameState, PublicRoomState } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 import type { TutorialStepDef } from "../ui/tutorials";
@@ -46,7 +41,7 @@ export function useSimpleActionHandlers({
       }
 
       executeGameAction(
-        () => spendJaguarMeatForPoints(room.game!, room.game!.activePlayerId!, count),
+        () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "jaguar.spend-meat", count }),
         () => roomApi.spendJaguarMeat(requireSocket(), room.roomId, count),
         "Carne gasta e pontos marcados."
       );
@@ -60,7 +55,7 @@ export function useSimpleActionHandlers({
     }
 
     executeGameAction(
-      () => scoreGaloFieldPresence(room.game!, room.game!.activePlayerId!),
+      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "species.score", speciesId: "galo_de_campina" }),
       () => roomApi.scoreGalo(requireSocket(), room.roomId),
       "Galo-de-campina pontuado."
     );
@@ -72,7 +67,7 @@ export function useSimpleActionHandlers({
     }
 
     executeGameAction(
-      () => scoreArmadilloSharing(room.game!, room.game!.activePlayerId!),
+      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "species.score", speciesId: "armadillo" }),
       () => roomApi.scoreArmadillo(requireSocket(), room.roomId),
       "Tatu-bola pontuado."
     );
@@ -87,7 +82,7 @@ export function useSimpleActionHandlers({
     }
 
     executeGameAction(
-      () => completeCurrentAction(room.game!, room.game!.activePlayerId!),
+      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "action.complete" }),
       () => roomApi.completeAction(requireSocket(), room.roomId),
       "Ação concluída."
     );

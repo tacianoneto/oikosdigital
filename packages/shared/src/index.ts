@@ -59,6 +59,19 @@ export interface GridPosition {
   y: number;
 }
 
+export type ScoringSpeciesId = "armadillo" | "capuchin" | "galo_de_campina" | "macaw";
+
+export type GameIntent =
+  | { type: "action.complete" }
+  | { type: "species.add-piece"; speciesId: SpeciesId; x: number; y: number }
+  | { type: "species.score"; speciesId: ScoringSpeciesId }
+  | { type: "species.hide-piece"; speciesId: "armadillo"; pieceId: string }
+  | { type: "pieces.remove"; pieceIds: string[] }
+  | { type: "piece.move"; pieceId: string; x: number; y: number; targetPieceId?: string }
+  | { type: "jaguar.spend-meat"; count: number }
+  | { type: "wolf.remove-base"; pieceId: string }
+  | { type: "wolf.spend-resources"; resources: Resource[] };
+
 export interface PieceLocation extends GridPosition {
   siteId: string;
 }

@@ -4,6 +4,7 @@ export * from "./speciesRules";
 export * from "./speciesActions";
 export * from "./speciesBotProfiles";
 export * from "./speciesModules";
+export * from "./gameIntent";
 export * from "./scoring";
 export * from "./scenarios";
 export * from "./endgame";
