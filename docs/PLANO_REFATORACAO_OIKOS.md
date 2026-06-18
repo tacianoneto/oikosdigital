@@ -80,6 +80,9 @@ Status atual: em andamento. Bloco concluido nesta rodada:
 - `getCurrentAction` passou a retornar `ActionId | null`, alinhando o contrato real usado pelos bots.
 - Exports antigos de `botSmart.ts` e `botRandom.ts` foram preservados para compatibilidade temporaria.
 - Testes do registry foram ampliados para garantir cobertura de especies, acoes e hooks de bot.
+- Criado `packages/rules/src/speciesBotProfiles.ts` com preferencias de recursos, pesos de setup, heuristicas de carta, heuristicas de movimento, penalidade de aglomeracao e politica de ordenacao de candidatos dos bots.
+- `SpeciesModule` agora expoe `botScoring`.
+- `packages/rules/src/botScoring.ts` passou a consultar os perfis de bot em vez de manter mapas locais e condicoes por `speciesId` para preferencias simples de pontuacao.
 
 Entregas pendentes:
 
@@ -90,7 +93,7 @@ Entregas pendentes:
   - pontuacao de acao
   - metadados de UI necessarios
 - Consolidar funcoes como `addCoatiForCurrentAction`, `scoreMacawLines`, `hideArmadilloForCurrentAction` em descritores de acao.
-- Remover decisoes por especie restantes em `botScoring.ts` onde o registry reduzir duplicacao sem piorar legibilidade.
+- Remover decisoes por especie restantes em `botScoring.ts` somente onde o registry reduzir duplicacao sem piorar legibilidade. As heuristicas internas especificas, como calcular linhas da Arara ou habitats do Macaco, continuam em funcoes dedicadas por enquanto.
 - Migrar pelo menos uma familia de aplicadores/validadores de acao para o registry em ciclo seguinte.
 - Manter exports antigos temporariamente ate os consumidores migrarem.
 
@@ -114,9 +117,12 @@ Validacao:
   - `npm.cmd run build`: passou.
   - Smoke manual local com login ja autenticado na conta de teste: partida local com Lobo-guara e Quati controlados por bots avancou pelo setup automatico ate a fase ativa, com canvas renderizado e sem erros visiveis.
   - Smoke manual online local: sala `GA4CY` criada no servidor local, Lobo-guara selecionado pelo usuario, Quati adicionado como bot, partida iniciada, canvas renderizado e reconexao por reload voltou para a mesma sala sem erros visiveis.
+  - Subetapa de perfis de bot: `npm.cmd run typecheck`, `npm.cmd run test` e `npm.cmd run build` passaram.
+  - Smoke manual apos perfis de bot: navegador local carregou sessao autenticada e reconectou/renderizou partida existente com canvas ativo, sem erros visiveis no DOM e sem erros de console.
 - Pendencias reais de validacao manual:
   - Jogada manual completa de carta, movimento, pontuacao e fim de turno no canvas online nao foi executada nesta rodada; a cobertura automatizada de regras/servidor passou e o smoke online validou criacao, inicio e reconexao.
   - Confirmacao visual de todas as especies selecionaveis/jogaveis ficou limitada ao lobby local/online; nao foi feita uma partida manual por cada especie.
+  - Na subetapa de perfis de bot, o navegador restaurou uma partida existente; nao foi reiniciado um novo fluxo local com bots para evitar limpar storage/autenticacao. A regressao de bots ficou coberta por `apps/server/src/bots.test.ts` e pela suite completa.
 
 Aceite:
 

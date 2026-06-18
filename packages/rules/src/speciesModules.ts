@@ -1,4 +1,5 @@
 import type { ActionId, GameState, SpeciesId } from "@oikos/shared";
+import { speciesBotScoringProfiles, type SpeciesBotScoringProfile } from "./speciesBotProfiles";
 import { speciesRules, type SpeciesRuleDefinition } from "./speciesRules";
 import {
   moveBestPiece,
@@ -40,6 +41,7 @@ export interface SpeciesModule {
   speciesId: SpeciesId;
   rules: SpeciesRuleDefinition;
   actions: Partial<Record<ActionId, SpeciesActionDefinition>>;
+  botScoring: SpeciesBotScoringProfile;
   bots: SpeciesBotHooks;
 }
 
@@ -61,6 +63,7 @@ export const speciesModules = {
   jaguar: {
     speciesId: "jaguar",
     rules: speciesRules.jaguar,
+    botScoring: speciesBotScoringProfiles.jaguar,
     actions: {
       A: action("A"),
       B: action("B"),
@@ -74,6 +77,7 @@ export const speciesModules = {
   maned_wolf: {
     speciesId: "maned_wolf",
     rules: speciesRules.maned_wolf,
+    botScoring: speciesBotScoringProfiles.maned_wolf,
     actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playWolf,
@@ -85,6 +89,7 @@ export const speciesModules = {
   armadillo: {
     speciesId: "armadillo",
     rules: speciesRules.armadillo,
+    botScoring: speciesBotScoringProfiles.armadillo,
     actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playArmadillo,
@@ -94,6 +99,7 @@ export const speciesModules = {
   macaw: {
     speciesId: "macaw",
     rules: speciesRules.macaw,
+    botScoring: speciesBotScoringProfiles.macaw,
     actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playMacaw,
@@ -103,6 +109,7 @@ export const speciesModules = {
   galo_de_campina: {
     speciesId: "galo_de_campina",
     rules: speciesRules.galo_de_campina,
+    botScoring: speciesBotScoringProfiles.galo_de_campina,
     actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playGalo,
@@ -112,6 +119,7 @@ export const speciesModules = {
   capuchin: {
     speciesId: "capuchin",
     rules: speciesRules.capuchin,
+    botScoring: speciesBotScoringProfiles.capuchin,
     actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playCapuchin,
@@ -121,6 +129,7 @@ export const speciesModules = {
   coati: {
     speciesId: "coati",
     rules: speciesRules.coati,
+    botScoring: speciesBotScoringProfiles.coati,
     actions: standardCardSpeciesActions(["A", "B", "C"]),
     bots: {
       playSmartAction: playCoati,

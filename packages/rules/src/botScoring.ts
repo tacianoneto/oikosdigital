@@ -1,16 +1,7 @@
 import { getForestCardDefinition, speciesDefinitions } from "@oikos/content";
 import { gridPositionKey, parseGridPositionKey } from "@oikos/shared";
 import type { ActionId, GameState, GridPosition, Habitat, Resource, SpeciesId } from "@oikos/shared";
-
-const resourcePreference: Record<SpeciesId, Resource[]> = {
-  jaguar: ["meat", "meat", "egg", "fruit", "seed"],
-  maned_wolf: ["meat", "fruit", "egg", "seed"],
-  armadillo: ["seed", "fruit", "egg", "meat"],
-  macaw: ["egg", "fruit", "seed", "meat"],
-  galo_de_campina: ["seed", "fruit", "egg", "meat"],
-  capuchin: ["fruit", "egg", "seed", "meat"],
-  coati: ["fruit", "seed", "egg", "meat"]
-};
+import { getSpeciesBotScoringProfile } from "./speciesBotProfiles";
 
 export function hasReserve(game: GameState, playerId: string): boolean {
   return Boolean(game.players.find((player) => player.playerId === playerId)?.reservePieces.length);
@@ -55,14 +46,33 @@ export function scoreCardPlacement(game: GameState, playerId: string, speciesId:
   const definition = getForestCardDefinition(cardId);
   const resourceScore = scoreResource(speciesId, definition.resource);
   const boardGrowthScore = adjacencyScore(game, position) * 1.5 - expansionCrowdingScore(game, position);
-  const speciesPlanScore =
-    speciesId === "macaw" && definition.resource === "egg"
-      ? scoreMacawLinePotential(game, playerId, position, cardId)
-      : speciesId === "capuchin"
-        ? scoreCapuchinHabitatPotential(game, playerId, position, definition.habitat)
-        : 0;
+  const speciesPlanScore = scoreCardPlacementPlan(game, playerId, speciesId, cardId, position, definition.habitat);
 
   return resourceScore + boardGrowthScore + speciesPlanScore + Math.random() * 0.75;
+}
+
+function scoreCardPlacementPlan(
+  game: GameState,
+  playerId: string,
+  speciesId: SpeciesId,
+  cardId: string,
+  position: GridPosition,
+  habitat: Habitat | null
+): number {
+  return getSpeciesBotScoringProfile(speciesId).cardPlacementScoring.reduce((score, scoringKind) => {
+    switch (scoringKind) {
+      case "macaw_line":
+        return score + scoreMacawLinePotential(game, playerId, position, cardId);
+      case "capuchin_habitat":
+        return score + scoreCapuchinHabitatPotential(game, playerId, position, habitat);
+      case "armadillo_sharing":
+      case "coati_pair":
+      case "galo_field":
+      case "jaguar_capture":
+      case "wolf_pack":
+        return score;
+    }
+  }, 0);
 }
 
 export function scorePosition(game: GameState, speciesId: SpeciesId, position: GridPosition): number {
@@ -87,7 +97,7 @@ function scoreSetupPosition(game: GameState, playerId: string, speciesId: Specie
   const base =
     scoreResource(speciesId, definition?.resource ?? null) +
     scoreSpeciesPlan(game, playerId, speciesId, position, definition?.habitat ?? null) +
-    ownAdjacent * setupAdjacencyWeight(speciesId);
+    ownAdjacent * getSpeciesBotScoringProfile(speciesId).setupAdjacencyWeight;
 
   return base - ownCount * 18 - Math.max(0, totalCount - ownCount) * 2.5 + Math.random() * 0.5;
 }
@@ -99,21 +109,23 @@ function scoreSpeciesPlan(
   position: GridPosition,
   habitat: Habitat | null
 ): number {
-  switch (speciesId) {
-    case "macaw":
+  switch (getSpeciesBotScoringProfile(speciesId).planScoring) {
+    case "macaw_line":
       return scoreMacawLinePotential(game, playerId, position);
-    case "galo_de_campina":
+    case "galo_field":
       return habitat === "field" ? 42 : 0;
-    case "capuchin":
+    case "capuchin_habitat":
       return scoreCapuchinHabitatPotential(game, playerId, position, habitat);
-    case "coati":
+    case "coati_pair":
       return scoreCoatiPairPotential(game, playerId, position);
-    case "armadillo":
+    case "armadillo_sharing":
       return scoreArmadilloSharingPotential(game, playerId, position);
-    case "jaguar":
+    case "jaguar_capture":
       return piecesAt(game, position).some((piece) => piece.ownerId !== playerId && !piece.state.hidden) ? 10 : 0;
-    case "maned_wolf":
+    case "wolf_pack":
       return adjacentOwnSpeciesCount(game, playerId, speciesId, position) * 2;
+    case null:
+      return 0;
   }
 }
 
@@ -122,23 +134,25 @@ export function scoreMove(game: GameState, playerId: string, speciesId: SpeciesI
   const habitat = card ? getForestCardDefinition(card.definitionId).habitat : null;
   const base = scorePosition(game, speciesId, position);
 
-  if (speciesId === "macaw") {
+  const moveScoring = getSpeciesBotScoringProfile(speciesId).moveScoring;
+
+  if (moveScoring.includes("macaw")) {
     return base + scoreMacawMove(game, playerId, pieceId, position);
   }
 
-  if (speciesId === "capuchin") {
+  if (moveScoring.includes("capuchin")) {
     return base + scoreCapuchinMove(game, playerId, pieceId, position, habitat);
   }
 
-  if (speciesId === "armadillo") {
+  if (moveScoring.includes("armadillo")) {
     return base + scoreArmadilloMove(game, playerId, pieceId, position);
   }
 
-  if (speciesId === "jaguar") {
+  if (moveScoring.includes("jaguar")) {
     return base + scoreJaguarMove(game, playerId, position, habitat);
   }
 
-  if (speciesId === "maned_wolf") {
+  if (moveScoring.includes("wolf")) {
     return base + scoreWolfMove(game, playerId, position);
   }
 
@@ -316,8 +330,9 @@ function scoreArmadilloMove(game: GameState, playerId: string, pieceId: string, 
 function crowdingPenalty(game: GameState, playerId: string, speciesId: SpeciesId, position: GridPosition): number {
   const ownCount = ownSpeciesPiecesAt(game, playerId, speciesId, position);
   const totalCount = piecesAt(game, position).length;
+  const { crowding } = getSpeciesBotScoringProfile(speciesId);
   const selfPenalty =
-    speciesId === "coati" && game.status === "active" && ownCount === 1 ? 0 : ownCount * (speciesId === "macaw" ? 16 : 8);
+    crowding.ignoreSingleOwnPieceDuringActive && game.status === "active" && ownCount === 1 ? 0 : ownCount * crowding.ownPiecePenalty;
 
   return selfPenalty + Math.max(0, totalCount - ownCount - 1) * 2;
 }
@@ -326,25 +341,12 @@ function expansionCrowdingScore(game: GameState, position: GridPosition): number
   return game.pieces.filter((piece) => piece.location && Math.abs(piece.location.x - position.x) + Math.abs(piece.location.y - position.y) <= 1).length;
 }
 
-function setupAdjacencyWeight(speciesId: SpeciesId): number {
-  if (speciesId === "macaw") {
-    return 3;
-  }
-  if (speciesId === "coati") {
-    return 5;
-  }
-  if (speciesId === "capuchin") {
-    return 1;
-  }
-  return 2;
-}
-
 function scoreResource(speciesId: SpeciesId, resource: Resource | null | undefined): number {
   if (!resource) {
     return 0;
   }
 
-  const preference = resourcePreference[speciesId];
+  const preference = getSpeciesBotScoringProfile(speciesId).resourcePreference;
   const index = preference.indexOf(resource);
   return index >= 0 ? Math.max(1, preference.length - index) * 3 : 1;
 }
@@ -561,7 +563,7 @@ export function chooseCandidatePool<T extends { score: number }>(items: T[]): T[
 }
 
 export function chooseCandidatesForSpecies<T extends { score: number }>(items: T[], speciesId: SpeciesId): T[] {
-  if (speciesId === "capuchin") {
+  if (getSpeciesBotScoringProfile(speciesId).preserveRankedCandidateOrder) {
     return items;
   }
 

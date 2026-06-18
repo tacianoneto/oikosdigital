@@ -7,6 +7,7 @@ import {
   hasSpeciesMovementRule,
   speciesRules
 } from "./speciesRules";
+import { getSpeciesBotScoringProfile, speciesBotScoringProfiles } from "./speciesBotProfiles";
 import { getSpeciesModule, speciesActionRequiresForestCard, speciesModules } from "./speciesModules";
 
 describe("species rules registry", () => {
@@ -36,6 +37,7 @@ describe("species rules registry", () => {
       const module = getSpeciesModule(speciesId);
       expect(module.speciesId).toBe(speciesId);
       expect(module.rules).toBe(speciesRules[speciesId]);
+      expect(module.botScoring).toBe(speciesBotScoringProfiles[speciesId]);
       expect(typeof module.bots.playSmartAction).toBe("function");
       expect(typeof module.bots.playRandomAction).toBe("function");
 
@@ -51,5 +53,14 @@ describe("species rules registry", () => {
     expect(speciesActionRequiresForestCard("maned_wolf", "A")).toBe(true);
     expect(speciesActionRequiresForestCard("coati", "A")).toBe(true);
     expect(speciesActionRequiresForestCard("coati", "B")).toBe(false);
+  });
+
+  it("centralizes bot scoring preferences by species", () => {
+    expect(Object.keys(speciesBotScoringProfiles).sort()).toEqual(Object.keys(speciesDefinitions).sort());
+    expect(getSpeciesBotScoringProfile("jaguar").resourcePreference[0]).toBe("meat");
+    expect(getSpeciesBotScoringProfile("macaw").planScoring).toBe("macaw_line");
+    expect(getSpeciesBotScoringProfile("capuchin").preserveRankedCandidateOrder).toBe(true);
+    expect(getSpeciesBotScoringProfile("coati").setupAdjacencyWeight).toBe(5);
+    expect(getSpeciesBotScoringProfile("maned_wolf").moveScoring).toContain("wolf");
   });
 });
