@@ -103,7 +103,7 @@ function scoreSpeciesPlan(
     case "macaw":
       return scoreMacawLinePotential(game, playerId, position);
     case "galo_de_campina":
-      return getResourceAt(game, position) === "seed" ? 42 : 0;
+      return habitat === "field" ? 42 : 0;
     case "capuchin":
       return scoreCapuchinHabitatPotential(game, playerId, position, habitat);
     case "coati":

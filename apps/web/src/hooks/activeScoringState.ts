@@ -3,7 +3,7 @@ import {
   getAvailableJaguarPointSpendCount,
   getAvailableWolfPointSpendCount,
   getCapuchinHabitatScore,
-  getGaloSeedCardScore,
+  getGaloActionDScore,
   getMacawLineScore,
   getRequiredCoatiRemovalCount,
   getWolfRemovableBasePieceIds,
@@ -38,7 +38,7 @@ export interface ActiveScoringState {
   cacaIlegalPending: GameState["cacaIlegalPending"];
   capuchinHabitatScore: number;
   capuchinReserveCount: number;
-  galoSeedCardScore: number;
+  galoScore: number;
   macawLineScore: number;
   requiredCoatiRemovalCount: number;
   shouldShowJaguarScoreModal: boolean;
@@ -83,9 +83,9 @@ export function getActiveScoringState({
       activeSpeciesId === "capuchin"
         ? activePlayer?.reservePieces.length ?? 0
         : 0,
-    galoSeedCardScore:
+    galoScore:
       game && activePlayerId
-        ? getGaloSeedCardScore(game, activePlayerId)
+        ? getGaloActionDScore(game, activePlayerId)
         : 0,
     macawLineScore:
       game && activePlayerId ? getMacawLineScore(game, activePlayerId) : 0,

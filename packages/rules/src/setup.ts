@@ -103,26 +103,30 @@ export {
   resolveCoatiPairBonus
 };
 import {
-  addGaloAdjacentForCurrentAction,
   addGaloForCurrentAction,
-  getGaloAdjacentAddPositions,
+  getGaloActionDScore,
   getGaloFieldCardPositions,
   getGaloFieldPlacementPositions,
+  getGaloInterruptMoveTargets,
+  getGaloInterruptPieceIds,
+  getGaloOutOfFieldPieceCount,
+  getGaloOutOfFieldPositions,
   getGaloScorePoints,
-  getGaloSeedCardPositions,
-  getGaloSeedCardScore,
-  scoreGaloSeedCards
+  resolveGaloInterruptMove,
+  scoreGaloFieldPresence
 } from "./species/galo";
 export {
-  addGaloAdjacentForCurrentAction,
   addGaloForCurrentAction,
-  getGaloAdjacentAddPositions,
+  getGaloActionDScore,
   getGaloFieldCardPositions,
   getGaloFieldPlacementPositions,
+  getGaloInterruptMoveTargets,
+  getGaloInterruptPieceIds,
+  getGaloOutOfFieldPieceCount,
+  getGaloOutOfFieldPositions,
   getGaloScorePoints,
-  getGaloSeedCardPositions,
-  getGaloSeedCardScore,
-  scoreGaloSeedCards
+  resolveGaloInterruptMove,
+  scoreGaloFieldPresence
 };
 import {
   addCapuchinForCurrentAction,
@@ -471,8 +475,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     next.activePlayedForestCardId = null;
     next.pendingCoatiPairBonus = null;
     next.pendingMacawMovedPiece = null;
-    next.pendingGaloMovedPiece = null;
-    next.pendingGaloAdjacentAdd = null;
+    next.pendingGaloInterrupt = null;
     next.pendingWolfMoves = null;
     queueEndgameChoiceOrFinalize(next);
     return next;
@@ -488,6 +491,10 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
 
   if (game.cacaIlegalPending) {
     throw new Error("Resolva o efeito de Caca ilegal antes de continuar.");
+  }
+
+  if (game.pendingGaloInterrupt) {
+    throw new Error("Resolva o movimento entre turnos do Galo-de-campina antes de continuar.");
   }
 
   if (game.pendingCoatiPairBonus) {
@@ -604,29 +611,21 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
         const nextPlayer = findPlayer(next, playerId);
         // Concluir a ação C pode acontecer em dois momentos: antes de gastar a
         // semente (não move ninguém) ou após mover o outro galo, pulando a adição
-        // adjacente opcional.
-        const skippedAdjacentAdd = next.pendingGaloAdjacentAdd?.playerId === playerId;
-        next.pendingGaloMovedPiece = null;
-        next.pendingGaloAdjacentAdd = null;
         next.log = [
           ...next.log,
           {
             id: `complete_galo_C_${playerId}_${next.log.length + 1}`,
-            message: skippedAdjacentAdd
-              ? `${nextPlayer.name} concluiu a acao C sem adicionar galo adjacente.`
-              : `${nextPlayer.name} concluiu a acao C sem gastar semente.`,
+            message: `${nextPlayer.name} concluiu a acao C sem atrair outra peca.`,
             createdAt: Date.now(),
             payload: { kind: "skip", actorPlayerId: playerId, actionId: "C" }
           }
         ];
         advanceActiveAction(next);
-        next.pendingGaloMovedPiece = null;
-        next.pendingGaloAdjacentAdd = null;
         return next;
       }
 
       if (action === "D") {
-        return scoreGaloSeedCards(game, playerId);
+        return scoreGaloFieldPresence(game, playerId);
       }
     }
 

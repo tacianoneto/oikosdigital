@@ -4,10 +4,9 @@ import {
   getArmadilloSharingDetails,
   getCapuchinScoringHabitats,
   getGaloFieldCardPositions,
-  getGaloSeedCardPositions,
+  getGaloOutOfFieldPositions,
   getMacawScoringLines
 } from "@oikos/rules";
-import { gridPositionKey } from "@oikos/shared";
 import type { GameState, RoomPlayer } from "@oikos/shared";
 import { describe, expect, it } from "vitest";
 import { getScoringPreview } from "./scoringPreview";
@@ -74,7 +73,7 @@ describe("getScoringPreview", () => {
     );
   });
 
-  it("combines Galo field and seed highlights exactly once per card", () => {
+  it("maps Galo field and off-field highlights", () => {
     const players: RoomPlayer[] = [
       {
         playerId: "galo",
@@ -118,19 +117,16 @@ describe("getScoringPreview", () => {
         return index >= 0 ? { ...piece, location: positions[index]! } : piece;
       })
     };
-    const seedPositions = getGaloSeedCardPositions(game, "galo");
+    const outOfFieldPositions = getGaloOutOfFieldPositions(game, "galo");
     const fieldPositions = getGaloFieldCardPositions(game, "galo");
     const preview = getScoringPreview(game, "D", "galo_de_campina");
 
-    expect(preview.cardHighlights).toHaveLength(
-      new Set([...seedPositions, ...fieldPositions].map(gridPositionKey))
-        .size
-    );
+    expect(preview.cardHighlights).toHaveLength(fieldPositions.length + outOfFieldPositions.length);
     expect(
-      preview.cardHighlights.filter((highlight) => highlight.resource === "seed")
-    ).toHaveLength(seedPositions.length);
+      preview.cardHighlights.filter((highlight) => highlight.label === "-1")
+    ).toHaveLength(outOfFieldPositions.length);
     expect(
-      preview.cardHighlights.filter((highlight) => highlight.label.includes("campina"))
+      preview.cardHighlights.filter((highlight) => highlight.label === "campo")
     ).toHaveLength(fieldPositions.length);
   });
 

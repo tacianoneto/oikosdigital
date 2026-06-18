@@ -86,11 +86,10 @@ export function cloneGameState(game: GameState): GameState {
           location: { ...game.pendingMacawMovedPiece.location }
         }
       : null,
-    pendingGaloMovedPiece: game.pendingGaloMovedPiece ? { ...game.pendingGaloMovedPiece } : null,
-    pendingGaloAdjacentAdd: game.pendingGaloAdjacentAdd
+    pendingGaloInterrupt: game.pendingGaloInterrupt
       ? {
-          ...game.pendingGaloAdjacentAdd,
-          location: { ...game.pendingGaloAdjacentAdd.location }
+          ...game.pendingGaloInterrupt,
+          location: { ...game.pendingGaloInterrupt.location }
         }
       : null,
     pendingWolfMoves: game.pendingWolfMoves

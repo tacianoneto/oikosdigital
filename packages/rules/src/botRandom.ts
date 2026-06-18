@@ -3,7 +3,6 @@ import {
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
   addGaloForCurrentAction,
-  addGaloAdjacentForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   getArmadilloHidePieceIds,
@@ -14,7 +13,6 @@ import {
   getCapuchinPlacementPositions,
   getCoatiFruitPlacementPositions,
   getGaloFieldPlacementPositions,
-  getGaloAdjacentAddPositions,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawRelocatablePieceIds,
@@ -31,7 +29,7 @@ import {
   removePiecesForCurrentAction,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
-  scoreGaloSeedCards,
+  scoreGaloFieldPresence,
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
@@ -257,26 +255,13 @@ export function randomGalo(game: GameState, playerId: string, action: string): G
   }
 
   if (action === "C") {
-    if (game.pendingGaloAdjacentAdd?.playerId === playerId) {
-      const targets = getGaloAdjacentAddPositions(game, playerId);
-      if (targets.length > 0) {
-        try {
-          return addGaloAdjacentForCurrentAction(game, playerId, pickOne(targets));
-        } catch {
-          // fall through to skip
-        }
-      }
-      return completeOrSkip(game, playerId);
-    }
-
-    const player = game.players.find((candidate) => candidate.playerId === playerId);
-    if ((player?.resources.seed ?? 0) > 0 && maybe(0.6)) {
+    if (maybe(0.6)) {
       return moveRandomOwned(game, playerId, "galo_de_campina");
     }
     return completeOrSkip(game, playerId);
   }
 
-  return scoreGaloSeedCards(game, playerId);
+  return scoreGaloFieldPresence(game, playerId);
 }
 
 export function randomArmadillo(game: GameState, playerId: string, action: string): GameState {

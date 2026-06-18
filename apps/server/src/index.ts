@@ -16,7 +16,6 @@ import {
   addCapuchin,
   addCoati,
   addGalo,
-  addGaloAdjacent,
   addMacaw,
   addWolf,
   completeAction,
@@ -40,6 +39,7 @@ import {
   placeSetupPiece,
   removeWolfBasePiece,
   removePieces,
+  resolveGaloInterrupt,
   resolveCoatiPair,
   removeBots,
   scoreCapuchin,
@@ -333,7 +333,9 @@ io.on("connection", (socket) => {
   onRoomAction("action:complete", (p: { roomId: string }, pid) => completeAction(p.roomId, pid));
   onRoomAction("coati:add", (p: { roomId: string; x: number; y: number }, pid) => addCoati(p.roomId, pid, p.x, p.y));
   onRoomAction("galo:add", (p: { roomId: string; x: number; y: number }, pid) => addGalo(p.roomId, pid, p.x, p.y));
-  onRoomAction("galo:add-adjacent", (p: { roomId: string; x: number; y: number }, pid) => addGaloAdjacent(p.roomId, pid, p.x, p.y));
+  onRoomAction("galo:resolve-interrupt", (p: { roomId: string; pieceId?: string; x: number; y: number }, pid) =>
+    resolveGaloInterrupt(p.roomId, pid, p.x, p.y, p.pieceId)
+  );
   onRoomAction("coati:resolve-pair", (p: { roomId: string; x: number; y: number }, pid) => resolveCoatiPair(p.roomId, pid, p.x, p.y));
   onRoomAction("capuchin:add", (p: { roomId: string; x: number; y: number }, pid) => addCapuchin(p.roomId, pid, p.x, p.y));
   onRoomAction("macaw:add", (p: { roomId: string; x: number; y: number }, pid) => addMacaw(p.roomId, pid, p.x, p.y));

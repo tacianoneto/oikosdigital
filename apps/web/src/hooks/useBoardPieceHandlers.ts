@@ -4,6 +4,7 @@ import {
   getMacawScoringLines,
   type MacawScoringLine,
   movePieceForCurrentAction,
+  resolveGaloInterruptMove,
   resolveCoatiPairBonus,
   scoreCapuchinHabitatPresence,
   scoreMacawLines
@@ -110,7 +111,7 @@ export function useBoardPieceHandlers({
 }: BoardPieceHandlersParams) {
   const executeSelectedPieceMove = useCallback(
     (position: { x: number; y: number }, targetPieceId?: string) => {
-      if (!room?.game || !room.game.activePlayerId || !selectedPieceId) {
+      if (!room?.game || !selectedPieceId) {
         return;
       }
       if (tutorialBlocks("move")) return;
@@ -122,6 +123,31 @@ export function useBoardPieceHandlers({
 
       const currentGame = room.game;
       const movingPieceId = selectedPieceId!;
+
+      if (currentGame.pendingGaloInterrupt?.ownerId === controlledPlayerId) {
+        if (isLocalRoom) {
+          const nextGame = resolveGaloInterruptMove(currentGame, controlledPlayerId, position, movingPieceId);
+          setRoom({
+            ...room,
+            status: nextGame.status === "active" ? "active" : room.status,
+            game: nextGame,
+            warnings: nextGame.contentWarnings
+          });
+          setSelectedPieceId(null);
+          setNotice("Galo-de-campina movido entre turnos.");
+          return;
+        }
+
+        void run(() => roomApi.resolveGaloInterrupt(requireSocket(), room.roomId, movingPieceId, position.x, position.y)).then(() => {
+          setSelectedPieceId(null);
+        });
+        return;
+      }
+
+      if (!currentGame.activePlayerId) {
+        return;
+      }
+
       const activePlayerId = currentGame.activePlayerId!;
 
       if (isLocalRoom) {
@@ -149,7 +175,9 @@ export function useBoardPieceHandlers({
                 ? "Tatu-bola movido."
                 : activeSpeciesId === "maned_wolf"
                   ? "Lobo-guará movido."
-                : "Quati movido."
+                  : activeSpeciesId === "galo_de_campina"
+                    ? "Galo-de-campina movido."
+                    : "Quati movido."
         );
         return;
       }
@@ -163,6 +191,7 @@ export function useBoardPieceHandlers({
     [
       activeActionId,
       activeSpeciesId,
+      controlledPlayerId,
       isLocalRoom,
       room,
       selectedPieceId,
@@ -273,7 +302,6 @@ export function useBoardPieceHandlers({
       if (!room?.game || !room.game.activePlayerId || addPieceTargets.length === 0) {
         return;
       }
-      const galoAdjacentPending = room.game.pendingGaloAdjacentAdd?.playerId === room.game.activePlayerId;
       // Some tutorials teach adding as part of action A; Lobo teaches it in D.
       if (tutorialActive && tutorialGate !== "placeCard" && tutorialGate !== "addPiece") return;
       if (
@@ -288,8 +316,8 @@ export function useBoardPieceHandlers({
       const addHandler = getAddPieceHandler(activeSpeciesId ?? undefined);
 
       executeGameAction(
-        () => addHandler.local(room.game!, room.game!.activePlayerId!, position, galoAdjacentPending),
-        () => addHandler.api(requireSocket(), room.roomId, position.x, position.y, galoAdjacentPending),
+        () => addHandler.local(room.game!, room.game!.activePlayerId!, position),
+        () => addHandler.api(requireSocket(), room.roomId, position.x, position.y),
         addHandler.notice
       );
     },

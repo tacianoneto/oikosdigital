@@ -9,7 +9,6 @@ import {
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
   addGaloForCurrentAction,
-  addGaloAdjacentForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction,
   completeCurrentAction,
@@ -33,7 +32,8 @@ import {
   hideArmadilloForCurrentAction,
   scoreArmadilloSharing,
   scoreCapuchinHabitatPresence,
-  scoreGaloSeedCards,
+  resolveGaloInterruptMove,
+  scoreGaloFieldPresence,
   scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
@@ -660,6 +660,10 @@ export function getActiveHumanPlayer(roomId: string): string | null {
     return null;
   }
 
+  if (room.game.pendingGaloInterrupt) {
+    return null;
+  }
+
   const activePlayer = room.players.find((player) => player.playerId === room.game?.activePlayerId);
   if (!activePlayer || activePlayer.isBot) {
     return null;
@@ -673,7 +677,7 @@ export function getActiveHumanPlayer(roomId: string): string | null {
 // a hard cap so a stuck state cannot loop forever.
 export function advanceTurnTimeoutBot(roomId: string, playerId: string): { room: PublicRoomState; ended: boolean } {
   const room = getRoom(roomId);
-  if (!room.game || room.game.status !== "active" || room.game.activePlayerId !== playerId) {
+  if (!room.game || room.game.status !== "active" || room.game.activePlayerId !== playerId || room.game.pendingGaloInterrupt) {
     return { room: toPublicRoom(room), ended: false };
   }
 
@@ -969,8 +973,8 @@ export function addGalo(roomId: string, playerId: string, x: number, y: number):
   return withActiveGame(roomId, (game) => addGaloForCurrentAction(game, playerId, { x, y }), statusActive);
 }
 
-export function addGaloAdjacent(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
-  return withActiveGame(roomId, (game) => addGaloAdjacentForCurrentAction(game, playerId, { x, y }), statusActive);
+export function resolveGaloInterrupt(roomId: string, playerId: string, x: number, y: number, pieceId?: string): PublicRoomState {
+  return withActiveGame(roomId, (game) => resolveGaloInterruptMove(game, playerId, { x, y }, pieceId), statusActiveOrKeep);
 }
 
 export function resolveCoatiPair(roomId: string, playerId: string, x: number, y: number): PublicRoomState {
@@ -1016,7 +1020,7 @@ export function scoreMacaw(roomId: string, playerId: string): PublicRoomState {
 export function scoreGalo(roomId: string, playerId: string): PublicRoomState {
   return withActiveGame(
     roomId,
-    (game, room) => (isStaleScoreRequest(room, playerId, "galo_de_campina") ? null : scoreGaloSeedCards(game, playerId)),
+    (game, room) => (isStaleScoreRequest(room, playerId, "galo_de_campina") ? null : scoreGaloFieldPresence(game, playerId)),
     statusActiveOrKeep
   );
 }
@@ -1081,6 +1085,10 @@ export function getActiveDisconnectedPlayer(roomId: string): string | null {
     return null;
   }
 
+  if (room.game.pendingGaloInterrupt) {
+    return null;
+  }
+
   const activePlayer = room.players.find((player) => player.playerId === room.game?.activePlayerId);
   if (!activePlayer || activePlayer.connected) {
     return null;
@@ -1093,6 +1101,11 @@ export function getActiveBotPlayer(roomId: string): string | null {
   const room = rooms.get(roomId.trim().toUpperCase());
   if (!room?.game) {
     return null;
+  }
+
+  if (room.game.status === "active" && room.game.pendingGaloInterrupt) {
+    const interruptOwner = room.players.find((player) => player.playerId === room.game?.pendingGaloInterrupt?.ownerId);
+    return interruptOwner?.isBot ? interruptOwner.playerId : null;
   }
 
   const activePlayerId =
@@ -1143,7 +1156,7 @@ export function advanceAutomaticScore(roomId: string): PublicRoomState | null {
   } else if (player?.speciesId === "macaw") {
     room.game = scoreMacawLines(room.game, playerId);
   } else if (player?.speciesId === "galo_de_campina") {
-    room.game = scoreGaloSeedCards(room.game, playerId);
+    room.game = scoreGaloFieldPresence(room.game, playerId);
   } else if (player?.speciesId === "armadillo") {
     room.game = scoreArmadilloSharing(room.game, playerId);
   } else {

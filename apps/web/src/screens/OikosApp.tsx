@@ -431,6 +431,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       room?.game?.pendingSeedSpendObjectivePlayerId ??
       room?.game?.caatingaPending?.playerId ??
       room?.game?.cerradoPending?.playerId ??
+      room?.game?.pendingGaloInterrupt?.ownerId ??
       room?.game?.setupActivePlayerId ??
       room?.game?.activePlayerId ??
       null
@@ -662,7 +663,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     wolfMeatTargets
   } = useBoardInteractionTargets({
     activeActionId,
-    activeGamePlayerSeedCount: activeGamePlayer?.resources.seed ?? 0,
     activeSpeciesId: activeSpecies?.speciesId ?? null,
     cacaIlegalRemovalMode,
     canControlActivePlayer,
@@ -700,7 +700,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     cacaIlegalPending,
     capuchinHabitatScore,
     capuchinReserveCount,
-    galoSeedCardScore,
+    galoScore,
     macawLineScore,
     requiredCoatiRemovalCount,
     shouldShowJaguarScoreModal,
@@ -2747,7 +2747,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           armadilloSharing={scoringPreview.armadillo}
           macawActionCTargetCount={macawActionCTargets.length}
           macawLineScore={macawLineScore}
-          galoSeedCardScore={galoSeedCardScore}
+          galoScore={galoScore}
           capuchinReserveCount={capuchinReserveCount}
           capuchinPlacementTargetCount={capuchinPlacementTargets.length}
           capuchinHabitatScore={capuchinHabitatScore}

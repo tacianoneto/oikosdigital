@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { forestCardsById } from "@oikos/content";
+import { getGaloInterruptMoveTargets } from "@oikos/rules";
 
 vi.mock("./store", () => ({
   deleteRoom: vi.fn(),
@@ -12,7 +14,10 @@ import {
   joinRoom,
   leaveRooms,
   listOpenRooms,
+  movePiece,
+  placeSetupPiece,
   quitRoom,
+  resolveGaloInterrupt,
   selectSpecies,
   setScenarioCount,
   setReady,
@@ -99,5 +104,97 @@ describe("room lifecycle", () => {
 
     expect(updated.scenarioCount).toBe(2);
     quitRoom(room.roomId, hostId);
+  });
+
+  it("resolves the Galo-de-campina between-turn move through the online room API", () => {
+    const hostId = "online-galo-host";
+    const guestId = "online-coati-guest";
+    let room = createRoom(hostId, "Galo");
+    room = joinRoom(room.roomId, guestId, "Coati");
+    room = selectSpecies(room.roomId, hostId, "galo_de_campina");
+    room = selectSpecies(room.roomId, guestId, "coati");
+    room = setReady(room.roomId, hostId, true);
+    room = setReady(room.roomId, guestId, true);
+    room = startGame(room.roomId, hostId);
+
+    const cards = room.game!.forest.cards;
+    const hasCardAt = (position: { x: number; y: number }) =>
+      cards.some((card) => card.x === position.x && card.y === position.y);
+    const diagonalPositions = (position: { x: number; y: number }) => [
+      { x: position.x - 1, y: position.y - 1 },
+      { x: position.x + 1, y: position.y - 1 },
+      { x: position.x - 1, y: position.y + 1 },
+      { x: position.x + 1, y: position.y + 1 }
+    ];
+    const adjacentPositions = (position: { x: number; y: number }) => [
+      { x: position.x, y: position.y - 1 },
+      { x: position.x + 1, y: position.y },
+      { x: position.x, y: position.y + 1 },
+      { x: position.x - 1, y: position.y }
+    ];
+    const fieldCard = cards.find((card) => {
+      const definition = forestCardsById.get(card.definitionId);
+      const position = { x: card.x, y: card.y };
+      return (
+        definition?.habitat === "field" &&
+        diagonalPositions(position).some(hasCardAt) &&
+        adjacentPositions(position).some(hasCardAt)
+      );
+    })!;
+    const fieldPosition = { x: fieldCard.x, y: fieldCard.y };
+    const coatiOrigin = diagonalPositions(fieldPosition).find(hasCardAt)!;
+    const usedPositions = new Set([`${fieldPosition.x}:${fieldPosition.y}`, `${coatiOrigin.x}:${coatiOrigin.y}`]);
+    const takeUnusedPosition = () => {
+      const card = cards.find((candidate) => !usedPositions.has(`${candidate.x}:${candidate.y}`))!;
+      usedPositions.add(`${card.x}:${card.y}`);
+      return { x: card.x, y: card.y };
+    };
+    const setupPositions: Record<string, Array<{ x: number; y: number }>> = {
+      [hostId]: [
+        fieldPosition,
+        takeUnusedPosition(),
+        takeUnusedPosition()
+      ],
+      [guestId]: [
+        coatiOrigin,
+        takeUnusedPosition()
+      ]
+    };
+
+    while (room.game?.status === "setup") {
+      const playerId = room.game.setupActivePlayerId!;
+      const position = setupPositions[playerId]!.shift()!;
+      room = placeSetupPiece(room.roomId, playerId, position.x, position.y);
+    }
+
+    room.game!.activePlayerId = guestId;
+    room.game!.activeActionIndex = 1;
+    room.game!.activePlayedForestCardId = "campo_2";
+
+    const coatiPieceId = room.game!.pieces.find(
+      (piece) => piece.ownerId === guestId && piece.location?.x === coatiOrigin.x && piece.location.y === coatiOrigin.y
+    )!.pieceId;
+    const galoPieceId = room.game!.pieces.find(
+      (piece) => piece.ownerId === hostId && piece.location?.x === fieldPosition.x && piece.location.y === fieldPosition.y
+    )!.pieceId;
+    const seedBefore = room.game!.players.find((player) => player.playerId === guestId)!.resources.seed;
+
+    room = movePiece(room.roomId, guestId, coatiPieceId, fieldPosition.x, fieldPosition.y);
+
+    expect(room.game?.pendingGaloInterrupt).toEqual({
+      ownerId: hostId,
+      location: fieldPosition,
+      interruptedPlayerId: guestId
+    });
+
+    const interruptTarget = getGaloInterruptMoveTargets(room.game!, hostId, galoPieceId)[0]!;
+    room = resolveGaloInterrupt(room.roomId, hostId, interruptTarget.x, interruptTarget.y, galoPieceId);
+
+    expect(room.game?.pendingGaloInterrupt).toBeNull();
+    expect(room.game?.pieces.find((piece) => piece.pieceId === galoPieceId)?.location).toMatchObject(interruptTarget);
+    expect(room.game?.players.find((player) => player.playerId === guestId)?.resources.seed).toBe(seedBefore + 1);
+
+    leaveRooms(hostId);
+    leaveRooms(guestId);
   });
 });

@@ -5,7 +5,7 @@ import {
   getAvailableJaguarPointSpendCount,
   getAvailableWolfPointSpendCount,
   getCapuchinHabitatScore,
-  getGaloSeedCardScore,
+  getGaloActionDScore,
   getMacawLineScore,
   getRequiredCoatiRemovalCount,
   getWolfRemovableBasePieceIds,
@@ -59,7 +59,7 @@ describe("getActiveScoringState", () => {
       cacaIlegalPending: null,
       capuchinHabitatScore: 0,
       capuchinReserveCount: 0,
-      galoSeedCardScore: 0,
+      galoScore: 0,
       macawLineScore: 0,
       requiredCoatiRemovalCount: 0,
       shouldShowJaguarScoreModal: false,
@@ -146,8 +146,8 @@ describe("getActiveScoringState", () => {
       options(game, "galo_de_campina")
     );
 
-    expect(state.galoSeedCardScore).toBe(
-      getGaloSeedCardScore(game, "galo")
+    expect(state.galoScore).toBe(
+      getGaloActionDScore(game, "galo")
     );
     expect(state.cacaIlegalPending).toEqual({ playerId: "galo" });
   });

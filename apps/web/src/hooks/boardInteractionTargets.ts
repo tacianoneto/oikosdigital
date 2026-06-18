@@ -6,8 +6,9 @@ import {
   getCacaIlegalRemovablePieceIds,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
-  getGaloAdjacentAddPositions,
   getGaloFieldPlacementPositions,
+  getGaloInterruptMoveTargets,
+  getGaloInterruptPieceIds,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawRelocatablePieceIds,
@@ -45,7 +46,6 @@ interface CardPlacementTargetInput {
 
 interface SelectablePieceInput {
   activeActionId: ActionId | null;
-  activeGamePlayerSeedCount: number;
   activeSpeciesId: SpeciesId | null;
   cacaIlegalRemovalMode: boolean;
   canControlActivePlayer: boolean;
@@ -58,6 +58,7 @@ interface MovementTargetInput {
   activeActionId: ActionId | null;
   activeSpeciesId: SpeciesId | null;
   canControlActivePlayer: boolean;
+  controlledPlayerId: string | null;
   game: GameState | null | undefined;
   hasPendingCoatiPairBonus: boolean;
   selectedPieceId: string | null;
@@ -177,7 +178,6 @@ export function getCardPlacementTargets({
 
 export function getSelectablePieceIds({
   activeActionId,
-  activeGamePlayerSeedCount,
   activeSpeciesId,
   cacaIlegalRemovalMode,
   canControlActivePlayer,
@@ -185,7 +185,13 @@ export function getSelectablePieceIds({
   game,
   hasPendingCoatiPairBonus
 }: SelectablePieceInput): string[] {
-  if (!game || hasPendingCoatiPairBonus || !canControlActivePlayer) return [];
+  if (!game || hasPendingCoatiPairBonus) return [];
+
+  if (game.pendingGaloInterrupt && game.pendingGaloInterrupt.ownerId === controlledPlayerId) {
+    return getGaloInterruptPieceIds(game, controlledPlayerId);
+  }
+
+  if (!canControlActivePlayer) return [];
 
   if (
     cacaIlegalRemovalMode &&
@@ -225,20 +231,13 @@ export function getSelectablePieceIds({
     return getWolfRemovableBasePieceIds(game, game.activePlayerId);
   }
 
-  if (activeSpeciesId === "galo_de_campina" && activeActionId === "C" && game.activePlayerId) {
-    if (
-      activeGamePlayerSeedCount <= 0 ||
-      game.pendingGaloMovedPiece?.playerId !== game.activePlayerId
-    ) {
-      return [];
-    }
+  if (activeSpeciesId === "galo_de_campina" && (activeActionId === "B" || activeActionId === "C") && game.activePlayerId) {
     return game.pieces
       .filter(
         (piece) =>
           piece.ownerId === game.activePlayerId &&
           piece.speciesId === "galo_de_campina" &&
-          piece.location &&
-          piece.pieceId !== game.pendingGaloMovedPiece?.pieceId
+          piece.location
       )
       .map((piece) => piece.pieceId);
   }
@@ -283,13 +282,20 @@ export function getMovementInteractionTargets({
   activeActionId,
   activeSpeciesId,
   canControlActivePlayer,
+  controlledPlayerId,
   game,
   hasPendingCoatiPairBonus,
   selectedPieceId,
   tutorial
 }: MovementTargetInput) {
+  const galoInterruptTargets =
+    game?.pendingGaloInterrupt?.ownerId === controlledPlayerId && selectedPieceId
+      ? getGaloInterruptMoveTargets(game, controlledPlayerId, selectedPieceId)
+      : [];
   const movementTargets =
-    game && !hasPendingCoatiPairBonus && game.activePlayerId && selectedPieceId
+    galoInterruptTargets.length > 0
+      ? galoInterruptTargets
+      : game && !hasPendingCoatiPairBonus && game.activePlayerId && selectedPieceId
       ? getValidPieceMovementDestinations(game, game.activePlayerId, selectedPieceId)
       : [];
 
@@ -365,12 +371,7 @@ export function getSpeciesPlacementTargets({
     canTarget && activeSpeciesId === "galo_de_campina"
       ? getGaloFieldPlacementPositions(game!, activePlayerId!)
       : [];
-  const galoAdjacentTargets =
-    canTarget && activeSpeciesId === "galo_de_campina"
-      ? getGaloAdjacentAddPositions(game!, activePlayerId!)
-      : [];
-  const galoAddTargets =
-    galoAdjacentTargets.length > 0 ? galoAdjacentTargets : galoFieldTargets;
+  const galoAddTargets = galoFieldTargets;
   const armadilloSeedTargets =
     canTarget && activeSpeciesId === "armadillo"
       ? getArmadilloSeedPlacementPositions(game!, activePlayerId!)
@@ -421,7 +422,6 @@ export function getSpeciesPlacementTargets({
     displayAddPieceTargets,
     displayCoatiPairBonusTargets,
     galoAddTargets,
-    galoAdjacentTargets,
     galoFieldTargets,
     macawActionCTargets,
     macawAddTargets,

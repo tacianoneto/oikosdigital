@@ -6,8 +6,11 @@ import {
   getCacaIlegalRemovablePieceIds,
   getCacaIlegalTopResources,
   getCoatiPairBonusTargets,
+  getGaloInterruptMoveTargets,
+  getGaloInterruptPieceIds,
   resolveCacaIlegal,
-  resolveCoatiPairBonus
+  resolveCoatiPairBonus,
+  resolveGaloInterruptMove
 } from "./setup";
 import { getCurrentAction, pickOne, pickPosition } from "./botScoring";
 import { completeOrSkip } from "./botShared";
@@ -100,6 +103,12 @@ export function playBotStep(game: GameState, playerId: string): GameState {
     return playSetupStep(game, playerId);
   }
 
+  if (game.status === "active" && game.pendingGaloInterrupt?.ownerId === playerId) {
+    const pieceId = getGaloInterruptPieceIds(game, playerId)[0];
+    const targets = getGaloInterruptMoveTargets(game, playerId, pieceId);
+    return pieceId && targets.length > 0 ? resolveGaloInterruptMove(game, playerId, pickPosition(game, "galo_de_campina", targets), pieceId) : game;
+  }
+
   if (game.status !== "active" || game.activePlayerId !== playerId) {
     return game;
   }
@@ -155,6 +164,12 @@ export function playBotStep(game: GameState, playerId: string): GameState {
 export function playRandomStep(game: GameState, playerId: string): GameState {
   if (game.status === "setup") {
     return playRandomSetupStep(game, playerId);
+  }
+
+  if (game.status === "active" && game.pendingGaloInterrupt?.ownerId === playerId) {
+    const pieceId = getGaloInterruptPieceIds(game, playerId)[0];
+    const targets = getGaloInterruptMoveTargets(game, playerId, pieceId);
+    return pieceId && targets.length > 0 ? resolveGaloInterruptMove(game, playerId, pickOne(targets), pieceId) : game;
   }
 
   if (game.status !== "active" || game.activePlayerId !== playerId) {

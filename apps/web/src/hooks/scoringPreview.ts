@@ -2,7 +2,7 @@ import {
   getArmadilloSharingDetails,
   getCapuchinScoringHabitats,
   getGaloFieldCardPositions,
-  getGaloSeedCardPositions,
+  getGaloOutOfFieldPositions,
   getMacawScoringLines
 } from "@oikos/rules";
 import type {
@@ -87,31 +87,21 @@ export function getScoringPreview(
   }
 
   if (activeSpeciesId === "galo_de_campina") {
-    const seedPositions = getGaloSeedCardPositions(game, game.activePlayerId);
     const fieldPositions = getGaloFieldCardPositions(game, game.activePlayerId);
-    const seedKeys = new Set(seedPositions.map(gridPositionKey));
+    const outOfFieldPositions = getGaloOutOfFieldPositions(game, game.activePlayerId);
     return {
       ...EMPTY_SCORING_PREVIEW,
       cardHighlights: [
         ...fieldPositions.map((position) => ({
           position,
-          label: seedKeys.has(gridPositionKey(position)) ? "campina +" : "campina",
-          resource: seedKeys.has(gridPositionKey(position)) ? "seed" as const : undefined,
+          label: "campo",
           color: 0x6fae46
         })),
-        ...seedPositions
-          .filter(
-            (position) =>
-              !fieldPositions.some(
-                (field) => field.x === position.x && field.y === position.y
-              )
-          )
-          .map((position) => ({
-            position,
-            label: "",
-            resource: "seed" as const,
-            color: 0xd94b3f
-          }))
+        ...outOfFieldPositions.map((position) => ({
+          position,
+          label: "-1",
+          color: 0xd94b3f
+        }))
       ]
     };
   }

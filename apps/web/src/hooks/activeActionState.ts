@@ -68,6 +68,7 @@ export function getActiveActionState({
       !activeIsLocalBot &&
       !game.caatingaPending &&
       !game.cerradoPending &&
+      !game.pendingGaloInterrupt &&
       !mataAtlanticaBlocksTurn
   );
   const ownActiveActionId =

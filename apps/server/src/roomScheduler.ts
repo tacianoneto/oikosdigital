@@ -175,7 +175,7 @@ export class RoomScheduler {
   // changes) and returns that timestamp for the client countdown.
   private trackActiveTurn(room: PublicRoomState): number | null {
     const activePlayerId = room.game?.status === "active" ? room.game.activePlayerId : null;
-    if (!activePlayerId) {
+    if (!activePlayerId || room.game?.pendingGaloInterrupt) {
       this.turnStartByRoom.delete(room.roomId);
       return null;
     }

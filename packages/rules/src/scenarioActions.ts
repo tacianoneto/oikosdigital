@@ -262,7 +262,7 @@ function shouldAdvanceAfterScenarioChoice(
   game: GameState,
   playerId: string
 ): boolean {
-  if (game.caatingaPending || game.cerradoPending || game.pendingCoatiPairBonus) {
+  if (game.caatingaPending || game.cerradoPending || game.pendingCoatiPairBonus || game.pendingGaloInterrupt) {
     return false;
   }
   return !(

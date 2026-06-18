@@ -34,7 +34,6 @@ export function useBoardInteractionTargets(options: UseBoardInteractionTargetsOp
     () => getSelectablePieceIds(options),
     [
       options.activeActionId,
-      options.activeGamePlayerSeedCount,
       options.activeSpeciesId,
       options.cacaIlegalRemovalMode,
       options.canControlActivePlayer,
@@ -49,6 +48,7 @@ export function useBoardInteractionTargets(options: UseBoardInteractionTargetsOp
       options.activeActionId,
       options.activeSpeciesId,
       options.canControlActivePlayer,
+      options.controlledPlayerId,
       options.game,
       options.hasPendingCoatiPairBonus,
       options.selectedPieceId,

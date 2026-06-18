@@ -6,8 +6,8 @@ import {
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
   getCacaIlegalRemovablePieceIds,
-  getGaloAdjacentAddPositions,
   getGaloFieldPlacementPositions,
+  getGaloInterruptPieceIds,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getValidPieceMovementDestinations,
@@ -139,7 +139,6 @@ describe("getSelectablePieceIds", () => {
       expect(
         getSelectablePieceIds({
           activeActionId,
-          activeGamePlayerSeedCount: 0,
           activeSpeciesId: "jaguar",
           cacaIlegalRemovalMode: false,
           canControlActivePlayer: true,
@@ -155,7 +154,6 @@ describe("getSelectablePieceIds", () => {
     const game = createJaguarTutorialRoom().game!;
     const base = {
       activeActionId: "A" as const,
-      activeGamePlayerSeedCount: 0,
       activeSpeciesId: "jaguar" as const,
       cacaIlegalRemovalMode: false,
       controlledPlayerId: game.activePlayerId,
@@ -190,7 +188,6 @@ describe("getSelectablePieceIds", () => {
       pendingWolfMoves: { playerId: wolfPlayerId, pieceIds: pendingWolfPieceIds }
     };
     const base = {
-      activeGamePlayerSeedCount: 0,
       cacaIlegalRemovalMode: false,
       canControlActivePlayer: true,
       controlledPlayerId: wolfPlayerId,
@@ -232,14 +229,12 @@ describe("getSelectablePieceIds", () => {
         piece.ownerId === wolfPlayerId
           ? { ...piece, speciesId: "galo_de_campina" as const }
           : piece
-      ),
-      pendingGaloMovedPiece: { playerId: wolfPlayerId, pieceId: movedPieceId }
+      )
     };
     expect(
       getSelectablePieceIds({
         ...base,
         activeActionId: "C",
-        activeGamePlayerSeedCount: 1,
         activeSpeciesId: "galo_de_campina",
         game: galo
       })
@@ -249,11 +244,30 @@ describe("getSelectablePieceIds", () => {
           (piece) =>
             piece.ownerId === wolfPlayerId &&
             piece.speciesId === "galo_de_campina" &&
-            piece.location &&
-            piece.pieceId !== movedPieceId
+            piece.location
         )
         .map((piece) => piece.pieceId)
     );
+
+    const movedPiece = galo.pieces.find((piece) => piece.pieceId === movedPieceId)!;
+    const galoInterrupt = {
+      ...galo,
+      activePlayerId: "other-player",
+      pendingGaloInterrupt: {
+        ownerId: wolfPlayerId,
+        location: { x: movedPiece.location!.x, y: movedPiece.location!.y },
+        interruptedPlayerId: "other-player"
+      }
+    };
+    expect(
+      getSelectablePieceIds({
+        ...base,
+        canControlActivePlayer: false,
+        activeActionId: "B",
+        activeSpeciesId: "galo_de_campina",
+        game: galoInterrupt
+      })
+    ).toEqual(getGaloInterruptPieceIds(galoInterrupt, wolfPlayerId));
 
     const cacaIlegal = {
       ...wolf,
@@ -291,6 +305,7 @@ describe("getMovementInteractionTargets", () => {
       activeActionId: "A",
       activeSpeciesId: "jaguar",
       canControlActivePlayer: true,
+      controlledPlayerId: game.activePlayerId,
       game,
       hasPendingCoatiPairBonus: false,
       selectedPieceId: pieceId,
@@ -369,12 +384,7 @@ describe("getSpeciesPlacementTargets", () => {
           ? { ...piece, speciesId: "galo_de_campina" as const }
           : piece
       ),
-      activePlayedForestCardId: "played-card",
-      pendingGaloAdjacentAdd: {
-        playerId: galoPlayerId,
-        pieceId: coati.pieces.find((piece) => piece.ownerId === galoPlayerId)!.pieceId,
-        location: { x: 0, y: 0 }
-      }
+      activePlayedForestCardId: "played-card"
     };
     const galoTargets = getSpeciesPlacementTargets({
       activeActionId: "A",
@@ -388,14 +398,7 @@ describe("getSpeciesPlacementTargets", () => {
     expect(galoTargets.galoFieldTargets).toEqual(
       getGaloFieldPlacementPositions(galo, galoPlayerId)
     );
-    expect(galoTargets.galoAdjacentTargets).toEqual(
-      getGaloAdjacentAddPositions(galo, galoPlayerId)
-    );
-    expect(galoTargets.galoAddTargets).toEqual(
-      galoTargets.galoAdjacentTargets.length > 0
-        ? galoTargets.galoAdjacentTargets
-        : galoTargets.galoFieldTargets
-    );
+    expect(galoTargets.galoAddTargets).toEqual(galoTargets.galoFieldTargets);
   });
 
   it("locks add and pair targets to tutorial gate and marker", () => {

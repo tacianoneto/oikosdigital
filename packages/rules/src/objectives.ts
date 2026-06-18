@@ -179,7 +179,7 @@ export function resolveExtraTurnObjective(
   next.activePlayedForestCardId = null;
   next.pendingCoatiPairBonus = null;
   next.pendingMacawMovedPiece = null;
-  next.pendingGaloMovedPiece = null;
+  next.pendingGaloInterrupt = null;
   next.pendingWolfMoves = null;
   next.log = [
     ...next.log,

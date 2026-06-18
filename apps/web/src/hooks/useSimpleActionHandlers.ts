@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import {
   completeCurrentAction,
   scoreArmadilloSharing,
-  scoreGaloSeedCards,
+  scoreGaloFieldPresence,
   spendJaguarMeatForPoints
 } from "@oikos/rules";
 import type { GameState, PublicRoomState } from "@oikos/shared";
@@ -60,7 +60,7 @@ export function useSimpleActionHandlers({
     }
 
     executeGameAction(
-      () => scoreGaloSeedCards(room.game!, room.game!.activePlayerId!),
+      () => scoreGaloFieldPresence(room.game!, room.game!.activePlayerId!),
       () => roomApi.scoreGalo(requireSocket(), room.roomId),
       "Galo-de-campina pontuado."
     );

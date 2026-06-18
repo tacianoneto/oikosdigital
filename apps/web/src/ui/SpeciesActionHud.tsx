@@ -30,7 +30,7 @@ interface ActionContentProps {
   armadilloSharing: ScoringPreview["armadillo"];
   macawActionCTargetCount: number;
   macawLineScore: number;
-  galoSeedCardScore: number;
+  galoScore: number;
   capuchinReserveCount: number;
   capuchinPlacementTargetCount: number;
   capuchinHabitatScore: number;
@@ -322,9 +322,20 @@ function GaloActionContent({
   player,
   activeActionId,
   tutorialActive,
-  galoSeedCardScore,
+  galoScore,
+  selectedPieceId,
   onCompleteAction
 }: ActionContentProps) {
+  if (game.pendingGaloInterrupt?.ownerId === player.playerId) {
+    return (
+      <div className="action-box-hint">
+        {selectedPieceId
+          ? "Clique em um local adjacente destacado para mover 1 galo-de-campina, sem coletar recurso."
+          : "Entre turnos: selecione um galo-de-campina no local da semente coletada."}
+      </div>
+    );
+  }
+
   if (activeActionId === "A") {
     return (
       <>
@@ -345,28 +356,19 @@ function GaloActionContent({
   if (activeActionId === "B") {
     return (
       <div className="action-box-hint">
-        Selecione um Galo-de-campina e clique em um destino destacado para conduzi-lo pelo padrão da carta jogada.
+        Selecione um Galo-de-campina e clique em um destino destacado. Se terminar em campo, colete +1 semente.
       </div>
     );
   }
 
   if (activeActionId === "C") {
-    const hasPendingAdd = game.pendingGaloAdjacentAdd?.playerId === player.playerId;
     return (
       <>
         <div className="action-box-hint">
-          <ResourceText
-            text={
-              hasPendingAdd
-                ? "Clique em um local destacado adjacente ao galo movido para adicionar 1 galo-de-campina."
-                : (player.resources.seed ?? 0) <= 0
-                  ? "Sem semente disponível: conclua a ação para seguir."
-                  : "Opcional: gaste 1 semente ao mover outro galo-de-campina pelo padrão da carta jogada e adicione 1 galo em um local adjacente a ele."
-            }
-          />
+          Selecione uma peça própria e atraia-a para um local com galo-de-campina conforme a carta jogada.
         </div>
         <SecondaryActionButton disabled={tutorialActive} onClick={onCompleteAction}>
-          {hasPendingAdd ? "Concluir sem adicionar" : "Concluir sem gastar"}
+          Concluir sem atrair
         </SecondaryActionButton>
       </>
     );
@@ -375,9 +377,8 @@ function GaloActionContent({
   if (activeActionId === "D") {
     return (
       <div className="action-box-hint">
-        Pontuação automática: <strong>+{galoSeedCardScore}</strong>{" "}
-        {galoSeedCardScore === 1 ? "ponto" : "pontos"}: +1 se presente em 3+ campinas, +1 se presente
-        em 3+ locais de <ResourceIcon resource="seed" />.
+        Pontuação automática: <strong>+{galoScore}</strong>{" "}
+        {galoScore === 1 ? "ponto" : "pontos"}: 3 pontos menos 1 por galo fora de campo.
       </div>
     );
   }
@@ -556,6 +557,8 @@ export function SpeciesActionHud(props: SpeciesActionHudProps) {
 
   const ActionContent = ACTION_CONTENT[speciesId];
   const isActivePlayer = props.game.activePlayerId === props.player.playerId;
+  const isGaloInterruptOwner =
+    speciesId === "galo_de_campina" && props.game.pendingGaloInterrupt?.ownerId === props.player.playerId;
 
   return (
     <SpeciesHudShell
@@ -571,7 +574,7 @@ export function SpeciesActionHud(props: SpeciesActionHudProps) {
       setEffectTarget={props.setEffectTarget}
       onExpansionToggle={props.onExpansionToggle}
     >
-      {isActivePlayer && <ActionContent {...props} />}
+      {(isActivePlayer || isGaloInterruptOwner) && <ActionContent {...props} />}
     </SpeciesHudShell>
   );
 }

@@ -4,7 +4,6 @@ import {
   addCapuchinForCurrentAction,
   addCoatiForCurrentAction,
   addGaloForCurrentAction,
-  addGaloAdjacentForCurrentAction,
   addMacawForCurrentAction,
   addWolfForCurrentAction
 } from "@oikos/rules";
@@ -76,12 +75,11 @@ export function getAuthDisplayName(user: User): string {
 }
 
 // Per-species "add piece" wiring: the local engine step, the online socket call,
-// and the confirmation notice. The galo-de-campina entry branches on whether an
-// adjacent add is pending. Species not listed here (coati included) fall back to
-// the coati handler, matching the previous default branch.
+// and the confirmation notice. Species not listed here (coati included) fall back
+// to the coati handler, matching the previous default branch.
 export type AddPieceHandler = {
-  local: (game: GameState, playerId: string, position: GridPosition, galoAdjacentPending: boolean) => GameState;
-  api: (socket: OikosSocket, roomId: string, x: number, y: number, galoAdjacentPending: boolean) => Promise<PublicRoomState>;
+  local: (game: GameState, playerId: string, position: GridPosition) => GameState;
+  api: (socket: OikosSocket, roomId: string, x: number, y: number) => Promise<PublicRoomState>;
   notice: string;
 };
 
@@ -103,14 +101,8 @@ const ADD_PIECE_HANDLERS: Partial<Record<SpeciesId, AddPieceHandler>> = {
     notice: "Arara adicionada."
   },
   galo_de_campina: {
-    local: (game, playerId, position, galoAdjacentPending) =>
-      galoAdjacentPending
-        ? addGaloAdjacentForCurrentAction(game, playerId, position)
-        : addGaloForCurrentAction(game, playerId, position),
-    api: (socket, roomId, x, y, galoAdjacentPending) =>
-      galoAdjacentPending
-        ? roomApi.addGaloAdjacent(socket, roomId, x, y)
-        : roomApi.addGalo(socket, roomId, x, y),
+    local: (game, playerId, position) => addGaloForCurrentAction(game, playerId, position),
+    api: (socket, roomId, x, y) => roomApi.addGalo(socket, roomId, x, y),
     notice: "Galo-de-campina adicionado."
   },
   armadillo: {

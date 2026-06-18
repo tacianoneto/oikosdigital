@@ -39,8 +39,8 @@ function createGame(activePlayerId = "player-1"): GameState {
     activePlayerId,
     activePlayedForestCardId: null,
     pendingWolfMoves: null,
-    pendingGaloAdjacentAdd: null
-  } as GameState;
+    pendingGaloInterrupt: null
+  } as unknown as GameState;
 }
 
 function renderHud(speciesId: SpeciesId, activeActionId: ActionId, activePlayerId = "player-1") {
@@ -70,7 +70,7 @@ function renderHud(speciesId: SpeciesId, activeActionId: ActionId, activePlayerI
       armadilloSharing={null}
       macawActionCTargetCount={0}
       macawLineScore={2}
-      galoSeedCardScore={1}
+      galoScore={1}
       capuchinReserveCount={2}
       capuchinPlacementTargetCount={1}
       capuchinHabitatScore={3}
@@ -90,7 +90,7 @@ describe("SpeciesActionHud", () => {
     ["maned_wolf", "D", "Locais válidos"],
     ["armadillo", "B", "Selecione um Tatu-bola"],
     ["macaw", "D", "formações lineares"],
-    ["galo_de_campina", "D", "3+ campinas"],
+    ["galo_de_campina", "D", "3 pontos menos"],
     ["capuchin", "D", "habitats dominados"],
     ["coati", "B", "Selecione um quati"]
   ] as const)("renders %s action content", (speciesId, actionId, expectedText) => {
