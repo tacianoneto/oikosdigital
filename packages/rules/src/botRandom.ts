@@ -1,39 +1,27 @@
 import {
-  addArmadilloForCurrentAction,
-  addCapuchinForCurrentAction,
-  addCoatiForCurrentAction,
-  addGaloForCurrentAction,
-  addMacawForCurrentAction,
-  addWolfForCurrentAction,
-  getArmadilloHidePieceIds,
-  getArmadilloSeedPlacementPositions,
   getAvailableForestExpansionPositionsForCard,
   getAvailableJaguarPointSpendCount,
   getAvailableWolfPointSpendCount,
-  getCapuchinPlacementPositions,
-  getCoatiFruitPlacementPositions,
-  getGaloFieldPlacementPositions,
-  getMacawActionCTargets,
-  getMacawEggPlacementPositions,
   getMacawRelocatablePieceIds,
   getRequiredCoatiRemovalCount,
   getValidPieceMovementDestinations,
-  getWolfMeatPlacementPositions,
   getWolfRemovableBasePieceIds,
   getWolfSpendableResourceTypes,
-  hideArmadilloForCurrentAction,
   movePieceForCurrentAction,
   placeForestCard,
   placeInitialPiece,
   removeBasePieceForWolfAction,
   removePiecesForCurrentAction,
-  scoreArmadilloSharing,
-  scoreCapuchinHabitatPresence,
-  scoreGaloFieldPresence,
-  scoreMacawLines,
   spendJaguarMeatForPoints,
   spendWolfResourcesForPoints
 } from "./setup";
+import {
+  applySpeciesPieceTargetAction,
+  applySpeciesPlacementAction,
+  applySpeciesScoreAction,
+  getSpeciesPieceTargets,
+  getSpeciesPlacementTargets
+} from "./speciesActions";
 import { hasReserve, pickOne, shuffle } from "./botScoring";
 import { completeOrSkip, rotations } from "./botShared";
 import type { GameState, GridPosition, SpeciesId } from "@oikos/shared";
@@ -139,10 +127,10 @@ export function randomJaguar(game: GameState, playerId: string, action: string):
 
 export function randomCoati(game: GameState, playerId: string, action: string): GameState {
   if (action === "A") {
-    const targets = getCoatiFruitPlacementPositions(game, playerId);
+    const targets = getSpeciesPlacementTargets(game, playerId, "coati", "A");
     if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.6)) {
       try {
-        return addCoatiForCurrentAction(game, playerId, pickOne(targets));
+        return applySpeciesPlacementAction(game, playerId, "coati", "A", pickOne(targets));
       } catch {
         // fall through to skip
       }
@@ -171,10 +159,10 @@ export function randomCoati(game: GameState, playerId: string, action: string): 
 
 export function randomCapuchin(game: GameState, playerId: string, action: string): GameState {
   if (action === "A" || action === "C") {
-    const targets = getCapuchinPlacementPositions(game, playerId);
+    const targets = getSpeciesPlacementTargets(game, playerId, "capuchin", action);
     if (hasReserve(game, playerId) && targets.length > 0 && (action === "A" || maybe(0.6))) {
       try {
-        return addCapuchinForCurrentAction(game, playerId, pickOne(targets));
+        return applySpeciesPlacementAction(game, playerId, "capuchin", action, pickOne(targets));
       } catch {
         // fall through
       }
@@ -186,15 +174,15 @@ export function randomCapuchin(game: GameState, playerId: string, action: string
     return moveRandomOwned(game, playerId, "capuchin");
   }
 
-  return scoreCapuchinHabitatPresence(game, playerId);
+  return applySpeciesScoreAction(game, playerId, "capuchin", "D");
 }
 
 export function randomMacaw(game: GameState, playerId: string, action: string): GameState {
   if (action === "A") {
-    const targets = getMacawEggPlacementPositions(game, playerId);
+    const targets = getSpeciesPlacementTargets(game, playerId, "macaw", "A");
     if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
       try {
-        return addMacawForCurrentAction(game, playerId, pickOne(targets));
+        return applySpeciesPlacementAction(game, playerId, "macaw", "A", pickOne(targets));
       } catch {
         // fall through
       }
@@ -207,11 +195,11 @@ export function randomMacaw(game: GameState, playerId: string, action: string): 
   }
 
   if (action === "C") {
-    const addTargets = getMacawActionCTargets(game, playerId);
+    const addTargets = getSpeciesPlacementTargets(game, playerId, "macaw", "C");
     if (hasReserve(game, playerId) && addTargets.length > 0) {
       for (const target of shuffle(addTargets)) {
         try {
-          return addMacawForCurrentAction(game, playerId, target);
+          return applySpeciesPlacementAction(game, playerId, "macaw", "C", target);
         } catch {
           // try next add target
         }
@@ -234,15 +222,15 @@ export function randomMacaw(game: GameState, playerId: string, action: string): 
     return completeOrSkip(game, playerId);
   }
 
-  return scoreMacawLines(game, playerId);
+  return applySpeciesScoreAction(game, playerId, "macaw", "D");
 }
 
 export function randomGalo(game: GameState, playerId: string, action: string): GameState {
   if (action === "A") {
-    const targets = getGaloFieldPlacementPositions(game, playerId);
+    const targets = getSpeciesPlacementTargets(game, playerId, "galo_de_campina", "A");
     if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
       try {
-        return addGaloForCurrentAction(game, playerId, pickOne(targets));
+        return applySpeciesPlacementAction(game, playerId, "galo_de_campina", "A", pickOne(targets));
       } catch {
         // fall through
       }
@@ -261,15 +249,15 @@ export function randomGalo(game: GameState, playerId: string, action: string): G
     return completeOrSkip(game, playerId);
   }
 
-  return scoreGaloFieldPresence(game, playerId);
+  return applySpeciesScoreAction(game, playerId, "galo_de_campina", "D");
 }
 
 export function randomArmadillo(game: GameState, playerId: string, action: string): GameState {
   if (action === "A") {
-    const targets = getArmadilloSeedPlacementPositions(game, playerId);
+    const targets = getSpeciesPlacementTargets(game, playerId, "armadillo", "A");
     if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
       try {
-        return addArmadilloForCurrentAction(game, playerId, pickOne(targets));
+        return applySpeciesPlacementAction(game, playerId, "armadillo", "A", pickOne(targets));
       } catch {
         // fall through
       }
@@ -282,10 +270,10 @@ export function randomArmadillo(game: GameState, playerId: string, action: strin
   }
 
   if (action === "C") {
-    const hideable = getArmadilloHidePieceIds(game, playerId);
+    const hideable = getSpeciesPieceTargets(game, playerId, "armadillo", "C");
     if (hideable.length > 0 && maybe(0.5)) {
       try {
-        return hideArmadilloForCurrentAction(game, playerId, pickOne(hideable));
+        return applySpeciesPieceTargetAction(game, playerId, "armadillo", "C", pickOne(hideable));
       } catch {
         // fall through
       }
@@ -293,7 +281,7 @@ export function randomArmadillo(game: GameState, playerId: string, action: strin
     return completeOrSkip(game, playerId);
   }
 
-  return scoreArmadilloSharing(game, playerId);
+  return applySpeciesScoreAction(game, playerId, "armadillo", "D");
 }
 
 export function randomWolf(game: GameState, playerId: string, action: string): GameState {
@@ -325,10 +313,10 @@ export function randomWolf(game: GameState, playerId: string, action: string): G
   }
 
   if (action === "D") {
-    const targets = getWolfMeatPlacementPositions(game, playerId);
+    const targets = getSpeciesPlacementTargets(game, playerId, "maned_wolf", "D");
     if (hasReserve(game, playerId) && targets.length > 0 && maybe(0.7)) {
       try {
-        return addWolfForCurrentAction(game, playerId, pickOne(targets));
+        return applySpeciesPlacementAction(game, playerId, "maned_wolf", "D", pickOne(targets));
       } catch {
         // fall through
       }

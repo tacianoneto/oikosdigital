@@ -1,6 +1,7 @@
 export * from "./movement";
 export * from "./effects";
 export * from "./speciesRules";
+export * from "./speciesActions";
 export * from "./speciesBotProfiles";
 export * from "./speciesModules";
 export * from "./scoring";

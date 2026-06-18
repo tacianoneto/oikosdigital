@@ -83,16 +83,22 @@ Status atual: em andamento. Bloco concluido nesta rodada:
 - Criado `packages/rules/src/speciesBotProfiles.ts` com preferencias de recursos, pesos de setup, heuristicas de carta, heuristicas de movimento, penalidade de aglomeracao e politica de ordenacao de candidatos dos bots.
 - `SpeciesModule` agora expoe `botScoring`.
 - `packages/rules/src/botScoring.ts` passou a consultar os perfis de bot em vez de manter mapas locais e condicoes por `speciesId` para preferencias simples de pontuacao.
+- Criado `packages/rules/src/speciesActions.ts` com runtimes de acao por especie/acao:
+  - seletores de alvos de tabuleiro
+  - aplicadores de alvos de tabuleiro
+  - seletores/aplicadores de alvo de peca
+  - aplicadores de pontuacao
+- `SpeciesActionDefinition` agora expoe `runtime`.
+- Bots smart/random usam os runtimes para a familia migrada de adicionar peca, esconder Tatu e pontuar D de Arara/Macaco/Galo/Tatu, mantendo exports antigos para compatibilidade.
 
 Entregas pendentes:
 
 - Completar o `SpeciesModule` com:
-  - validadores de alvos
-  - aplicadores de acao
+  - validadores/aplicadores restantes que ainda estao especificos no servidor/web/setup, como remocoes, gastos de recurso e movimentos especiais.
   - efeitos passivos
-  - pontuacao de acao
+  - pontuacao de acao restante fora da familia migrada
   - metadados de UI necessarios
-- Consolidar funcoes como `addCoatiForCurrentAction`, `scoreMacawLines`, `hideArmadilloForCurrentAction` em descritores de acao.
+- Consolidar consumidores externos de funcoes como `addCoatiForCurrentAction`, `scoreMacawLines`, `hideArmadilloForCurrentAction` para chamar runtimes quando a migracao do protocolo permitir.
 - Remover decisoes por especie restantes em `botScoring.ts` somente onde o registry reduzir duplicacao sem piorar legibilidade. As heuristicas internas especificas, como calcular linhas da Arara ou habitats do Macaco, continuam em funcoes dedicadas por enquanto.
 - Migrar pelo menos uma familia de aplicadores/validadores de acao para o registry em ciclo seguinte.
 - Manter exports antigos temporariamente ate os consumidores migrarem.
@@ -119,6 +125,8 @@ Validacao:
   - Smoke manual online local: sala `GA4CY` criada no servidor local, Lobo-guara selecionado pelo usuario, Quati adicionado como bot, partida iniciada, canvas renderizado e reconexao por reload voltou para a mesma sala sem erros visiveis.
   - Subetapa de perfis de bot: `npm.cmd run typecheck`, `npm.cmd run test` e `npm.cmd run build` passaram.
   - Smoke manual apos perfis de bot: navegador local carregou sessao autenticada e reconectou/renderizou partida existente com canvas ativo, sem erros visiveis no DOM e sem erros de console.
+  - Subetapa de runtimes de acao: `npm.cmd run typecheck`, `npm.cmd run test` e `npm.cmd run build` passaram; `speciesRules.test.ts` cobre a presenca dos runtimes migrados.
+  - Smoke manual apos runtimes de acao: navegador local carregou sessao autenticada, reconectou a sala existente, renderizou canvas e nao apresentou erros visiveis no DOM nem erros de console.
 - Pendencias reais de validacao manual:
   - Jogada manual completa de carta, movimento, pontuacao e fim de turno no canvas online nao foi executada nesta rodada; a cobertura automatizada de regras/servidor passou e o smoke online validou criacao, inicio e reconexao.
   - Confirmacao visual de todas as especies selecionaveis/jogaveis ficou limitada ao lobby local/online; nao foi feita uma partida manual por cada especie.

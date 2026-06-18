@@ -1,4 +1,5 @@
 import type { ActionId, GameState, SpeciesId } from "@oikos/shared";
+import { getSpeciesActionRuntime, type SpeciesActionRuntime } from "./speciesActions";
 import { speciesBotScoringProfiles, type SpeciesBotScoringProfile } from "./speciesBotProfiles";
 import { speciesRules, type SpeciesRuleDefinition } from "./speciesRules";
 import {
@@ -28,6 +29,7 @@ export type PendingMovementPlayer = (game: GameState, playerId: string, speciesI
 export interface SpeciesActionDefinition {
   actionId: ActionId;
   requiresForestCardBeforeAction: boolean;
+  runtime: SpeciesActionRuntime | null;
 }
 
 export interface SpeciesBotHooks {
@@ -45,17 +47,22 @@ export interface SpeciesModule {
   bots: SpeciesBotHooks;
 }
 
-function action(actionId: ActionId, options?: Partial<Omit<SpeciesActionDefinition, "actionId">>): SpeciesActionDefinition {
+function action(
+  speciesId: SpeciesId,
+  actionId: ActionId,
+  options?: Partial<Omit<SpeciesActionDefinition, "actionId" | "runtime">>
+): SpeciesActionDefinition {
   return {
     actionId,
     requiresForestCardBeforeAction: false,
+    runtime: getSpeciesActionRuntime(speciesId, actionId),
     ...options
   };
 }
 
-function standardCardSpeciesActions(actionIds: ActionId[]): Partial<Record<ActionId, SpeciesActionDefinition>> {
+function standardCardSpeciesActions(speciesId: SpeciesId, actionIds: ActionId[]): Partial<Record<ActionId, SpeciesActionDefinition>> {
   return Object.fromEntries(
-    actionIds.map((actionId) => [actionId, action(actionId, { requiresForestCardBeforeAction: actionId === "A" })])
+    actionIds.map((actionId) => [actionId, action(speciesId, actionId, { requiresForestCardBeforeAction: actionId === "A" })])
   ) as Partial<Record<ActionId, SpeciesActionDefinition>>;
 }
 
@@ -65,9 +72,9 @@ export const speciesModules = {
     rules: speciesRules.jaguar,
     botScoring: speciesBotScoringProfiles.jaguar,
     actions: {
-      A: action("A"),
-      B: action("B"),
-      C: action("C")
+      A: action("jaguar", "A"),
+      B: action("jaguar", "B"),
+      C: action("jaguar", "C")
     },
     bots: {
       playSmartAction: playJaguar,
@@ -78,7 +85,7 @@ export const speciesModules = {
     speciesId: "maned_wolf",
     rules: speciesRules.maned_wolf,
     botScoring: speciesBotScoringProfiles.maned_wolf,
-    actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
+    actions: standardCardSpeciesActions("maned_wolf", ["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playWolf,
       playRandomAction: randomWolf,
@@ -90,7 +97,7 @@ export const speciesModules = {
     speciesId: "armadillo",
     rules: speciesRules.armadillo,
     botScoring: speciesBotScoringProfiles.armadillo,
-    actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
+    actions: standardCardSpeciesActions("armadillo", ["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playArmadillo,
       playRandomAction: randomArmadillo
@@ -100,7 +107,7 @@ export const speciesModules = {
     speciesId: "macaw",
     rules: speciesRules.macaw,
     botScoring: speciesBotScoringProfiles.macaw,
-    actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
+    actions: standardCardSpeciesActions("macaw", ["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playMacaw,
       playRandomAction: randomMacaw
@@ -110,7 +117,7 @@ export const speciesModules = {
     speciesId: "galo_de_campina",
     rules: speciesRules.galo_de_campina,
     botScoring: speciesBotScoringProfiles.galo_de_campina,
-    actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
+    actions: standardCardSpeciesActions("galo_de_campina", ["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playGalo,
       playRandomAction: randomGalo
@@ -120,7 +127,7 @@ export const speciesModules = {
     speciesId: "capuchin",
     rules: speciesRules.capuchin,
     botScoring: speciesBotScoringProfiles.capuchin,
-    actions: standardCardSpeciesActions(["A", "B", "C", "D"]),
+    actions: standardCardSpeciesActions("capuchin", ["A", "B", "C", "D"]),
     bots: {
       playSmartAction: playCapuchin,
       playRandomAction: randomCapuchin
@@ -130,7 +137,7 @@ export const speciesModules = {
     speciesId: "coati",
     rules: speciesRules.coati,
     botScoring: speciesBotScoringProfiles.coati,
-    actions: standardCardSpeciesActions(["A", "B", "C"]),
+    actions: standardCardSpeciesActions("coati", ["A", "B", "C"]),
     bots: {
       playSmartAction: playCoati,
       playRandomAction: randomCoati

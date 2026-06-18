@@ -7,6 +7,7 @@ import {
   hasSpeciesMovementRule,
   speciesRules
 } from "./speciesRules";
+import { getSpeciesActionRuntime, speciesActionRuntimes } from "./speciesActions";
 import { getSpeciesBotScoringProfile, speciesBotScoringProfiles } from "./speciesBotProfiles";
 import { getSpeciesModule, speciesActionRequiresForestCard, speciesModules } from "./speciesModules";
 
@@ -43,6 +44,7 @@ describe("species rules registry", () => {
 
       for (const actionId of speciesDefinitions[speciesId].actions) {
         expect(module.actions[actionId]?.actionId).toBe(actionId);
+        expect(module.actions[actionId]?.runtime).toBe(getSpeciesActionRuntime(speciesId, actionId));
       }
     }
   });
@@ -62,5 +64,16 @@ describe("species rules registry", () => {
     expect(getSpeciesBotScoringProfile("capuchin").preserveRankedCandidateOrder).toBe(true);
     expect(getSpeciesBotScoringProfile("coati").setupAdjacencyWeight).toBe(5);
     expect(getSpeciesBotScoringProfile("maned_wolf").moveScoring).toContain("wolf");
+  });
+
+  it("centralizes action target selectors and appliers for migrated species actions", () => {
+    expect(Object.keys(speciesActionRuntimes).sort()).toEqual(Object.keys(speciesDefinitions).sort());
+    expect(getSpeciesActionRuntime("coati", "A")?.getPlacementTargets).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("coati", "A")?.applyPlacementTarget).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("armadillo", "C")?.getPieceTargets).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("armadillo", "C")?.applyPieceTarget).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("macaw", "D")?.applyScore).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("capuchin", "D")?.applyScore).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("jaguar", "A")).toBe(null);
   });
 });
