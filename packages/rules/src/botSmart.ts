@@ -5,22 +5,20 @@ import {
   getMacawRelocatablePieceIds,
   getRequiredCoatiRemovalCount,
   getValidPieceMovementDestinations,
-  getWolfRemovableBasePieceIds,
-  getWolfSpendableResourceTypes,
   movePieceForCurrentAction,
   placeForestCard,
-  placeInitialPiece,
-  removeBasePieceForWolfAction,
-  removePiecesForCurrentAction,
-  spendJaguarMeatForPoints,
-  spendWolfResourcesForPoints
+  placeInitialPiece
 } from "./setup";
 import {
+  applySpeciesCountSpendAction,
   applySpeciesPieceTargetAction,
+  applySpeciesPieceTargetsAction,
   applySpeciesPlacementAction,
+  applySpeciesResourceSpendAction,
   applySpeciesScoreAction,
   getSpeciesPieceTargets,
-  getSpeciesPlacementTargets
+  getSpeciesPlacementTargets,
+  getSpeciesResourceTargets
 } from "./speciesActions";
 import {
   chooseCandidatePool,
@@ -100,7 +98,7 @@ export function playJaguar(game: GameState, playerId: string, action: string): G
     // Onca sempre gasta o maximo de carne possivel (capado em 3 pela regra).
     const spendable = getAvailableJaguarPointSpendCount(game, playerId);
     if (spendable > 0) {
-      return spendJaguarMeatForPoints(game, playerId, spendable);
+      return applySpeciesCountSpendAction(game, playerId, "jaguar", "C", spendable);
     }
 
     return completeOrSkip(game, playerId);
@@ -129,11 +127,8 @@ export function playCoati(game: GameState, playerId: string, action: string): Ga
 
   const required = getRequiredCoatiRemovalCount(game, playerId);
   if (required > 0) {
-    const pieceIds = game.pieces
-      .filter((piece) => piece.ownerId === playerId && piece.speciesId === "coati" && piece.location)
-      .slice(0, required)
-      .map((piece) => piece.pieceId);
-    return removePiecesForCurrentAction(game, playerId, pieceIds);
+    const pieceIds = getSpeciesPieceTargets(game, playerId, "coati", "C").slice(0, required);
+    return applySpeciesPieceTargetsAction(game, playerId, "coati", "C", pieceIds);
   }
 
   return completeOrSkip(game, playerId);
@@ -264,9 +259,9 @@ export function playArmadillo(game: GameState, playerId: string, action: string)
 
 export function playWolf(game: GameState, playerId: string, action: string): GameState {
   if (action === "B") {
-    const removable = getWolfRemovableBasePieceIds(game, playerId);
+    const removable = getSpeciesPieceTargets(game, playerId, "maned_wolf", "B");
     if (removable.length > 0 && Math.random() < 0.72) {
-      return removeBasePieceForWolfAction(game, playerId, pickOne(removable));
+      return applySpeciesPieceTargetAction(game, playerId, "maned_wolf", "B", pickOne(removable));
     }
 
     return completeOrSkip(game, playerId);
@@ -274,9 +269,9 @@ export function playWolf(game: GameState, playerId: string, action: string): Gam
 
   if (action === "C") {
     const spendableCount = getAvailableWolfPointSpendCount(game, playerId);
-    const resources = getWolfSpendableResourceTypes(game, playerId).slice(0, spendableCount);
+    const resources = getSpeciesResourceTargets(game, playerId, "maned_wolf", "C").slice(0, spendableCount);
     if (resources.length > 0) {
-      return spendWolfResourcesForPoints(game, playerId, resources);
+      return applySpeciesResourceSpendAction(game, playerId, "maned_wolf", "C", resources);
     }
 
     return completeOrSkip(game, playerId);

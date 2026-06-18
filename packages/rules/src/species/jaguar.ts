@@ -12,10 +12,9 @@ import { advanceActiveAction } from "../turn";
  * movement destinations (action A adjacent step, action B habitat run, with
  * scenario/effect overrides such as Pampa).
  *
- * These only read game state (via the shared state/forest/movement/effects
- * helpers), so they live here independently of setup.ts. The cross-species
- * movement dispatcher (getValidPieceMovementDestinations) and the mutating
- * action functions stay in setup.ts because they drive the turn loop.
+ * Query helpers stay side-effect free. The Onca score-spend applier lives here
+ * and is still re-exported by setup.ts for compatibility; movement remains in
+ * the cross-species movement dispatcher.
  */
 
 export function getJaguarPieceInForest(game: GameState, playerId: string): PieceState | null {

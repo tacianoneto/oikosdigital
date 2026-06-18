@@ -5,22 +5,20 @@ import {
   getMacawRelocatablePieceIds,
   getRequiredCoatiRemovalCount,
   getValidPieceMovementDestinations,
-  getWolfRemovableBasePieceIds,
-  getWolfSpendableResourceTypes,
   movePieceForCurrentAction,
   placeForestCard,
-  placeInitialPiece,
-  removeBasePieceForWolfAction,
-  removePiecesForCurrentAction,
-  spendJaguarMeatForPoints,
-  spendWolfResourcesForPoints
+  placeInitialPiece
 } from "./setup";
 import {
+  applySpeciesCountSpendAction,
   applySpeciesPieceTargetAction,
+  applySpeciesPieceTargetsAction,
   applySpeciesPlacementAction,
+  applySpeciesResourceSpendAction,
   applySpeciesScoreAction,
   getSpeciesPieceTargets,
-  getSpeciesPlacementTargets
+  getSpeciesPlacementTargets,
+  getSpeciesResourceTargets
 } from "./speciesActions";
 import { hasReserve, pickOne, shuffle } from "./botScoring";
 import { completeOrSkip, rotations } from "./botShared";
@@ -117,7 +115,7 @@ export function randomJaguar(game: GameState, playerId: string, action: string):
     const max = getAvailableJaguarPointSpendCount(game, playerId);
     const count = max > 0 ? randInt(0, max) : 0;
     if (count > 0) {
-      return spendJaguarMeatForPoints(game, playerId, count);
+      return applySpeciesCountSpendAction(game, playerId, "jaguar", "C", count);
     }
     return completeOrSkip(game, playerId);
   }
@@ -144,11 +142,9 @@ export function randomCoati(game: GameState, playerId: string, action: string): 
 
   const required = getRequiredCoatiRemovalCount(game, playerId);
   if (required > 0) {
-    const ids = shuffle(
-      game.pieces.filter((piece) => piece.ownerId === playerId && piece.speciesId === "coati" && piece.location).map((piece) => piece.pieceId)
-    ).slice(0, required);
+    const ids = shuffle(getSpeciesPieceTargets(game, playerId, "coati", "C")).slice(0, required);
     try {
-      return removePiecesForCurrentAction(game, playerId, ids);
+      return applySpeciesPieceTargetsAction(game, playerId, "coati", "C", ids);
     } catch {
       // fall through
     }
@@ -286,10 +282,10 @@ export function randomArmadillo(game: GameState, playerId: string, action: strin
 
 export function randomWolf(game: GameState, playerId: string, action: string): GameState {
   if (action === "B") {
-    const removable = getWolfRemovableBasePieceIds(game, playerId);
+    const removable = getSpeciesPieceTargets(game, playerId, "maned_wolf", "B");
     if (removable.length > 0 && maybe(0.5)) {
       try {
-        return removeBasePieceForWolfAction(game, playerId, pickOne(removable));
+        return applySpeciesPieceTargetAction(game, playerId, "maned_wolf", "B", pickOne(removable));
       } catch {
         // fall through
       }
@@ -298,13 +294,13 @@ export function randomWolf(game: GameState, playerId: string, action: string): G
   }
 
   if (action === "C") {
-    const available = getWolfSpendableResourceTypes(game, playerId);
+    const available = getSpeciesResourceTargets(game, playerId, "maned_wolf", "C");
     const max = Math.min(getAvailableWolfPointSpendCount(game, playerId), available.length);
     const count = max > 0 ? randInt(0, max) : 0;
     const types = shuffle(available).slice(0, count);
     if (types.length > 0) {
       try {
-        return spendWolfResourcesForPoints(game, playerId, types);
+        return applySpeciesResourceSpendAction(game, playerId, "maned_wolf", "C", types);
       } catch {
         // fall through
       }

@@ -70,8 +70,15 @@ describe("species rules registry", () => {
     expect(Object.keys(speciesActionRuntimes).sort()).toEqual(Object.keys(speciesDefinitions).sort());
     expect(getSpeciesActionRuntime("coati", "A")?.getPlacementTargets).toBeTypeOf("function");
     expect(getSpeciesActionRuntime("coati", "A")?.applyPlacementTarget).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("coati", "C")?.getPieceTargets).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("coati", "C")?.applyPieceTargets).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("maned_wolf", "B")?.getPieceTargets).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("maned_wolf", "B")?.applyPieceTarget).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("maned_wolf", "C")?.getResourceTargets).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("maned_wolf", "C")?.applyResourceSpend).toBeTypeOf("function");
     expect(getSpeciesActionRuntime("armadillo", "C")?.getPieceTargets).toBeTypeOf("function");
     expect(getSpeciesActionRuntime("armadillo", "C")?.applyPieceTarget).toBeTypeOf("function");
+    expect(getSpeciesActionRuntime("jaguar", "C")?.applyCountSpend).toBeTypeOf("function");
     expect(getSpeciesActionRuntime("macaw", "D")?.applyScore).toBeTypeOf("function");
     expect(getSpeciesActionRuntime("capuchin", "D")?.applyScore).toBeTypeOf("function");
     expect(getSpeciesActionRuntime("jaguar", "A")).toBe(null);

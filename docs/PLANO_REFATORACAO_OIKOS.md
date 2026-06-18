@@ -87,20 +87,30 @@ Status atual: em andamento. Bloco concluido nesta rodada:
   - seletores de alvos de tabuleiro
   - aplicadores de alvos de tabuleiro
   - seletores/aplicadores de alvo de peca
+  - seletores/aplicadores de multiplos alvos de peca
+  - seletores/aplicadores de gasto de recursos
+  - aplicadores de gasto por quantidade
   - aplicadores de pontuacao
 - `SpeciesActionDefinition` agora expoe `runtime`.
 - Bots smart/random usam os runtimes para a familia migrada de adicionar peca, esconder Tatu e pontuar D de Arara/Macaco/Galo/Tatu, mantendo exports antigos para compatibilidade.
+- Nesta rodada, a familia de remocoes/gastos tambem entrou no registry:
+  - Quati C: seletor e aplicador de remocao de multiplos quatis.
+  - Lobo-guara B: seletor e aplicador de remocao de peca de base.
+  - Lobo-guara C: seletor e aplicador de gasto de recursos diferentes.
+  - Onca C: aplicador de gasto de carne por quantidade.
+- `removePiecesForCurrentAction` foi movido de `setup.ts` para `packages/rules/src/species/coati.ts`; `setup.ts` continua reexportando a funcao para compatibilidade temporaria.
+- Bots smart/random passaram a usar seletores e aplicadores do runtime para Quati C, Lobo B/C e Onca C.
 
 Entregas pendentes:
 
 - Completar o `SpeciesModule` com:
-  - validadores/aplicadores restantes que ainda estao especificos no servidor/web/setup, como remocoes, gastos de recurso e movimentos especiais.
+  - validadores/aplicadores restantes que ainda estao especificos no servidor/web/setup, principalmente movimentos especiais, resolucoes de passiva e fluxos de cartas/cenarios.
   - efeitos passivos
-  - pontuacao de acao restante fora da familia migrada
+  - pontuacao de acao restante fora da familia migrada, se novas especies/expansoes exigirem
   - metadados de UI necessarios
-- Consolidar consumidores externos de funcoes como `addCoatiForCurrentAction`, `scoreMacawLines`, `hideArmadilloForCurrentAction` para chamar runtimes quando a migracao do protocolo permitir.
+- Consolidar consumidores externos de funcoes como `addCoatiForCurrentAction`, `scoreMacawLines`, `hideArmadilloForCurrentAction`, `removePiecesForCurrentAction`, `removeBasePieceForWolfAction`, `spendWolfResourcesForPoints` e `spendJaguarMeatForPoints` para chamar runtimes quando a migracao do protocolo permitir.
 - Remover decisoes por especie restantes em `botScoring.ts` somente onde o registry reduzir duplicacao sem piorar legibilidade. As heuristicas internas especificas, como calcular linhas da Arara ou habitats do Macaco, continuam em funcoes dedicadas por enquanto.
-- Migrar pelo menos uma familia de aplicadores/validadores de acao para o registry em ciclo seguinte.
+- Migrar proxima familia de aplicadores/validadores de acao para o registry em ciclo seguinte: movimentos especiais ou passivas com escolha pendente.
 - Manter exports antigos temporariamente ate os consumidores migrarem.
 
 Arquivos-alvo:
@@ -127,8 +137,18 @@ Validacao:
   - Smoke manual apos perfis de bot: navegador local carregou sessao autenticada e reconectou/renderizou partida existente com canvas ativo, sem erros visiveis no DOM e sem erros de console.
   - Subetapa de runtimes de acao: `npm.cmd run typecheck`, `npm.cmd run test` e `npm.cmd run build` passaram; `speciesRules.test.ts` cobre a presenca dos runtimes migrados.
   - Smoke manual apos runtimes de acao: navegador local carregou sessao autenticada, reconectou a sala existente, renderizou canvas e nao apresentou erros visiveis no DOM nem erros de console.
+  - Subetapa de remocoes/gastos por runtime:
+    - `npm.cmd run test --workspace @oikos/rules -- speciesRules.test.ts`: passou.
+    - `npm.cmd run typecheck`: passou.
+    - `npm.cmd run test`: passou.
+    - `npm.cmd run build`: passou.
+  - Smoke manual desta rodada com Chrome headless:
+    - login Supabase com `taciano_neto@hotmail.com`: passou.
+    - partida local: abriu `Teste Local`, iniciou partida padrao e renderizou canvas na rodada 1/setup.
+    - sala online local: criou sala `Z4LDT`, renderizou lobby online autenticado e especies selecionaveis.
+    - Console ficou sem erros de runtime; apareceram apenas respostas 404 de recurso estatico durante carregamento.
 - Pendencias reais de validacao manual:
-  - Jogada manual completa de carta, movimento, pontuacao e fim de turno no canvas online nao foi executada nesta rodada; a cobertura automatizada de regras/servidor passou e o smoke online validou criacao, inicio e reconexao.
+  - Jogada manual completa de carta, movimento, pontuacao e fim de turno no canvas online nao foi executada nesta rodada; a cobertura automatizada de regras/servidor passou e o smoke online validou login, criacao de sala e lobby.
   - Confirmacao visual de todas as especies selecionaveis/jogaveis ficou limitada ao lobby local/online; nao foi feita uma partida manual por cada especie.
   - Na subetapa de perfis de bot, o navegador restaurou uma partida existente; nao foi reiniciado um novo fluxo local com bots para evitar limpar storage/autenticacao. A regressao de bots ficou coberta por `apps/server/src/bots.test.ts` e pela suite completa.
 

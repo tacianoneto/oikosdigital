@@ -15,10 +15,9 @@ import { advanceActiveAction } from "../turn";
  * sites, which adjacent positions complete a pending pair bonus, and how many
  * pieces it must remove during action C.
  *
- * These only read game state (via the shared state/forest/movement helpers), so
- * they live here independently of setup.ts. The mutating action functions
- * (addCoatiForCurrentAction, resolveCoatiPairBonus) stay in setup.ts for now
- * because they drive the turn loop.
+ * Query helpers stay side-effect free. The action appliers in this module own
+ * the Quati-specific mutations and are still re-exported by setup.ts for
+ * compatibility with older consumers.
  */
 
 export function getCoatiFruitPlacementPositions(game: GameState, playerId: string): GridPosition[] {
@@ -70,6 +69,17 @@ export function getRequiredCoatiRemovalCount(game: GameState, playerId: string):
   }
 
   return player.reservePieces.length < 2 ? 2 : 0;
+}
+
+export function getCoatiRemovalPieceIds(game: GameState, playerId: string): string[] {
+  if (getRequiredCoatiRemovalCount(game, playerId) === 0 || game.pendingCoatiPairBonus) {
+    return [];
+  }
+
+  return game.pieces
+    .filter((piece) => piece.ownerId === playerId && piece.speciesId === "coati" && piece.location)
+    .sort((a, b) => a.pieceId.localeCompare(b.pieceId))
+    .map((piece) => piece.pieceId);
 }
 
 function getCoatiPiecesByLocation(game: GameState, playerId: string): Map<string, PieceState[]> {
@@ -310,5 +320,81 @@ export function resolveCoatiPairBonus(game: GameState, playerId: string, locatio
     advanceActiveAction(next);
   }
 
+  return next;
+}
+
+export function removePiecesForCurrentAction(game: GameState, playerId: string, pieceIds: string[]): GameState {
+  if (game.status !== "active") {
+    throw new Error("Remocoes so podem acontecer durante a fase ativa.");
+  }
+
+  if (game.pendingCoatiPairBonus) {
+    throw new Error("Resolva o bonus da dupla de quatis antes de continuar a acao.");
+  }
+
+  if (game.activePlayerId !== playerId) {
+    throw new Error("Ainda nao e a vez deste jogador.");
+  }
+
+  const player = findPlayer(game, playerId);
+  if (player.speciesId !== "coati") {
+    throw new Error("Remocao de acao implementada apenas para o Quati nesta etapa.");
+  }
+
+  if (getCurrentAction(game) !== "C") {
+    throw new Error("O Quati so remove pecas durante a acao C.");
+  }
+
+  const requiredRemovalCount = getRequiredCoatiRemovalCount(game, playerId);
+  if (requiredRemovalCount === 0) {
+    throw new Error("A acao C do Quati nao exige remocao porque ha 2 ou mais quatis na reserva.");
+  }
+
+  const uniquePieceIds = [...new Set(pieceIds)];
+  if (uniquePieceIds.length !== requiredRemovalCount) {
+    throw new Error(`Selecione exatamente ${requiredRemovalCount} quatis para remover da floresta.`);
+  }
+
+  const removablePieceIds = new Set(getCoatiRemovalPieceIds(game, playerId));
+  for (const pieceId of uniquePieceIds) {
+    if (!removablePieceIds.has(pieceId)) {
+      throw new Error("So e permitido remover quatis deste jogador que estejam na floresta.");
+    }
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+
+  for (const pieceId of uniquePieceIds) {
+    const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
+    if (!nextPiece) {
+      throw new Error("Peca nao encontrada.");
+    }
+
+    nextPiece.location = null;
+  }
+
+  nextPlayer.piecesInForest = nextPlayer.piecesInForest.filter((pieceId) => !uniquePieceIds.includes(pieceId));
+  nextPlayer.reservePieces = [...nextPlayer.reservePieces, ...uniquePieceIds];
+  const firstRemoved = game.pieces.find((piece) => uniquePieceIds.includes(piece.pieceId))?.location;
+  if (firstRemoved) applyCaatingaTrigger(next, playerId, firstRemoved, "remove");
+  pruneResolvedCoatiPairBonuses(next, playerId);
+  next.log = [
+    ...next.log,
+    {
+      id: `remove_pieces_${playerId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} removeu ${requiredRemovalCount} quatis da floresta.`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "remove_piece",
+        actorPlayerId: playerId,
+        pieceIds: [...uniquePieceIds],
+        actionId: "C",
+        count: requiredRemovalCount
+      }
+    }
+  ];
+
+  advanceActiveAction(next);
   return next;
 }

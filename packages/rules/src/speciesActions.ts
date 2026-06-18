@@ -1,4 +1,4 @@
-import type { ActionId, GameState, GridPosition, SpeciesId } from "@oikos/shared";
+import type { ActionId, GameState, GridPosition, Resource, SpeciesId } from "@oikos/shared";
 import {
   addArmadilloForCurrentAction,
   getArmadilloHidePieceIds,
@@ -11,7 +11,12 @@ import {
   getCapuchinPlacementPositions,
   scoreCapuchinHabitatPresence
 } from "./species/capuchin";
-import { addCoatiForCurrentAction, getCoatiFruitPlacementPositions } from "./species/coati";
+import {
+  addCoatiForCurrentAction,
+  getCoatiFruitPlacementPositions,
+  getCoatiRemovalPieceIds,
+  removePiecesForCurrentAction
+} from "./species/coati";
 import {
   addGaloForCurrentAction,
   getGaloFieldPlacementPositions,
@@ -23,25 +28,53 @@ import {
   getMacawEggPlacementPositions,
   scoreMacawLines
 } from "./species/macaw";
-import { addWolfForCurrentAction, getWolfMeatPlacementPositions } from "./species/wolf";
+import { spendJaguarMeatForPoints } from "./species/jaguar";
+import {
+  addWolfForCurrentAction,
+  getWolfMeatPlacementPositions,
+  getWolfRemovableBasePieceIds,
+  getWolfSpendableResourceTypes,
+  removeBasePieceForWolfAction,
+  spendWolfResourcesForPoints
+} from "./species/wolf";
 
 export type SpeciesPlacementTargetSelector = (game: GameState, playerId: string) => GridPosition[];
 export type SpeciesPieceTargetSelector = (game: GameState, playerId: string) => string[];
+export type SpeciesResourceTargetSelector = (game: GameState, playerId: string) => Resource[];
 export type SpeciesPlacementApplier = (game: GameState, playerId: string, location: GridPosition) => GameState;
 export type SpeciesPieceTargetApplier = (game: GameState, playerId: string, pieceId: string) => GameState;
+export type SpeciesPieceTargetsApplier = (game: GameState, playerId: string, pieceIds: string[]) => GameState;
+export type SpeciesResourceSpendApplier = (game: GameState, playerId: string, resources: Resource[]) => GameState;
+export type SpeciesCountSpendApplier = (game: GameState, playerId: string, count: number) => GameState;
 export type SpeciesScoreApplier = (game: GameState, playerId: string) => GameState;
 
 export interface SpeciesActionRuntime {
   getPlacementTargets?: SpeciesPlacementTargetSelector;
   applyPlacementTarget?: SpeciesPlacementApplier;
   getPieceTargets?: SpeciesPieceTargetSelector;
+  getResourceTargets?: SpeciesResourceTargetSelector;
   applyPieceTarget?: SpeciesPieceTargetApplier;
+  applyPieceTargets?: SpeciesPieceTargetsApplier;
+  applyResourceSpend?: SpeciesResourceSpendApplier;
+  applyCountSpend?: SpeciesCountSpendApplier;
   applyScore?: SpeciesScoreApplier;
 }
 
 export const speciesActionRuntimes: Record<SpeciesId, Partial<Record<ActionId, SpeciesActionRuntime>>> = {
-  jaguar: {},
+  jaguar: {
+    C: {
+      applyCountSpend: spendJaguarMeatForPoints
+    }
+  },
   maned_wolf: {
+    B: {
+      getPieceTargets: getWolfRemovableBasePieceIds,
+      applyPieceTarget: removeBasePieceForWolfAction
+    },
+    C: {
+      getResourceTargets: getWolfSpendableResourceTypes,
+      applyResourceSpend: spendWolfResourcesForPoints
+    },
     D: {
       getPlacementTargets: getWolfMeatPlacementPositions,
       applyPlacementTarget: addWolfForCurrentAction
@@ -99,6 +132,10 @@ export const speciesActionRuntimes: Record<SpeciesId, Partial<Record<ActionId, S
     A: {
       getPlacementTargets: getCoatiFruitPlacementPositions,
       applyPlacementTarget: addCoatiForCurrentAction
+    },
+    C: {
+      getPieceTargets: getCoatiRemovalPieceIds,
+      applyPieceTargets: removePiecesForCurrentAction
     }
   }
 };
@@ -143,6 +180,55 @@ export function applySpeciesPieceTargetAction(
   }
 
   return applyPieceTarget(game, playerId, pieceId);
+}
+
+export function applySpeciesPieceTargetsAction(
+  game: GameState,
+  playerId: string,
+  speciesId: SpeciesId,
+  actionId: ActionId,
+  pieceIds: string[]
+): GameState {
+  const applyPieceTargets = getSpeciesActionRuntime(speciesId, actionId)?.applyPieceTargets;
+  if (!applyPieceTargets) {
+    throw new Error(`Acao ${actionId} de ${speciesId} nao possui aplicador de alvos de peca registrado.`);
+  }
+
+  return applyPieceTargets(game, playerId, pieceIds);
+}
+
+export function getSpeciesResourceTargets(game: GameState, playerId: string, speciesId: SpeciesId, actionId: ActionId): Resource[] {
+  return getSpeciesActionRuntime(speciesId, actionId)?.getResourceTargets?.(game, playerId) ?? [];
+}
+
+export function applySpeciesResourceSpendAction(
+  game: GameState,
+  playerId: string,
+  speciesId: SpeciesId,
+  actionId: ActionId,
+  resources: Resource[]
+): GameState {
+  const applyResourceSpend = getSpeciesActionRuntime(speciesId, actionId)?.applyResourceSpend;
+  if (!applyResourceSpend) {
+    throw new Error(`Acao ${actionId} de ${speciesId} nao possui gasto de recursos registrado.`);
+  }
+
+  return applyResourceSpend(game, playerId, resources);
+}
+
+export function applySpeciesCountSpendAction(
+  game: GameState,
+  playerId: string,
+  speciesId: SpeciesId,
+  actionId: ActionId,
+  count: number
+): GameState {
+  const applyCountSpend = getSpeciesActionRuntime(speciesId, actionId)?.applyCountSpend;
+  if (!applyCountSpend) {
+    throw new Error(`Acao ${actionId} de ${speciesId} nao possui gasto por quantidade registrado.`);
+  }
+
+  return applyCountSpend(game, playerId, count);
 }
 
 export function applySpeciesScoreAction(game: GameState, playerId: string, speciesId: SpeciesId, actionId: ActionId): GameState {

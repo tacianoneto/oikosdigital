@@ -17,10 +17,9 @@ import { pruneResolvedCoatiPairBonuses } from "./coati";
  * pieces it may remove (action B), which resources it may spend for points and
  * how many (action C), and where it may add a piece on meat sites (action D).
  *
- * These only read game state (via the shared state/forest helpers), so they live
- * here independently of setup.ts. The mutating action functions
- * (removeBasePieceForWolfAction, spendWolfResourcesForPoints, addWolfForCurrentAction)
- * stay in setup.ts for now because they drive the turn loop.
+ * Query helpers stay side-effect free. The action appliers in this module own
+ * the Lobo-specific mutations and are still re-exported by setup.ts for
+ * compatibility with older consumers.
  */
 
 export function getWolfRemovableBasePieceIds(game: GameState, playerId: string): string[] {

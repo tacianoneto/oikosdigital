@@ -91,15 +91,18 @@ import {
   addCoatiForCurrentAction,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
+  getCoatiRemovalPieceIds,
   getRequiredCoatiRemovalCount,
-  pruneResolvedCoatiPairBonuses,
+  removePiecesForCurrentAction,
   resolveCoatiPairBonus
 } from "./species/coati";
 export {
   addCoatiForCurrentAction,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
+  getCoatiRemovalPieceIds,
   getRequiredCoatiRemovalCount,
+  removePiecesForCurrentAction,
   resolveCoatiPairBonus
 };
 import {
@@ -726,85 +729,6 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
       id: `complete_action_${playerId}_${action}_${next.log.length + 1}`,
       message: `${nextPlayer.name} concluiu a acao ${action}.`,
       createdAt: Date.now()
-    }
-  ];
-
-  advanceActiveAction(next);
-  return next;
-}
-
-export function removePiecesForCurrentAction(game: GameState, playerId: string, pieceIds: string[]): GameState {
-  if (game.status !== "active") {
-    throw new Error("Remocoes so podem acontecer durante a fase ativa.");
-  }
-
-  if (game.pendingCoatiPairBonus) {
-    throw new Error("Resolva o bonus da dupla de quatis antes de continuar a acao.");
-  }
-
-  if (game.activePlayerId !== playerId) {
-    throw new Error("Ainda nao e a vez deste jogador.");
-  }
-
-  const player = findPlayer(game, playerId);
-  if (player.speciesId !== "coati") {
-    throw new Error("Remocao de acao implementada apenas para o Quati nesta etapa.");
-  }
-
-  if (getCurrentAction(game) !== "C") {
-    throw new Error("O Quati so remove pecas durante a acao C.");
-  }
-
-  const requiredRemovalCount = getRequiredCoatiRemovalCount(game, playerId);
-  if (requiredRemovalCount === 0) {
-    throw new Error("A acao C do Quati nao exige remocao porque ha 2 ou mais quatis na reserva.");
-  }
-
-  const uniquePieceIds = [...new Set(pieceIds)];
-  if (uniquePieceIds.length !== requiredRemovalCount) {
-    throw new Error(`Selecione exatamente ${requiredRemovalCount} quatis para remover da floresta.`);
-  }
-
-  for (const pieceId of uniquePieceIds) {
-    const piece = game.pieces.find((candidate) => candidate.pieceId === pieceId);
-    if (!piece?.location || piece.ownerId !== playerId || piece.speciesId !== "coati") {
-      throw new Error("So e permitido remover quatis deste jogador que estejam na floresta.");
-    }
-  }
-
-  const next = cloneGameState(game);
-  const nextPlayer = findPlayer(next, playerId);
-
-  for (const pieceId of uniquePieceIds) {
-    const nextPiece = next.pieces.find((piece) => piece.pieceId === pieceId);
-    if (!nextPiece) {
-      throw new Error("Peca nao encontrada.");
-    }
-
-    nextPiece.location = null;
-  }
-
-  nextPlayer.piecesInForest = nextPlayer.piecesInForest.filter((pieceId) => !uniquePieceIds.includes(pieceId));
-  nextPlayer.reservePieces = [...nextPlayer.reservePieces, ...uniquePieceIds];
-  // Caatinga trigger: use location of first removed piece.
-  {
-    const firstRemoved = game.pieces.find((p) => uniquePieceIds.includes(p.pieceId))?.location;
-    if (firstRemoved) applyCaatingaTrigger(next, playerId, firstRemoved, "remove");
-  }
-  pruneResolvedCoatiPairBonuses(next, playerId);
-  next.log = [
-    ...next.log,
-    {
-      id: `remove_pieces_${playerId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} removeu ${requiredRemovalCount} quatis da floresta.`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "remove_piece",
-        actorPlayerId: playerId,
-        pieceIds: [...uniquePieceIds],
-        actionId: "C",
-        count: requiredRemovalCount
-      }
     }
   ];
 
