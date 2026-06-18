@@ -55,17 +55,17 @@
 }
 
 .galo-interrupt-badge {
-  position: absolute;
-  top: 82px;
+  position: fixed;
+  top: 88px;
   left: 50%;
-  z-index: 24;
+  z-index: 76;
   transform: translateX(-50%);
   display: grid;
   justify-items: center;
   gap: 2px;
-  min-width: 164px;
-  max-width: min(360px, 80vw);
-  padding: 7px 13px;
+  min-width: 190px;
+  max-width: min(420px, 72vw);
+  padding: 9px 16px;
   border-radius: 999px;
   border: 2px solid color-mix(in srgb, var(--species, var(--amber)) 74%, #fff2b8);
   background:
@@ -74,7 +74,8 @@
       rgba(8, 15, 12, 0.94));
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0.48),
-    0 0 24px color-mix(in srgb, var(--species, var(--amber)) 34%, transparent);
+    0 0 0 5px color-mix(in srgb, var(--species, var(--amber)) 18%, transparent),
+    0 0 34px color-mix(in srgb, var(--species, var(--amber)) 42%, transparent);
   pointer-events: none;
   animation: galo-interrupt-badge-pulse 1.35s ease-in-out infinite;
 }
@@ -91,7 +92,7 @@
 .galo-interrupt-badge strong {
   color: var(--paper);
   font-family: Outfit, sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -102,10 +103,10 @@
 }
 
 .galo-interrupt-banner {
-  position: absolute;
-  top: clamp(120px, 16vh, 190px);
+  position: fixed;
+  top: clamp(124px, 16vh, 184px);
   left: 50%;
-  z-index: 25;
+  z-index: 77;
   transform: translateX(-50%);
   width: clamp(300px, 40vw, 560px);
   min-width: 300px;
@@ -152,9 +153,9 @@
 }
 
 .galo-interrupt-wait-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 12;
+  z-index: 11;
   pointer-events: none;
   background:
     radial-gradient(circle at 50% 45%, transparent 0%, transparent 34%, rgba(0, 0, 0, 0.18) 62%),

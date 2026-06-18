@@ -2145,7 +2145,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <strong>{turnBanner.label}</strong>
             </div>
           )}
-          {!cleanBoardMode && galoInterrupt && (
+          {galoInterrupt && (
             <div
               className={`galo-interrupt-badge ${isCurrentGaloInterruptOwner ? "is-owner" : "is-waiting"}`}
               style={speciesVar("galo_de_campina")}
@@ -2159,7 +2159,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </strong>
             </div>
           )}
-          {!cleanBoardMode && galoInterrupt && visibleGaloInterruptBannerKey === galoInterruptKey && (
+          {galoInterrupt && (isCurrentGaloInterruptOwner || visibleGaloInterruptBannerKey === galoInterruptKey) && (
             <div
               className={`galo-interrupt-banner ${isCurrentGaloInterruptOwner ? "is-owner" : "is-waiting"}`}
               style={speciesVar("galo_de_campina")}
@@ -2174,7 +2174,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </small>
             </div>
           )}
-          {!cleanBoardMode && isCurrentPlayerWaitingForGaloInterrupt && (
+          {isCurrentPlayerWaitingForGaloInterrupt && (
             <div className="galo-interrupt-wait-overlay" aria-hidden="true" />
           )}
           {!cleanBoardMode && showTurnCountdown && room?.turnTimerMs && room?.activeTurnStartedAt && (

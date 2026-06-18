@@ -102,7 +102,7 @@ export function LeftActionDock({
     <div
       className={`hud-action hud-dock hud-left ${collapsed ? "is-collapsed" : ""} ${
         hasTurnRecap ? "has-turn-recap" : ""
-      }`}
+      } ${galoInterrupt ? "has-galo-interrupt" : ""} ${isGaloInterruptOwner ? "is-galo-interrupt-owner" : ""}`}
     >
       {game.status === "setup" && (
         <section className="panel-block setup-block">
@@ -180,7 +180,7 @@ export function LeftActionDock({
             <div className="current-action-card">
               {isGaloInterruptOwner ? (
                 <div className="galo-interrupt-callout" role="status">
-                  <strong>Entre turnos ativo</strong>
+                  <strong>Entre turnos ativo - sua vez de reagir</strong>
                   <small>
                     Selecione um galo-de-campina no local da semente coletada e mova para um local adjacente
                     destacado. Nao coleta recurso.
