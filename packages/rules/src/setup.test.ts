@@ -1676,6 +1676,121 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(1);
   });
 
+  it("does not queue Onca removal when the only piece in the field is the interrupting galo", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
+    const placeFor = (playerId: string, location: { x: number; y: number }) => {
+      game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
+    };
+    placeFor("jaguar", { x: 0, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    game = setActiveAction(game, "jaguar", 0);
+
+    const galoPieceId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
+    const jaguarMeatBefore = game.players.find((candidate) => candidate.playerId === "jaguar")!.resources.meat;
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+
+    expect(game.pendingGaloInterrupt).toEqual({
+      ownerId: "galo",
+      location: { x: 1, y: 0 },
+      interruptedPlayerId: "jaguar"
+    });
+    expect(game.pendingJaguarRemoval).toBeNull();
+
+    const target = getGaloInterruptMoveTargets(game, "galo", galoPieceId)[0];
+    game = resolveGaloInterruptMove(game, "galo", target, galoPieceId);
+
+    expect(game.pendingGaloInterrupt).toBeNull();
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === galoPieceId)?.location).toMatchObject(target);
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBefore);
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
+  it("removes the remaining galo after the interrupt when Onca entered a field with two galos", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
+    const placeFor = (playerId: string, location: { x: number; y: number }) => {
+      game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
+    };
+    placeFor("jaguar", { x: 0, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    game = setActiveAction(game, "jaguar", 0);
+
+    const galoPieces = game.pieces
+      .filter((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)
+      .sort((a, b) => a.pieceId.localeCompare(b.pieceId));
+    const movingGaloId = galoPieces[0]?.pieceId;
+    const remainingGaloId = galoPieces[1]?.pieceId;
+    const jaguarMeatBefore = game.players.find((candidate) => candidate.playerId === "jaguar")!.resources.meat;
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+
+    expect(game.pendingGaloInterrupt).not.toBeNull();
+    expect(game.pendingJaguarRemoval).toEqual({
+      playerId: "jaguar",
+      location: { x: 1, y: 0 }
+    });
+
+    const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
+    game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
+
+    expect(game.pendingJaguarRemoval).toEqual({
+      playerId: "jaguar",
+      location: { x: 1, y: 0 }
+    });
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 });
+
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);
+    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toBeNull();
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBefore + 1);
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
+  it("lets Onca choose among remaining pieces after the interrupt when more than one target stays", () => {
+    let game = createTestGameState("room", [
+      player("jaguar", "jaguar"),
+      player("galo", "galo_de_campina"),
+      player("wolf", "maned_wolf")
+    ]);
+    const placeFor = (playerId: string, location: { x: number; y: number }) => {
+      game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
+    };
+    placeFor("jaguar", { x: 0, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    placeFor("wolf", { x: 1, y: 0 });
+    game = setActiveAction(game, "jaguar", 0);
+
+    const galoPieces = game.pieces
+      .filter((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)
+      .sort((a, b) => a.pieceId.localeCompare(b.pieceId));
+    const movingGaloId = galoPieces[0]?.pieceId;
+    const remainingGaloId = galoPieces[1]?.pieceId;
+    const wolfPieceId = game.pieces.find((piece) => piece.ownerId === "wolf" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+    const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
+    game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
+
+    expect(() => moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 })).toThrow(
+      "Escolha qual peca a Onca deve remover no local de entrada."
+    );
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 }, wolfPieceId);
+
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === wolfPieceId)?.location).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toMatchObject({ x: 1, y: 0 });
+    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
   it("plays Galo-de-campina action C by attracting an own piece to a location with galo", () => {
     let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
     game = placeInitialPiece(game, "galo", { x: 1, y: 0 });

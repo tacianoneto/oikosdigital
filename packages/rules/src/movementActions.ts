@@ -279,6 +279,9 @@ export function moveJaguarForCurrentAction(
 
   const removablePieces = getRemovablePiecesAtPosition(game, playerId, destination);
   const shouldPauseRemoval = shouldPauseJaguarRemovalForGaloInterrupt(game, playerId, destination, jaguarPiece.pieceId);
+  const removablePiecesAfterGaloMove = shouldPauseRemoval
+    ? getExpectedRemovablePiecesAfterGaloInterruptMove(game, playerId, destination, jaguarPiece.pieceId)
+    : removablePieces;
   const targetPiece = targetPieceId
     ? removablePieces.find((piece) => piece.pieceId === targetPieceId)
     : removablePieces.length === 1
@@ -306,10 +309,13 @@ export function moveJaguarForCurrentAction(
     next.pendingGaloInterrupt.location.y === destination.y;
   if (pausedByGaloInterrupt) {
     nextTargetPiece = null;
-    next.pendingJaguarRemoval = {
-      playerId,
-      location: { x: destination.x, y: destination.y }
-    };
+    next.pendingJaguarRemoval =
+      removablePiecesAfterGaloMove.length > 0
+        ? {
+            playerId,
+            location: { x: destination.x, y: destination.y }
+          }
+        : null;
   }
 
   if (nextTargetPiece) {
@@ -513,6 +519,33 @@ function findExistingGaloOwnerAtPosition(game: GameState, destination: GridPosit
           piece.location.y === destination.y
       )
       .sort((a, b) => a.pieceId.localeCompare(b.pieceId))[0]?.ownerId ?? null
+  );
+}
+
+function getExpectedRemovablePiecesAfterGaloInterruptMove(
+  game: GameState,
+  playerId: string,
+  destination: GridPosition,
+  movedPieceId?: string
+): PieceState[] {
+  const galoOwnerId = findExistingGaloOwnerAtPosition(game, destination, movedPieceId);
+  if (!galoOwnerId) {
+    return getRemovablePiecesAtPosition(game, playerId, destination);
+  }
+
+  const interruptingGaloPieceId = game.pieces
+    .filter(
+      (piece) =>
+        piece.pieceId !== movedPieceId &&
+        piece.ownerId === galoOwnerId &&
+        piece.speciesId === "galo_de_campina" &&
+        piece.location?.x === destination.x &&
+        piece.location.y === destination.y
+    )
+    .sort((a, b) => a.pieceId.localeCompare(b.pieceId))[0]?.pieceId;
+
+  return getRemovablePiecesAtPosition(game, playerId, destination).filter(
+    (piece) => piece.pieceId !== interruptingGaloPieceId
   );
 }
 
