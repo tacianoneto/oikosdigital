@@ -24,6 +24,7 @@ interface SpeciesHudShellProps {
   objectiveDiscarded: boolean;
   showScenarios: boolean;
   showThreat: boolean;
+  betweenTurnsActive?: boolean;
   setEffectTarget: (key: string, element: HTMLElement | null) => void;
   onExpansionToggle: (kind: ExpansionKind, event: MouseEvent<HTMLButtonElement>) => void;
   children: ReactNode;
@@ -88,6 +89,7 @@ export function SpeciesHudShell({
   objectiveDiscarded,
   showScenarios,
   showThreat,
+  betweenTurnsActive,
   setEffectTarget,
   onExpansionToggle,
   children
@@ -120,6 +122,7 @@ export function SpeciesHudShell({
               speciesId={speciesId}
               activeActionId={activeActionId}
               accent={SPECIES_HEX[speciesId]}
+              betweenTurnsActive={betweenTurnsActive}
             />
             {children}
           </div>

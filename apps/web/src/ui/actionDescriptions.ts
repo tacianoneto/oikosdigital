@@ -39,7 +39,15 @@ const galoActionDescriptions: Partial<Record<ActionId, string>> = {
 
 export function getPassiveDescription(speciesId: SpeciesId | null | undefined): string | null {
   if (speciesId === "galo_de_campina") {
-    return "Entre turnos: campos com galo geram semente. Quando outra espécie coleta essa semente, o dono do galo move 1 galo adjacente sem coletar recurso.";
+    return "Locais de campo com algum galo-de-campina geram 1 semente em vez do recurso do local.";
+  }
+
+  return null;
+}
+
+export function getBetweenTurnsDescription(speciesId: SpeciesId | null | undefined): string | null {
+  if (speciesId === "galo_de_campina") {
+    return "Quando outra espécie coleta a semente de um campo com galo, o dono move 1 galo desse local para um local adjacente, sem coletar recurso.";
   }
 
   return null;

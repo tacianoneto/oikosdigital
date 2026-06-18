@@ -144,6 +144,16 @@
   font-weight: 800;
 }
 
+/* Shown to the interrupted active player while the galo owner resolves the
+   between-turns move. Muted + waiting cue, distinct from an actionable hint. */
+.action-box-hint--waiting {
+  color: rgba(255, 250, 240, 0.82);
+  font-style: italic;
+  background:
+    linear-gradient(180deg, rgba(40, 44, 40, 0.7), rgba(18, 22, 18, 0.82));
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
 .tatu-share-panel {
   align-self: stretch;
   display: flex;
@@ -408,6 +418,17 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     0 0 0 2px color-mix(in srgb, var(--action-accent) 55%, transparent),
     0 0 14px color-mix(in srgb, var(--action-accent) 45%, transparent);
+}
+
+/* Passive (*) and between-turns (↺) are not regular A/B/C/D steps: dashed
+   outline sets them apart from the numbered action tabs. */
+.action-steps-tab--passive,
+.action-steps-tab--between-turns {
+  border-style: dashed;
+}
+
+.action-steps-tab--between-turns .action-steps-tab-letter {
+  font-size: 1.15em;
 }
 
 .action-steps-tab-letter {

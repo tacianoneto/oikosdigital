@@ -244,7 +244,8 @@ describe("getSelectablePieceIds", () => {
           (piece) =>
             piece.ownerId === wolfPlayerId &&
             piece.speciesId === "galo_de_campina" &&
-            piece.location
+            piece.location &&
+            getValidPieceMovementDestinations(galo, wolfPlayerId, piece.pieceId).length > 0
         )
         .map((piece) => piece.pieceId)
     );

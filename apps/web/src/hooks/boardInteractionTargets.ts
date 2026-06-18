@@ -231,7 +231,23 @@ export function getSelectablePieceIds({
     return getWolfRemovableBasePieceIds(game, game.activePlayerId);
   }
 
-  if (activeSpeciesId === "galo_de_campina" && (activeActionId === "B" || activeActionId === "C") && game.activePlayerId) {
+  if (activeSpeciesId === "galo_de_campina" && activeActionId === "C" && game.activePlayerId) {
+    const activeId = game.activePlayerId;
+    // Attract only highlights galos that actually have a valid attract move
+    // (a card-pattern destination already holding another galo). Galos with no
+    // such destination cannot be attracted, so they stay unmarked.
+    return game.pieces
+      .filter(
+        (piece) =>
+          piece.ownerId === activeId &&
+          piece.speciesId === "galo_de_campina" &&
+          piece.location &&
+          getValidPieceMovementDestinations(game, activeId, piece.pieceId).length > 0
+      )
+      .map((piece) => piece.pieceId);
+  }
+
+  if (activeSpeciesId === "galo_de_campina" && activeActionId === "B" && game.activePlayerId) {
     return game.pieces
       .filter(
         (piece) =>

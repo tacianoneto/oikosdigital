@@ -556,9 +556,12 @@ export function SpeciesActionHud(props: SpeciesActionHudProps) {
   }
 
   const ActionContent = ACTION_CONTENT[speciesId];
+  const interrupt = props.game.pendingGaloInterrupt;
   const isActivePlayer = props.game.activePlayerId === props.player.playerId;
-  const isGaloInterruptOwner =
-    speciesId === "galo_de_campina" && props.game.pendingGaloInterrupt?.ownerId === props.player.playerId;
+  const isGaloInterruptOwner = interrupt?.ownerId === props.player.playerId;
+  // The interrupted active player must wait while the galo owner resolves the
+  // between-turns move; their own action stays paused.
+  const isWaitingForInterrupt = Boolean(interrupt) && isActivePlayer && !isGaloInterruptOwner;
 
   return (
     <SpeciesHudShell
@@ -571,10 +574,17 @@ export function SpeciesActionHud(props: SpeciesActionHudProps) {
       objectiveDiscarded={props.objectiveDiscarded}
       showScenarios={props.showScenarios}
       showThreat={props.showThreat}
+      betweenTurnsActive={isGaloInterruptOwner}
       setEffectTarget={props.setEffectTarget}
       onExpansionToggle={props.onExpansionToggle}
     >
-      {(isActivePlayer || isGaloInterruptOwner) && <ActionContent {...props} />}
+      {isWaitingForInterrupt ? (
+        <div className="action-box-hint action-box-hint--waiting">
+          Aguarde o jogador realizar a ação entre turnos.
+        </div>
+      ) : (isActivePlayer || isGaloInterruptOwner) ? (
+        <ActionContent {...props} />
+      ) : null}
     </SpeciesHudShell>
   );
 }
