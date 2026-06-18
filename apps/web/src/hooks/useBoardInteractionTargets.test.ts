@@ -324,6 +324,35 @@ describe("getMovementInteractionTargets", () => {
       expected.length === 0
     );
   });
+
+  it("hides movement targets while Jaguar removal is pending", () => {
+    const game = createJaguarTutorialRoom().game!;
+    const pieceId = game.pieces.find(
+      (piece) => piece.ownerId === game.activePlayerId && piece.speciesId === "jaguar"
+    )!.pieceId;
+    const targetPiece = game.pieces.find((piece) => piece.ownerId !== game.activePlayerId && piece.location)!;
+    const pendingGame = {
+      ...game,
+      pendingJaguarRemoval: {
+        playerId: game.activePlayerId!,
+        location: { x: targetPiece.location!.x, y: targetPiece.location!.y }
+      }
+    };
+
+    const result = getMovementInteractionTargets({
+      activeActionId: "A",
+      activeSpeciesId: "jaguar",
+      canControlActivePlayer: true,
+      controlledPlayerId: game.activePlayerId,
+      game: pendingGame,
+      hasPendingCoatiPairBonus: false,
+      selectedPieceId: pieceId,
+      tutorial: inactiveTutorial
+    });
+
+    expect(result.movementTargets).toEqual([]);
+    expect(result.displayMovementTargets).toEqual([]);
+  });
 });
 
 describe("getSpeciesPlacementTargets", () => {

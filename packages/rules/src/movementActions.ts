@@ -36,6 +36,10 @@ export function getValidPieceMovementDestinations(game: GameState, playerId: str
     return [];
   }
 
+  if (game.pendingJaguarRemoval) {
+    return [];
+  }
+
   const player = game.players.find((candidate) => candidate.playerId === playerId);
   const action = getCurrentAction(game);
   if (player?.speciesId === "maned_wolf" && action === "A") {

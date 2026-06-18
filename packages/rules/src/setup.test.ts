@@ -1782,9 +1782,14 @@ describe("setup placement", () => {
     const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
     game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
 
+    const jaguarPieceId = game.pieces.find(
+      (piece) => piece.ownerId === "jaguar" && piece.speciesId === "jaguar" && piece.location
+    )?.pieceId;
+
     expect(() => moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 })).toThrow(
       "Escolha qual peca a Onca deve remover no local de entrada."
     );
+    expect(getValidPieceMovementDestinations(game, "jaguar", jaguarPieceId!)).toEqual([]);
 
     game = moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 }, wolfPieceId);
 
