@@ -426,6 +426,16 @@
   border-style: dashed;
 }
 
+/* The Edo SZ display font has no asterisk glyph, so the * tab rendered blank.
+   Use the body font and nudge the high-sitting asterisk down to center it. */
+.action-steps-tab--passive .action-steps-tab-letter {
+  font-family: Outfit, sans-serif;
+  font-size: 1.7em;
+  line-height: 1;
+  padding-top: 0;
+  transform: translateY(0.22em);
+}
+
 .action-steps-tab-letter {
   padding-top: 2px;
 }

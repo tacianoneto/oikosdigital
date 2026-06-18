@@ -90,10 +90,11 @@ export function ActionStepsViewer({
       </div>
       <div className="action-steps-body">
         <span className="action-steps-eyebrow">
-          {selected === "*" ? "Passiva" : `Ação ${selected}`}
-          {(selected === "*" ? betweenTurnsActive : selected === activeActionId && !betweenTurnsActive)
-            ? " · em andamento"
-            : " · consulta"}
+          {selected === "*"
+            ? betweenTurnsActive
+              ? "Entre turnos · em andamento"
+              : "Entre turnos"
+            : `Ação ${selected}${selected === activeActionId && !betweenTurnsActive ? " · em andamento" : " · consulta"}`}
         </span>
         <p className="action-steps-desc">
           <ResourceText
