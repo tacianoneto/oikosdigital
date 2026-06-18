@@ -8,12 +8,14 @@ import {
   applySpeciesScoreAction
 } from "./speciesActions";
 import { getCurrentAction } from "./state";
-import { completeCurrentAction, movePieceForCurrentAction } from "./setup";
+import { completeCurrentAction, movePieceForCurrentAction, placeForestCard } from "./setup";
 
 export function applyGameIntent(game: GameState, playerId: string, intent: GameIntent): GameState {
   switch (intent.type) {
     case "action.complete":
       return completeCurrentAction(game, playerId);
+    case "forest.place-card":
+      return placeForestCard(game, playerId, intent.cardId, { x: intent.x, y: intent.y }, intent.rotation);
     case "species.add-piece":
       return applySpeciesPlacementAction(game, playerId, intent.speciesId, requireCurrentAction(game), {
         x: intent.x,

@@ -63,6 +63,7 @@ export type ScoringSpeciesId = "armadillo" | "capuchin" | "galo_de_campina" | "m
 
 export type GameIntent =
   | { type: "action.complete" }
+  | { type: "forest.place-card"; cardId: string; x: number; y: number; rotation: 0 | 90 | 180 | 270 }
   | { type: "species.add-piece"; speciesId: SpeciesId; x: number; y: number }
   | { type: "species.score"; speciesId: ScoringSpeciesId }
   | { type: "species.hide-piece"; speciesId: "armadillo"; pieceId: string }

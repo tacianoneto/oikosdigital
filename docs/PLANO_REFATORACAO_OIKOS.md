@@ -184,9 +184,17 @@ Status atual: em andamento. Blocos concluidos nesta rodada:
   - `getAddPieceHandler` em `OikosApp.helpers.tsx`
 - `roomApi` especifico por especie foi preservado como fachada temporaria, mas agora boa parte dele encaminha para `game:intent`.
 
+Bloco concluido (carta de floresta):
+
+- Criado intent `forest.place-card` em `packages/shared/src/index.ts`.
+- `applyGameIntent` passou a despachar `forest.place-card` para `placeForestCard` em `packages/rules/src/gameIntent.ts`.
+- `apps/web/src/socket.ts`: `roomApi.placeForestCard` agora envia `game:intent` (assinatura preservada).
+- `apps/web/src/hooks/useBoardCardHandlers.ts`: caminho local passou a usar `applyGameIntent` em vez de chamar `placeForestCard` direto, alinhando local/online.
+- Evento legado `forest:place-card` mantido no servidor para compatibilidade.
+- `packages/rules/src/gameIntent.test.ts`: novo teste compara `applyGameIntent({forest.place-card})` com `placeForestCard` legado (forest.cards, players, log e `activePlayedForestCardId`).
+
 Entregas pendentes:
 
-- Migrar intent para colocar carta de floresta.
 - Migrar intent para setup inicial.
 - Migrar intent para resolucoes especiais ainda fora do envelope:
   - bonus passivo do Quati
@@ -215,6 +223,7 @@ Validacao:
   - `npm.cmd run test`: passou.
   - `npm.cmd run build`: passou.
   - Adicionado `packages/rules/src/gameIntent.test.ts`, comparando `applyGameIntent` com o aplicador legado de pontuacao.
+  - Bloco carta de floresta (rodada atual): `npm.cmd run typecheck`, `npm.cmd run test` (incl. novo teste `forest.place-card`) e `npm.cmd run build` passaram.
   - Smoke manual com Chrome headless:
     - login Supabase com `taciano_neto@hotmail.com`: passou.
     - partida local: abriu `Teste Local`, iniciou partida local e renderizou canvas na rodada 1/setup.
@@ -223,6 +232,7 @@ Validacao:
 - Pendencias de validacao desta rodada:
   - Teste de servidor especifico para `game:intent` ainda pendente; o caminho esta exposto e tipado, mas falta teste socket/room dedicado.
   - Partida online com dois jogadores/bot ate carta, movimento, remocao, pontuacao, passiva e fim de turno nao foi executada nesta rodada; o lobby online criado no smoke nao expunha controle de bot e o servidor exigiu minimo de 2 jogadores.
+  - Bloco carta de floresta: cobertura por teste de regras (paridade com aplicador legado) + typecheck/build. Smoke manual de colocar carta no canvas online com dois jogadores nao foi reexecutado nesta rodada.
 
 Aceite:
 

@@ -159,8 +159,7 @@ export const roomApi = {
     x: number,
     y: number,
     rotation: ForestCardState["rotation"] = 0
-  ) =>
-    emitWithReply<PublicRoomState>(socket, "forest:place-card", { roomId, cardId, x, y, rotation }),
+  ) => sendIntent(socket, roomId, { type: "forest.place-card", cardId, x, y, rotation }),
   completeAction: (socket: OikosSocket, roomId: string) => sendIntent(socket, roomId, { type: "action.complete" }),
   addCoati: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "coati", x, y }),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
-import { placeForestCard, placeInitialPiece } from "@oikos/rules";
+import { applyGameIntent, placeInitialPiece } from "@oikos/rules";
 import type { PublicRoomState } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 import type { PendingPlacement } from "./useActionSelection";
@@ -147,7 +147,13 @@ export function useBoardCardHandlers({
           return;
         }
         const cardId = selectedHandCardId;
-        const nextGame = placeForestCard(game, activePlayerId, cardId, position, rotation);
+        const nextGame = applyGameIntent(game, activePlayerId, {
+          type: "forest.place-card",
+          cardId,
+          x: position.x,
+          y: position.y,
+          rotation
+        });
         setRoom((current) => current ? {
           ...current,
           status: "active",
