@@ -1,20 +1,19 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { ActionId, SpeciesId } from "@oikos/shared";
 import { speciesDefinitions } from "@oikos/content";
-import { getActionDescription, getBetweenTurnsDescription, getPassiveDescription } from "./actionDescriptions";
+import { getActionDescription, getPassiveDescription } from "./actionDescriptions";
 import { ResourceText } from "./ResourceText";
 
-// Special step tabs that are not regular A/B/C/D actions: "*" is the species
-// passive, "ET" is the between-turns reaction (shown as ↺).
-type StepTab = ActionId | "*" | "ET";
-const BETWEEN_TURNS_GLYPH = "↺";
+// Special step tab that is not a regular A/B/C/D action: "*" is the species
+// passive (for the galo, it also covers the between-turns reaction).
+type StepTab = ActionId | "*";
 
 interface ActionStepsViewerProps {
   speciesId: SpeciesId;
   activeActionId: ActionId | null;
   accent?: string;
   variant?: "hud" | "card";
-  // When true, the between-turns (ET) tab is the active step for this player
+  // When true, the passive (*) step is the active reaction for this player
   // (the galo owner must move a galo during another player's turn).
   betweenTurnsActive?: boolean;
 }
@@ -34,35 +33,28 @@ export function ActionStepsViewer({
   const species = speciesDefinitions[speciesId];
   const actions = species.actions;
   const passiveDescription = getPassiveDescription(speciesId);
-  const betweenTurnsDescription = getBetweenTurnsDescription(speciesId);
-  const tabs: StepTab[] = [
-    ...(passiveDescription ? (["*"] as StepTab[]) : []),
-    ...actions,
-    ...(betweenTurnsDescription ? (["ET"] as StepTab[]) : [])
-  ];
+  const tabs: StepTab[] = passiveDescription ? ["*", ...actions] : [...actions];
   const fallback: StepTab = activeActionId ?? actions[0] ?? "A";
   const [selected, setSelected] = useState<StepTab>(fallback);
 
   // Sync the preview to the active step whenever the turn advances or species
   // changes, so the panel snaps back to "what you must do now" by default. The
   // between-turns reaction takes priority: when it is the player's pending step
-  // the panel jumps to the ET tab.
+  // the panel jumps to the passive (*) tab.
   useEffect(() => {
-    if (betweenTurnsActive && betweenTurnsDescription) {
-      setSelected("ET");
+    if (betweenTurnsActive && passiveDescription) {
+      setSelected("*");
     } else if (activeActionId) {
       setSelected(activeActionId);
     } else if (actions.length > 0) {
       setSelected(actions[0]);
     }
-  }, [activeActionId, betweenTurnsActive, betweenTurnsDescription, speciesId, actions]);
+  }, [activeActionId, betweenTurnsActive, passiveDescription, speciesId, actions]);
 
   const style = accent ? ({ "--action-accent": accent } as CSSProperties) : undefined;
 
-  const tabLabel = (id: StepTab) => (id === "*" ? "*" : id === "ET" ? BETWEEN_TURNS_GLYPH : id);
   const tabTitle = (id: StepTab, isActive: boolean) => {
-    if (id === "*") return "Consultar passiva";
-    if (id === "ET") return isActive ? "Entre turnos: mova 1 galo" : "Consultar entre turnos";
+    if (id === "*") return isActive ? "Entre turnos: mova 1 galo" : "Consultar passiva";
     return isActive ? `Ação em andamento: ${id}` : `Consultar ação ${id}`;
   };
 
@@ -70,12 +62,11 @@ export function ActionStepsViewer({
     <div className={`action-steps action-steps--${variant}`} style={style}>
       <div className="action-steps-tabs" role="tablist" aria-label="Ações da espécie">
         {tabs.map((id) => {
-          const isActive = id === "ET" ? betweenTurnsActive : id === activeActionId && !betweenTurnsActive;
+          const isActive = id === "*" ? betweenTurnsActive : id === activeActionId && !betweenTurnsActive;
           const isSelected = id === selected;
           const classes = [
             "action-steps-tab",
             id === "*" && "action-steps-tab--passive",
-            id === "ET" && "action-steps-tab--between-turns",
             isActive && "is-active",
             isSelected && "is-selected"
           ]
@@ -91,7 +82,7 @@ export function ActionStepsViewer({
               onClick={() => setSelected(id)}
               title={tabTitle(id, isActive)}
             >
-              <span className="action-steps-tab-letter">{tabLabel(id)}</span>
+              <span className="action-steps-tab-letter">{id}</span>
               {isActive && <span className="action-steps-tab-dot" aria-hidden="true" />}
             </button>
           );
@@ -99,20 +90,14 @@ export function ActionStepsViewer({
       </div>
       <div className="action-steps-body">
         <span className="action-steps-eyebrow">
-          {selected === "*" ? "Passiva" : selected === "ET" ? "Entre turnos" : `Ação ${selected}`}
-          {(selected === "ET" ? betweenTurnsActive : selected === activeActionId && !betweenTurnsActive)
+          {selected === "*" ? "Passiva" : `Ação ${selected}`}
+          {(selected === "*" ? betweenTurnsActive : selected === activeActionId && !betweenTurnsActive)
             ? " · em andamento"
             : " · consulta"}
         </span>
         <p className="action-steps-desc">
           <ResourceText
-            text={
-              selected === "*"
-                ? passiveDescription ?? ""
-                : selected === "ET"
-                  ? betweenTurnsDescription ?? ""
-                  : getActionDescription(speciesId, selected)
-            }
+            text={selected === "*" ? passiveDescription ?? "" : getActionDescription(speciesId, selected)}
           />
         </p>
       </div>

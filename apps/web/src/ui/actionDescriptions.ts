@@ -45,14 +45,6 @@ export function getPassiveDescription(speciesId: SpeciesId | null | undefined): 
   return null;
 }
 
-export function getBetweenTurnsDescription(speciesId: SpeciesId | null | undefined): string | null {
-  if (speciesId === "galo_de_campina") {
-    return "Quando outra espécie coleta a semente de um campo com galo, o dono move 1 galo desse local para um local adjacente, sem coletar recurso.";
-  }
-
-  return null;
-}
-
 const armadilloActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Adicione 1 tatu em um local de semente.",
   B: "Mova 1 tatu conforme a carta jogada.",
