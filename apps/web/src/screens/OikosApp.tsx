@@ -1205,11 +1205,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     if (autoScoredRef.current === key) {
       return;
     }
-    autoScoredRef.current = key;
     // Armadillo highlights each rival species sharing a tile; give the player
     // longer to read the portraits before the automatic score advances.
     const scoreDelayMs = species === "armadillo" ? 3500 : 1500;
     const timer = window.setTimeout(() => {
+      // Mark only when the timer actually fires. Handlers live in this effect's
+      // deps and change on every `room` broadcast, so a state update inside the
+      // delay window re-runs the effect and its cleanup cancels this timer. If we
+      // marked the key before scheduling, the re-run would early-return and never
+      // reschedule, leaving the D score stuck forever.
+      autoScoredRef.current = key;
       if (species === "capuchin") {
         handleScoreCapuchin();
       } else if (species === "macaw") {
