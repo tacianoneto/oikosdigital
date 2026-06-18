@@ -24,6 +24,24 @@ const player: PlayerState = {
   turnsTaken: 0
 };
 
+const jaguarPlayer: PlayerState = {
+  ...player,
+  playerId: "jaguar-1",
+  name: "Onca",
+  speciesId: "jaguar",
+  reservePieces: [],
+  piecesInForest: ["jaguar-piece"]
+};
+
+const galoPlayer: PlayerState = {
+  ...player,
+  playerId: "galo-1",
+  name: "Galo",
+  speciesId: "galo_de_campina",
+  reservePieces: [],
+  piecesInForest: ["galo-piece"]
+};
+
 function game(status: GameState["status"]): GameState {
   return {
     gameId: "game-1",
@@ -36,6 +54,7 @@ function game(status: GameState["status"]): GameState {
     activePlayedForestCardId: null,
     pendingCoatiPairBonus: null,
     pendingMacawMovedPiece: null,
+    pendingJaguarRemoval: null,
     pendingGaloInterrupt: null,
     pendingWolfMoves: null,
     pendingExtraTurnPlayerId: null,
@@ -172,5 +191,66 @@ describe("LeftActionDock", () => {
     expect(markup).toContain("Turno ativo");
     expect(markup).toContain("Alvos válidos");
     expect(markup).toContain("Remover peça");
+  });
+  it("shows the Galo between-turn callout instead of Jaguar removal copy to the galo owner", () => {
+    const activeGame = {
+      ...game("active"),
+      activePlayerId: jaguarPlayer.playerId,
+      activeActionIndex: 0,
+      pendingGaloInterrupt: {
+        ownerId: galoPlayer.playerId,
+        location: { x: 1, y: 0 },
+        interruptedPlayerId: jaguarPlayer.playerId
+      },
+      players: [jaguarPlayer, galoPlayer]
+    };
+
+    const markup = renderToStaticMarkup(
+      <LeftActionDock
+        activeActionId="A"
+        activeGamePlayer={jaguarPlayer}
+        activeSpecies={speciesDefinitions.jaguar}
+        armadilloHideablePieceCount={0}
+        armadilloShareScore={0}
+        canControlActivePlayer={false}
+        canPlaceSetupPiece={false}
+        canResolveCacaIlegal={false}
+        canSkipJaguarMove={false}
+        capuchinHabitatScore={0}
+        capuchinPlacementTargetCount={0}
+        capuchinReserveCount={0}
+        cacaIlegalPending={false}
+        cacaIlegalRemovalMode={false}
+        collapsed={false}
+        currentGamePlayer={galoPlayer}
+        game={activeGame}
+        hasPendingCoatiPairBonus={false}
+        hasSelectedJaguarDestination
+        hasTurnRecap={false}
+        isBasicTutorial={false}
+        macawEggTargetCount={0}
+        macawLineScore={0}
+        requiredCoatiRemovalCount={0}
+        selectedPieceId={null}
+        selectedRemovalPieceIds={[]}
+        selectedWolfTargetPieceId={null}
+        setupActivePlayer={null}
+        setupNeeded={0}
+        setupPlaced={0}
+        tutorialActive={false}
+        wolfMeatTargetCount={0}
+        wolfRemovableBasePieceCount={0}
+        onCancelCacaIlegalRemoval={noop}
+        onCompleteAction={noop}
+        onHideArmadillo={noop}
+        onRemoveSelectedPieces={noop}
+        onRemoveWolfBasePiece={noop}
+        onResolveSelectedCacaIlegalPiece={noop}
+      />
+    );
+
+    expect(markup).toContain("Entre turnos ativo");
+    expect(markup).toContain("mova para um local adjacente");
+    expect(markup).not.toContain("destino selecionado");
   });
 });

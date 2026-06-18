@@ -115,7 +115,7 @@ export function SpeciesHudShell({
         <img src={bottomAsset} alt="" className={`${prefix}-bg`} />
         <div className={`${prefix}-action-text`}>
           <div
-            className="action-box"
+            className={`action-box ${betweenTurnsActive ? "action-box--urgent" : ""}`}
             style={{ "--action-accent": SPECIES_HEX[speciesId] } as CSSProperties}
           >
             <ActionStepsViewer

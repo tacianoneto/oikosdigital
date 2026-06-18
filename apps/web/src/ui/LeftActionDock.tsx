@@ -94,6 +94,10 @@ export function LeftActionDock({
   onRemoveWolfBasePiece,
   onResolveSelectedCacaIlegalPiece
 }: LeftActionDockProps) {
+  const galoInterrupt = game.pendingGaloInterrupt;
+  const isGaloInterruptOwner = Boolean(galoInterrupt && currentGamePlayer?.playerId === galoInterrupt.ownerId);
+  const isWaitingForGaloInterrupt = Boolean(galoInterrupt && !isGaloInterruptOwner);
+
   return (
     <div
       className={`hud-action hud-dock hud-left ${collapsed ? "is-collapsed" : ""} ${
@@ -174,11 +178,26 @@ export function LeftActionDock({
           )}
           {activeSpecies && activeActionId && !isBasicTutorial && (
             <div className="current-action-card">
-              <ActionStepsViewer
-                speciesId={activeSpecies.speciesId}
-                activeActionId={activeActionId}
-                variant="card"
-              />
+              {isGaloInterruptOwner ? (
+                <div className="galo-interrupt-callout" role="status">
+                  <strong>Entre turnos ativo</strong>
+                  <small>
+                    Selecione um galo-de-campina no local da semente coletada e mova para um local adjacente
+                    destacado. Nao coleta recurso.
+                  </small>
+                </div>
+              ) : isWaitingForGaloInterrupt ? (
+                <div className="galo-interrupt-callout is-waiting" role="status">
+                  <strong>Aguardando Galo-de-campina</strong>
+                  <small>O jogo continua depois que o jogador do Galo mover 1 peca entre turnos.</small>
+                </div>
+              ) : (
+                <ActionStepsViewer
+                  speciesId={activeSpecies.speciesId}
+                  activeActionId={activeActionId}
+                  variant="card"
+                />
+              )}
               {activeSpecies.speciesId === "coati" && hasPendingCoatiPairBonus && canControlActivePlayer && (
                 <small>
                   A passiva foi ativada: adicione 1 quati da reserva em uma carta adjacente. Essa adição marca
@@ -186,6 +205,7 @@ export function LeftActionDock({
                 </small>
               )}
               {activeSpecies.speciesId === "coati" &&
+                !galoInterrupt &&
                 !hasPendingCoatiPairBonus &&
                 activeActionId === "A" &&
                 canControlActivePlayer && (
@@ -207,12 +227,14 @@ export function LeftActionDock({
                   </>
                 )}
               {activeSpecies.speciesId === "coati" &&
+                !galoInterrupt &&
                 !hasPendingCoatiPairBonus &&
                 activeActionId === "B" &&
                 canControlActivePlayer && (
                   <small>Selecione um meeple do Quati no tabuleiro e clique em um destino destacado.</small>
                 )}
               {activeSpecies.speciesId === "coati" &&
+                !galoInterrupt &&
                 !hasPendingCoatiPairBonus &&
                 activeActionId === "C" &&
                 canControlActivePlayer &&
@@ -223,6 +245,7 @@ export function LeftActionDock({
                   </button>
                 )}
               {activeSpecies.speciesId === "coati" &&
+                !galoInterrupt &&
                 !hasPendingCoatiPairBonus &&
                 activeActionId === "C" &&
                 canControlActivePlayer &&
@@ -242,6 +265,15 @@ export function LeftActionDock({
                   </>
                 )}
               {activeSpecies.speciesId === "jaguar" &&
+                !galoInterrupt &&
+                game.pendingJaguarRemoval &&
+                (activeActionId === "A" || activeActionId === "B") &&
+                canControlActivePlayer && (
+                  <small>Clique em uma peca no local de entrada da Onca para remover e concluir a acao.</small>
+                )}
+              {activeSpecies.speciesId === "jaguar" &&
+                !galoInterrupt &&
+                !game.pendingJaguarRemoval &&
                 (activeActionId === "A" || activeActionId === "B") &&
                 canControlActivePlayer && (
                   <>
@@ -260,6 +292,7 @@ export function LeftActionDock({
                   </>
                 )}
               {activeSpecies.speciesId === "jaguar" &&
+                !galoInterrupt &&
                 activeActionId === "C" &&
                 canControlActivePlayer && (
                   <small>

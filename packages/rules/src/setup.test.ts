@@ -1619,6 +1619,63 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(0);
   });
 
+  it("pauses Onca removal for the Galo-de-campina between-turn move before choosing a removed piece", () => {
+    let game = createTestGameState("room", [
+      player("jaguar", "jaguar"),
+      player("galo", "galo_de_campina"),
+      player("wolf", "maned_wolf"),
+      player("coati", "coati")
+    ]);
+    const placeFor = (playerId: string, location: { x: number; y: number }) => {
+      game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
+    };
+    placeFor("jaguar", { x: 0, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    placeFor("wolf", { x: 1, y: 0 });
+    placeFor("coati", { x: 1, y: 0 });
+    placeFor("galo", { x: -1, y: -1 });
+    placeFor("wolf", { x: -1, y: 0 });
+    placeFor("coati", { x: 0, y: 1 });
+    game = setActiveAction(game, "jaguar", 0);
+
+    const galoPieceId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
+    const coatiPieceId = game.pieces.find((piece) => piece.ownerId === "coati" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
+    const jaguarMeatBeforeRemoval = game.players.find((candidate) => candidate.playerId === "jaguar")!.resources.meat;
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+
+    expect(game.pendingGaloInterrupt).toEqual({
+      ownerId: "galo",
+      location: { x: 1, y: 0 },
+      interruptedPlayerId: "jaguar"
+    });
+    expect(game.pendingJaguarRemoval).toEqual({
+      playerId: "jaguar",
+      location: { x: 1, y: 0 }
+    });
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(0);
+
+    game = resolveGaloInterruptMove(game, "galo", { x: 0, y: 0 }, galoPieceId);
+
+    expect(game.pendingGaloInterrupt).toBeNull();
+    expect(game.pendingJaguarRemoval).toEqual({
+      playerId: "jaguar",
+      location: { x: 1, y: 0 }
+    });
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(0);
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: -1, y: -1 }, coatiPieceId);
+
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === coatiPieceId)?.location).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === galoPieceId)?.location).toMatchObject({ x: 0, y: 0 });
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBeforeRemoval + 1);
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
   it("plays Galo-de-campina action C by attracting an own piece to a location with galo", () => {
     let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
     game = placeInitialPiece(game, "galo", { x: 1, y: 0 });
@@ -2642,6 +2699,7 @@ function setActiveAction(game: ReturnType<typeof createInitialGameState>, player
     activePlayedForestCardId: null,
     pendingCoatiPairBonus: null,
     pendingMacawMovedPiece: null,
+    pendingJaguarRemoval: null,
     pendingGaloInterrupt: null,
     pendingWolfMoves: null
   };

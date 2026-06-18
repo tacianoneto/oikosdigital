@@ -1201,6 +1201,42 @@
   padding-bottom: 7px;
 }
 
+.galo-interrupt-callout {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 60%, rgba(255, 255, 255, 0.18));
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--species, var(--amber)) 26%, rgba(20, 30, 22, 0.9)),
+      rgba(9, 17, 13, 0.94));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--species, var(--amber)) 30%, transparent);
+  animation: galo-dock-pulse 1.25s ease-in-out infinite;
+}
+
+.galo-interrupt-callout.is-waiting {
+  animation: none;
+  opacity: 0.86;
+}
+
+.galo-interrupt-callout strong {
+  color: var(--species, var(--amber));
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.galo-interrupt-callout small {
+  color: rgba(255, 250, 240, 0.92);
+  line-height: 1.35;
+}
+
+@keyframes galo-dock-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.18); }
+}
+
 .active-turn-card {
   position: relative;
   display: grid;

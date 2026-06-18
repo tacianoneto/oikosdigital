@@ -262,6 +262,10 @@ export function moveJaguarForCurrentAction(
     throw new Error("A Onca so move e remove pecas nas acoes A e B.");
   }
 
+  if (game.pendingJaguarRemoval) {
+    return resolvePendingJaguarRemoval(game, playerId, destination, targetPieceId);
+  }
+
   const jaguarPiece = getJaguarPieceInForest(game, playerId);
   if (!jaguarPiece?.location) {
     throw new Error("A Onca precisa estar na floresta para se mover.");
@@ -274,26 +278,39 @@ export function moveJaguarForCurrentAction(
   }
 
   const removablePieces = getRemovablePiecesAtPosition(game, playerId, destination);
+  const shouldPauseRemoval = shouldPauseJaguarRemovalForGaloInterrupt(game, playerId, destination, jaguarPiece.pieceId);
   const targetPiece = targetPieceId
     ? removablePieces.find((piece) => piece.pieceId === targetPieceId)
     : removablePieces.length === 1
       ? removablePieces[0]
       : null;
 
-  if (removablePieces.length > 0 && !targetPiece) {
+  if (removablePieces.length > 0 && !targetPiece && !shouldPauseRemoval) {
     throw new Error("Escolha qual peca a Onca deve remover no local de entrada.");
   }
 
   const next = cloneGameState(game);
   const nextPlayer = findPlayer(next, playerId);
   const nextJaguarPiece = next.pieces.find((piece) => piece.pieceId === jaguarPiece.pieceId);
-  const nextTargetPiece = targetPiece ? next.pieces.find((piece) => piece.pieceId === targetPiece.pieceId) : null;
+  let nextTargetPiece = targetPiece ? next.pieces.find((piece) => piece.pieceId === targetPiece.pieceId) : null;
   if (!nextJaguarPiece || (targetPiece && (!nextTargetPiece || !nextTargetPiece.location))) {
     throw new Error("Peca nao encontrada.");
   }
 
   nextJaguarPiece.location = createPieceLocation(game, destination);
   collectMovementDestinationResource(next, playerId, destination, jaguarPiece.pieceId);
+  const pausedByGaloInterrupt =
+    removablePieces.length > 0 &&
+    next.pendingGaloInterrupt?.interruptedPlayerId === playerId &&
+    next.pendingGaloInterrupt.location.x === destination.x &&
+    next.pendingGaloInterrupt.location.y === destination.y;
+  if (pausedByGaloInterrupt) {
+    nextTargetPiece = null;
+    next.pendingJaguarRemoval = {
+      playerId,
+      location: { x: destination.x, y: destination.y }
+    };
+  }
 
   if (nextTargetPiece) {
     const removedPlayer = findPlayer(next, nextTargetPiece.ownerId);
@@ -328,6 +345,76 @@ export function moveJaguarForCurrentAction(
         pieceIds: nextTargetPiece ? [nextTargetPiece.pieceId] : [nextJaguarPiece.pieceId],
         actionId: (getCurrentAction(game) as "A" | "B" | "C" | "D" | null) ?? undefined,
         resources: nextTargetPiece ? ["meat"] : undefined
+      }
+    }
+  ];
+
+  if (pausedByGaloInterrupt) {
+    return next;
+  }
+
+  advanceActiveAction(next);
+  return next;
+}
+
+function resolvePendingJaguarRemoval(
+  game: GameState,
+  playerId: string,
+  _destination: GridPosition,
+  targetPieceId?: string
+): GameState {
+  const pending = game.pendingJaguarRemoval;
+  if (!pending || pending.playerId !== playerId) {
+    throw new Error("Nao ha remocao pendente da Onca para este jogador.");
+  }
+
+  const removablePieces = getRemovablePiecesAtPosition(game, playerId, pending.location);
+  const targetPiece = targetPieceId
+    ? removablePieces.find((piece) => piece.pieceId === targetPieceId)
+    : removablePieces.length === 1
+      ? removablePieces[0]
+      : null;
+  if (!targetPiece) {
+    throw new Error("Escolha qual peca a Onca deve remover no local de entrada.");
+  }
+
+  const next = cloneGameState(game);
+  const nextPlayer = findPlayer(next, playerId);
+  const nextTargetPiece = next.pieces.find((piece) => piece.pieceId === targetPiece.pieceId);
+  if (!nextTargetPiece?.location) {
+    throw new Error("Peca nao encontrada.");
+  }
+
+  const removedPlayer = findPlayer(next, nextTargetPiece.ownerId);
+  nextTargetPiece.location = null;
+  removedPlayer.piecesInForest = removedPlayer.piecesInForest.filter((pieceId) => pieceId !== nextTargetPiece.pieceId);
+  removedPlayer.reservePieces = [...removedPlayer.reservePieces, nextTargetPiece.pieceId];
+  nextPlayer.resources.meat += 1;
+  next.pendingJaguarRemoval = null;
+
+  if (nextTargetPiece.speciesId === "coati") {
+    pruneResolvedCoatiPairBonuses(next, nextTargetPiece.ownerId);
+  }
+
+  applyCaatingaTrigger(next, playerId, pending.location, "remove");
+
+  const jaguarDestCard = next.forest.cards.find((card) => card.x === pending.location.x && card.y === pending.location.y);
+  next.log = [
+    ...next.log,
+    {
+      id: `jaguar_pending_remove_${nextTargetPiece.pieceId}_${next.log.length + 1}`,
+      message: `${nextPlayer.name} removeu 1 peca com a Onca, depois do movimento entre turnos do Galo-de-campina.`,
+      createdAt: Date.now(),
+      payload: {
+        kind: "remove_piece",
+        actorPlayerId: playerId,
+        cardInstanceId: jaguarDestCard?.instanceId,
+        cardDefinitionId: jaguarDestCard?.definitionId,
+        habitat: jaguarDestCard ? getCardDefinitionOrNull(jaguarDestCard.definitionId)?.habitat ?? undefined : undefined,
+        location: { x: pending.location.x, y: pending.location.y },
+        pieceIds: [nextTargetPiece.pieceId],
+        actionId: (getCurrentAction(game) as "A" | "B" | "C" | "D" | null) ?? undefined,
+        resources: ["meat"]
       }
     }
   ];
@@ -471,6 +558,36 @@ function queueGaloInterruptIfNeeded(
       payload: { kind: "move_piece", actorPlayerId: options.galoOwnerId }
     }
   ];
+}
+
+function shouldPauseJaguarRemovalForGaloInterrupt(
+  game: GameState,
+  playerId: string,
+  destination: GridPosition,
+  movedPieceId: string
+): boolean {
+  const targetCard = getForestCardAtPosition(game, destination);
+  const targetDefinition = targetCard ? getCardDefinitionOrNull(targetCard.definitionId) : null;
+  if (targetDefinition?.habitat !== "field") {
+    return false;
+  }
+
+  const galoOwnerId = findExistingGaloOwnerAtPosition(game, destination, movedPieceId);
+  if (!galoOwnerId) {
+    return false;
+  }
+
+  const resource: Resource = "seed";
+  const threatBlockReason = getCollectionBlockReason(game, {
+    playerId,
+    resource,
+    habitat: targetDefinition.habitat
+  });
+  if (threatBlockReason) {
+    return false;
+  }
+
+  return getGaloAdjacentTargetsForLocation(game, destination).length > 0;
 }
 
 function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, origin: GridPosition): GridPosition[] {

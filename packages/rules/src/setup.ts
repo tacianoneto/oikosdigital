@@ -478,6 +478,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
     next.activePlayedForestCardId = null;
     next.pendingCoatiPairBonus = null;
     next.pendingMacawMovedPiece = null;
+    next.pendingJaguarRemoval = null;
     next.pendingGaloInterrupt = null;
     next.pendingWolfMoves = null;
     queueEndgameChoiceOrFinalize(next);
@@ -498,6 +499,10 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
 
   if (game.pendingGaloInterrupt) {
     throw new Error("Resolva o movimento entre turnos do Galo-de-campina antes de continuar.");
+  }
+
+  if (game.pendingJaguarRemoval) {
+    throw new Error("Escolha qual peca a Onca deve remover no local de entrada.");
   }
 
   if (game.pendingCoatiPairBonus) {

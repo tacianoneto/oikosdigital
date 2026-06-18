@@ -219,6 +219,53 @@ export function useBoardPieceHandlers({
       }
 
       if (jaguarTargetPieceIds.includes(pieceId)) {
+        const pendingJaguarRemoval = room?.game?.pendingJaguarRemoval;
+        if (pendingJaguarRemoval && room?.game?.activePlayerId === pendingJaguarRemoval.playerId) {
+          const jaguarPieceId = room.game.pieces.find(
+            (piece) => piece.ownerId === pendingJaguarRemoval.playerId && piece.speciesId === "jaguar" && piece.location
+          )?.pieceId;
+          if (!jaguarPieceId) {
+            return;
+          }
+
+          if (isLocalRoom) {
+            const nextGame = applyGameIntent(room.game, pendingJaguarRemoval.playerId, {
+              type: "piece.move",
+              pieceId: jaguarPieceId,
+              x: pendingJaguarRemoval.location.x,
+              y: pendingJaguarRemoval.location.y,
+              targetPieceId: pieceId
+            });
+            setRoom({
+              ...room,
+              status: nextGame.status === "active" ? "active" : room.status,
+              game: nextGame,
+              warnings: nextGame.contentWarnings
+            });
+            setSelectedPieceId(null);
+            setSelectedJaguarDestination(null);
+            setSelectedJaguarTargetPieceId(null);
+            setNotice("Onca removeu 1 peca.");
+            return;
+          }
+
+          void run(() =>
+            roomApi.movePiece(
+              requireSocket(),
+              room.roomId,
+              jaguarPieceId,
+              pendingJaguarRemoval.location.x,
+              pendingJaguarRemoval.location.y,
+              pieceId
+            )
+          ).then(() => {
+            setSelectedPieceId(null);
+            setSelectedJaguarDestination(null);
+            setSelectedJaguarTargetPieceId(null);
+          });
+          return;
+        }
+
         if (selectedJaguarDestination) {
           executeSelectedPieceMove(selectedJaguarDestination, pieceId);
         } else {
@@ -262,8 +309,12 @@ export function useBoardPieceHandlers({
       cacaIlegalRemovalMode,
       controlledPlayerId,
       executeSelectedPieceMove,
+      isLocalRoom,
       jaguarTargetPieceIds,
+      requireSocket,
       requiredCoatiRemovalCount,
+      room,
+      run,
       selectedJaguarDestination
     ]
   );
@@ -277,6 +328,14 @@ export function useBoardPieceHandlers({
       const currentGame = room.game;
 
       if (activeSpeciesId === "jaguar") {
+        if (currentGame.pendingJaguarRemoval) {
+          setSelectedJaguarDestination(null);
+          setSelectedJaguarTargetPieceId(null);
+          setSelectedPieceId(null);
+          setNotice("Clique em uma peca no local de entrada da Onca para remover.");
+          return;
+        }
+
         const removablePieces = currentGame.pieces.filter(
           (piece) =>
             piece.ownerId !== currentGame.activePlayerId &&
@@ -285,7 +344,9 @@ export function useBoardPieceHandlers({
             piece.location.y === position.y
         );
 
-        if (removablePieces.length > 1) {
+        const hasGaloInterruptCandidate = removablePieces.some((piece) => piece.speciesId === "galo_de_campina");
+
+        if (removablePieces.length > 1 && !hasGaloInterruptCandidate) {
           setSelectedJaguarDestination(position);
           setSelectedJaguarTargetPieceId(null);
           setNotice("Escolha qual meeple a Onça deve remover neste local.");

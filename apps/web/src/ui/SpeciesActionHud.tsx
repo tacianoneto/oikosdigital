@@ -72,11 +72,20 @@ function SecondaryActionButton({
 }
 
 function JaguarActionContent({
+  game,
   activeActionId,
   canSkipJaguarMove,
   selectedJaguarDestination,
   onCompleteAction
 }: ActionContentProps) {
+  if (game.pendingJaguarRemoval && (activeActionId === "A" || activeActionId === "B")) {
+    return (
+      <div className="action-box-hint">
+        Clique em uma peca no local de entrada da Onca para remover.
+      </div>
+    );
+  }
+
   return (
     <>
       {(activeActionId === "A" || activeActionId === "B") && (

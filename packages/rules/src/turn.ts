@@ -27,6 +27,7 @@ export function advanceActiveAction(game: GameState): void {
     game.caatingaPending ||
     game.cerradoPending ||
     game.cacaIlegalPending ||
+    game.pendingJaguarRemoval ||
     game.pendingGaloInterrupt ||
     game.pendingExtraTurnPlayerId ||
     game.pendingSeedSpendObjectivePlayerId
@@ -78,6 +79,7 @@ export function rotateToNextPlayer(game: GameState, player: PlayerState): void {
     game.activePlayedForestCardId = null;
     game.pendingCoatiPairBonus = null;
     game.pendingMacawMovedPiece = null;
+    game.pendingJaguarRemoval = null;
     game.pendingGaloInterrupt = null;
     game.pendingWolfMoves = null;
     game.extraTurnPlayerId = null;
@@ -103,6 +105,7 @@ export function rotateToNextPlayer(game: GameState, player: PlayerState): void {
   game.activePlayedForestCardId = null;
   game.pendingCoatiPairBonus = null;
   game.pendingMacawMovedPiece = null;
+  game.pendingJaguarRemoval = null;
   game.pendingGaloInterrupt = null;
   game.pendingWolfMoves = null;
   game.cerradoPending = null;

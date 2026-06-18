@@ -201,6 +201,10 @@ export function getSelectablePieceIds({
   }
 
   if (activeSpeciesId === "jaguar" && (activeActionId === "A" || activeActionId === "B")) {
+    if (game.pendingJaguarRemoval) {
+      return [];
+    }
+
     return game.pieces
       .filter(
         (piece) =>
@@ -461,22 +465,25 @@ export function getBoardPieceTargets({
   const jaguarTargetPieceIds =
     game &&
     activeSpeciesId === "jaguar" &&
-    selectedPieceId &&
-    selectedJaguarDestination &&
-    movementTargetCount > 0
+    ((selectedPieceId && selectedJaguarDestination && movementTargetCount > 0) || game.pendingJaguarRemoval)
       ? game.pieces
           .filter(
-            (piece) =>
-              piece.ownerId !== game.activePlayerId &&
-              piece.location &&
-              !piece.state.hidden &&
-              piece.location.x === selectedJaguarDestination.x &&
-              piece.location.y === selectedJaguarDestination.y
+            (piece) => {
+              const targetLocation = game.pendingJaguarRemoval?.location ?? selectedJaguarDestination;
+              return (
+                targetLocation &&
+                piece.ownerId !== game.activePlayerId &&
+                piece.location &&
+                !piece.state.hidden &&
+                piece.location.x === targetLocation.x &&
+                piece.location.y === targetLocation.y
+              );
+            }
           )
           .map((piece) => piece.pieceId)
       : [];
 
-  const combinedIds = [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
+  const combinedIds = game?.pendingJaguarRemoval ? jaguarTargetPieceIds : [...new Set([...selectablePieceIds, ...jaguarTargetPieceIds])];
   const boardSelectablePieceIds = !tutorial.active
     ? combinedIds
     : tutorial.def?.markedPieceId

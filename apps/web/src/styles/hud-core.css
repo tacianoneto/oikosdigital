@@ -54,6 +54,134 @@
   white-space: nowrap;
 }
 
+.galo-interrupt-badge {
+  position: absolute;
+  top: 82px;
+  left: 50%;
+  z-index: 24;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 164px;
+  max-width: min(360px, 80vw);
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--species, var(--amber)) 74%, #fff2b8);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--species, var(--amber)) 26%, rgba(14, 27, 21, 0.94)),
+      rgba(8, 15, 12, 0.94));
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.48),
+    0 0 24px color-mix(in srgb, var(--species, var(--amber)) 34%, transparent);
+  pointer-events: none;
+  animation: galo-interrupt-badge-pulse 1.35s ease-in-out infinite;
+}
+
+.galo-interrupt-badge span {
+  color: color-mix(in srgb, var(--species, var(--amber)) 80%, #fff);
+  font-family: Outfit, sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.galo-interrupt-badge strong {
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.galo-interrupt-badge.is-waiting {
+  animation: none;
+  opacity: 0.92;
+}
+
+.galo-interrupt-banner {
+  position: absolute;
+  top: clamp(120px, 16vh, 190px);
+  left: 50%;
+  z-index: 25;
+  transform: translateX(-50%);
+  width: clamp(300px, 40vw, 560px);
+  min-width: 300px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 16px 22px;
+  border-radius: 14px;
+  border: 2px solid color-mix(in srgb, var(--species, var(--amber)) 78%, #fff2b8);
+  background:
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--species, var(--amber)) 30%, transparent), transparent 62%),
+    linear-gradient(180deg, rgba(18, 32, 25, 0.96), rgba(7, 13, 10, 0.97));
+  box-shadow:
+    0 20px 56px rgba(0, 0, 0, 0.62),
+    0 0 34px color-mix(in srgb, var(--species, var(--amber)) 40%, transparent);
+  text-align: center;
+  pointer-events: none;
+  animation: galo-interrupt-banner-enter 220ms ease-out both;
+}
+
+.galo-interrupt-banner span {
+  color: color-mix(in srgb, var(--species, var(--amber)) 82%, #fff);
+  font-family: Outfit, sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.galo-interrupt-banner strong {
+  color: var(--paper);
+  font-family: Outfit, sans-serif;
+  font-size: clamp(18px, 1.7vw, 28px);
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.galo-interrupt-banner small {
+  color: rgba(255, 250, 240, 0.9);
+  font-family: Outfit, sans-serif;
+  font-size: clamp(12px, 0.95vw, 15px);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.galo-interrupt-wait-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 45%, transparent 0%, transparent 34%, rgba(0, 0, 0, 0.18) 62%),
+    rgba(0, 0, 0, 0.18);
+  backdrop-filter: saturate(0.78) brightness(0.86);
+}
+
+@keyframes galo-interrupt-badge-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+@keyframes galo-interrupt-banner-enter {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
 @keyframes turn-banner-settle {
   0% {
     opacity: 0;
@@ -71,6 +199,17 @@
     right: 12px;
     min-width: 0;
     max-width: calc(100vw - 24px);
+  }
+
+  .galo-interrupt-badge {
+    top: 76px;
+    max-width: calc(100vw - 28px);
+  }
+
+  .galo-interrupt-banner {
+    top: 116px;
+    width: calc(100vw - 28px);
+    min-width: 0;
   }
 }
 
@@ -527,4 +666,3 @@
   content: "★ ";
   color: var(--species, var(--amber));
 }
-

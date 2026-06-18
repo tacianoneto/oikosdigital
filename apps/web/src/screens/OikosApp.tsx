@@ -301,6 +301,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const { audioSettings, updateAudio } = useAudioSettings();
   const seenLogIdRef = useRef<Set<string>>(new Set());
   const logInitializedRef = useRef(false);
+  const [visibleGaloInterruptBannerKey, setVisibleGaloInterruptBannerKey] = useState<string | null>(null);
   // movementPreview, landingMode and pendingPlacement (chosen-but-unconfirmed
   // card placement) live in useActionSelection.
   const turnSummary =
@@ -479,6 +480,36 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   });
   const hasStartedGame = Boolean(room?.game);
   const gameLog = room?.game?.log;
+  const galoInterrupt = room?.game?.pendingGaloInterrupt ?? null;
+  const galoInterruptOwner = galoInterrupt
+    ? room?.game?.players.find((player) => player.playerId === galoInterrupt.ownerId) ?? null
+    : null;
+  const interruptedGaloPlayer = galoInterrupt
+    ? room?.game?.players.find((player) => player.playerId === galoInterrupt.interruptedPlayerId) ?? null
+    : null;
+  const galoInterruptKey = galoInterrupt
+    ? `${room?.game?.gameId ?? "game"}:${galoInterrupt.ownerId}:${galoInterrupt.interruptedPlayerId}:${galoInterrupt.location.x}:${galoInterrupt.location.y}`
+    : null;
+  const isCurrentGaloInterruptOwner = Boolean(galoInterrupt && currentGamePlayer?.playerId === galoInterrupt.ownerId);
+  const isCurrentPlayerWaitingForGaloInterrupt = Boolean(
+    galoInterrupt && currentGamePlayer?.playerId === galoInterrupt.interruptedPlayerId && !isCurrentGaloInterruptOwner
+  );
+  const galoInterruptBannerText = isCurrentGaloInterruptOwner
+    ? "Entre turnos ativo: mova 1 galo-de-campina"
+    : `Aguardando ${galoInterruptOwner?.name ?? "Galo-de-campina"} resolver entre turnos`;
+
+  useEffect(() => {
+    if (!galoInterruptKey) {
+      setVisibleGaloInterruptBannerKey(null);
+      return;
+    }
+
+    setVisibleGaloInterruptBannerKey(galoInterruptKey);
+    const timer = window.setTimeout(() => {
+      setVisibleGaloInterruptBannerKey((current) => (current === galoInterruptKey ? null : current));
+    }, 4800);
+    return () => window.clearTimeout(timer);
+  }, [galoInterruptKey]);
 
   const handleTutorialCardPlaced = useCallback((id: TutorialId, step: TutorialStepDef) => {
     if (id === "initial") {
@@ -2113,6 +2144,38 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <span className="turn-banner-label">Vez:</span>
               <strong>{turnBanner.label}</strong>
             </div>
+          )}
+          {!cleanBoardMode && galoInterrupt && (
+            <div
+              className={`galo-interrupt-badge ${isCurrentGaloInterruptOwner ? "is-owner" : "is-waiting"}`}
+              style={speciesVar("galo_de_campina")}
+              role="status"
+            >
+              <span>{isCurrentGaloInterruptOwner ? "Sua reacao" : "Turno pausado"}</span>
+              <strong>
+                {isCurrentGaloInterruptOwner
+                  ? "Mova 1 galo"
+                  : `Aguardando ${galoInterruptOwner?.name ?? "Galo"}`}
+              </strong>
+            </div>
+          )}
+          {!cleanBoardMode && galoInterrupt && visibleGaloInterruptBannerKey === galoInterruptKey && (
+            <div
+              className={`galo-interrupt-banner ${isCurrentGaloInterruptOwner ? "is-owner" : "is-waiting"}`}
+              style={speciesVar("galo_de_campina")}
+              role="status"
+            >
+              <span>{isCurrentGaloInterruptOwner ? "Entre turnos" : "Turno pausado"}</span>
+              <strong>{galoInterruptBannerText}</strong>
+              <small>
+                {isCurrentGaloInterruptOwner
+                  ? "Selecione o galo no local da semente e clique em um destino adjacente."
+                  : `${interruptedGaloPlayer?.name ?? "Jogador ativo"} continua depois desta reacao.`}
+              </small>
+            </div>
+          )}
+          {!cleanBoardMode && isCurrentPlayerWaitingForGaloInterrupt && (
+            <div className="galo-interrupt-wait-overlay" aria-hidden="true" />
           )}
           {!cleanBoardMode && showTurnCountdown && room?.turnTimerMs && room?.activeTurnStartedAt && (
             <TurnCountdown

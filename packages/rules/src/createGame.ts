@@ -163,6 +163,7 @@ export function createInitialGameState(
     activePlayedForestCardId: null,
     pendingCoatiPairBonus: null,
     pendingMacawMovedPiece: null,
+    pendingJaguarRemoval: null,
     pendingGaloInterrupt: null,
     pendingWolfMoves: null,
     pendingExtraTurnPlayerId: null,

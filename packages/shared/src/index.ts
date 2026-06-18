@@ -284,6 +284,10 @@ export interface GameState {
     pieceId: string;
     location: GridPosition;
   } | null;
+  pendingJaguarRemoval: {
+    playerId: string;
+    location: GridPosition;
+  } | null;
   pendingGaloInterrupt: {
     ownerId: string;
     location: GridPosition;

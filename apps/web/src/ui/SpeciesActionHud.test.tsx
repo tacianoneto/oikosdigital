@@ -39,6 +39,7 @@ function createGame(activePlayerId = "player-1"): GameState {
     activePlayerId,
     activePlayedForestCardId: null,
     pendingWolfMoves: null,
+    pendingJaguarRemoval: null,
     pendingGaloInterrupt: null
   } as unknown as GameState;
 }
