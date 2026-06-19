@@ -76,7 +76,10 @@ export class ForestPieces {
     }
 
     const selectable = new Set(vm.selectablePieceIds);
-    const selected = new Set([...vm.selectedPieceIds, ...(vm.selectedPieceId ? [vm.selectedPieceId] : [])]);
+    const selected = new Set([
+      ...vm.selectedPieceIds,
+      ...(vm.selectedPieceId && selectable.has(vm.selectedPieceId) ? [vm.selectedPieceId] : [])
+    ]);
     const alive = new Set<string>();
 
     for (const [k, list] of byLoc) {
@@ -160,6 +163,7 @@ export class ForestPieces {
         const hit = po.root.getData("hit") as Phaser.GameObjects.Arc;
         hit.removeAllListeners();
         if (isSel) {
+          hit.setRadius(30);
           hit.setInteractive({ useHandCursor: true });
           hit.on("pointerover", () => this.scene.tweens.add({ targets: po!.root, scale: ps * 1.12, duration: 120 }));
           hit.on("pointerout", () => this.scene.tweens.add({ targets: po!.root, scale: ps, duration: 120 }));
@@ -168,6 +172,7 @@ export class ForestPieces {
             callbacks.onPieceClick?.(piece.pieceId);
           });
         } else {
+          hit.setRadius(22);
           hit.disableInteractive();
         }
         po.root.setDepth(isPicked ? 300 : isSel ? 200 : 100 + i);

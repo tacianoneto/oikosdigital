@@ -8,6 +8,7 @@ import {
   getCacaIlegalRemovablePieceIds,
   getGaloFieldPlacementPositions,
   getGaloInterruptPieceIds,
+  getGaloInterruptMoveTargets,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getValidPieceMovementDestinations,
@@ -352,6 +353,50 @@ describe("getMovementInteractionTargets", () => {
 
     expect(result.movementTargets).toEqual([]);
     expect(result.displayMovementTargets).toEqual([]);
+  });
+
+  it("keeps Galo interrupt movement targets visible while Jaguar removal is pending", () => {
+    const game = createWolfTutorialRoom().game!;
+    const galoPlayerId = game.activePlayerId!;
+    const galoPlayer = {
+      ...game.players.find((player) => player.playerId === galoPlayerId)!,
+      speciesId: "galo_de_campina" as const
+    };
+    const movedPieceId = game.pieces.find((piece) => piece.ownerId === galoPlayerId)!.pieceId;
+    const movedPiece = game.pieces.find((piece) => piece.pieceId === movedPieceId)!;
+    const pendingGame = {
+      ...game,
+      activePlayerId: "jaguar-player",
+      players: game.players.map((player) => (player.playerId === galoPlayerId ? galoPlayer : player)),
+      pieces: game.pieces.map((piece) =>
+        piece.ownerId === galoPlayerId ? { ...piece, speciesId: "galo_de_campina" as const } : piece
+      ),
+      pendingGaloInterrupt: {
+        ownerId: galoPlayerId,
+        location: { x: movedPiece.location!.x, y: movedPiece.location!.y },
+        interruptedPlayerId: "jaguar-player"
+      },
+      pendingJaguarRemoval: {
+        playerId: "jaguar-player",
+        location: { x: movedPiece.location!.x, y: movedPiece.location!.y }
+      }
+    };
+    const expectedTargets = getGaloInterruptMoveTargets(pendingGame, galoPlayerId, movedPieceId);
+
+    const result = getMovementInteractionTargets({
+      activeActionId: "A",
+      activeSpeciesId: "jaguar",
+      canControlActivePlayer: false,
+      controlledPlayerId: galoPlayerId,
+      game: pendingGame,
+      hasPendingCoatiPairBonus: false,
+      selectedPieceId: movedPieceId,
+      tutorial: inactiveTutorial
+    });
+
+    expect(expectedTargets.length).toBeGreaterThan(0);
+    expect(result.movementTargets).toEqual(expectedTargets);
+    expect(result.displayMovementTargets).toEqual(expectedTargets);
   });
 });
 

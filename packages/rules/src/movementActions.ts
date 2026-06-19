@@ -282,7 +282,7 @@ export function moveJaguarForCurrentAction(
   }
 
   const removablePieces = getRemovablePiecesAtPosition(game, playerId, destination);
-  const shouldPauseRemoval = shouldPauseJaguarRemovalForGaloInterrupt(game, playerId, destination, jaguarPiece.pieceId);
+  const shouldPauseRemoval = shouldPauseJaguarRemovalForGaloInterrupt(game, destination, jaguarPiece.pieceId);
   const removablePiecesAfterGaloMove = shouldPauseRemoval
     ? getExpectedRemovablePiecesAfterGaloInterruptMove(game, playerId, destination, jaguarPiece.pieceId)
     : removablePieces;
@@ -306,6 +306,9 @@ export function moveJaguarForCurrentAction(
 
   nextJaguarPiece.location = createPieceLocation(game, destination);
   collectMovementDestinationResource(next, playerId, destination, jaguarPiece.pieceId);
+  if (shouldPauseRemoval && !next.pendingGaloInterrupt) {
+    queueGaloInterruptForJaguarRemoval(next, playerId, destination, jaguarPiece.pieceId);
+  }
   const pausedByGaloInterrupt =
     removablePieces.length > 0 &&
     next.pendingGaloInterrupt?.interruptedPlayerId === playerId &&
@@ -597,9 +600,23 @@ function queueGaloInterruptIfNeeded(
   ];
 }
 
-function shouldPauseJaguarRemovalForGaloInterrupt(
+function queueGaloInterruptForJaguarRemoval(
   game: GameState,
   playerId: string,
+  destination: GridPosition,
+  movedPieceId: string
+): void {
+  const player = findPlayer(game, playerId);
+  queueGaloInterruptIfNeeded(game, {
+    collectorPlayerId: playerId,
+    collectorSpeciesId: player.speciesId,
+    destination,
+    galoOwnerId: findExistingGaloOwnerAtPosition(game, destination, movedPieceId)
+  });
+}
+
+function shouldPauseJaguarRemovalForGaloInterrupt(
+  game: GameState,
   destination: GridPosition,
   movedPieceId: string
 ): boolean {
@@ -611,16 +628,6 @@ function shouldPauseJaguarRemovalForGaloInterrupt(
 
   const galoOwnerId = findExistingGaloOwnerAtPosition(game, destination, movedPieceId);
   if (!galoOwnerId) {
-    return false;
-  }
-
-  const resource: Resource = "seed";
-  const threatBlockReason = getCollectionBlockReason(game, {
-    playerId,
-    resource,
-    habitat: targetDefinition.habitat
-  });
-  if (threatBlockReason) {
     return false;
   }
 

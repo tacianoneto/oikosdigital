@@ -1756,6 +1756,45 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(1);
   });
 
+  it("still pauses Onca removal for Galo interrupt when seed collection is blocked", () => {
+    let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
+    const placeFor = (playerId: string, location: { x: number; y: number }) => {
+      game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
+    };
+    placeFor("jaguar", { x: 0, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    placeFor("galo", { x: 1, y: 0 });
+    game = { ...setActiveAction(game, "jaguar", 0), activeThreatCardId: "threat_5" };
+
+    const galoPieces = game.pieces
+      .filter((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)
+      .sort((a, b) => a.pieceId.localeCompare(b.pieceId));
+    const movingGaloId = galoPieces[0]?.pieceId;
+    const remainingGaloId = galoPieces[1]?.pieceId;
+
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+
+    expect(game.pendingGaloInterrupt).toEqual({
+      ownerId: "galo",
+      location: { x: 1, y: 0 },
+      interruptedPlayerId: "jaguar"
+    });
+    expect(game.pendingJaguarRemoval).toEqual({
+      playerId: "jaguar",
+      location: { x: 1, y: 0 }
+    });
+
+    const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
+    game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
+
+    expect(game.pendingGaloInterrupt).toBeNull();
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);
+    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toBeNull();
+    expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(1);
+  });
+
   it("lets Onca choose among remaining pieces after the interrupt when more than one target stays", () => {
     let game = createTestGameState("room", [
       player("jaguar", "jaguar"),

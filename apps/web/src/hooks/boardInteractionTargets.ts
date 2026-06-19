@@ -313,10 +313,10 @@ export function getMovementInteractionTargets({
       ? getGaloInterruptMoveTargets(game, controlledPlayerId, selectedPieceId)
       : [];
   const movementTargets =
-    game?.pendingJaguarRemoval
-      ? []
-      : galoInterruptTargets.length > 0
+    galoInterruptTargets.length > 0
       ? galoInterruptTargets
+      : game?.pendingJaguarRemoval
+      ? []
       : game && !hasPendingCoatiPairBonus && game.activePlayerId && selectedPieceId
       ? getValidPieceMovementDestinations(game, game.activePlayerId, selectedPieceId)
       : [];
