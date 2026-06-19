@@ -109,13 +109,13 @@ import {
   addGaloForCurrentAction,
   getGaloActionDScore,
   getGaloFieldCardPositions,
-  getGaloFieldPlacementPositions,
   getGaloInterruptMoveTargets,
   getGaloInterruptOwnerAtPosition,
   getGaloInterruptPieceIds,
   getGaloOutOfFieldPieceCount,
   getGaloOutOfFieldPositions,
   getGaloScorePoints,
+  getGaloSeedPlacementPositions,
   resolveGaloInterruptMove,
   scoreGaloFieldPresence
 } from "./species/galo";
@@ -123,13 +123,13 @@ export {
   addGaloForCurrentAction,
   getGaloActionDScore,
   getGaloFieldCardPositions,
-  getGaloFieldPlacementPositions,
   getGaloInterruptMoveTargets,
   getGaloInterruptOwnerAtPosition,
   getGaloInterruptPieceIds,
   getGaloOutOfFieldPieceCount,
   getGaloOutOfFieldPositions,
   getGaloScorePoints,
+  getGaloSeedPlacementPositions,
   resolveGaloInterruptMove,
   scoreGaloFieldPresence
 };
@@ -609,7 +609,7 @@ export function completeCurrentAction(game: GameState, playerId: string): GameSt
           return completeActionWithoutOptionalAddition(game, playerId, action, "Galo-de-campina");
         }
 
-        throw new Error("A acao A do Galo-de-campina e concluida ao adicionar 1 galo em local de campo.");
+        throw new Error("A acao A do Galo-de-campina e concluida ao adicionar 1 galo em local de semente.");
       }
 
       if (action === "B") {

@@ -19,7 +19,7 @@ import {
 } from "./species/coati";
 import {
   addGaloForCurrentAction,
-  getGaloFieldPlacementPositions,
+  getGaloSeedPlacementPositions,
   scoreGaloFieldPresence
 } from "./species/galo";
 import {
@@ -108,7 +108,7 @@ export const speciesActionRuntimes: Record<SpeciesId, Partial<Record<ActionId, S
   },
   galo_de_campina: {
     A: {
-      getPlacementTargets: getGaloFieldPlacementPositions,
+      getPlacementTargets: getGaloSeedPlacementPositions,
       applyPlacementTarget: addGaloForCurrentAction
     },
     D: {

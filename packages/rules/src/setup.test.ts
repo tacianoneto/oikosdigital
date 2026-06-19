@@ -29,11 +29,11 @@ import {
   getCapuchinScoringHabitats,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
-  getGaloFieldPlacementPositions,
   getGaloActionDScore,
   getGaloInterruptMoveTargets,
   getGaloInterruptPieceIds,
   getGaloOutOfFieldPieceCount,
+  getGaloSeedPlacementPositions,
   getRequiredCoatiRemovalCount,
   getForestPositionsWithResource,
   getForestSiteOccupancy,
@@ -1542,7 +1542,7 @@ describe("setup placement", () => {
     expect(game.players.find((candidate) => candidate.playerId === "macaw")?.score).toBe(3);
   });
 
-  it("plays Galo-de-campina action A by expanding and adding a galo on a field card", () => {
+  it("plays Galo-de-campina action A by expanding and adding a galo on a seed site", () => {
     let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
     game = placeInitialPiece(game, "galo", { x: -1, y: -1 });
     game = placeInitialPiece(game, "galo", { x: 0, y: -1 });
@@ -1551,14 +1551,17 @@ describe("setup placement", () => {
     game = placeInitialPiece(game, "coati", { x: 1, y: 1 });
     game = {
       ...setActiveAction(game, "galo", 0),
-      players: game.players.map((candidate) => (candidate.playerId === "galo" ? { ...candidate, hand: ["campo_2"] } : candidate))
+      players: game.players.map((candidate) => (candidate.playerId === "galo" ? { ...candidate, hand: ["campo_1"] } : candidate))
     };
 
     const reserveBefore = game.players.find((candidate) => candidate.playerId === "galo")!.reservePieces.length;
-    game = placeForestCard(game, "galo", "campo_2", { x: 2, y: 0 });
+    game = placeForestCard(game, "galo", "campo_1", { x: 2, y: 0 });
 
-    const fieldTargets = getGaloFieldPlacementPositions(game, "galo");
-    expect(fieldTargets).toContainEqual({ x: 2, y: 0 });
+    const seedTargets = getGaloSeedPlacementPositions(game, "galo");
+    expect(seedTargets).toContainEqual({ x: 2, y: 0 });
+    expect(seedTargets.every((target) =>
+      getForestSitesAtPosition(game, target).some((site) => site.site.resource === "seed")
+    )).toBe(true);
 
     game = addGaloForCurrentAction(game, "galo", { x: 2, y: 0 });
 

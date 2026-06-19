@@ -66,7 +66,7 @@ export function playRandomForestCard(game: GameState, playerId: string): GameSta
     }
   }
 
-  throw new Error("Bot aleatorio nao encontrou carta para expandir.");
+  return completeOrSkip(game, playerId);
 }
 
 export function moveRandomAmong(game: GameState, playerId: string, speciesId: SpeciesId, pieceIds: string[]): GameState {

@@ -6,9 +6,9 @@ import {
   getCacaIlegalRemovablePieceIds,
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
-  getGaloFieldPlacementPositions,
   getGaloInterruptMoveTargets,
   getGaloInterruptPieceIds,
+  getGaloSeedPlacementPositions,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getMacawRelocatablePieceIds,
@@ -389,11 +389,11 @@ export function getSpeciesPlacementTargets({
       : activeActionId === "C"
         ? macawActionCTargets
         : [];
-  const galoFieldTargets =
+  const galoSeedTargets =
     canTarget && activeSpeciesId === "galo_de_campina"
-      ? getGaloFieldPlacementPositions(game!, activePlayerId!)
+      ? getGaloSeedPlacementPositions(game!, activePlayerId!)
       : [];
-  const galoAddTargets = galoFieldTargets;
+  const galoAddTargets = galoSeedTargets;
   const armadilloSeedTargets =
     canTarget && activeSpeciesId === "armadillo"
       ? getArmadilloSeedPlacementPositions(game!, activePlayerId!)
@@ -444,7 +444,7 @@ export function getSpeciesPlacementTargets({
     displayAddPieceTargets,
     displayCoatiPairBonusTargets,
     galoAddTargets,
-    galoFieldTargets,
+    galoSeedTargets,
     macawActionCTargets,
     macawAddTargets,
     macawEggTargets,

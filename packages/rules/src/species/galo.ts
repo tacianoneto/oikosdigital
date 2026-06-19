@@ -2,17 +2,17 @@ import type { GameState, GridPosition, PieceState } from "@oikos/shared";
 import { cloneGameState, findPlayer, getCurrentAction, positionKey, toGridPosition } from "../state";
 import {
   createPieceLocation,
-  findFirstForestSiteWithHabitat,
+  findFirstForestSiteWithResource,
   getCardDefinitionOrNull,
   getForestCardAtPosition,
-  getForestPositionsWithHabitat,
+  getForestPositionsWithResource,
   getForestSitesAtPosition
 } from "../forest";
 import { getPotentialDestinations } from "../movement";
 import { applyCaatingaTrigger } from "../scenarios";
 import { advanceActiveAction } from "../turn";
 
-export function getGaloFieldPlacementPositions(game: GameState, playerId: string): GridPosition[] {
+export function getGaloSeedPlacementPositions(game: GameState, playerId: string): GridPosition[] {
   if (game.status !== "active" || game.activePlayerId !== playerId) {
     return [];
   }
@@ -26,8 +26,8 @@ export function getGaloFieldPlacementPositions(game: GameState, playerId: string
     return [];
   }
 
-  return getForestPositionsWithHabitat(game, "field").filter((position) =>
-    getForestSitesAtPosition(game, position).some((site) => site.site.habitat === "field" && !site.isAtCapacity)
+  return getForestPositionsWithResource(game, "seed").filter((position) =>
+    getForestSitesAtPosition(game, position).some((site) => site.site.resource === "seed" && !site.isAtCapacity)
   );
 }
 
@@ -147,10 +147,10 @@ export function addGaloForCurrentAction(game: GameState, playerId: string, locat
     throw new Error("Nao ha galos-de-campina na reserva para adicionar.");
   }
 
-  const validPositions = getGaloFieldPlacementPositions(game, playerId);
+  const validPositions = getGaloSeedPlacementPositions(game, playerId);
   const isValidPosition = validPositions.some((position) => position.x === location.x && position.y === location.y);
   if (!isValidPosition) {
-    throw new Error("Escolha uma carta de campo com espaco livre para adicionar o Galo-de-campina.");
+    throw new Error("Escolha um local de semente com espaco livre para adicionar o Galo-de-campina.");
   }
 
   const targetCard = game.forest.cards.find((card) => card.x === location.x && card.y === location.y);
@@ -165,8 +165,8 @@ export function addGaloForCurrentAction(game: GameState, playerId: string, locat
     throw new Error("Peca nao encontrada.");
   }
 
-  const fieldSite = findFirstForestSiteWithHabitat(game, location, "field");
-  nextPiece.location = createPieceLocation(game, location, fieldSite?.siteId);
+  const seedSite = findFirstForestSiteWithResource(game, location, "seed");
+  nextPiece.location = createPieceLocation(game, location, seedSite?.siteId);
   nextPlayer.reservePieces = nextPlayer.reservePieces.filter((candidate) => candidate !== pieceId);
   nextPlayer.piecesInForest = [...nextPlayer.piecesInForest, pieceId];
   applyCaatingaTrigger(next, playerId, location, "add");
@@ -174,7 +174,7 @@ export function addGaloForCurrentAction(game: GameState, playerId: string, locat
     ...next.log,
     {
       id: `add_galo_${pieceId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} adicionou 1 galo-de-campina em local de campo.`,
+      message: `${nextPlayer.name} adicionou 1 galo-de-campina em local de semente.`,
       createdAt: Date.now(),
       payload: {
         kind: "add_piece",

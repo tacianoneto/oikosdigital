@@ -91,7 +91,7 @@ export function playForestCard(game: GameState, playerId: string, speciesId: Spe
     }
   }
 
-  throw new Error("Bot nao encontrou carta valida para expandir.");
+  return completeOrSkip(game, playerId);
 }
 
 export function playJaguar(game: GameState, playerId: string, action: string): GameState {

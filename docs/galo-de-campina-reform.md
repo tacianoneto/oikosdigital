@@ -21,7 +21,7 @@ Entre turnos
 Se outra espécie entrar em um local de campo com ao menos 1 galo-de-campina e não remover
 esse galo, mova 1 galo-de-campina desse local para um local adjacente, sem coletar recurso.
 
-A. Expanda a floresta. Adicione 1 galo-de-campina em um local de campo.
+A. Expanda a floresta. Adicione 1 galo-de-campina em um local de semente.
 B. Mova 1 galo-de-campina conforme a carta jogada.
 C. Atraia uma peça para um local com galo-de-campina conforme a carta jogada, sem coletar recurso.
 D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
@@ -51,7 +51,7 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
 
 ## Passos detalhados
 
-- **A**: igual ao fluxo atual de expandir floresta e adicionar 1 galo da reserva num local de **campo**.
+- **A**: expandir floresta e adicionar 1 galo da reserva num local de **semente**.
   (Reaproveitar a lógica existente de `addGaloForCurrentAction`.)
 - **B**: mover 1 galo conforme a carta jogada (padrão por habitat). Coleta apenas o recurso
   impresso do destino, sem bônus extra de semente.

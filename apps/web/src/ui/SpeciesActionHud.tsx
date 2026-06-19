@@ -358,7 +358,7 @@ function GaloActionContent({
       <>
         <div className="action-box-hint">
           {game.activePlayedForestCardId
-            ? "Clique em uma carta de campo destacada para abrigar 1 galo-de-campina."
+            ? "Clique em um local de semente destacado para abrigar 1 galo-de-campina."
             : "Escolha uma carta da sua mão e posicione-a em um espaço vazio destacado."}
         </div>
         {game.activePlayedForestCardId && (

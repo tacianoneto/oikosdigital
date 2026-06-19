@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ForestCardState, GridPosition, Resource, RoomPlayer } from "@oikos/shared";
 import { createInitialGameState } from "./createGame";
-import { playBotStep } from "./bots";
+import { playBotStep, playRandomStep } from "./bots";
 
 function player(playerId: string, speciesId: RoomPlayer["speciesId"]): RoomPlayer {
   return {
@@ -136,5 +136,38 @@ describe("smart Jaguar bot", () => {
     const game = runJaguarChoice(targets, resources);
 
     expect(game.pieces.find((piece) => piece.pieceId === "jaguar_piece_1")?.location).toMatchObject(expected);
+  });
+});
+
+describe("forest-card bot fallback", () => {
+  function createBlockedExpansionGame() {
+    const game = createInitialGameState("blocked-expansion", [player("capuchin", "capuchin"), player("coati", "coati")]);
+    return {
+      ...game,
+      status: "active" as const,
+      activePlayerId: "capuchin",
+      activeActionIndex: 0,
+      activePlayedForestCardId: null,
+      mataAtlanticaPiles: null,
+      players: game.players.map((candidate) =>
+        candidate.playerId === "capuchin" ? { ...candidate, hand: [] } : candidate
+      )
+    };
+  }
+
+  it("smart bot skips action A instead of throwing when no forest card can be placed", () => {
+    const game = playBotStep(createBlockedExpansionGame(), "capuchin");
+
+    expect(game.activePlayerId).toBe("capuchin");
+    expect(game.activeActionIndex).toBe(1);
+    expect(game.log.some((entry) => entry.payload?.kind === "skip" && entry.payload.actionId === "A")).toBe(true);
+  });
+
+  it("random bot skips action A instead of throwing when no forest card can be placed", () => {
+    const game = playRandomStep(createBlockedExpansionGame(), "capuchin");
+
+    expect(game.activePlayerId).toBe("capuchin");
+    expect(game.activeActionIndex).toBe(1);
+    expect(game.log.some((entry) => entry.payload?.kind === "skip" && entry.payload.actionId === "A")).toBe(true);
   });
 });

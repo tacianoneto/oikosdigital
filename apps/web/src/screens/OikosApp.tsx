@@ -2218,7 +2218,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
                   : activeSpecies?.speciesId === "macaw"
                     ? "Clique em uma carta destacada para adicionar 1 arara"
                     : activeSpecies?.speciesId === "galo_de_campina"
-                      ? "Clique em uma carta de campo para adicionar 1 galo"
+                      ? "Clique em um local de semente para adicionar 1 galo"
                     : activeSpecies?.speciesId === "armadillo"
                       ? "Clique em uma carta com semente para adicionar 1 tatu"
                       : activeSpecies?.speciesId === "maned_wolf"

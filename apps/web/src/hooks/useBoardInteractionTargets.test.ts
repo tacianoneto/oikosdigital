@@ -6,9 +6,9 @@ import {
   getCoatiFruitPlacementPositions,
   getCoatiPairBonusTargets,
   getCacaIlegalRemovablePieceIds,
-  getGaloFieldPlacementPositions,
   getGaloInterruptPieceIds,
   getGaloInterruptMoveTargets,
+  getGaloSeedPlacementPositions,
   getMacawActionCTargets,
   getMacawEggPlacementPositions,
   getValidPieceMovementDestinations,
@@ -470,10 +470,10 @@ describe("getSpeciesPlacementTargets", () => {
       selectedPieceId: null,
       tutorial: inactiveTutorial
     });
-    expect(galoTargets.galoFieldTargets).toEqual(
-      getGaloFieldPlacementPositions(galo, galoPlayerId)
+    expect(galoTargets.galoSeedTargets).toEqual(
+      getGaloSeedPlacementPositions(galo, galoPlayerId)
     );
-    expect(galoTargets.galoAddTargets).toEqual(galoTargets.galoFieldTargets);
+    expect(galoTargets.galoAddTargets).toEqual(galoTargets.galoSeedTargets);
   });
 
   it("locks add and pair targets to tutorial gate and marker", () => {
