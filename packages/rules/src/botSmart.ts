@@ -35,7 +35,8 @@ import {
   scorePosition
 } from "./botScoring";
 import { completeOrSkip, rotations } from "./botShared";
-import type { ActionId, GameState, SpeciesId } from "@oikos/shared";
+import { getCardDefinitionOrNull, getForestCardAtPosition } from "./forest";
+import type { ActionId, GameState, GridPosition, Resource, SpeciesId } from "@oikos/shared";
 
 export function playSetupStep(game: GameState, playerId: string): GameState {
   if (game.setupActivePlayerId !== playerId) {
@@ -305,7 +306,10 @@ export function moveBestPiece(game: GameState, playerId: string, speciesId: Spec
     getValidPieceMovementDestinations(game, playerId, pieceId).map((position) => ({
       pieceId,
       position,
-      score: scoreMove(game, playerId, speciesId, pieceId, position) + scoreCapture(game, playerId, speciesId, position)
+      score:
+        speciesId === "jaguar"
+          ? scoreJaguarBotMovePriority(game, playerId, pieceId, position)
+          : scoreMove(game, playerId, speciesId, pieceId, position) + scoreCapture(game, playerId, speciesId, position)
     }))
   );
 
@@ -320,4 +324,54 @@ export function moveBestPiece(game: GameState, playerId: string, speciesId: Spec
   }
 
   return completeOrSkip(game, playerId);
+}
+
+function scoreJaguarBotMovePriority(game: GameState, playerId: string, pieceId: string, position: GridPosition): number {
+  const resource = getResourceAt(game, position);
+  const hasPrey = hasVisiblePreyAt(game, playerId, position);
+  const topResources = getPlayerTopResources(game, playerId);
+  let priority = 0;
+
+  if (hasPrey) {
+    if (resource === "meat") {
+      priority = 5;
+    } else if (resource === "seed") {
+      priority = 4;
+    } else if (resource && topResources.has(resource)) {
+      priority = 3;
+    } else if (resource) {
+      priority = 2;
+    } else {
+      priority = 1;
+    }
+  } else if (resource === "meat") {
+    priority = 1;
+  }
+
+  // Keep the user's priority ladder absolute; generic movement scoring is only
+  // a tie-breaker inside the same tier.
+  return priority * 10_000 + scoreMove(game, playerId, "jaguar", pieceId, position);
+}
+
+function hasVisiblePreyAt(game: GameState, playerId: string, position: GridPosition): boolean {
+  return game.pieces.some(
+    (piece) => piece.ownerId !== playerId && !piece.state.hidden && piece.location?.x === position.x && piece.location.y === position.y
+  );
+}
+
+function getResourceAt(game: GameState, position: GridPosition): Resource | null {
+  const card = getForestCardAtPosition(game, position);
+  const definition = card ? getCardDefinitionOrNull(card.definitionId) : null;
+  return definition?.resource ?? null;
+}
+
+function getPlayerTopResources(game: GameState, playerId: string): Set<Resource> {
+  const player = game.players.find((candidate) => candidate.playerId === playerId);
+  if (!player) {
+    return new Set();
+  }
+
+  const resources: Resource[] = ["meat", "egg", "fruit", "seed"];
+  const max = Math.max(...resources.map((resource) => player.resources[resource] ?? 0));
+  return new Set(resources.filter((resource) => (player.resources[resource] ?? 0) === max));
 }
