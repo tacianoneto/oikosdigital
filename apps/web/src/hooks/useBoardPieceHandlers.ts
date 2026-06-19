@@ -245,8 +245,8 @@ export function useBoardPieceHandlers({
           setSelectedJaguarTargetPieceId(null);
           setNotice(
             room.game.pendingGaloInterrupt.ownerId === controlledPlayerId
-              ? "Entre turnos ativo: mova 1 galo-de-campina."
-              : "Aguarde o Galo-de-campina resolver a acao entre turnos."
+              ? "Entre turnos: mova 1 galo."
+              : "Aguarde o Galo."
           );
           return;
         }
@@ -366,7 +366,7 @@ export function useBoardPieceHandlers({
           setSelectedJaguarDestination(null);
           setSelectedJaguarTargetPieceId(null);
           setSelectedPieceId(null);
-          setNotice("Aguarde o Galo-de-campina resolver a acao entre turnos.");
+          setNotice("Aguarde o Galo.");
         }
         return;
       }

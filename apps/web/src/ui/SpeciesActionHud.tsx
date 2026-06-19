@@ -81,7 +81,7 @@ function JaguarActionContent({
   if (game.pendingGaloInterrupt) {
     return (
       <div className="action-box-hint action-box-hint--waiting">
-        Aguarde o Galo-de-campina resolver a acao entre turnos.
+        Aguarde o Galo.
       </div>
     );
   }

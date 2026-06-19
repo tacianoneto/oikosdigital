@@ -249,8 +249,8 @@ describe("LeftActionDock", () => {
       />
     );
 
-    expect(markup).toContain("Entre turnos ativo");
-    expect(markup).toContain("mova para um local adjacente");
+    expect(markup).toContain("Entre turnos");
+    expect(markup).toContain("Mova 1 galo");
     expect(markup).not.toContain("destino selecionado");
   });
 });

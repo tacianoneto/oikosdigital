@@ -180,16 +180,13 @@ export function LeftActionDock({
             <div className="current-action-card">
               {isGaloInterruptOwner ? (
                 <div className="galo-interrupt-callout" role="status">
-                  <strong>Entre turnos ativo - sua vez de reagir</strong>
-                  <small>
-                    Selecione um galo-de-campina no local de campo e mova para um local adjacente destacado.
-                    Nao coleta recurso.
-                  </small>
+                  <strong>Entre turnos</strong>
+                  <small>Mova 1 galo para um local adjacente. Sem recurso.</small>
                 </div>
               ) : isWaitingForGaloInterrupt ? (
                 <div className="galo-interrupt-callout is-waiting" role="status">
-                  <strong>Aguardando Galo-de-campina</strong>
-                  <small>O jogo continua depois que o jogador do Galo mover 1 peca entre turnos.</small>
+                  <strong>Aguardando Galo</strong>
+                  <small>O turno continua apos a reacao.</small>
                 </div>
               ) : (
                 <ActionStepsViewer
