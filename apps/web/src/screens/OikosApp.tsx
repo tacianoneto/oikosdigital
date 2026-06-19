@@ -494,9 +494,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const isCurrentPlayerWaitingForGaloInterrupt = Boolean(
     galoInterrupt && currentGamePlayer?.playerId === galoInterrupt.interruptedPlayerId && !isCurrentGaloInterruptOwner
   );
-  const galoInterruptBannerText = isCurrentGaloInterruptOwner
-    ? "Entre turnos ativo: mova 1 galo-de-campina"
-    : `Aguardando ${galoInterruptOwner?.name ?? "Galo-de-campina"} resolver entre turnos`;
+  const galoInterruptBannerText = `Aguardando ${galoInterruptOwner?.name ?? "Galo-de-campina"} resolver entre turnos`;
 
   useEffect(() => {
     if (!galoInterruptKey) {
@@ -2159,19 +2157,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               </strong>
             </div>
           )}
-          {galoInterrupt && (isCurrentGaloInterruptOwner || visibleGaloInterruptBannerKey === galoInterruptKey) && (
+          {galoInterrupt && !isCurrentGaloInterruptOwner && visibleGaloInterruptBannerKey === galoInterruptKey && (
             <div
-              className={`galo-interrupt-banner ${isCurrentGaloInterruptOwner ? "is-owner" : "is-waiting"}`}
+              className="galo-interrupt-banner is-waiting"
               style={speciesVar("galo_de_campina")}
               role="status"
             >
-              <span>{isCurrentGaloInterruptOwner ? "Entre turnos" : "Turno pausado"}</span>
+              <span>Turno pausado</span>
               <strong>{galoInterruptBannerText}</strong>
-              <small>
-                {isCurrentGaloInterruptOwner
-                  ? "Selecione o galo no local de campo e clique em um destino adjacente."
-                  : `${interruptedGaloPlayer?.name ?? "Jogador ativo"} continua depois desta reacao.`}
-              </small>
+              <small>{interruptedGaloPlayer?.name ?? "Jogador ativo"} continua depois desta reacao.</small>
             </div>
           )}
           {isCurrentPlayerWaitingForGaloInterrupt && (
