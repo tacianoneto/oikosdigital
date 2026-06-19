@@ -241,7 +241,7 @@ export function SettingsModal({
         <footer className="settings-foot">
           <span>Oikos Digital</span>
           <span className="settings-foot-sep">·</span>
-          <span>v0.1.1 · beta</span>
+          <span>v0.1.2 · beta</span>
         </footer>
       </div>
     </div>

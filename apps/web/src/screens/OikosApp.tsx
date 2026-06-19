@@ -2169,7 +2169,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
               <strong>{galoInterruptBannerText}</strong>
               <small>
                 {isCurrentGaloInterruptOwner
-                  ? "Selecione o galo no local da semente e clique em um destino adjacente."
+                  ? "Selecione o galo no local de campo e clique em um destino adjacente."
                   : `${interruptedGaloPlayer?.name ?? "Jogador ativo"} continua depois desta reacao.`}
               </small>
             </div>

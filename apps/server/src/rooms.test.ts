@@ -194,7 +194,9 @@ describe("room lifecycle", () => {
     const galoPieceId = room.game!.pieces.find(
       (piece) => piece.ownerId === hostId && piece.location?.x === fieldPosition.x && piece.location.y === fieldPosition.y
     )!.pieceId;
-    const seedBefore = room.game!.players.find((player) => player.playerId === guestId)!.resources.seed;
+    const guestResourcesBefore = { ...room.game!.players.find((player) => player.playerId === guestId)!.resources };
+    const fieldResource = forestCardsById.get(fieldCard.definitionId)?.resource;
+    expect(fieldResource).toBeTruthy();
 
     room = movePiece(room.roomId, guestId, coatiPieceId, fieldPosition.x, fieldPosition.y);
 
@@ -209,7 +211,9 @@ describe("room lifecycle", () => {
 
     expect(room.game?.pendingGaloInterrupt).toBeNull();
     expect(room.game?.pieces.find((piece) => piece.pieceId === galoPieceId)?.location).toMatchObject(interruptTarget);
-    expect(room.game?.players.find((player) => player.playerId === guestId)?.resources.seed).toBe(seedBefore + 1);
+    expect(room.game?.players.find((player) => player.playerId === guestId)?.resources[fieldResource!]).toBe(
+      guestResourcesBefore[fieldResource!] + 1
+    );
 
     leaveRooms(hostId);
     leaveRooms(guestId);

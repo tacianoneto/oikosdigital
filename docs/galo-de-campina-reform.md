@@ -18,9 +18,8 @@ Peças iniciais: 3       (initialPieces: mudar de 4 para 3)
 Tipo: base
 
 Entre turnos
-Locais de campo com algum galo-de-campina geram 1 semente em vez do recurso do local.
-Quando outra espécie coletar essa semente, mova 1 galo-de-campina desse local para um
-local adjacente, sem coletar recurso.
+Se outra espécie entrar em um local de campo com ao menos 1 galo-de-campina e não remover
+esse galo, mova 1 galo-de-campina desse local para um local adjacente, sem coletar recurso.
 
 A. Expanda a floresta. Adicione 1 galo-de-campina em um local de campo.
 B. Mova 1 galo-de-campina conforme a carta jogada. Se ele terminar em campo, colete 1 semente extra.
@@ -30,13 +29,12 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
 
 ## Decisões já tomadas (NÃO perguntar de novo)
 
-1. **Geração de semente / "entre turnos"**: um local de campo gera 1 semente em vez do recurso
-   **somente quando JÁ existe um galo naquele local**. O **primeiro** galo a entrar num campo vazio
-   coleta o **recurso normal** do campo. A partir daí, qualquer peça (de qualquer espécie, inclusive
-   outro galo) que entrar e coletar nesse campo coleta **semente**. Vale igual para todas as espécies.
+1. **Entre turnos**: o recurso do campo nunca muda por causa do galo. A espécie que entra coleta
+   o recurso impresso do local normalmente, se a coleta não estiver bloqueada por outro efeito.
 
-2. **Interrupção (entre turnos)**: dispara **apenas quando uma peça que NÃO é galo (outra espécie)
-   coleta a semente** num campo que tem galo. Ao disparar:
+2. **Interrupção (entre turnos)**: dispara quando uma peça que NÃO é galo entra em um local de
+   campo que tem ao menos 1 galo-de-campina e, após a entrada/remocão, ainda sobra galo naquele
+   local. Ao disparar:
    - O turno do jogador ativo é **pausado**.
    - O **dono do galo escolhe** (controle fora-de-turno) mover **1 galo daquele local** para um
      **local adjacente** (mesmo padrão de adjacência das regras), **sem coletar recurso** ao mover.
@@ -45,8 +43,9 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
    - Mover o galo na interrupção **não** coleta recurso nem dispara nova semente/interrupção.
    - Depois de resolver (ou pular), o **turno do jogador ativo continua** de onde parou.
 
-3. **Passiva antiga**: **removida por completo**. O bônus de +1 semente agora vem **só da ação B**
-   (ao terminar em campo). Não existe mais a passiva "mover para local de semente = +1 semente".
+3. **Passiva antiga**: **removida por completo**. Não existe mais "campo com galo gera semente
+   em vez do recurso" nem "mover para local de semente = +1 semente". O bônus de +1 semente vem
+   **só da ação B** do próprio galo ao terminar em campo.
 
 4. **Ação C ("atrair")**: atrai **somente peça PRÓPRIA** (do dono do galo). Mover uma peça própria
    para um local que tenha galo, seguindo o padrão da carta jogada.
@@ -56,9 +55,7 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
 - **A**: igual ao fluxo atual de expandir floresta e adicionar 1 galo da reserva num local de **campo**.
   (Reaproveitar a lógica existente de `addGaloForCurrentAction`.)
 - **B**: mover 1 galo conforme a carta jogada (padrão por habitat). Se o destino for **campo**,
-  ganhar **+1 semente extra**. (Atenção: se o destino-campo já tiver outro galo, a coleta normal vira
-  semente pela regra "entre turnos"; o "+1 semente extra" da ação B é adicional a isso. Confirmar
-  empilhamento na implementação — default: soma.)
+  ganhar **+1 semente extra**. O recurso normal do local continua sendo o recurso impresso da carta.
 - **C**: mover **peça própria** para um local que **contenha galo**, conforme o padrão da carta jogada.
 - **D**: marcar **3 ⭐**; para **cada galo que NÃO estiver em campo**, **−1 ⭐**. (Pode ficar negativo?
   Default: piso em 0 — confirmar na implementação; provavelmente não deixar negativo.)
@@ -76,11 +73,11 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
 
 **Motor de regras**
 - `packages/rules/src/movementActions.ts`:
-  - `collectMovementDestinationResource` (~linha 366) é o ponto central. Lógica nova:
-    - Detectar se o campo-destino **já tinha** galo ANTES desta coleta. Se sim → recurso coletado
-      vira `seed` (qualquer espécie).
-    - Se o coletor **não é galo** e há galo no local → setar `pendingGaloInterrupt` (dono do galo).
-    - Primeiro galo entrando em campo vazio → recurso normal, sem semente, sem interrupção.
+  - `collectMovementDestinationResource` é o ponto central. Lógica nova:
+    - Sempre coletar o recurso impresso da carta, nunca trocar por `seed` por causa do galo.
+    - Se o coletor **não é galo** e há galo no local de campo → setar `pendingGaloInterrupt`
+      (dono do galo), desde que o galo não tenha sido removido pela onça.
+    - Primeiro galo entrando em campo vazio → recurso normal, sem interrupção.
     - Remover todo o código da passiva antiga (`galoSeedBonus`, logs `galo_seed_bonus`).
 - `packages/rules/src/species/galo.ts`: reescrever. Manter/adaptar `addGaloForCurrentAction` (ação A).
   Criar handlers novos: mover galo (B, com +1 semente se terminar em campo), atrair peça própria (C),
@@ -130,12 +127,5 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
 1. **Fase 1 — motor**: content + shared + rules + turn + testes de regras. Verificar com
    `typecheck` + testes do pacote `rules`.
 2. **Fase 2 — interface/online/bots**: servidor (ação fora-de-turno) + UI/HUD + handlers + bots +
-   testes de UI. Verificar boot + typecheck + build (smoke gated por login — ver memória
-   `project_oikosapp_smoke`).
-
-## Pontos a confirmar na hora de implementar (decidir default se eu não responder)
-
-- Empilhamento da semente na ação B quando o campo-destino já tem galo (default: somar).
-- Pontuação D pode ficar negativa? (default: piso 0).
-- Na interrupção, se houver vários galos no local, mover qual? (default: determinístico — escolha do
-  dono na UI; bot pega o primeiro por id).
+  testes de UI. Verificar boot + typecheck + build (smoke gated por login — ver memória
+  `project_oikosapp_smoke`).

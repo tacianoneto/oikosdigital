@@ -39,7 +39,7 @@ const galoActionDescriptions: Partial<Record<ActionId, string>> = {
 
 export function getPassiveDescription(speciesId: SpeciesId | null | undefined): string | null {
   if (speciesId === "galo_de_campina") {
-    return "Locais de campo com algum galo-de-campina geram 1 semente em vez do recurso do local. Quando outra espécie coletar essa semente, mova 1 galo-de-campina desse local para um local adjacente, sem coletar recurso.";
+    return "Quando outra espécie entrar em um local de campo com algum galo-de-campina e não remover esse galo, mova 1 galo-de-campina desse local para um local adjacente, sem coletar recurso.";
   }
 
   return null;

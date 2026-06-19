@@ -348,7 +348,7 @@ function GaloActionContent({
       <div className="action-box-hint">
         {selectedPieceId
           ? "Clique em um local adjacente destacado para mover 1 galo-de-campina, sem coletar recurso."
-          : "Entre turnos: selecione um galo-de-campina no local da semente coletada."}
+          : "Entre turnos: selecione um galo-de-campina no local de campo."}
       </div>
     );
   }

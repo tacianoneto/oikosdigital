@@ -448,7 +448,16 @@ function collectMovementDestinationResource(
   const galoOwnerInField = targetDefinition?.habitat === "field"
     ? findExistingGaloOwnerAtPosition(game, destination, movedPieceId)
     : null;
-  const resource: Resource = galoOwnerInField ? "seed" : cardResource;
+  const player = findPlayer(game, playerId);
+  const resource: Resource = cardResource;
+
+  queueGaloInterruptIfNeeded(game, {
+    collectorPlayerId: playerId,
+    collectorSpeciesId: player.speciesId,
+    destination,
+    galoOwnerId: galoOwnerInField
+  });
+
   const threatBlockReason = getCollectionBlockReason(game, {
     playerId,
     resource,
@@ -466,14 +475,6 @@ function collectMovementDestinationResource(
     ];
     return null;
   }
-
-  const player = findPlayer(game, playerId);
-  queueGaloInterruptIfNeeded(game, {
-    collectorPlayerId: playerId,
-    collectorSpeciesId: player.speciesId,
-    destination,
-    galoOwnerId: galoOwnerInField
-  });
 
   const cerradoActive = (game.activeScenarioIds ?? []).includes("cerrado");
   const cerradoTriggered =

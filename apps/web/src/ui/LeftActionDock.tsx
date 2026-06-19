@@ -182,8 +182,8 @@ export function LeftActionDock({
                 <div className="galo-interrupt-callout" role="status">
                   <strong>Entre turnos ativo - sua vez de reagir</strong>
                   <small>
-                    Selecione um galo-de-campina no local da semente coletada e mova para um local adjacente
-                    destacado. Nao coleta recurso.
+                    Selecione um galo-de-campina no local de campo e mova para um local adjacente destacado.
+                    Nao coleta recurso.
                   </small>
                 </div>
               ) : isWaitingForGaloInterrupt ? (

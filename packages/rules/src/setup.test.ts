@@ -1593,7 +1593,7 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(2);
   });
 
-  it("turns a galo-occupied field resource into seed and lets the galo owner move between turns", () => {
+  it("keeps a galo-occupied field resource normal and lets the galo owner move between turns", () => {
     let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
     game = placeInitialPiece(game, "galo", { x: 1, y: 0 });
     game = placeInitialPiece(game, "galo", { x: -1, y: -1 });
@@ -1607,13 +1607,15 @@ describe("setup placement", () => {
 
     const coatiPieceId = game.pieces.find((piece) => piece.ownerId === "coati" && piece.location?.x === 0 && piece.location.y === 1)?.pieceId;
     const galoPieceId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
+    const coatiBefore = game.players.find((candidate) => candidate.playerId === "coati")!.resources;
+    const destinationResource = getResourceAt(game, { x: 1, y: 0 });
+    expect(destinationResource).not.toBeNull();
 
     expect(getValidPieceMovementDestinations(game, "coati", coatiPieceId!)).toContainEqual({ x: 1, y: 0 });
     game = movePieceForCurrentAction(game, "coati", coatiPieceId!, { x: 1, y: 0 });
 
     const coati = game.players.find((candidate) => candidate.playerId === "coati");
-    expect(coati?.resources.seed).toBe(2);
-    expect(coati?.resources.fruit).toBe(0);
+    expect(coati?.resources[destinationResource!]).toBe(coatiBefore[destinationResource!] + 1);
     expect(game.pendingGaloInterrupt).toEqual({
       ownerId: "galo",
       location: { x: 1, y: 0 },
@@ -1738,7 +1740,7 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(1);
   });
 
-  it("still queues Galo-de-campina between-turn move after Onca removal when seed collection is blocked", () => {
+  it("still queues Galo-de-campina between-turn move after Onca removal when resource collection is blocked", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
     const placeFor = (playerId: string, location: { x: number; y: number }) => {
       game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
@@ -1834,11 +1836,12 @@ describe("setup placement", () => {
     };
 
     const movingGaloId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === -1)?.pieceId;
+    const galoSeedsBefore = game.players.find((candidate) => candidate.playerId === "galo")!.resources.seed;
 
     expect(getValidPieceMovementDestinations(game, "galo", movingGaloId!)).toContainEqual({ x: 1, y: 0 });
     game = movePieceForCurrentAction(game, "galo", movingGaloId!, { x: 1, y: 0 });
 
-    expect(game.players.find((candidate) => candidate.playerId === "galo")?.resources.seed).toBe(1);
+    expect(game.players.find((candidate) => candidate.playerId === "galo")?.resources.seed).toBe(galoSeedsBefore);
     expect(game.activeActionIndex).toBe(3);
   });
 

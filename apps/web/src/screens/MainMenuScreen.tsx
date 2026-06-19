@@ -47,7 +47,7 @@ export function MainMenuScreen({
           <img src="/oikos-logo.webp" alt="Oikos Digital" />
           <p className="menu-brand-tagline">
             Jogo de tabuleiro multiplayer
-            <span className="menu-brand-badge">v0.1.1 beta</span>
+            <span className="menu-brand-badge">v0.1.2 beta</span>
           </p>
         </div>
 
