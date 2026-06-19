@@ -10,6 +10,8 @@ vi.mock("./store", () => ({
 import { deleteRoom } from "./store";
 import {
   addBots,
+  addBotForSpecies,
+  advanceBot,
   createRoom,
   joinRoom,
   leaveRoom,
@@ -212,4 +214,152 @@ describe("room lifecycle", () => {
     leaveRooms(hostId);
     leaveRooms(guestId);
   });
+
+  it("keeps online Onca waiting for removal choice after a human Galo interrupt", () => {
+    const jaguarId = "online-jaguar-host";
+    const galoId = "online-galo-guest";
+    let room = createRoom(jaguarId, "Onca");
+    room = joinRoom(room.roomId, galoId, "Galo");
+    room = selectSpecies(room.roomId, jaguarId, "jaguar");
+    room = selectSpecies(room.roomId, galoId, "galo_de_campina");
+    room = setReady(room.roomId, jaguarId, true);
+    room = setReady(room.roomId, galoId, true);
+    room = startGame(room.roomId, jaguarId);
+    const setup = placeOncaBesideGaloField(room, jaguarId, galoId);
+    room = setup.room;
+
+    room.game!.activePlayerId = jaguarId;
+    room.game!.activeActionIndex = 0;
+
+    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y);
+
+    expect(room.game?.pendingGaloInterrupt).toEqual({
+      ownerId: galoId,
+      location: setup.field,
+      interruptedPlayerId: jaguarId
+    });
+    expect(room.game?.pendingJaguarRemoval).toEqual({
+      playerId: jaguarId,
+      location: setup.field
+    });
+
+    const interruptTarget = getGaloInterruptMoveTargets(room.game!, galoId, setup.movingGaloId)[0]!;
+    room = resolveGaloInterrupt(room.roomId, galoId, interruptTarget.x, interruptTarget.y, setup.movingGaloId);
+
+    expect(room.game?.pendingGaloInterrupt).toBeNull();
+    expect(room.game?.pendingJaguarRemoval).toEqual({
+      playerId: jaguarId,
+      location: setup.field
+    });
+    expect(room.game?.activePlayerId).toBe(jaguarId);
+    expect(room.game?.activeActionIndex).toBe(0);
+
+    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y, setup.remainingGaloId);
+
+    expect(room.game?.pendingJaguarRemoval).toBeNull();
+    expect(room.game?.pieces.find((piece) => piece.pieceId === setup.remainingGaloId)?.location).toBeNull();
+    expect(room.game?.activeActionIndex).toBe(1);
+
+    leaveRooms(jaguarId);
+    leaveRooms(galoId);
+  });
+
+  it("advances a bot Galo interrupt online and returns removal choice to human Onca", () => {
+    const jaguarId = "online-jaguar-vs-galo-bot";
+    const galoId = "bot_galo_de_campina";
+    let room = createRoom(jaguarId, "Onca");
+    room = selectSpecies(room.roomId, jaguarId, "jaguar");
+    room = addBotForSpecies(room.roomId, jaguarId, "galo_de_campina");
+    room = setReady(room.roomId, jaguarId, true);
+    room = startGame(room.roomId, jaguarId);
+    const setup = placeOncaBesideGaloField(room, jaguarId, galoId);
+    room = setup.room;
+
+    room.game!.activePlayerId = jaguarId;
+    room.game!.activeActionIndex = 0;
+
+    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y);
+
+    expect(room.game?.pendingGaloInterrupt?.ownerId).toBe(galoId);
+
+    const advanced = advanceBot(room.roomId)!;
+
+    expect(advanced.game?.pendingGaloInterrupt).toBeNull();
+    expect(advanced.game?.pendingJaguarRemoval).toEqual({
+      playerId: jaguarId,
+      location: setup.field
+    });
+    expect(advanced.game?.activePlayerId).toBe(jaguarId);
+    expect(advanced.game?.activeActionIndex).toBe(0);
+
+    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y, setup.remainingGaloId);
+
+    expect(room.game?.pendingJaguarRemoval).toBeNull();
+    expect(room.game?.pieces.find((piece) => piece.pieceId === setup.remainingGaloId)?.location).toBeNull();
+    expect(room.game?.activeActionIndex).toBe(1);
+
+    leaveRooms(jaguarId);
+  });
 });
+
+function placeOncaBesideGaloField(
+  room: ReturnType<typeof createRoom>,
+  jaguarId: string,
+  galoId: string
+): {
+  field: { x: number; y: number };
+  jaguarOrigin: { x: number; y: number };
+  jaguarPieceId: string;
+  movingGaloId: string;
+  remainingGaloId: string;
+  room: ReturnType<typeof createRoom>;
+} {
+  const cards = room.game!.forest.cards;
+  const hasCardAt = (position: { x: number; y: number }) =>
+    cards.some((card) => card.x === position.x && card.y === position.y);
+  const adjacentPositions = (position: { x: number; y: number }) => [
+    { x: position.x, y: position.y - 1 },
+    { x: position.x + 1, y: position.y },
+    { x: position.x, y: position.y + 1 },
+    { x: position.x - 1, y: position.y }
+  ];
+  const fieldCard = cards.find((card) => {
+    const definition = forestCardsById.get(card.definitionId);
+    return definition?.habitat === "field" && adjacentPositions(card).some(hasCardAt);
+  })!;
+  const field = { x: fieldCard.x, y: fieldCard.y };
+  const jaguarOrigin = adjacentPositions(field).find(hasCardAt)!;
+  const usedPositions = new Set([`${field.x}:${field.y}`, `${jaguarOrigin.x}:${jaguarOrigin.y}`]);
+  const takeUnusedPosition = () => {
+    const card = cards.find((candidate) => !usedPositions.has(`${candidate.x}:${candidate.y}`))!;
+    usedPositions.add(`${card.x}:${card.y}`);
+    return { x: card.x, y: card.y };
+  };
+  const setupPositions: Record<string, Array<{ x: number; y: number }>> = {
+    [jaguarId]: [jaguarOrigin],
+    [galoId]: [field, field, takeUnusedPosition()]
+  };
+  let nextRoom = room;
+
+  while (nextRoom.game?.status === "setup") {
+    const playerId = nextRoom.game.setupActivePlayerId!;
+    const position = setupPositions[playerId]!.shift()!;
+    nextRoom = placeSetupPiece(nextRoom.roomId, playerId, position.x, position.y);
+  }
+
+  const jaguarPieceId = nextRoom.game!.pieces.find(
+    (piece) => piece.ownerId === jaguarId && piece.speciesId === "jaguar" && piece.location
+  )!.pieceId;
+  const galoPieces = nextRoom.game!.pieces
+    .filter((piece) => piece.ownerId === galoId && piece.location?.x === field.x && piece.location.y === field.y)
+    .sort((a, b) => a.pieceId.localeCompare(b.pieceId));
+
+  return {
+    field,
+    jaguarOrigin,
+    jaguarPieceId,
+    movingGaloId: galoPieces[0]!.pieceId,
+    remainingGaloId: galoPieces[1]!.pieceId,
+    room: nextRoom
+  };
+}
