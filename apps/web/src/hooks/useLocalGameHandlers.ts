@@ -59,6 +59,29 @@ interface LocalGameHandlersParams {
   setLandingMode: Dispatch<SetStateAction<LandingMode>>;
 }
 
+export function getLocalBotActingPlayerId(room: PublicRoomState): string | null {
+  const game = room.game;
+  if (!game) {
+    return null;
+  }
+
+  const actingPlayerId =
+    game.status === "active" && game.pendingGaloInterrupt
+      ? game.pendingGaloInterrupt.ownerId
+      : game.status === "setup"
+        ? game.setupActivePlayerId
+        : game.status === "active"
+          ? game.activePlayerId
+          : null;
+
+  if (!actingPlayerId) {
+    return null;
+  }
+
+  const player = room.players.find((candidate) => candidate.playerId === actingPlayerId);
+  return player?.isBot ? actingPlayerId : null;
+}
+
 // Local test + tutorial lifecycle: species/bot selection for the local table,
 // starting/stopping/rematching a local game, the bot-stepping effect that drives
 // local bot turns, and starting/exiting scripted tutorials plus leaving any
@@ -188,15 +211,8 @@ export function useLocalGameHandlers({
       return;
     }
 
-    const game = room.game;
-    const activeId =
-      game.status === "setup" ? game.setupActivePlayerId : game.status === "active" ? game.activePlayerId : null;
-    if (!activeId) {
-      return;
-    }
-
-    const activePlayer = room.players.find((player) => player.playerId === activeId);
-    if (!activePlayer?.isBot) {
+    const botActingPlayerId = getLocalBotActingPlayerId(room);
+    if (!botActingPlayerId) {
       return;
     }
 
@@ -207,28 +223,28 @@ export function useLocalGameHandlers({
         }
 
         const liveGame = current.game;
-        const liveActiveId =
-          liveGame.status === "setup"
-            ? liveGame.setupActivePlayerId
-            : liveGame.status === "active"
-              ? liveGame.activePlayerId
-              : null;
-        const livePlayer = current.players.find((player) => player.playerId === liveActiveId);
-        if (!liveActiveId || !livePlayer?.isBot) {
+        const liveBotActingPlayerId = getLocalBotActingPlayerId(current);
+        if (!liveBotActingPlayerId) {
           return current;
         }
 
         let nextGame: typeof liveGame;
         try {
-          nextGame = playBotStep(liveGame, liveActiveId);
+          nextGame = playBotStep(liveGame, liveBotActingPlayerId);
           if (nextGame === liveGame) {
-            nextGame = completeCurrentAction(liveGame, liveActiveId);
+            nextGame =
+              liveGame.status === "active" && liveGame.activePlayerId === liveBotActingPlayerId
+                ? completeCurrentAction(liveGame, liveBotActingPlayerId)
+                : liveGame;
           }
         } catch {
           try {
-            nextGame = completeCurrentAction(liveGame, liveActiveId);
+            nextGame =
+              liveGame.status === "active" && liveGame.activePlayerId === liveBotActingPlayerId
+                ? completeCurrentAction(liveGame, liveBotActingPlayerId)
+                : liveGame;
           } catch {
-            nextGame = forceEndPlayerTurn(liveGame, liveActiveId, "bot local sem jogada valida");
+            nextGame = forceEndPlayerTurn(liveGame, liveBotActingPlayerId, "bot local sem jogada valida");
           }
         }
 
