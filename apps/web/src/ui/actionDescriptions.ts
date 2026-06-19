@@ -32,8 +32,8 @@ const macawActionDescriptions: Partial<Record<ActionId, string>> = {
 
 const galoActionDescriptions: Partial<Record<ActionId, string>> = {
   A: "Expanda a floresta. Adicione 1 galo-de-campina em um local de campo.",
-  B: "Mova 1 galo-de-campina conforme a carta jogada. Se terminar em campo, colete 1 semente extra.",
-  C: "Atraia uma peça própria para um local com galo-de-campina conforme a carta jogada.",
+  B: "Mova 1 galo-de-campina conforme a carta jogada.",
+  C: "Atraia uma peça própria para um local com galo-de-campina conforme a carta jogada, sem coletar recurso.",
   D: "Marque 3 pontos. Para cada galo-de-campina que não esteja em um campo, -1 ponto."
 };
 

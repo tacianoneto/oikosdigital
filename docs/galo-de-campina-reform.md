@@ -22,8 +22,8 @@ Se outra espécie entrar em um local de campo com ao menos 1 galo-de-campina e n
 esse galo, mova 1 galo-de-campina desse local para um local adjacente, sem coletar recurso.
 
 A. Expanda a floresta. Adicione 1 galo-de-campina em um local de campo.
-B. Mova 1 galo-de-campina conforme a carta jogada. Se ele terminar em campo, colete 1 semente extra.
-C. Atraia uma peça para um local com galo-de-campina conforme a carta jogada.
+B. Mova 1 galo-de-campina conforme a carta jogada.
+C. Atraia uma peça para um local com galo-de-campina conforme a carta jogada, sem coletar recurso.
 D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
 ```
 
@@ -43,9 +43,8 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
    - Mover o galo na interrupção **não** coleta recurso nem dispara nova semente/interrupção.
    - Depois de resolver (ou pular), o **turno do jogador ativo continua** de onde parou.
 
-3. **Passiva antiga**: **removida por completo**. Não existe mais "campo com galo gera semente
-   em vez do recurso" nem "mover para local de semente = +1 semente". O bônus de +1 semente vem
-   **só da ação B** do próprio galo ao terminar em campo.
+3. **Passiva antiga**: **removida por completo**. Não existe mais troca de recurso por semente,
+   bônus por mover para semente nem qualquer bônus extra de semente.
 
 4. **Ação C ("atrair")**: atrai **somente peça PRÓPRIA** (do dono do galo). Mover uma peça própria
    para um local que tenha galo, seguindo o padrão da carta jogada.
@@ -54,9 +53,10 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
 
 - **A**: igual ao fluxo atual de expandir floresta e adicionar 1 galo da reserva num local de **campo**.
   (Reaproveitar a lógica existente de `addGaloForCurrentAction`.)
-- **B**: mover 1 galo conforme a carta jogada (padrão por habitat). Se o destino for **campo**,
-  ganhar **+1 semente extra**. O recurso normal do local continua sendo o recurso impresso da carta.
+- **B**: mover 1 galo conforme a carta jogada (padrão por habitat). Coleta apenas o recurso
+  impresso do destino, sem bônus extra de semente.
 - **C**: mover **peça própria** para um local que **contenha galo**, conforme o padrão da carta jogada.
+  Esta ação não coleta recurso.
 - **D**: marcar **3 ⭐**; para **cada galo que NÃO estiver em campo**, **−1 ⭐**. (Pode ficar negativo?
   Default: piso em 0 — confirmar na implementação; provavelmente não deixar negativo.)
 
@@ -80,7 +80,7 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
     - Primeiro galo entrando em campo vazio → recurso normal, sem interrupção.
     - Remover todo o código da passiva antiga (`galoSeedBonus`, logs `galo_seed_bonus`).
 - `packages/rules/src/species/galo.ts`: reescrever. Manter/adaptar `addGaloForCurrentAction` (ação A).
-  Criar handlers novos: mover galo (B, com +1 semente se terminar em campo), atrair peça própria (C),
+  Criar handlers novos: mover galo (B, sem bônus extra de semente), atrair peça própria (C, sem coleta),
   pontuar (D: 3 − nº de galos fora de campo), e `resolveGaloInterruptMove` (dono move 1 galo do
   local da interrupção para adjacente, sem coletar). Remover `scoreGaloSeedCards`, presença em
   sementes, `getGaloAdjacentAddPositions` antigo etc. que não servirem.
@@ -118,7 +118,8 @@ D. Marque 3 ⭐. Para cada galo-de-campina que não esteja em um campo -1 ⭐.
   - coletor não-galo dispara interrupção; dono move galo p/ adjacente sem coletar;
   - sem adjacente válido → interrupção pulada;
   - turno do jogador ativo retoma após interrupção;
-  - ação B +1 semente ao terminar em campo;
+  - ação B coleta apenas recurso normal do destino;
+  - ação C não coleta recurso;
   - ação C move só peça própria para local com galo;
   - ação D = 3 − galos fora de campo.
 

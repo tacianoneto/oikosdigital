@@ -172,27 +172,10 @@ export function movePieceForCurrentAction(
     throw new Error("Peca nao encontrada.");
   }
 
-  const nextPlayer = findPlayer(next, playerId);
-
   nextPiece.location = createPieceLocation(game, destination);
   nextPiece.state.hidden = false;
-  const collectedResource = collectMovementDestinationResource(next, playerId, destination, pieceId);
-  const moveDestDefinition = getCardDefinitionOrNull(getForestCardAtPosition(next, destination)?.definitionId ?? "");
-  if (player.speciesId === "galo_de_campina" && action === "B" && moveDestDefinition?.habitat === "field") {
-    nextPlayer.resources = {
-      ...nextPlayer.resources,
-      seed: (nextPlayer.resources.seed ?? 0) + 1
-    };
-    next.log = [
-      ...next.log,
-      {
-        id: `galo_field_seed_${playerId}_${next.log.length + 1}`,
-        message: `${nextPlayer.name} coletou +1 semente extra por terminar em campo.`,
-        createdAt: Date.now(),
-        payload: { kind: "move_piece", actorPlayerId: playerId, resources: ["seed"], count: 1, actionId: "B" }
-      }
-    ];
-  }
+  const shouldCollectMovementResource = !(player.speciesId === "galo_de_campina" && action === "C");
+  const collectedResource = shouldCollectMovementResource ? collectMovementDestinationResource(next, playerId, destination, pieceId) : null;
   const moveDestCard = next.forest.cards.find((card) => card.x === destination.x && card.y === destination.y);
   next.log = [
     ...next.log,

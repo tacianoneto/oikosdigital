@@ -1569,7 +1569,7 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(1);
   });
 
-  it("lets the first galo entering an empty field collect the normal resource plus the action-B seed", () => {
+  it("lets Galo-de-campina action B collect only the normal destination resource", () => {
     let game = createTestGameState("room", [player("galo", "galo_de_campina"), player("coati", "coati")]);
     game = placeInitialPiece(game, "galo", { x: -1, y: -1 });
     game = placeInitialPiece(game, "galo", { x: 0, y: -1 });
@@ -1582,13 +1582,18 @@ describe("setup placement", () => {
     };
 
     const galoPieceId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === -1)?.pieceId;
+    const galoBefore = { ...game.players.find((candidate) => candidate.playerId === "galo")!.resources };
+    const destinationResource = getResourceAt(game, { x: 1, y: 0 });
+    expect(destinationResource).not.toBeNull();
 
     expect(getValidPieceMovementDestinations(game, "galo", galoPieceId!)).toContainEqual({ x: 1, y: 0 });
     game = movePieceForCurrentAction(game, "galo", galoPieceId!, { x: 1, y: 0 });
 
     const galo = game.players.find((candidate) => candidate.playerId === "galo");
-    expect(galo?.resources.fruit).toBe(2);
-    expect(galo?.resources.seed).toBe(1);
+    expect(galo?.resources).toEqual({
+      ...galoBefore,
+      [destinationResource!]: galoBefore[destinationResource!] + 1
+    });
     expect(game.pendingGaloInterrupt).toBeNull();
     expect(game.activeActionIndex).toBe(2);
   });
@@ -1836,12 +1841,12 @@ describe("setup placement", () => {
     };
 
     const movingGaloId = game.pieces.find((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === -1)?.pieceId;
-    const galoSeedsBefore = game.players.find((candidate) => candidate.playerId === "galo")!.resources.seed;
+    const galoResourcesBefore = { ...game.players.find((candidate) => candidate.playerId === "galo")!.resources };
 
     expect(getValidPieceMovementDestinations(game, "galo", movingGaloId!)).toContainEqual({ x: 1, y: 0 });
     game = movePieceForCurrentAction(game, "galo", movingGaloId!, { x: 1, y: 0 });
 
-    expect(game.players.find((candidate) => candidate.playerId === "galo")?.resources.seed).toBe(galoSeedsBefore);
+    expect(game.players.find((candidate) => candidate.playerId === "galo")?.resources).toEqual(galoResourcesBefore);
     expect(game.activeActionIndex).toBe(3);
   });
 

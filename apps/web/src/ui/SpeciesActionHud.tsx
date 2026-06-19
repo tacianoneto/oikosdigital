@@ -373,7 +373,7 @@ function GaloActionContent({
   if (activeActionId === "B") {
     return (
       <div className="action-box-hint">
-        Selecione um Galo-de-campina e clique em um destino destacado. Se terminar em campo, colete +1 semente.
+        Selecione um Galo-de-campina e clique em um destino destacado.
       </div>
     );
   }
@@ -382,7 +382,7 @@ function GaloActionContent({
     return (
       <>
         <div className="action-box-hint">
-          Selecione uma peça própria e atraia-a para um local com galo-de-campina conforme a carta jogada.
+          Selecione uma peça própria e atraia-a para um local com galo-de-campina conforme a carta jogada, sem coletar recurso.
         </div>
         <SecondaryActionButton disabled={tutorialActive} onClick={onCompleteAction}>
           Concluir sem atrair
