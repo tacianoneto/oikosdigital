@@ -21,7 +21,11 @@ import {
   relocateMacawForCurrentAction
 } from "./species/macaw";
 import { pruneResolvedCoatiPairBonuses, queuePendingCoatiPairBonus } from "./species/coati";
-import { getGaloAdjacentTargetsForLocation } from "./species/galo";
+import {
+  canTriggerGaloInterruptAtPosition,
+  getGaloAdjacentTargetsForLocation,
+  getGaloInterruptOwnerAtPosition
+} from "./species/galo";
 
 export function getValidPieceMovementDestinations(game: GameState, playerId: string, pieceId: string): GridPosition[] {
   if (game.status !== "active" || game.activePlayerId !== playerId) {
@@ -516,17 +520,7 @@ function collectMovementDestinationResource(
 }
 
 function findExistingGaloOwnerAtPosition(game: GameState, destination: GridPosition, movedPieceId?: string): string | null {
-  return (
-    game.pieces
-      .filter(
-        (piece) =>
-          piece.pieceId !== movedPieceId &&
-          piece.speciesId === "galo_de_campina" &&
-          piece.location?.x === destination.x &&
-          piece.location.y === destination.y
-      )
-      .sort((a, b) => a.pieceId.localeCompare(b.pieceId))[0]?.ownerId ?? null
-  );
+  return getGaloInterruptOwnerAtPosition(game, destination, movedPieceId);
 }
 
 function getExpectedRemovablePiecesAfterGaloInterruptMove(
@@ -620,18 +614,7 @@ function shouldPauseJaguarRemovalForGaloInterrupt(
   destination: GridPosition,
   movedPieceId: string
 ): boolean {
-  const targetCard = getForestCardAtPosition(game, destination);
-  const targetDefinition = targetCard ? getCardDefinitionOrNull(targetCard.definitionId) : null;
-  if (targetDefinition?.habitat !== "field") {
-    return false;
-  }
-
-  const galoOwnerId = findExistingGaloOwnerAtPosition(game, destination, movedPieceId);
-  if (!galoOwnerId) {
-    return false;
-  }
-
-  return getGaloAdjacentTargetsForLocation(game, destination).length > 0;
+  return canTriggerGaloInterruptAtPosition(game, "jaguar", destination, movedPieceId);
 }
 
 function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, origin: GridPosition): GridPosition[] {

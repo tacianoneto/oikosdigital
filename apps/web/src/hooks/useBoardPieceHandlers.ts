@@ -1,6 +1,7 @@
 import { useCallback, useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import {
   applyGameIntent,
+  canTriggerGaloInterruptAtPosition,
   getCapuchinScoringHabitats,
   getMacawScoringLines,
   type MacawScoringLine,
@@ -18,6 +19,30 @@ import type { TutorialStepDef } from "../ui/tutorials";
 
 type PendingCacaIlegal = NonNullable<GameState["cacaIlegalPending"]>;
 type GridTarget = { x: number; y: number };
+
+export function shouldPromptJaguarRemovalTargetBeforeMove(
+  game: GameState,
+  activeSpeciesId: SpeciesId | null,
+  selectedPieceId: string | null,
+  position: GridTarget
+): boolean {
+  if (activeSpeciesId !== "jaguar" || !selectedPieceId) {
+    return false;
+  }
+
+  const removablePieces = game.pieces.filter(
+    (piece) =>
+      piece.ownerId !== game.activePlayerId &&
+      !piece.state.hidden &&
+      piece.location?.x === position.x &&
+      piece.location.y === position.y
+  );
+
+  return (
+    removablePieces.length > 1 &&
+    !canTriggerGaloInterruptAtPosition(game, activeSpeciesId, position, selectedPieceId)
+  );
+}
 
 interface BoardPieceHandlersParams {
   room: PublicRoomState | null;
@@ -359,17 +384,14 @@ export function useBoardPieceHandlers({
           return;
         }
 
-        const removablePieces = currentGame.pieces.filter(
-          (piece) =>
-            piece.ownerId !== currentGame.activePlayerId &&
-            !piece.state.hidden &&
-            piece.location?.x === position.x &&
-            piece.location.y === position.y
+        const shouldChooseJaguarTarget = shouldPromptJaguarRemovalTargetBeforeMove(
+          currentGame,
+          activeSpeciesId,
+          selectedPieceId,
+          position
         );
 
-        const hasGaloInterruptCandidate = removablePieces.some((piece) => piece.speciesId === "galo_de_campina");
-
-        if (removablePieces.length > 1 && !hasGaloInterruptCandidate) {
+        if (shouldChooseJaguarTarget) {
           setSelectedJaguarDestination(position);
           setSelectedJaguarTargetPieceId(null);
           setNotice("Escolha qual meeple a Onça deve remover neste local.");

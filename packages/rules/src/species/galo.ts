@@ -39,6 +39,44 @@ export function getGaloAdjacentTargetsForLocation(game: GameState, location: Gri
     .sort((a, b) => a.y - b.y || a.x - b.x);
 }
 
+export function getGaloInterruptOwnerAtPosition(
+  game: GameState,
+  location: GridPosition,
+  movedPieceId?: string
+): string | null {
+  return (
+    game.pieces
+      .filter(
+        (piece) =>
+          piece.pieceId !== movedPieceId &&
+          piece.speciesId === "galo_de_campina" &&
+          piece.location?.x === location.x &&
+          piece.location.y === location.y
+      )
+      .sort((a, b) => a.pieceId.localeCompare(b.pieceId))[0]?.ownerId ?? null
+  );
+}
+
+export function canTriggerGaloInterruptAtPosition(
+  game: GameState,
+  collectorSpeciesId: PieceState["speciesId"] | null | undefined,
+  location: GridPosition,
+  movedPieceId?: string
+): boolean {
+  if (collectorSpeciesId === "galo_de_campina") {
+    return false;
+  }
+
+  const targetCard = getForestCardAtPosition(game, location);
+  const targetDefinition = targetCard ? getCardDefinitionOrNull(targetCard.definitionId) : null;
+  if (targetDefinition?.habitat !== "field") {
+    return false;
+  }
+
+  return Boolean(getGaloInterruptOwnerAtPosition(game, location, movedPieceId)) &&
+    getGaloAdjacentTargetsForLocation(game, location).length > 0;
+}
+
 export function getGaloInterruptPieceIds(game: GameState, playerId: string): string[] {
   const pending = game.pendingGaloInterrupt;
   if (!pending || pending.ownerId !== playerId) {

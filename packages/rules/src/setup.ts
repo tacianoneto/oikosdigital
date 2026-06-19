@@ -107,10 +107,12 @@ export {
 };
 import {
   addGaloForCurrentAction,
+  canTriggerGaloInterruptAtPosition,
   getGaloActionDScore,
   getGaloFieldCardPositions,
   getGaloFieldPlacementPositions,
   getGaloInterruptMoveTargets,
+  getGaloInterruptOwnerAtPosition,
   getGaloInterruptPieceIds,
   getGaloOutOfFieldPieceCount,
   getGaloOutOfFieldPositions,
@@ -120,10 +122,12 @@ import {
 } from "./species/galo";
 export {
   addGaloForCurrentAction,
+  canTriggerGaloInterruptAtPosition,
   getGaloActionDScore,
   getGaloFieldCardPositions,
   getGaloFieldPlacementPositions,
   getGaloInterruptMoveTargets,
+  getGaloInterruptOwnerAtPosition,
   getGaloInterruptPieceIds,
   getGaloOutOfFieldPieceCount,
   getGaloOutOfFieldPositions,
