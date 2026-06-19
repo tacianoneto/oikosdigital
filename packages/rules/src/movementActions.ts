@@ -22,7 +22,6 @@ import {
 } from "./species/macaw";
 import { pruneResolvedCoatiPairBonuses, queuePendingCoatiPairBonus } from "./species/coati";
 import {
-  canTriggerGaloInterruptAtPosition,
   getGaloAdjacentTargetsForLocation,
   getGaloInterruptOwnerAtPosition
 } from "./species/galo";
@@ -286,17 +285,13 @@ export function moveJaguarForCurrentAction(
   }
 
   const removablePieces = getRemovablePiecesAtPosition(game, playerId, destination);
-  const shouldPauseRemoval = shouldPauseJaguarRemovalForGaloInterrupt(game, destination, jaguarPiece.pieceId);
-  const removablePiecesAfterGaloMove = shouldPauseRemoval
-    ? getExpectedRemovablePiecesAfterGaloInterruptMove(game, playerId, destination, jaguarPiece.pieceId)
-    : removablePieces;
   const targetPiece = targetPieceId
     ? removablePieces.find((piece) => piece.pieceId === targetPieceId)
     : removablePieces.length === 1
       ? removablePieces[0]
       : null;
 
-  if (removablePieces.length > 0 && !targetPiece && !shouldPauseRemoval) {
+  if (removablePieces.length > 0 && !targetPiece) {
     throw new Error("Escolha qual peca a Onca deve remover no local de entrada.");
   }
 
@@ -310,24 +305,6 @@ export function moveJaguarForCurrentAction(
 
   nextJaguarPiece.location = createPieceLocation(game, destination);
   collectMovementDestinationResource(next, playerId, destination, jaguarPiece.pieceId);
-  if (shouldPauseRemoval && !next.pendingGaloInterrupt) {
-    queueGaloInterruptForJaguarRemoval(next, playerId, destination, jaguarPiece.pieceId);
-  }
-  const pausedByGaloInterrupt =
-    removablePieces.length > 0 &&
-    next.pendingGaloInterrupt?.interruptedPlayerId === playerId &&
-    next.pendingGaloInterrupt.location.x === destination.x &&
-    next.pendingGaloInterrupt.location.y === destination.y;
-  if (pausedByGaloInterrupt) {
-    nextTargetPiece = null;
-    next.pendingJaguarRemoval =
-      removablePiecesAfterGaloMove.length > 0
-        ? {
-            playerId,
-            location: { x: destination.x, y: destination.y }
-          }
-        : null;
-  }
 
   if (nextTargetPiece) {
     const removedPlayer = findPlayer(next, nextTargetPiece.ownerId);
@@ -342,6 +319,8 @@ export function moveJaguarForCurrentAction(
 
     applyCaatingaTrigger(next, playerId, destination, "remove");
   }
+
+  queueGaloInterruptAfterJaguarRemoval(next, playerId, destination, nextJaguarPiece.pieceId);
 
   const jaguarDestCard = next.forest.cards.find((card) => card.x === destination.x && card.y === destination.y);
   next.log = [
@@ -366,7 +345,7 @@ export function moveJaguarForCurrentAction(
     }
   ];
 
-  if (pausedByGaloInterrupt) {
+  if (next.pendingGaloInterrupt) {
     return next;
   }
 
@@ -420,7 +399,7 @@ function resolvePendingJaguarRemoval(
     ...next.log,
     {
       id: `jaguar_pending_remove_${nextTargetPiece.pieceId}_${next.log.length + 1}`,
-      message: `${nextPlayer.name} removeu 1 peca com a Onca, depois do movimento entre turnos do Galo-de-campina.`,
+      message: `${nextPlayer.name} removeu 1 peca com a Onca.`,
       createdAt: Date.now(),
       payload: {
         kind: "remove_piece",
@@ -523,33 +502,6 @@ function findExistingGaloOwnerAtPosition(game: GameState, destination: GridPosit
   return getGaloInterruptOwnerAtPosition(game, destination, movedPieceId);
 }
 
-function getExpectedRemovablePiecesAfterGaloInterruptMove(
-  game: GameState,
-  playerId: string,
-  destination: GridPosition,
-  movedPieceId?: string
-): PieceState[] {
-  const galoOwnerId = findExistingGaloOwnerAtPosition(game, destination, movedPieceId);
-  if (!galoOwnerId) {
-    return getRemovablePiecesAtPosition(game, playerId, destination);
-  }
-
-  const interruptingGaloPieceId = game.pieces
-    .filter(
-      (piece) =>
-        piece.pieceId !== movedPieceId &&
-        piece.ownerId === galoOwnerId &&
-        piece.speciesId === "galo_de_campina" &&
-        piece.location?.x === destination.x &&
-        piece.location.y === destination.y
-    )
-    .sort((a, b) => a.pieceId.localeCompare(b.pieceId))[0]?.pieceId;
-
-  return getRemovablePiecesAtPosition(game, playerId, destination).filter(
-    (piece) => piece.pieceId !== interruptingGaloPieceId
-  );
-}
-
 function queueGaloInterruptIfNeeded(
   game: GameState,
   options: {
@@ -557,9 +509,14 @@ function queueGaloInterruptIfNeeded(
     collectorSpeciesId: SpeciesId | null;
     destination: GridPosition;
     galoOwnerId: string | null;
+    allowJaguar?: boolean;
   }
 ): void {
-  if (!options.galoOwnerId || options.collectorSpeciesId === "galo_de_campina") {
+  if (
+    !options.galoOwnerId ||
+    options.collectorSpeciesId === "galo_de_campina" ||
+    (options.collectorSpeciesId === "jaguar" && !options.allowJaguar)
+  ) {
     return;
   }
 
@@ -594,7 +551,7 @@ function queueGaloInterruptIfNeeded(
   ];
 }
 
-function queueGaloInterruptForJaguarRemoval(
+function queueGaloInterruptAfterJaguarRemoval(
   game: GameState,
   playerId: string,
   destination: GridPosition,
@@ -605,16 +562,9 @@ function queueGaloInterruptForJaguarRemoval(
     collectorPlayerId: playerId,
     collectorSpeciesId: player.speciesId,
     destination,
-    galoOwnerId: findExistingGaloOwnerAtPosition(game, destination, movedPieceId)
+    galoOwnerId: findExistingGaloOwnerAtPosition(game, destination, movedPieceId),
+    allowJaguar: true
   });
-}
-
-function shouldPauseJaguarRemovalForGaloInterrupt(
-  game: GameState,
-  destination: GridPosition,
-  movedPieceId: string
-): boolean {
-  return canTriggerGaloInterruptAtPosition(game, "jaguar", destination, movedPieceId);
 }
 
 function getDestinationsByPlayedCard(game: GameState, speciesId: SpeciesId, origin: GridPosition): GridPosition[] {

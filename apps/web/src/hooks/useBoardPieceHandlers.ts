@@ -1,7 +1,6 @@
 import { useCallback, useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import {
   applyGameIntent,
-  canTriggerGaloInterruptAtPosition,
   getCapuchinScoringHabitats,
   getMacawScoringLines,
   type MacawScoringLine,
@@ -38,10 +37,7 @@ export function shouldPromptJaguarRemovalTargetBeforeMove(
       piece.location.y === position.y
   );
 
-  return (
-    removablePieces.length > 1 &&
-    !canTriggerGaloInterruptAtPosition(game, activeSpeciesId, position, selectedPieceId)
-  );
+  return removablePieces.length > 1;
 }
 
 interface BoardPieceHandlersParams {
@@ -249,7 +245,7 @@ export function useBoardPieceHandlers({
           setSelectedJaguarTargetPieceId(null);
           setNotice(
             room.game.pendingGaloInterrupt.ownerId === controlledPlayerId
-              ? "Entre turnos ativo: mova 1 galo-de-campina antes da Onca remover."
+              ? "Entre turnos ativo: mova 1 galo-de-campina."
               : "Aguarde o Galo-de-campina resolver a acao entre turnos."
           );
           return;

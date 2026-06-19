@@ -1631,7 +1631,7 @@ describe("setup placement", () => {
     expect(game.activeActionIndex).toBe(0);
   });
 
-  it("pauses Onca removal for the Galo-de-campina between-turn move before choosing a removed piece", () => {
+  it("lets Onca remove first, then queues Galo-de-campina between-turn move if a galo remains", () => {
     let game = createTestGameState("room", [
       player("jaguar", "jaguar"),
       player("galo", "galo_de_campina"),
@@ -1654,41 +1654,29 @@ describe("setup placement", () => {
     const coatiPieceId = game.pieces.find((piece) => piece.ownerId === "coati" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
     const jaguarMeatBeforeRemoval = game.players.find((candidate) => candidate.playerId === "jaguar")!.resources.meat;
 
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, coatiPieceId);
 
     expect(game.pendingGaloInterrupt).toEqual({
       ownerId: "galo",
       location: { x: 1, y: 0 },
       interruptedPlayerId: "jaguar"
     });
-    expect(game.pendingJaguarRemoval).toEqual({
-      playerId: "jaguar",
-      location: { x: 1, y: 0 }
-    });
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === coatiPieceId)?.location).toBeNull();
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBeforeRemoval + 1);
     expect(game.activePlayerId).toBe("jaguar");
     expect(game.activeActionIndex).toBe(0);
 
     game = resolveGaloInterruptMove(game, "galo", { x: 0, y: 0 }, galoPieceId);
 
     expect(game.pendingGaloInterrupt).toBeNull();
-    expect(game.pendingJaguarRemoval).toEqual({
-      playerId: "jaguar",
-      location: { x: 1, y: 0 }
-    });
-    expect(game.activePlayerId).toBe("jaguar");
-    expect(game.activeActionIndex).toBe(0);
-
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: -1, y: -1 }, coatiPieceId);
-
     expect(game.pendingJaguarRemoval).toBeNull();
-    expect(game.pieces.find((piece) => piece.pieceId === coatiPieceId)?.location).toBeNull();
     expect(game.pieces.find((piece) => piece.pieceId === galoPieceId)?.location).toMatchObject({ x: 0, y: 0 });
-    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBeforeRemoval + 1);
     expect(game.activePlayerId).toBe("jaguar");
     expect(game.activeActionIndex).toBe(1);
   });
 
-  it("does not queue Onca removal when the only piece in the field is the interrupting galo", () => {
+  it("does not queue Galo-de-campina between-turn move when Onca removes the only galo in the field", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
     const placeFor = (playerId: string, location: { x: number; y: number }) => {
       game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
@@ -1702,25 +1690,15 @@ describe("setup placement", () => {
 
     game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
 
-    expect(game.pendingGaloInterrupt).toEqual({
-      ownerId: "galo",
-      location: { x: 1, y: 0 },
-      interruptedPlayerId: "jaguar"
-    });
-    expect(game.pendingJaguarRemoval).toBeNull();
-
-    const target = getGaloInterruptMoveTargets(game, "galo", galoPieceId)[0];
-    game = resolveGaloInterruptMove(game, "galo", target, galoPieceId);
-
     expect(game.pendingGaloInterrupt).toBeNull();
     expect(game.pendingJaguarRemoval).toBeNull();
-    expect(game.pieces.find((piece) => piece.pieceId === galoPieceId)?.location).toMatchObject(target);
-    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBefore);
+    expect(game.pieces.find((piece) => piece.pieceId === galoPieceId)?.location).toBeNull();
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBefore + 1);
     expect(game.activePlayerId).toBe("jaguar");
     expect(game.activeActionIndex).toBe(1);
   });
 
-  it("lets Onca choose the remaining galo after the interrupt when Onca entered a field with two galos", () => {
+  it("queues Galo-de-campina between-turn move when Onca removes one of two galos", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
     const placeFor = (playerId: string, location: { x: number; y: number }) => {
       game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
@@ -1733,40 +1711,34 @@ describe("setup placement", () => {
     const galoPieces = game.pieces
       .filter((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)
       .sort((a, b) => a.pieceId.localeCompare(b.pieceId));
-    const movingGaloId = galoPieces[0]?.pieceId;
+    const removedGaloId = galoPieces[0]?.pieceId;
     const remainingGaloId = galoPieces[1]?.pieceId;
     const jaguarMeatBefore = game.players.find((candidate) => candidate.playerId === "jaguar")!.resources.meat;
 
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, removedGaloId);
 
-    expect(game.pendingGaloInterrupt).not.toBeNull();
-    expect(game.pendingJaguarRemoval).toEqual({
-      playerId: "jaguar",
-      location: { x: 1, y: 0 }
+    expect(game.pendingGaloInterrupt).toEqual({
+      ownerId: "galo",
+      location: { x: 1, y: 0 },
+      interruptedPlayerId: "jaguar"
     });
-
-    const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
-    game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
-
-    expect(game.pendingJaguarRemoval).toEqual({
-      playerId: "jaguar",
-      location: { x: 1, y: 0 }
-    });
-    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === removedGaloId)?.location).toBeNull();
     expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toMatchObject({ x: 1, y: 0 });
-    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBefore);
+    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBefore + 1);
     expect(game.activePlayerId).toBe("jaguar");
     expect(game.activeActionIndex).toBe(0);
 
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, remainingGaloId);
+    const target = getGaloInterruptMoveTargets(game, "galo", remainingGaloId)[0];
+    game = resolveGaloInterruptMove(game, "galo", target, remainingGaloId);
 
+    expect(game.pendingGaloInterrupt).toBeNull();
     expect(game.pendingJaguarRemoval).toBeNull();
-    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toBeNull();
-    expect(game.players.find((candidate) => candidate.playerId === "jaguar")?.resources.meat).toBe(jaguarMeatBefore + 1);
+    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toMatchObject(target);
     expect(game.activeActionIndex).toBe(1);
   });
 
-  it("still pauses Onca removal for Galo interrupt when seed collection is blocked", () => {
+  it("still queues Galo-de-campina between-turn move after Onca removal when seed collection is blocked", () => {
     let game = createTestGameState("room", [player("jaguar", "jaguar"), player("galo", "galo_de_campina")]);
     const placeFor = (playerId: string, location: { x: number; y: number }) => {
       game = placeInitialPiece({ ...game, setupActivePlayerId: playerId }, playerId, location);
@@ -1779,42 +1751,29 @@ describe("setup placement", () => {
     const galoPieces = game.pieces
       .filter((piece) => piece.ownerId === "galo" && piece.location?.x === 1 && piece.location.y === 0)
       .sort((a, b) => a.pieceId.localeCompare(b.pieceId));
-    const movingGaloId = galoPieces[0]?.pieceId;
+    const removedGaloId = galoPieces[0]?.pieceId;
     const remainingGaloId = galoPieces[1]?.pieceId;
 
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, removedGaloId);
 
     expect(game.pendingGaloInterrupt).toEqual({
       ownerId: "galo",
       location: { x: 1, y: 0 },
       interruptedPlayerId: "jaguar"
     });
-    expect(game.pendingJaguarRemoval).toEqual({
-      playerId: "jaguar",
-      location: { x: 1, y: 0 }
-    });
+    expect(game.pendingJaguarRemoval).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === removedGaloId)?.location).toBeNull();
 
-    const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
-    game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
+    const target = getGaloInterruptMoveTargets(game, "galo", remainingGaloId)[0];
+    game = resolveGaloInterruptMove(game, "galo", target, remainingGaloId);
 
     expect(game.pendingGaloInterrupt).toBeNull();
-    expect(game.pendingJaguarRemoval).toEqual({
-      playerId: "jaguar",
-      location: { x: 1, y: 0 }
-    });
-    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);
-    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toMatchObject({ x: 1, y: 0 });
-    expect(game.activePlayerId).toBe("jaguar");
-    expect(game.activeActionIndex).toBe(0);
-
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, remainingGaloId);
-
     expect(game.pendingJaguarRemoval).toBeNull();
-    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toMatchObject(target);
     expect(game.activeActionIndex).toBe(1);
   });
 
-  it("lets Onca choose among remaining pieces after the interrupt when more than one target stays", () => {
+  it("requires Onca target choice before moving and queues Galo-de-campina if a galo remains", () => {
     let game = createTestGameState("room", [
       player("jaguar", "jaguar"),
       player("galo", "galo_de_campina"),
@@ -1836,26 +1795,29 @@ describe("setup placement", () => {
     const remainingGaloId = galoPieces[1]?.pieceId;
     const wolfPieceId = game.pieces.find((piece) => piece.ownerId === "wolf" && piece.location?.x === 1 && piece.location.y === 0)?.pieceId;
 
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 });
-    const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
-    game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
-
-    const jaguarPieceId = game.pieces.find(
-      (piece) => piece.ownerId === "jaguar" && piece.speciesId === "jaguar" && piece.location
-    )?.pieceId;
-
-    expect(() => moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 })).toThrow(
+    expect(() => moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 })).toThrow(
       "Escolha qual peca a Onca deve remover no local de entrada."
     );
-    expect(getValidPieceMovementDestinations(game, "jaguar", jaguarPieceId!)).toEqual([]);
 
-    game = moveJaguarForCurrentAction(game, "jaguar", { x: 0, y: 0 }, wolfPieceId);
+    game = moveJaguarForCurrentAction(game, "jaguar", { x: 1, y: 0 }, wolfPieceId);
 
+    expect(game.pendingGaloInterrupt).toEqual({
+      ownerId: "galo",
+      location: { x: 1, y: 0 },
+      interruptedPlayerId: "jaguar"
+    });
     expect(game.pendingJaguarRemoval).toBeNull();
     expect(game.pieces.find((piece) => piece.pieceId === wolfPieceId)?.location).toBeNull();
     expect(game.pieces.find((piece) => piece.pieceId === remainingGaloId)?.location).toMatchObject({ x: 1, y: 0 });
-    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);
+    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject({ x: 1, y: 0 });
     expect(game.activePlayerId).toBe("jaguar");
+    expect(game.activeActionIndex).toBe(0);
+
+    const target = getGaloInterruptMoveTargets(game, "galo", movingGaloId)[0];
+    game = resolveGaloInterruptMove(game, "galo", target, movingGaloId);
+
+    expect(game.pendingGaloInterrupt).toBeNull();
+    expect(game.pieces.find((piece) => piece.pieceId === movingGaloId)?.location).toMatchObject(target);
     expect(game.activeActionIndex).toBe(1);
   });
 

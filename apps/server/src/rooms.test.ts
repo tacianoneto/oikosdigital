@@ -215,7 +215,7 @@ describe("room lifecycle", () => {
     leaveRooms(guestId);
   });
 
-  it("keeps online Onca waiting for removal choice after a human Galo interrupt", () => {
+  it("queues human Galo interrupt online after Onca removes a piece and a galo remains", () => {
     const jaguarId = "online-jaguar-host";
     const galoId = "online-galo-guest";
     let room = createRoom(jaguarId, "Onca");
@@ -231,40 +231,33 @@ describe("room lifecycle", () => {
     room.game!.activePlayerId = jaguarId;
     room.game!.activeActionIndex = 0;
 
-    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y);
+    expect(() => movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y)).toThrow(
+      "Escolha qual peca a Onca deve remover no local de entrada."
+    );
+
+    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y, setup.remainingGaloId);
 
     expect(room.game?.pendingGaloInterrupt).toEqual({
       ownerId: galoId,
       location: setup.field,
       interruptedPlayerId: jaguarId
     });
-    expect(room.game?.pendingJaguarRemoval).toEqual({
-      playerId: jaguarId,
-      location: setup.field
-    });
+    expect(room.game?.pendingJaguarRemoval).toBeNull();
+    expect(room.game?.pieces.find((piece) => piece.pieceId === setup.remainingGaloId)?.location).toBeNull();
 
     const interruptTarget = getGaloInterruptMoveTargets(room.game!, galoId, setup.movingGaloId)[0]!;
     room = resolveGaloInterrupt(room.roomId, galoId, interruptTarget.x, interruptTarget.y, setup.movingGaloId);
 
     expect(room.game?.pendingGaloInterrupt).toBeNull();
-    expect(room.game?.pendingJaguarRemoval).toEqual({
-      playerId: jaguarId,
-      location: setup.field
-    });
-    expect(room.game?.activePlayerId).toBe(jaguarId);
-    expect(room.game?.activeActionIndex).toBe(0);
-
-    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y, setup.remainingGaloId);
-
     expect(room.game?.pendingJaguarRemoval).toBeNull();
-    expect(room.game?.pieces.find((piece) => piece.pieceId === setup.remainingGaloId)?.location).toBeNull();
+    expect(room.game?.activePlayerId).toBe(jaguarId);
     expect(room.game?.activeActionIndex).toBe(1);
 
     leaveRooms(jaguarId);
     leaveRooms(galoId);
   });
 
-  it("advances a bot Galo interrupt online and returns removal choice to human Onca", () => {
+  it("advances a bot Galo interrupt online after human Onca removes a piece", () => {
     const jaguarId = "online-jaguar-vs-galo-bot";
     const galoId = "bot_galo_de_campina";
     let room = createRoom(jaguarId, "Onca");
@@ -278,25 +271,22 @@ describe("room lifecycle", () => {
     room.game!.activePlayerId = jaguarId;
     room.game!.activeActionIndex = 0;
 
-    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y);
+    expect(() => movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y)).toThrow(
+      "Escolha qual peca a Onca deve remover no local de entrada."
+    );
+
+    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y, setup.remainingGaloId);
 
     expect(room.game?.pendingGaloInterrupt?.ownerId).toBe(galoId);
+    expect(room.game?.pendingJaguarRemoval).toBeNull();
+    expect(room.game?.pieces.find((piece) => piece.pieceId === setup.remainingGaloId)?.location).toBeNull();
 
     const advanced = advanceBot(room.roomId)!;
 
     expect(advanced.game?.pendingGaloInterrupt).toBeNull();
-    expect(advanced.game?.pendingJaguarRemoval).toEqual({
-      playerId: jaguarId,
-      location: setup.field
-    });
+    expect(advanced.game?.pendingJaguarRemoval).toBeNull();
     expect(advanced.game?.activePlayerId).toBe(jaguarId);
-    expect(advanced.game?.activeActionIndex).toBe(0);
-
-    room = movePiece(room.roomId, jaguarId, setup.jaguarPieceId, setup.field.x, setup.field.y, setup.remainingGaloId);
-
-    expect(room.game?.pendingJaguarRemoval).toBeNull();
-    expect(room.game?.pieces.find((piece) => piece.pieceId === setup.remainingGaloId)?.location).toBeNull();
-    expect(room.game?.activeActionIndex).toBe(1);
+    expect(advanced.game?.activeActionIndex).toBe(1);
 
     leaveRooms(jaguarId);
   });

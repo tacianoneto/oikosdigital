@@ -78,7 +78,7 @@ function createJaguarMoveIntoGaloFieldGame(withAdjacentTarget: boolean): {
 }
 
 describe("shouldPromptJaguarRemovalTargetBeforeMove", () => {
-  it("prompts before moving when a Galo is in the field but cannot interrupt", () => {
+  it("prompts before moving when Jaguar has more than one removable target", () => {
     const setup = createJaguarMoveIntoGaloFieldGame(false);
 
     expect(
@@ -86,11 +86,11 @@ describe("shouldPromptJaguarRemovalTargetBeforeMove", () => {
     ).toBe(true);
   });
 
-  it("lets the move proceed when the Galo can interrupt", () => {
+  it("still prompts before moving when a Galo can move between turns", () => {
     const setup = createJaguarMoveIntoGaloFieldGame(true);
 
     expect(
       shouldPromptJaguarRemovalTargetBeforeMove(setup.game, "jaguar", setup.jaguarPieceId, setup.field)
-    ).toBe(false);
+    ).toBe(true);
   });
 });

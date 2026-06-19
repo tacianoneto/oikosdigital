@@ -57,26 +57,6 @@ export function getGaloInterruptOwnerAtPosition(
   );
 }
 
-export function canTriggerGaloInterruptAtPosition(
-  game: GameState,
-  collectorSpeciesId: PieceState["speciesId"] | null | undefined,
-  location: GridPosition,
-  movedPieceId?: string
-): boolean {
-  if (collectorSpeciesId === "galo_de_campina") {
-    return false;
-  }
-
-  const targetCard = getForestCardAtPosition(game, location);
-  const targetDefinition = targetCard ? getCardDefinitionOrNull(targetCard.definitionId) : null;
-  if (targetDefinition?.habitat !== "field") {
-    return false;
-  }
-
-  return Boolean(getGaloInterruptOwnerAtPosition(game, location, movedPieceId)) &&
-    getGaloAdjacentTargetsForLocation(game, location).length > 0;
-}
-
 export function getGaloInterruptPieceIds(game: GameState, playerId: string): string[] {
   const pending = game.pendingGaloInterrupt;
   if (!pending || pending.ownerId !== playerId) {
