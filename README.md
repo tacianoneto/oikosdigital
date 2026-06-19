@@ -8,6 +8,15 @@ Toda atualizacao do projeto deve ser enviada ao GitHub.
 - Nao deixe atualizacoes apenas no ambiente local.
 - Se o push falhar, informe claramente o erro e mantenha a tarefa como pendente ate a publicacao ser concluida.
 
+## Regra obrigatoria de versao beta
+
+Enquanto o jogo estiver no beta `0.1`, toda atualizacao publicada precisa incrementar a versao visivel antes do commit e do deploy.
+
+- Exemplo: `0.1` -> `0.1.1` -> `0.1.2`.
+- A versao precisa aparecer no jogo publicado, para confirmar que `https://oikosdigital.com.br/` recebeu a build nova.
+- Se a versao do site publico nao mudou depois do push/deploy, trate como deploy pendente, cache antigo ou ambiente de producao desatualizado.
+- Nunca considerar uma correcao validada em producao apenas porque funcionou em `http://127.0.0.1:5187/`.
+
 ## Multiplayer online
 
 O multiplayer usa servidor autoritativo com Socket.IO. O navegador envia a jogada, o servidor valida nas regras e todos os jogadores da sala recebem o novo estado.
