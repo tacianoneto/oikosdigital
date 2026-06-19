@@ -11,7 +11,6 @@ import {
 import { getPotentialDestinations } from "../movement";
 import { applyCaatingaTrigger } from "../scenarios";
 import { advanceActiveAction } from "../turn";
-import { pruneResolvedCoatiPairBonuses } from "./coati";
 
 export function getGaloFieldPlacementPositions(game: GameState, playerId: string): GridPosition[] {
   if (game.status !== "active" || game.activePlayerId !== playerId) {
@@ -316,7 +315,7 @@ function getGaloPiecesAtPosition(game: GameState, playerId: string, location: Gr
 }
 
 function resumeAfterGaloInterrupt(game: GameState, interruptedPlayerId: string): void {
-  if (game.pendingJaguarRemoval && !resolveAutomaticJaguarRemovalAfterGalo(game)) {
+  if (game.pendingJaguarRemoval && !resolveJaguarRemovalChoiceAfterGalo(game)) {
     return;
   }
 
@@ -332,7 +331,7 @@ function resumeAfterGaloInterrupt(game: GameState, interruptedPlayerId: string):
   advanceActiveAction(game);
 }
 
-function resolveAutomaticJaguarRemovalAfterGalo(game: GameState): boolean {
+function resolveJaguarRemovalChoiceAfterGalo(game: GameState): boolean {
   const pending = game.pendingJaguarRemoval;
   if (!pending) {
     return true;
@@ -348,51 +347,10 @@ function resolveAutomaticJaguarRemovalAfterGalo(game: GameState): boolean {
     )
     .sort((a, b) => a.pieceId.localeCompare(b.pieceId));
 
-  if (removablePieces.length > 1) {
+  if (removablePieces.length > 0) {
     return false;
   }
 
   game.pendingJaguarRemoval = null;
-  const targetPiece = removablePieces[0];
-  if (!targetPiece) {
-    return true;
-  }
-
-  const jaguarPlayer = findPlayer(game, pending.playerId);
-  const removedPlayer = findPlayer(game, targetPiece.ownerId);
-  targetPiece.location = null;
-  removedPlayer.piecesInForest = removedPlayer.piecesInForest.filter((pieceId) => pieceId !== targetPiece.pieceId);
-  removedPlayer.reservePieces = [...removedPlayer.reservePieces, targetPiece.pieceId];
-  jaguarPlayer.resources.meat += 1;
-
-  if (targetPiece.speciesId === "coati") {
-    pruneResolvedCoatiPairBonuses(game, targetPiece.ownerId);
-  }
-
-  applyCaatingaTrigger(game, pending.playerId, pending.location, "remove");
-
-  const jaguarDestCard = game.forest.cards.find(
-    (card) => card.x === pending.location.x && card.y === pending.location.y
-  );
-  game.log = [
-    ...game.log,
-    {
-      id: `jaguar_auto_pending_remove_${targetPiece.pieceId}_${game.log.length + 1}`,
-      message: `${jaguarPlayer.name} removeu automaticamente 1 peca com a Onca depois do movimento entre turnos do Galo-de-campina.`,
-      createdAt: Date.now(),
-      payload: {
-        kind: "remove_piece",
-        actorPlayerId: pending.playerId,
-        cardInstanceId: jaguarDestCard?.instanceId,
-        cardDefinitionId: jaguarDestCard?.definitionId,
-        habitat: jaguarDestCard ? getCardDefinitionOrNull(jaguarDestCard.definitionId)?.habitat ?? undefined : undefined,
-        location: { x: pending.location.x, y: pending.location.y },
-        pieceIds: [targetPiece.pieceId],
-        actionId: (getCurrentAction(game) as "A" | "B" | "C" | "D" | null) ?? undefined,
-        resources: ["meat"]
-      }
-    }
-  ];
-
   return true;
 }
