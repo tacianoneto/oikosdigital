@@ -85,6 +85,17 @@ export function getValidPieceMovementDestinations(game: GameState, playerId: str
   }
 
   const destinations = getDestinationsByPlayedCard(game, player.speciesId, piece.location);
+  if (player.speciesId === "galo_de_campina" && action === "B") {
+    return destinations.filter((position) =>
+      !game.pieces.some(
+        (candidate) =>
+          candidate.speciesId === "galo_de_campina" &&
+          candidate.pieceId !== pieceId &&
+          candidate.location?.x === position.x &&
+          candidate.location.y === position.y
+      )
+    );
+  }
   if (player.speciesId === "galo_de_campina" && action === "C") {
     return destinations.filter((position) =>
       game.pieces.some(
