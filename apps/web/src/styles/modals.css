@@ -603,11 +603,12 @@
 }
 
 .opponent-resource {
-  min-height: 62px;
+  min-height: 54px;
   display: grid;
   justify-items: center;
-  gap: 2px;
-  padding: 7px 5px;
+  align-content: center;
+  gap: 4px;
+  padding: 8px 5px;
 }
 
 .opponent-resource.is-leader {
@@ -617,14 +618,14 @@
 }
 
 .opponent-resource img {
-  width: 24px;
-  height: 24px;
+  width: 27px;
+  height: 27px;
   object-fit: contain;
 }
 
 .opponent-resource strong {
   color: var(--paper);
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 900;
   line-height: 1;
 }

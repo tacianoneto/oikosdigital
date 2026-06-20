@@ -121,11 +121,11 @@ export function OpponentInspector({
                   className={`opponent-resource ${isLeader ? "is-leader" : ""}`}
                   data-resource={resource}
                   key={resource}
+                  aria-label={`${resourceLabels[resource]}: ${selectedEntry.gamePlayer!.resources[resource] ?? 0}`}
                   title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
                   ref={(node) => setEffectTarget(`${selectedEntry.gamePlayer!.playerId}:${resource}`, node)}
                 >
                   <img src={encodeURI(resourceAssets[resource])} alt="" />
-                  <small>{resourceLabels[resource]}</small>
                   <strong><AnimatedNumber value={selectedEntry.gamePlayer!.resources[resource] ?? 0} /></strong>
                 </span>
               );
