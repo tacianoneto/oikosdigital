@@ -100,6 +100,7 @@ import {
   CerradoChoiceModal,
   MataAtlanticaDiscardModal
 } from "../ui/ScenarioPendingDialogs";
+import { ScoreAnimationPanels } from "../ui/ScoreAnimationPanels";
 import { JaguarScoreModal, WolfScoreModal } from "../ui/ScoreSpendModals";
 import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesActionHud } from "../ui/SpeciesActionHud";
@@ -1523,42 +1524,11 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           })}
         </div>
       )}
-      {!cleanBoardMode && macawScoreAnim && (
-        // The scoring lines themselves are drawn on the board by the Phaser scene
-        // (scoringLineHighlights); this panel just narrates the result.
-        <div className="macaw-score-panel" role="status">
-          <div className="macaw-score-panel-icon">
-            <img src={encodeURI(speciesDefinitions.macaw.meepleAsset)} alt="" />
-          </div>
-          <div className="macaw-score-panel-text">
-            <small>{macawScoreAnim.playerName}</small>
-            <strong>
-              {macawScoreAnim.points} linha{macawScoreAnim.points > 1 ? "s" : ""} de 3 araras
-            </strong>
-            <span className="macaw-score-panel-total">
-              = <em>+{macawScoreAnim.points}</em> ponto{macawScoreAnim.points > 1 ? "s" : ""}
-            </span>
-          </div>
-        </div>
-      )}
-      {!cleanBoardMode && capuchinScoreAnim && (
-        // The scored habitat cards are highlighted on the board by the Phaser
-        // scene (scoringCardHighlights); this panel narrates the result.
-        <div className="capuchin-score-panel" role="status">
-          <div className="capuchin-score-panel-icon">
-            <img src={encodeURI(speciesDefinitions.capuchin.meepleAsset)} alt="" />
-          </div>
-          <div className="capuchin-score-panel-text">
-            <small>{capuchinScoreAnim.playerName}</small>
-            <strong>
-              {capuchinScoreAnim.points} habitat{capuchinScoreAnim.points > 1 ? "s" : ""} com 2+ macacos
-            </strong>
-            <span className="capuchin-score-panel-total">
-              = <em>+{capuchinScoreAnim.points}</em> ponto{capuchinScoreAnim.points > 1 ? "s" : ""}
-            </span>
-          </div>
-        </div>
-      )}
+      <ScoreAnimationPanels
+        cleanBoardMode={cleanBoardMode}
+        macawScoreAnim={macawScoreAnim}
+        capuchinScoreAnim={capuchinScoreAnim}
+      />
       {!hasStartedGame && !room && landingMode === "idle" && (
         <MainMenuScreen
           name={name}
