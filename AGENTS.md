@@ -17,7 +17,7 @@ Every project update must be published to GitHub.
 While the game is in beta `0.1`, every published update must increment the visible in-game version before commit/push.
 
 - Current visible version lives in `apps/web/src/version.ts`.
-- Example: `v0.1.10 beta` -> `v0.1.11 beta`.
+- Example: `v0.1.11 beta` -> `v0.1.12 beta`.
 - The visible version must change in the game UI so production deploy can be verified.
 - If `https://oikosdigital.com.br/` still shows the old version after deploy, treat production as not yet verified.
 

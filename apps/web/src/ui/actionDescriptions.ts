@@ -38,6 +38,10 @@ const galoActionDescriptions: Partial<Record<ActionId, string>> = {
 };
 
 export function getPassiveDescription(speciesId: SpeciesId | null | undefined): string | null {
+  if (speciesId === "coati") {
+    return "Ao formar um par de quatis, adicione 1 quati em um local adjacente e marque 1 ponto.";
+  }
+
   if (speciesId === "galo_de_campina") {
     return "Quando outra espécie entrar em um local de campo com algum galo-de-campina e não remover esse galo, mova 1 galo-de-campina desse local para um local adjacente, sem coletar recurso.";
   }

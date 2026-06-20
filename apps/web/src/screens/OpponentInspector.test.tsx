@@ -5,15 +5,15 @@ import type { PlayerState, RoomPlayer } from "@oikos/shared";
 import { OpponentInspector } from "./OpponentInspector";
 import type { PlayerInspectorEntry } from "../hooks/playerHudState";
 
-function makeEntry(): PlayerInspectorEntry {
+function makeEntry(speciesId: keyof typeof speciesDefinitions = "jaguar"): PlayerInspectorEntry {
   const player = {
     playerId: "p2",
     name: "Rival",
-    speciesId: "jaguar"
+    speciesId
   } as RoomPlayer;
   const gamePlayer = {
     playerId: "p2",
-    speciesId: "jaguar",
+    speciesId,
     score: 5,
     resources: { meat: 2, egg: 1, fruit: 0, seed: 3, point: 5 }
   } as unknown as PlayerState;
@@ -23,7 +23,7 @@ function makeEntry(): PlayerInspectorEntry {
     gamePlayer,
     isActivePlayer: true,
     player,
-    species: speciesDefinitions.jaguar
+    species: speciesDefinitions[speciesId]
   };
 }
 
@@ -68,5 +68,24 @@ describe("OpponentInspector", () => {
     expect(markup).toContain("Ações da espécie");
     expect(markup).toContain("Gaste 1");
     expect(markup).toContain("para marcar 1 ponto");
+  });
+
+  it("renders the coati pair passive in species actions", () => {
+    const entry = makeEntry("coati");
+    const markup = renderToStaticMarkup(
+      <OpponentInspector
+        entries={[entry]}
+        selectedEntry={entry}
+        selectedPlayerId="p2"
+        selectedRailIndex={0}
+        resourceLeaders={{}}
+        setEffectTarget={() => undefined}
+        onSelectPlayer={() => undefined}
+      />
+    );
+
+    expect(markup).toContain("par de quatis");
+    expect(markup).toContain("local adjacente");
+    expect(markup).toContain("marque 1 ponto");
   });
 });
