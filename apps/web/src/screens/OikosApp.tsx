@@ -85,6 +85,7 @@ import { JoinRoomScreen } from "./JoinRoomScreen";
 import { LobbyScreen } from "./LobbyScreen";
 import { LocalSetupScreen } from "./LocalSetupScreen";
 import { MainMenuScreen } from "./MainMenuScreen";
+import { OpponentInspector } from "./OpponentInspector";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { playLogEvent } from "../ui/audio";
 import { ActiveRulesDock } from "../ui/ActiveRulesDock";
@@ -111,6 +112,7 @@ import { LeftActionDock } from "../ui/LeftActionDock";
 import { MobileTabbar, type MobileTabId } from "../ui/MobileTabbar";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { TurnCountdown } from "../ui/TurnCountdown";
+import { TurnRecapPanel } from "../ui/TurnRecapPanel";
 import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
 import { TutorialCoach } from "../ui/TutorialCoach";
 import { movementArtPath } from "../ui/movementArt";
@@ -2273,128 +2275,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {hasStartedGame && !cleanBoardMode && !tutorialActive && opponentInspectorEntries.length > 0 && (
-        <aside className="opponent-inspector" aria-label="Consultar outros jogadores">
-          <div className="opponent-rail" role="list">
-            {opponentInspectorEntries.map(({ player, gamePlayer, species, displayIndex, isActivePlayer }) => (
-              <button
-                type="button"
-                role="listitem"
-                ref={(node) => setEffectTarget(`portrait:${player.playerId}`, node)}
-                className={`opponent-portrait-btn ${selectedOpponentPlayerId === player.playerId ? "is-selected" : ""} ${
-                  isActivePlayer ? "is-active-turn" : ""
-                }`}
-                key={player.playerId}
-                style={speciesVar(player.speciesId)}
-                data-species={player.speciesId ?? undefined}
-                title={species ? `Ver ${species.displayName}` : player.name}
-                aria-label={species ? `Ver informações de ${species.displayName}` : `Ver informações de ${player.name}`}
-                aria-pressed={selectedOpponentPlayerId === player.playerId}
-                onClick={() =>
-                  setSelectedOpponentPlayerId((current) => (current === player.playerId ? null : player.playerId))
-                }
-              >
-                {species ? (
-                  <span
-                    className="opponent-portrait-image"
-                    style={{
-                      backgroundImage: `url("${encodeURI(getOpenPortraitAsset(species.portraitAsset))}")`
-                    }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <span>{displayIndex + 1}</span>
-                )}
-                {isActivePlayer && <i aria-hidden="true" />}
-                {gamePlayer && (
-                  <em aria-label={`${gamePlayer.score} pontos`}>
-                    <img src={encodeURI(resourceAssets.point)} alt="" />
-                    {gamePlayer.score}
-                  </em>
-                )}
-                {gamePlayer && (
-                  <span className="opponent-portrait-leaders" aria-hidden="true">
-                    {(["meat", "egg", "fruit"] as const)
-                      .filter((resource) => resourceLeaders[resource]?.has(gamePlayer.playerId))
-                      .map((resource) => (
-                        <span
-                          key={resource}
-                          className="opponent-portrait-leader"
-                          data-resource={resource}
-                          title={`Maioria de ${resourceLabels[resource]}: ${gamePlayer.resources[resource]}`}
-                        >
-                          <img src={encodeURI(resourceAssets[resource])} alt="" />
-                          <b>{gamePlayer.resources[resource]}</b>
-                        </span>
-                      ))}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {selectedOpponentEntry?.gamePlayer && selectedOpponentEntry.species && (
-            <section
-              className="opponent-popover"
-              data-species={selectedOpponentEntry.gamePlayer.speciesId}
-              style={
-                {
-                  ...speciesVar(selectedOpponentEntry.gamePlayer.speciesId),
-                  "--opponent-arrow-index": selectedOpponentRailIndex
-                } as CSSProperties
-              }
-              aria-label={`Resumo de ${selectedOpponentEntry.species.displayName}`}
-            >
-              <button
-                type="button"
-                className="opponent-close opponent-close-floating"
-                aria-label="Fechar resumo"
-                onClick={() => setSelectedOpponentPlayerId(null)}
-              >
-                <X aria-hidden="true" />
-              </button>
-
-              <div className="opponent-resource-grid">
-                {resourceOrder.map((resource) => {
-                  const isLeader = resourceLeaders[resource]?.has(selectedOpponentEntry.gamePlayer!.playerId) ?? false;
-                  return (
-                    <span
-                      className={`opponent-resource ${isLeader ? "is-leader" : ""}`}
-                      data-resource={resource}
-                      key={resource}
-                      title={isLeader ? `${resourceLabels[resource]} · maioria` : resourceLabels[resource]}
-                      ref={(node) => setEffectTarget(`${selectedOpponentEntry.gamePlayer!.playerId}:${resource}`, node)}
-                    >
-                      <img src={encodeURI(resourceAssets[resource])} alt="" />
-                      <small>{resourceLabels[resource]}</small>
-                      <strong><AnimatedNumber value={selectedOpponentEntry.gamePlayer!.resources[resource] ?? 0} /></strong>
-                    </span>
-                  );
-                })}
-              </div>
-
-              <div className="opponent-movement-grid" role="list" aria-label="Movimentos por habitat">
-                {(["forest", "field", "river"] as const).map((habitat) => {
-                  const kind = selectedOpponentEntry.species!.movementPatternsByHabitat[habitat];
-                  return (
-                    <span
-                      key={habitat}
-                      role="listitem"
-                      className={`opponent-movement is-${habitat}`}
-                      title={`${habitatLabels[habitat]} · ${movementKindLabels[kind]}`}
-                    >
-                      <img
-                        src={movementArtPath(habitat, kind)}
-                        alt={`${habitatLabels[habitat]}: ${movementKindLabels[kind]}`}
-                        className="opponent-movement-art"
-                        draggable={false}
-                      />
-                    </span>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-        </aside>
+        <OpponentInspector
+          entries={opponentInspectorEntries}
+          selectedEntry={selectedOpponentEntry}
+          selectedPlayerId={selectedOpponentPlayerId}
+          selectedRailIndex={selectedOpponentRailIndex}
+          resourceLeaders={resourceLeaders}
+          setEffectTarget={setEffectTarget}
+          onSelectPlayer={setSelectedOpponentPlayerId}
+        />
       )}
 
       {!cleanBoardMode && movementPreview && typeof document !== "undefined" && createPortal(
@@ -2456,86 +2345,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         )}
 
       {!cleanBoardMode && turnSummary && room?.game?.status === "active" && (
-        <aside
-          className={`turn-recap ${recapCollapsed ? "is-collapsed" : ""}`}
-          role="status"
-          aria-live="polite"
-          aria-label="Resumo do turno anterior"
-          style={speciesVar(turnSummary.speciesId)}
-        >
-          <header className="turn-recap-head">
-            {turnSummary.speciesId && (
-              <img src={encodeURI(speciesDefinitions[turnSummary.speciesId].meepleAsset)} alt="" />
-            )}
-            <div className="turn-recap-title">
-              <span>Turno anterior</span>
-              <h3>{turnSummary.playerName}</h3>
-            </div>
-            <div className="turn-recap-history" aria-label="Historico de turnos">
-              <button
-                type="button"
-                className="turn-recap-history-btn"
-                onClick={() => moveTurnRecapHistory(-1)}
-                disabled={turnRecap.index <= 0}
-                aria-label="Ver turno mais antigo"
-              >
-                <ChevronLeft aria-hidden="true" />
-              </button>
-              <span>{turnRecap.index + 1}/{turnRecap.history.length}</span>
-              <button
-                type="button"
-                className="turn-recap-history-btn"
-                onClick={() => moveTurnRecapHistory(1)}
-                disabled={turnRecap.index >= turnRecap.history.length - 1}
-                aria-label="Ver turno mais recente"
-              >
-                <ChevronRight aria-hidden="true" />
-              </button>
-            </div>
-            <div className="turn-recap-score" title="Pontos no turno">
-              <span>+{turnSummary.scoreDelta}</span>
-              <small>pts</small>
-            </div>
-            <button
-              type="button"
-              className="turn-recap-toggle"
-              onClick={() => setRecapCollapsed((value) => !value)}
-              aria-label={recapCollapsed ? "Expandir resumo" : "Recolher resumo"}
-              aria-expanded={!recapCollapsed}
-            >
-              {recapCollapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
-            </button>
-            <button
-              type="button"
-              className="turn-recap-close"
-              onClick={closeTurnRecap}
-              aria-label="Fechar resumo"
-            >
-              <X aria-hidden="true" />
-            </button>
-          </header>
-          {!recapCollapsed && (
-            <ul className="turn-recap-list">
-              {turnSummary.entries.map((entry) => (
-                <li
-                  key={`${turnSummary.key}_${entry.id}`}
-                  className={`turn-recap-item ${entry.cardInstanceIds.length > 0 ? "is-hoverable" : ""}`}
-                  onMouseEnter={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
-                  onMouseLeave={() => setHoveredSummaryCardIds([])}
-                  onFocus={() => entry.cardInstanceIds.length > 0 && setHoveredSummaryCardIds(entry.cardInstanceIds)}
-                  onBlur={() => setHoveredSummaryCardIds([])}
-                  tabIndex={entry.cardInstanceIds.length > 0 ? 0 : -1}
-                >
-                  <span className={`turn-recap-icon turn-recap-icon-${entry.icon}`} aria-hidden="true" />
-                  <span className="turn-recap-text">{entry.text}</span>
-                  {typeof entry.points === "number" && entry.points > 0 && (
-                    <span className="turn-recap-points">+{entry.points}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
+        <TurnRecapPanel
+          turnSummary={turnSummary}
+          turnRecap={turnRecap}
+          collapsed={recapCollapsed}
+          onToggleCollapsed={() => setRecapCollapsed((value) => !value)}
+          onMoveHistory={moveTurnRecapHistory}
+          onClose={closeTurnRecap}
+          onHoverEntry={setHoveredSummaryCardIds}
+        />
       )}
 
       {!cleanBoardMode && boardSpecies && (
