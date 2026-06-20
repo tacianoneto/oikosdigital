@@ -2,6 +2,9 @@ import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { PublicRoomState } from "@oikos/shared";
+import type { RoomSummary } from "@oikos/shared";
+import { CreateRoomScreen } from "./CreateRoomScreen";
+import { JoinRoomScreen } from "./JoinRoomScreen";
 import { LobbyScreen } from "./LobbyScreen";
 import { LocalSetupScreen } from "./LocalSetupScreen";
 import { MainMenuScreen } from "./MainMenuScreen";
@@ -39,6 +42,109 @@ describe("MainMenuScreen", () => {
     (localButton?.props.onClick as () => void)();
 
     expect(onNavigate).toHaveBeenCalledWith("local");
+  });
+});
+
+describe("CreateRoomScreen", () => {
+  it("shows the public-room hint when no password is set", () => {
+    const markup = renderToStaticMarkup(
+      <CreateRoomScreen
+        name="Taciano"
+        createPassword=""
+        onNameChange={() => undefined}
+        onPasswordChange={() => undefined}
+        onBack={() => undefined}
+        onSubmit={() => undefined}
+      />
+    );
+
+    expect(markup).toContain("Criar Sala");
+    expect(markup).toContain("aparece na lista de salas abertas");
+  });
+
+  it("shows the private-room hint when a password is set", () => {
+    const markup = renderToStaticMarkup(
+      <CreateRoomScreen
+        name="Taciano"
+        createPassword="secret"
+        onNameChange={() => undefined}
+        onPasswordChange={() => undefined}
+        onBack={() => undefined}
+        onSubmit={() => undefined}
+      />
+    );
+
+    expect(markup).toContain("só entra quem tiver o código e a senha");
+  });
+
+  it("forwards the back action", () => {
+    const onBack = vi.fn();
+    const elements = collectElements(
+      CreateRoomScreen({
+        name: "Taciano",
+        createPassword: "",
+        onNameChange: () => undefined,
+        onPasswordChange: () => undefined,
+        onBack,
+        onSubmit: () => undefined
+      })
+    );
+    const backButton = elements.find(
+      (element) => element.type === "button" && String(element.props.className).includes("flow-back")
+    );
+
+    (backButton?.props.onClick as () => void)();
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("JoinRoomScreen", () => {
+  const baseProps = {
+    name: "Taciano",
+    joinCode: "",
+    joinPassword: "",
+    openRooms: [] as RoomSummary[],
+    roomsLoading: false,
+    onNameChange: () => undefined,
+    onJoinCodeChange: () => undefined,
+    onJoinPasswordChange: () => undefined,
+    onBack: () => undefined,
+    onRefreshRooms: () => undefined,
+    onJoinRoom: () => undefined,
+    onSpectateRoom: () => undefined,
+    onJoinByCode: () => undefined,
+    onSpectateByCode: () => undefined
+  };
+
+  it("lists open rooms with host and capacity", () => {
+    const room = {
+      roomId: "ABCDE",
+      hostName: "Host One",
+      playerCount: 1,
+      maxPlayers: 4,
+      spectatorCount: 0,
+      status: "lobby"
+    } as RoomSummary;
+
+    const markup = renderToStaticMarkup(<JoinRoomScreen {...baseProps} openRooms={[room]} />);
+
+    expect(markup).toContain("ABCDE");
+    expect(markup).toContain("Host One");
+    expect(markup).toContain("1/4");
+    expect(markup).toContain("Aguardando");
+  });
+
+  it("shows the searching state while loading with no rooms", () => {
+    const markup = renderToStaticMarkup(<JoinRoomScreen {...baseProps} roomsLoading />);
+
+    expect(markup).toContain("Procurando salas…");
+  });
+
+  it("disables the join button until the code is long enough", () => {
+    const markup = renderToStaticMarkup(<JoinRoomScreen {...baseProps} joinCode="AB" />);
+
+    expect(markup).toContain("disabled");
   });
 });
 
