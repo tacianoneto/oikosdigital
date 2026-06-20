@@ -80,6 +80,8 @@ import { useSimpleActionHandlers } from "../hooks/useSimpleActionHandlers";
 import { useTutorialController } from "../hooks/useTutorialController";
 import { useTurnTimer } from "../hooks/useTurnTimer";
 import { roomApi, type OikosSocket } from "../socket";
+import { CreateRoomScreen } from "./CreateRoomScreen";
+import { JoinRoomScreen } from "./JoinRoomScreen";
 import { LobbyScreen } from "./LobbyScreen";
 import { LocalSetupScreen } from "./LocalSetupScreen";
 import { MainMenuScreen } from "./MainMenuScreen";
@@ -1549,254 +1551,49 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       )}
 
       {!hasStartedGame && !room && landingMode === "create" && (
-        <div className="flow-screen flow-screen-join" role="main">
-          <div className="landing-bg-orbs" aria-hidden="true">
-            <span className="orb orb-1" />
-            <span className="orb orb-2" />
-          </div>
-
-          <header className="flow-header">
-            <button
-              type="button"
-              className="flow-back"
-              onClick={() => setLandingMode("idle")}
-              aria-label="Voltar"
-            >
-              <ChevronLeft aria-hidden="true" />
-              <span>Voltar</span>
-            </button>
-            <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
-            </div>
-            <span className="flow-spacer" aria-hidden="true" />
-          </header>
-
-          <div className="flow-body">
-            <div className="flow-icon-large">
-              <Play aria-hidden="true" />
-            </div>
-            <h2 className="flow-title">Criar Sala</h2>
-            <p className="flow-subtitle">
-              Hospede uma partida online. Deixe a senha em branco para uma sala pública.
-            </p>
-
-            <form
-              className="flow-card flow-card-join"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void run(
-                  () => roomApi.create(requireSocket(), name, createPassword || null),
-                  "Sala criada."
-                );
-              }}
-            >
-              <label className="landing-name-field flow-name">
-                <Users aria-hidden="true" />
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  maxLength={24}
-                  placeholder="Seu nome"
-                />
-              </label>
-
-              <label className="landing-name-field flow-name">
-                <Lock aria-hidden="true" />
-                <input
-                  type="password"
-                  value={createPassword}
-                  onChange={(event) => setCreatePassword(event.target.value)}
-                  maxLength={32}
-                  placeholder="Senha (opcional)"
-                  autoComplete="new-password"
-                />
-              </label>
-
-              <button type="submit" className="flow-submit">
-                <Play aria-hidden="true" />
-                Criar Sala
-              </button>
-              <small className="flow-spectate-hint">
-                {createPassword
-                  ? "Sala privada: só entra quem tiver o código e a senha."
-                  : "Sala pública: aparece na lista de salas abertas."}
-              </small>
-            </form>
-          </div>
-        </div>
+        <CreateRoomScreen
+          name={name}
+          createPassword={createPassword}
+          onNameChange={setName}
+          onPasswordChange={setCreatePassword}
+          onBack={() => setLandingMode("idle")}
+          onSubmit={() => {
+            void run(
+              () => roomApi.create(requireSocket(), name, createPassword || null),
+              "Sala criada."
+            );
+          }}
+        />
       )}
 
       {!hasStartedGame && !room && landingMode === "join" && (
-        <div className="flow-screen flow-screen-join" role="main">
-          <div className="landing-bg-orbs" aria-hidden="true">
-            <span className="orb orb-1" />
-            <span className="orb orb-2" />
-          </div>
-
-          <header className="flow-header">
-            <button
-              type="button"
-              className="flow-back"
-              onClick={() => setLandingMode("idle")}
-              aria-label="Voltar"
-            >
-              <ChevronLeft aria-hidden="true" />
-              <span>Voltar</span>
-            </button>
-            <div className="landing-logo flow-logo">
-              <img className="brand-logo-img brand-logo-img-sm" src="/oikos-logo.webp" alt="Oikos" />
-            </div>
-            <span className="flow-spacer" aria-hidden="true" />
-          </header>
-
-          <div className="flow-body">
-            <div className="flow-icon-large">
-              <LogIn aria-hidden="true" />
-            </div>
-            <h2 className="flow-title">Entrar em Sala</h2>
-            <p className="flow-subtitle">
-              Escolha uma sala aberta na lista ou digite o código compartilhado pelo anfitrião.
-            </p>
-
-            <div className="flow-card flow-rooms-card">
-              <div className="flow-rooms-header">
-                <span className="flow-code-label">Salas abertas</span>
-                <button
-                  type="button"
-                  className="icon-button compact"
-                  title="Atualizar lista"
-                  aria-label="Atualizar lista"
-                  onClick={refreshRooms}
-                >
-                  <RotateCw aria-hidden="true" />
-                </button>
-              </div>
-
-              {openRooms.length === 0 ? (
-                <p className="flow-rooms-empty">
-                  {roomsLoading ? "Procurando salas…" : "Nenhuma sala aberta no momento. Crie uma ou use um código."}
-                </p>
-              ) : (
-                <ul className="flow-rooms-list">
-                  {openRooms.map((summary) => {
-                    const full = summary.playerCount >= summary.maxPlayers;
-                    const joinable = summary.status === "lobby" && !full;
-                    return (
-                      <li key={summary.roomId}>
-                        <button
-                          type="button"
-                          className="flow-room-row"
-                          onClick={() => {
-                            if (joinable) {
-                              void run(
-                                () => roomApi.join(requireSocket(), summary.roomId, name),
-                                "Entrada confirmada."
-                              );
-                            } else {
-                              void spectate(summary.roomId);
-                            }
-                          }}
-                        >
-                          <span className="flow-room-main">
-                            <strong>{summary.roomId}</strong>
-                            <small>{summary.hostName}</small>
-                          </span>
-                          <span className="flow-room-meta">
-                            <span className="flow-room-players">
-                              <Users aria-hidden="true" />
-                              {summary.playerCount}/{summary.maxPlayers}
-                            </span>
-                            {summary.spectatorCount > 0 && (
-                              <span className="flow-room-spectators">
-                                <Eye aria-hidden="true" />
-                                {summary.spectatorCount}
-                              </span>
-                            )}
-                            <span className={`flow-room-status ${summary.status}`}>
-                              {summary.status === "lobby"
-                                ? full
-                                  ? "Cheia · assistir"
-                                  : "Aguardando"
-                                : "Em jogo · assistir"}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <form
-              className="flow-card flow-card-join"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (joinCode.length >= 4) {
-                  void run(
-                    () => roomApi.join(requireSocket(), joinCode, name, joinPassword || null),
-                    "Entrada confirmada."
-                  );
-                }
-              }}
-            >
-              <label className="landing-name-field flow-name">
-                <Users aria-hidden="true" />
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  maxLength={24}
-                  placeholder="Seu nome"
-                />
-              </label>
-
-              <div className="flow-code-field">
-                <span className="flow-code-label">Código da sala</span>
-                <input
-                  className="landing-code-input flow-code-input"
-                  value={joinCode}
-                  onChange={(event) => setJoinCode(event.target.value.toUpperCase())}
-                  placeholder="ABCDE"
-                  maxLength={5}
-                />
-              </div>
-
-              <label className="landing-name-field flow-name">
-                <Lock aria-hidden="true" />
-                <input
-                  type="password"
-                  value={joinPassword}
-                  onChange={(event) => setJoinPassword(event.target.value)}
-                  maxLength={32}
-                  placeholder="Senha (se a sala for privada)"
-                  autoComplete="off"
-                />
-              </label>
-
-              <button type="submit" className="flow-submit" disabled={joinCode.length < 4}>
-                <LogIn aria-hidden="true" />
-                Entrar para Jogar
-              </button>
-
-              <button
-                type="button"
-                className="flow-submit flow-submit-ghost"
-                disabled={joinCode.length < 4}
-                onClick={() => {
-                  if (joinCode.length >= 4) {
-                    void spectate(joinCode, joinPassword || null);
-                  }
-                }}
-              >
-                <Eye aria-hidden="true" />
-                Entrar como Espectador
-              </button>
-              <small className="flow-spectate-hint">
-                Espectador assiste à partida sem ocupar uma vaga de jogador.
-              </small>
-            </form>
-          </div>
-        </div>
+        <JoinRoomScreen
+          name={name}
+          joinCode={joinCode}
+          joinPassword={joinPassword}
+          openRooms={openRooms}
+          roomsLoading={roomsLoading}
+          onNameChange={setName}
+          onJoinCodeChange={setJoinCode}
+          onJoinPasswordChange={setJoinPassword}
+          onBack={() => setLandingMode("idle")}
+          onRefreshRooms={refreshRooms}
+          onJoinRoom={(roomId) => {
+            void run(() => roomApi.join(requireSocket(), roomId, name), "Entrada confirmada.");
+          }}
+          onSpectateRoom={(roomId) => {
+            void spectate(roomId);
+          }}
+          onJoinByCode={() => {
+            void run(
+              () => roomApi.join(requireSocket(), joinCode, name, joinPassword || null),
+              "Entrada confirmada."
+            );
+          }}
+          onSpectateByCode={() => {
+            void spectate(joinCode, joinPassword || null);
+          }}
+        />
       )}
 
       {!hasStartedGame && !room && landingMode === "local" && (
