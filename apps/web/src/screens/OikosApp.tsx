@@ -106,6 +106,7 @@ import { SpeciesStatusHud } from "../ui/SpeciesStatusHud";
 import { LeftActionDock } from "../ui/LeftActionDock";
 import { MobileTabbar, type MobileTabId } from "../ui/MobileTabbar";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
+import { useAppShellClass } from "../hooks/useAppShellClass";
 import { HudControls } from "../ui/HudControls";
 import { SpectatorBanner } from "../ui/SpectatorBanner";
 import { StageBanners } from "../ui/StageBanners";
@@ -1401,6 +1402,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       !cacaIlegalPending
   );
 
+  const appShell = useAppShellClass({
+    hasStartedGame,
+    isMobile,
+    cleanBoardMode,
+    isBasicTutorial,
+    currentSpeciesId: currentGamePlayer?.speciesId ?? null,
+    visualAccessibility,
+    mobileSheet
+  });
+
   if (isBelowDesktop) {
     return (
       <main className="desktop-only-shell">
@@ -1419,19 +1430,9 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
 
   return (
     <main
-      className={`app-shell ${hasStartedGame ? "game-active" : "menu-active"} ${
-        isMobile && hasStartedGame && !cleanBoardMode ? "mobile-hud" : ""
-      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "jaguar" ? "is-jaguar-active" : ""} ${
-        !isBasicTutorial && currentGamePlayer?.speciesId === "maned_wolf" ? "is-wolf-active" : ""
-      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "armadillo" ? "is-armadillo-active" : ""} ${
-        !isBasicTutorial && currentGamePlayer?.speciesId === "macaw" ? "is-macaw-active" : ""
-      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "capuchin" ? "is-capuchin-active" : ""} ${
-        !isBasicTutorial && currentGamePlayer?.speciesId === "coati" ? "is-coati-active" : ""
-      } ${!isBasicTutorial && currentGamePlayer?.speciesId === "galo_de_campina" ? "is-galo-active" : ""} ${
-        visualAccessibility ? "accessibility-visual-mode" : ""
-      }`}
-      data-visual-accessibility={visualAccessibility ? "true" : "false"}
-      data-sheet={isMobile && hasStartedGame && !cleanBoardMode ? mobileSheet ?? "none" : undefined}
+      className={appShell.className}
+      data-visual-accessibility={appShell.dataVisualAccessibility}
+      data-sheet={appShell.dataSheet}
     >
       {!hasStartedGame && (
         <div className="account-badge">
