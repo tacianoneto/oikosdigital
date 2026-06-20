@@ -85,7 +85,9 @@ import { JoinRoomScreen } from "./JoinRoomScreen";
 import { LobbyScreen } from "./LobbyScreen";
 import { LocalSetupScreen } from "./LocalSetupScreen";
 import { MainMenuScreen } from "./MainMenuScreen";
+import { ObjectiveChoiceDialogs } from "./ObjectiveChoiceDialogs";
 import { OpponentInspector } from "./OpponentInspector";
+import { TableHand } from "./TableHand";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { playLogEvent } from "../ui/audio";
 import { ActiveRulesDock } from "../ui/ActiveRulesDock";
@@ -111,6 +113,7 @@ import { SpeciesStatusHud } from "../ui/SpeciesStatusHud";
 import { LeftActionDock } from "../ui/LeftActionDock";
 import { MobileTabbar, type MobileTabId } from "../ui/MobileTabbar";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
+import { TravelEffectLayer } from "../ui/TravelEffectLayer";
 import { TurnCountdown } from "../ui/TurnCountdown";
 import { TurnRecapPanel } from "../ui/TurnRecapPanel";
 import { TutorialChapterSelect } from "../ui/TutorialChapterSelect";
@@ -1499,35 +1502,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           onDiscard={resolveMataAtlanticaDiscard}
         />
       )}
-      {travelEffects.length > 0 && (
-        <div className="travel-effect-layer" aria-hidden="true">
-          {travelEffects.map((effect) => {
-            const src =
-              effect.kind === "resource" && effect.resource
-                ? resourceAssets[effect.resource]
-                : effect.speciesId
-                  ? speciesDefinitions[effect.speciesId].meepleAsset
-                  : resourceAssets.point;
-
-            return (
-              <span
-                className={`travel-effect ${effect.kind}`}
-                key={effect.id}
-                style={
-                  {
-                    "--from-x": `${effect.from.x}px`,
-                    "--from-y": `${effect.from.y}px`,
-                    "--to-x": `${effect.to.x}px`,
-                    "--to-y": `${effect.to.y}px`
-                  } as CSSProperties
-                }
-              >
-                <img src={encodeURI(src)} alt="" />
-              </span>
-            );
-          })}
-        </div>
-      )}
+      <TravelEffectLayer effects={travelEffects} />
       <ScoreAnimationPanels
         cleanBoardMode={cleanBoardMode}
         macawScoreAnim={macawScoreAnim}
@@ -2017,262 +1992,49 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       </section>
 
         {!cleanBoardMode && showHandDuringGame && currentGamePlayer && (
-          <section className={`table-hand ${handCollapsed ? "collapsed" : ""}`} aria-label="Mão de cartas">
-            {handCards.length > 0 && (
-              <button
-                type="button"
-                className="hand-sort-toggle"
-                title={`Organizar por ${nextHandSortLabel}`}
-                aria-label={`Mão organizada por ${handSortLabel}. Clique para organizar por ${nextHandSortLabel}.`}
-                onClick={() => setHandSortMode(nextHandSortMode)}
-              >
-                <ListFilter aria-hidden="true" />
-                <span>Organizar</span>
-                <strong>{handSortLabel}</strong>
-              </button>
-            )}
-            <div className="hand-header">
-              <div>
-                <span>Mão · {handCards.length} cartas</span>
-                <strong>
-                  {isBasicTutorial
-                    ? "Cartas do tutorial"
-                    : currentGamePlayer.speciesId
-                      ? speciesDefinitions[currentGamePlayer.speciesId].displayName
-                      : "Espécie"}
-                </strong>
-              </div>
-              <div className="hand-header-side">
-                <button
-                  type="button"
-                  className="hand-toggle"
-                  title={handCollapsed ? "Expandir" : "Recolher"}
-                  aria-label={handCollapsed ? "Expandir mão de cartas" : "Recolher mão de cartas"}
-                  onClick={() => setHandCollapsed((value) => !value)}
-                >
-                  {handCollapsed ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
-                </button>
-              </div>
-            </div>
-            {(!handCollapsed ||
-              (!isBasicTutorial &&
-                (currentGamePlayer?.speciesId === "maned_wolf" || currentGamePlayer?.speciesId === "armadillo"))) &&
-              (handCards.length > 0 ? (
-                <div
-                  className={`hand-rail ${selectedHandCardId ? "has-selection" : ""} ${
-                    handPlayableThisAction ? "hand-playable" : "hand-idle"
-                  }`}
-                  style={{ ["--hand-count" as string]: sortedHandCards.length }}
-                >
-                  {sortedHandCards.map(({ card }, handIndex) => {
-                    const isSelected = selectedHandCardId === card.id;
-                    const showRotate = isSelected && canPlaceSelectedForestCard;
-
-                    return (
-                      <div
-                        key={card.id}
-                        role="button"
-                        tabIndex={canSelectHandCards ? 0 : -1}
-                        data-card-id={card.id}
-                        className={`hand-card ${isSelected ? "selected" : ""} ${
-                          handPlayableThisAction ? "playable" : "not-playable"
-                        } ${
-                          tutorialRequiredCardId === card.id ? "tutorial-marked" : ""
-                        }`}
-                        style={{ ["--hand-index" as string]: handIndex }}
-                        onClick={() => {
-                          if (!canSelectHandCards) {
-                            return;
-                          }
-                          setSelectedHandCardId((current) => {
-                            const next = current === card.id ? null : card.id;
-                            if (next !== current) {
-                              setSelectedCardRotation(0);
-                            }
-                            return next;
-                          });
-                        }}
-                        onKeyDown={(event) => {
-                          if (!canSelectHandCards) {
-                            return;
-                          }
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            setSelectedHandCardId((current) => {
-                              const next = current === card.id ? null : card.id;
-                              if (next !== current) {
-                                setSelectedCardRotation(0);
-                              }
-                              return next;
-                            });
-                          }
-                        }}
-                      >
-                        <img
-                          src={encodeURI(card.imagePath)}
-                          alt={card.label}
-                          style={isSelected ? { transform: `rotate(${selectedCardRotation}deg)` } : undefined}
-                        />
-                        {mataAtlanticaPileIndexByCardId.has(card.id) && (
-                          <span className="pile-badge" aria-label={`Topo da pilha ${(mataAtlanticaPileIndexByCardId.get(card.id) ?? 0) + 1}`}>
-                            P{(mataAtlanticaPileIndexByCardId.get(card.id) ?? 0) + 1}
-                          </span>
-                        )}
-                        {showRotate && (
-                          <div className="card-rotate" onClick={(event) => event.stopPropagation()}>
-                            <button
-                              type="button"
-                              title="Girar à esquerda (Q)"
-                              aria-label="Girar à esquerda"
-                              onClick={() => rotateSelectedCard(-1)}
-                            >
-                              <RotateCcw aria-hidden="true" />
-                              <kbd>Q</kbd>
-                            </button>
-                            <span>{selectedCardRotation}°</span>
-                            <button
-                              type="button"
-                              title="Girar à direita (E)"
-                              aria-label="Girar à direita"
-                              onClick={() => rotateSelectedCard(1)}
-                            >
-                              <RotateCw aria-hidden="true" />
-                              <kbd>E</kbd>
-                            </button>
-                          </div>
-                        )}
-                        {(() => {
-                          if (!room?.game?.mataAtlanticaPiles) return null;
-                          if (!currentGamePlayer?.speciesId) return null;
-                          if (speciesDefinitions[currentGamePlayer.speciesId].usesForestCards) return null;
-                          if (room.game.activePlayerId !== currentGamePlayer.playerId) return null;
-                          if (!mataAtlanticaPileIndexByCardId.has(card.id)) return null;
-                          if (
-                            (room.game.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer.playerId] ===
-                            currentGamePlayer.turnsTaken
-                          )
-                            return null;
-                          return (
-                            <button
-                              type="button"
-                              className="mata-discard-btn"
-                              title="Descartar (Mata Atlântica)"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                resolveMataAtlanticaDiscard(card.id);
-                              }}
-                            >
-                              <X aria-hidden="true" />
-                              <span>Descartar</span>
-                            </button>
-                          );
-                        })()}
-                      </div>
-                    );
-                  })}
-
-                </div>
-              ) : (
-                <p className="empty-state">
-                  {currentGamePlayer.speciesId === "jaguar"
-                    ? "Esta espécie não usa cartas de floresta na mão."
-                    : "Sem cartas de floresta na mão."}
-                </p>
-              ))}
-          </section>
+          <TableHand
+            player={currentGamePlayer}
+            game={room?.game}
+            handCards={handCards}
+            sortedHandCards={sortedHandCards}
+            handCollapsed={handCollapsed}
+            handSortLabel={handSortLabel}
+            nextHandSortLabel={nextHandSortLabel}
+            isBasicTutorial={isBasicTutorial}
+            selectedHandCardId={selectedHandCardId}
+            selectedCardRotation={selectedCardRotation}
+            canPlaceSelectedForestCard={canPlaceSelectedForestCard}
+            canSelectHandCards={canSelectHandCards}
+            handPlayableThisAction={handPlayableThisAction}
+            tutorialRequiredCardId={tutorialRequiredCardId}
+            mataAtlanticaPileIndexByCardId={mataAtlanticaPileIndexByCardId}
+            onToggleCollapsed={() => setHandCollapsed((value) => !value)}
+            onCycleSort={() => setHandSortMode(nextHandSortMode)}
+            onToggleCard={(cardId) => {
+              setSelectedHandCardId((current) => {
+                const next = current === cardId ? null : cardId;
+                if (next !== current) {
+                  setSelectedCardRotation(0);
+                }
+                return next;
+              });
+            }}
+            onRotateCard={rotateSelectedCard}
+            onMataDiscard={resolveMataAtlanticaDiscard}
+          />
         )}
 
-      {!cleanBoardMode && needsObjectiveChoice && (
-        <div className="choice-modal-backdrop objective-choice-backdrop" role="presentation">
-          <div className="choice-modal objective-choice-modal" role="dialog" aria-modal="true" aria-label="Escolha objetivo">
-            <header className="objective-choice-header">
-              <span className="objective-choice-eyebrow">
-                <Trophy aria-hidden="true" /> Carta de objetivo
-              </span>
-              <h2>Escolha seu objetivo</h2>
-              <p>Fique com 1 carta. A outra será descartada.</p>
-            </header>
-            <div className="objective-choice-grid">
-              {objectiveChoices.map((card, index) => {
-                const isPending = pendingObjectiveCardId === card.id;
-                return (
-                  <div
-                    className={`objective-choice-card ${isPending ? "is-pending" : ""} ${
-                      pendingObjectiveCardId && !isPending ? "is-dimmed" : ""
-                    }`}
-                    key={card.id}
-                  >
-                    <button
-                      type="button"
-                      className="objective-choice-pick"
-                      disabled={Boolean(pendingObjectiveCardId)}
-                      onClick={() => {
-                        void handleSelectObjective(card.id);
-                      }}
-                    >
-                      <span className="objective-choice-badge">{index + 1}</span>
-                      <span className="objective-choice-art">
-                        <img src={encodeURI(card.imagePath)} alt={card.label} />
-                      </span>
-                      <span className="objective-choice-cta">
-                        {isPending ? (
-                          <>
-                            <Check aria-hidden="true" /> Objetivo escolhido
-                          </>
-                        ) : (
-                          "Escolher este objetivo"
-                        )}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      className="objective-choice-zoom"
-                      aria-label="Ampliar carta"
-                      title="Ampliar"
-                      onClick={() => setExpandedObjectiveCardId(card.id)}
-                    >
-                      <Eye aria-hidden="true" />
-                    </button>
-                  </div>
-                );
-              })}
-              <span className="objective-choice-or" aria-hidden="true">ou</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {expandedObjectiveCardId && (
-        <div className="choice-modal-backdrop objective-preview-backdrop" role="presentation" onClick={() => setExpandedObjectiveCardId(null)}>
-          <div className="objective-preview-modal" role="dialog" aria-modal="true" aria-label="Carta de objetivo" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              className="board-modal-close objective-preview-close"
-              aria-label="Fechar objetivo"
-              onClick={() => setExpandedObjectiveCardId(null)}
-            >
-              <X aria-hidden="true" />
-            </button>
-            <img
-              src={encodeURI(getObjectiveCardDefinition(expandedObjectiveCardId).imagePath)}
-              alt={getObjectiveCardDefinition(expandedObjectiveCardId).label}
-            />
-            {canDiscardSelectedObjective && expandedObjectiveCardId === currentGamePlayer?.selectedObjectiveCardId && (
-              <button
-                type="button"
-                className="objective-discard-btn objective-preview-discard-btn"
-                onClick={() => void handleDiscardObjective()}
-              >
-                <Leaf aria-hidden="true" />
-                <span className="objective-discard-text">
-                  <strong>Descartar</strong>
-                  <small>Ganhe 1 de cada recurso</small>
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <ObjectiveChoiceDialogs
+        showChoice={!cleanBoardMode && needsObjectiveChoice}
+        objectiveChoices={objectiveChoices}
+        pendingObjectiveCardId={pendingObjectiveCardId}
+        expandedObjectiveCardId={expandedObjectiveCardId}
+        canDiscardSelectedObjective={canDiscardSelectedObjective}
+        selectedObjectiveCardId={currentGamePlayer?.selectedObjectiveCardId}
+        onSelectObjective={(cardId) => void handleSelectObjective(cardId)}
+        onExpand={setExpandedObjectiveCardId}
+        onDiscardObjective={() => void handleDiscardObjective()}
+      />
 
       {hasStartedGame && !cleanBoardMode && !tutorialActive && opponentInspectorEntries.length > 0 && (
         <OpponentInspector
