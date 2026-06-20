@@ -13,6 +13,7 @@ Toda atualizacao do projeto deve ser enviada ao GitHub.
 Enquanto o jogo estiver no beta `0.1`, toda atualizacao publicada precisa incrementar a versao visivel antes do commit e do deploy.
 
 - Exemplo: `0.1` -> `0.1.1` -> `0.1.2`.
+- A versao visivel fica centralizada em `apps/web/src/version.ts`.
 - A versao precisa aparecer no jogo publicado, para confirmar que `https://oikosdigital.com.br/` recebeu a build nova.
 - Se a versao do site publico nao mudou depois do push/deploy, trate como deploy pendente, cache antigo ou ambiente de producao desatualizado.
 - Nunca considerar uma correcao validada em producao apenas porque funcionou em `http://127.0.0.1:5187/`.

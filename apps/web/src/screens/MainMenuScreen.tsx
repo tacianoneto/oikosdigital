@@ -7,6 +7,7 @@ import {
   Settings,
   Users
 } from "lucide-react";
+import { GAME_VERSION } from "../version";
 
 export type LandingMode = "idle" | "create" | "join" | "local" | "tutorials";
 
@@ -47,7 +48,7 @@ export function MainMenuScreen({
           <img src="/oikos-logo.webp" alt="Oikos Digital" />
           <p className="menu-brand-tagline">
             Jogo de tabuleiro multiplayer
-            <span className="menu-brand-badge">v0.1.7 beta</span>
+            <span className="menu-brand-badge">{GAME_VERSION}</span>
           </p>
         </div>
 

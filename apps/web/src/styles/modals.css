@@ -679,6 +679,96 @@
   pointer-events: none;
 }
 
+.opponent-actions-accordion {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 34%, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.opponent-actions-accordion summary {
+  cursor: pointer;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  color: var(--paper);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  list-style: none;
+}
+
+.opponent-actions-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.opponent-actions-accordion summary:hover {
+  background: color-mix(in srgb, var(--species, var(--amber)) 14%, transparent);
+}
+
+.opponent-actions-accordion summary svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--paper) 72%, transparent);
+  transition: transform 0.16s ease;
+}
+
+.opponent-actions-accordion[open] summary {
+  border-bottom: 1px solid color-mix(in srgb, var(--species, var(--line-soft)) 30%, rgba(255, 255, 255, 0.08));
+}
+
+.opponent-actions-accordion[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.opponent-actions-list {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+}
+
+.opponent-action-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.opponent-action-step strong {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--species, var(--amber)) 58%, rgba(255, 255, 255, 0.08));
+  border-radius: 7px;
+  color: var(--paper);
+  background: color-mix(in srgb, var(--species, var(--amber)) 22%, rgba(0, 0, 0, 0.42));
+  font-family: "Edo SZ", Outfit, sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.opponent-action-step--passive strong {
+  border-style: dashed;
+  font-family: Outfit, sans-serif;
+  font-size: 20px;
+  padding-top: 5px;
+}
+
+.opponent-action-step p {
+  margin: 0;
+  color: color-mix(in srgb, var(--paper) 78%, transparent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .habitat-dot {
   width: 18px;
   height: 18px;

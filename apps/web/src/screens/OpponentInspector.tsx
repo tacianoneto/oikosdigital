@@ -1,10 +1,12 @@
 import type { CSSProperties } from "react";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { habitatLabels, resourceAssets, resourceLabels } from "@oikos/content";
 import type { Resource } from "@oikos/shared";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
+import { getActionDescription, getPassiveDescription } from "../ui/actionDescriptions";
 import { resourceOrder } from "../ui/gameConstants";
 import { movementArtPath } from "../ui/movementArt";
+import { ResourceText } from "../ui/ResourceText";
 import { speciesVar } from "../ui/speciesStyle";
 import type { PlayerInspectorEntry } from "../hooks/playerHudState";
 import { getOpenPortraitAsset, movementKindLabels } from "./OikosApp.helpers";
@@ -30,6 +32,8 @@ export function OpponentInspector({
   setEffectTarget,
   onSelectPlayer
 }: OpponentInspectorProps) {
+  const selectedPassiveDescription = getPassiveDescription(selectedEntry?.species?.speciesId);
+
   return (
     <aside className="opponent-inspector" aria-label="Consultar outros jogadores">
       <div className="opponent-rail" role="list">
@@ -148,6 +152,33 @@ export function OpponentInspector({
               );
             })}
           </div>
+
+          <details className="opponent-actions-accordion">
+            <summary>
+              <span>AÃ§Ãµes da espÃ©cie</span>
+              <ChevronDown aria-hidden="true" />
+            </summary>
+            <div className="opponent-actions-list">
+              {selectedEntry.species.actions.map((actionId) => (
+                <article className="opponent-action-step" key={actionId}>
+                  <strong>{actionId}</strong>
+                  <p>
+                    <ResourceText
+                      text={getActionDescription(selectedEntry.species!.speciesId, actionId)}
+                    />
+                  </p>
+                </article>
+              ))}
+              {selectedPassiveDescription && (
+                <article className="opponent-action-step opponent-action-step--passive">
+                  <strong>*</strong>
+                  <p>
+                    <ResourceText text={selectedPassiveDescription} />
+                  </p>
+                </article>
+              )}
+            </div>
+          </details>
         </section>
       )}
     </aside>
