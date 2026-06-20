@@ -87,6 +87,7 @@ import { LocalSetupScreen } from "./LocalSetupScreen";
 import { MainMenuScreen } from "./MainMenuScreen";
 import { ObjectiveChoiceDialogs } from "./ObjectiveChoiceDialogs";
 import { OpponentInspector } from "./OpponentInspector";
+import { PendingInterruptDialogs } from "./PendingInterruptDialogs";
 import { TableHand } from "./TableHand";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { playLogEvent } from "../ui/audio";
@@ -97,14 +98,6 @@ import { MovementGlyph } from "../ui/MovementGlyph";
 import { ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
 import { MovementGuideFloating, SpeciesBoardModal } from "../ui/BoardModals";
-import { ExtraTurnObjectiveModal, SeedSpendObjectiveModal } from "../ui/EndgameObjectiveDialogs";
-import {
-  CaatingaChoiceModal,
-  CacaIlegalChoiceModal,
-  CacaIlegalRemovalBanner,
-  CerradoChoiceModal,
-  MataAtlanticaDiscardModal
-} from "../ui/ScenarioPendingDialogs";
 import { ScoreAnimationPanels } from "../ui/ScoreAnimationPanels";
 import { JaguarScoreModal, WolfScoreModal } from "../ui/ScoreSpendModals";
 import { SettingsModal } from "../ui/SettingsModal";
@@ -113,6 +106,7 @@ import { SpeciesStatusHud } from "../ui/SpeciesStatusHud";
 import { LeftActionDock } from "../ui/LeftActionDock";
 import { MobileTabbar, type MobileTabId } from "../ui/MobileTabbar";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
+import { StageBanners } from "../ui/StageBanners";
 import { TravelEffectLayer } from "../ui/TravelEffectLayer";
 import { TurnCountdown } from "../ui/TurnCountdown";
 import { TurnRecapPanel } from "../ui/TurnRecapPanel";
@@ -1445,63 +1439,73 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
           </button>
         </div>
       )}
-      {cacaIlegalPending && canResolveCacaIlegal && !cacaIlegalRemovalMode && (
-        <CacaIlegalChoiceModal
-          playerName={cacaIlegalGamePlayer?.name ?? "Jogador"}
-          topResources={cacaIlegalTopResources}
-          resources={cacaIlegalGamePlayer?.resources ?? {}}
-          hasRemovablePieces={cacaIlegalRemovablePieces.length > 0}
-          onSpendResource={(resource) => resolveCacaIlegalChoice({ kind: "spend_resource", resource })}
-          onEnterRemovalMode={enterCacaIlegalRemovalMode}
-        />
-      )}
-      {cacaIlegalPending && canResolveCacaIlegal && cacaIlegalRemovalMode && (
-        <CacaIlegalRemovalBanner
-          selectedCount={selectedRemovalPieceIds.length}
-          confirmDisabled={selectedRemovalPieceIds.length !== 1}
-          onConfirm={resolveSelectedCacaIlegalPiece}
-          onBack={clearCacaIlegalRemoval}
-        />
-      )}
-      {caatingaPending && canResolveCaatinga && (
-        <CaatingaChoiceModal
-          playerName={caatingaGamePlayer?.name ?? "Jogador"}
-          trigger={caatingaPending.trigger}
-          resource={caatingaPending.resource}
-          currentResourceCount={caatingaGamePlayer?.resources[caatingaPending.resource] ?? 0}
-          onChoice={resolveCaatingaChoice}
-        />
-      )}
-      {cerradoPending && canResolveCerrado && (
-        <CerradoChoiceModal
-          playerName={cerradoGamePlayer?.name ?? "Jogador"}
-          resource={cerradoPending.resource}
-          onChoice={resolveCerradoChoice}
-        />
-      )}
-      {room?.game?.pendingExtraTurnPlayerId && canResolveExtraTurn && (
-        <ExtraTurnObjectiveModal
-          playerName={pendingExtraTurnPlayer?.name ?? "Jogador"}
-          acceptDisabled={(pendingExtraTurnPlayer?.score ?? 0) < 1}
-          onResolve={resolveExtraTurnChoice}
-        />
-      )}
-      {room?.game?.pendingSeedSpendObjectivePlayerId && canResolveSeedSpend && (
-        <SeedSpendObjectiveModal
-          playerName={pendingSeedSpendPlayer?.name ?? "Jogador"}
-          spendCount={pendingSeedSpendCount}
-          points={pendingSeedSpendPoints}
-          acceptDisabled={pendingSeedSpendSeeds < pendingSeedSpendCount}
-          onResolve={resolveSeedSpendChoice}
-        />
-      )}
-      {mataAtlanticaForcedDiscard && (
-        <MataAtlanticaDiscardModal
-          playerName={currentGamePlayer?.name ?? "Jogador"}
-          pileTopIds={mataAtlanticaPileTopIds}
-          onDiscard={resolveMataAtlanticaDiscard}
-        />
-      )}
+      <PendingInterruptDialogs
+        cacaIlegalChoice={
+          cacaIlegalPending && canResolveCacaIlegal && !cacaIlegalRemovalMode
+            ? {
+                playerName: cacaIlegalGamePlayer?.name ?? "Jogador",
+                topResources: cacaIlegalTopResources,
+                resources: cacaIlegalGamePlayer?.resources ?? {},
+                hasRemovablePieces: cacaIlegalRemovablePieces.length > 0
+              }
+            : null
+        }
+        cacaIlegalRemoval={
+          cacaIlegalPending && canResolveCacaIlegal && cacaIlegalRemovalMode
+            ? {
+                selectedCount: selectedRemovalPieceIds.length,
+                confirmDisabled: selectedRemovalPieceIds.length !== 1
+              }
+            : null
+        }
+        caatinga={
+          caatingaPending && canResolveCaatinga
+            ? {
+                playerName: caatingaGamePlayer?.name ?? "Jogador",
+                trigger: caatingaPending.trigger,
+                resource: caatingaPending.resource,
+                currentResourceCount: caatingaGamePlayer?.resources[caatingaPending.resource] ?? 0
+              }
+            : null
+        }
+        cerrado={
+          cerradoPending && canResolveCerrado
+            ? { playerName: cerradoGamePlayer?.name ?? "Jogador", resource: cerradoPending.resource }
+            : null
+        }
+        extraTurn={
+          room?.game?.pendingExtraTurnPlayerId && canResolveExtraTurn
+            ? {
+                playerName: pendingExtraTurnPlayer?.name ?? "Jogador",
+                acceptDisabled: (pendingExtraTurnPlayer?.score ?? 0) < 1
+              }
+            : null
+        }
+        seedSpend={
+          room?.game?.pendingSeedSpendObjectivePlayerId && canResolveSeedSpend
+            ? {
+                playerName: pendingSeedSpendPlayer?.name ?? "Jogador",
+                spendCount: pendingSeedSpendCount,
+                points: pendingSeedSpendPoints,
+                acceptDisabled: pendingSeedSpendSeeds < pendingSeedSpendCount
+              }
+            : null
+        }
+        mataAtlantica={
+          mataAtlanticaForcedDiscard
+            ? { playerName: currentGamePlayer?.name ?? "Jogador", pileTopIds: mataAtlanticaPileTopIds }
+            : null
+        }
+        onCacaIlegalSpend={(resource) => resolveCacaIlegalChoice({ kind: "spend_resource", resource })}
+        onCacaIlegalEnterRemoval={enterCacaIlegalRemovalMode}
+        onCacaIlegalConfirmRemoval={resolveSelectedCacaIlegalPiece}
+        onCacaIlegalBackRemoval={clearCacaIlegalRemoval}
+        onCaatingaChoice={resolveCaatingaChoice}
+        onCerradoChoice={resolveCerradoChoice}
+        onExtraTurnResolve={resolveExtraTurnChoice}
+        onSeedSpendResolve={resolveSeedSpendChoice}
+        onMataDiscard={resolveMataAtlanticaDiscard}
+      />
       <TravelEffectLayer effects={travelEffects} />
       <ScoreAnimationPanels
         cleanBoardMode={cleanBoardMode}
@@ -1873,48 +1877,19 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       <section className={`playfield-panel stage-layer ${turnBanner && !cleanBoardMode ? "is-turn-shift" : ""}`}>
         <div className="table-wood" aria-hidden="true" />
         <div className="tabletop-stage">
-          {!cleanBoardMode && turnBanner && (
-            <div
-              className="turn-banner"
-              key={turnBanner.key}
-              style={speciesVar(turnBanner.speciesId)}
-              role="status"
-            >
-              {turnBanner.speciesId && (
-                <img src={encodeURI(speciesDefinitions[turnBanner.speciesId].portraitAsset)} alt="" />
-              )}
-              <span className="turn-banner-label">Vez:</span>
-              <strong>{turnBanner.label}</strong>
-            </div>
-          )}
-          {galoInterrupt && (
-            <div
-              className={`galo-interrupt-badge ${isCurrentGaloInterruptOwner ? "is-owner" : "is-waiting"}`}
-              style={speciesVar("galo_de_campina")}
-              role="status"
-            >
-              <span>{isCurrentGaloInterruptOwner ? "Sua reacao" : "Turno pausado"}</span>
-              <strong>
-                {isCurrentGaloInterruptOwner
-                  ? "Mova 1 galo"
-                  : `Aguardando ${galoInterruptOwner?.name ?? "Galo"}`}
-              </strong>
-            </div>
-          )}
-          {galoInterrupt && !isCurrentGaloInterruptOwner && visibleGaloInterruptBannerKey === galoInterruptKey && (
-            <div
-              className="galo-interrupt-banner is-waiting"
-              style={speciesVar("galo_de_campina")}
-              role="status"
-            >
-              <span>Turno pausado</span>
-              <strong>{galoInterruptBannerText}</strong>
-              <small>{interruptedGaloPlayer?.name ?? "Jogador ativo"} continua depois desta reacao.</small>
-            </div>
-          )}
-          {isCurrentPlayerWaitingForGaloInterrupt && (
-            <div className="galo-interrupt-wait-overlay" aria-hidden="true" />
-          )}
+          <StageBanners
+            cleanBoardMode={cleanBoardMode}
+            turnBanner={turnBanner}
+            galoInterrupt={Boolean(galoInterrupt)}
+            isCurrentGaloInterruptOwner={isCurrentGaloInterruptOwner}
+            galoInterruptOwnerName={galoInterruptOwner?.name ?? null}
+            showGaloWaitingBanner={Boolean(
+              galoInterrupt && !isCurrentGaloInterruptOwner && visibleGaloInterruptBannerKey === galoInterruptKey
+            )}
+            galoInterruptBannerText={galoInterruptBannerText}
+            interruptedGaloPlayerName={interruptedGaloPlayer?.name ?? null}
+            isCurrentPlayerWaitingForGaloInterrupt={isCurrentPlayerWaitingForGaloInterrupt}
+          />
           {!cleanBoardMode && showTurnCountdown && room?.turnTimerMs && room?.activeTurnStartedAt && (
             <TurnCountdown
               key={`${room.game?.activePlayerId ?? ""}:${room.activeTurnStartedAt}`}
