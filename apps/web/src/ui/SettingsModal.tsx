@@ -4,7 +4,7 @@ import type { AudioSettings } from "./audio";
 import { initAudioOnGesture, playClick } from "./audio";
 import { ScenarioDescription } from "./ScenarioDescription";
 import { ResourceText } from "./ResourceText";
-import { GAME_VERSION_WITH_DOT } from "../version";
+import { GAME_VERSION } from "../version";
 
 interface TableScenarioInfo {
   id: string;
@@ -242,7 +242,7 @@ export function SettingsModal({
         <footer className="settings-foot">
           <span>Oikos Digital</span>
           <span className="settings-foot-sep">·</span>
-          <span>{GAME_VERSION_WITH_DOT}</span>
+          <span>{GAME_VERSION}</span>
         </footer>
       </div>
     </div>

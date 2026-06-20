@@ -65,7 +65,7 @@ describe("OpponentInspector", () => {
     expect(markup).toContain("opponent-resource-grid");
     expect(markup).toContain("opponent-movement-grid");
     expect(markup).toContain("opponent-actions-accordion");
-    expect(markup).toContain("AÃ§Ãµes da espÃ©cie");
+    expect(markup).toContain("Ações da espécie");
     expect(markup).toContain("Gaste 1");
     expect(markup).toContain("para marcar 1 ponto");
   });

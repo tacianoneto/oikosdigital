@@ -155,7 +155,7 @@ export function OpponentInspector({
 
           <details className="opponent-actions-accordion">
             <summary>
-              <span>AÃ§Ãµes da espÃ©cie</span>
+              <span>Ações da espécie</span>
               <ChevronDown aria-hidden="true" />
             </summary>
             <div className="opponent-actions-list">
