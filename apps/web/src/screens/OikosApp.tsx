@@ -88,6 +88,7 @@ import { MainMenuScreen } from "./MainMenuScreen";
 import { ObjectiveChoiceDialogs } from "./ObjectiveChoiceDialogs";
 import { OpponentInspector } from "./OpponentInspector";
 import { PendingInterruptDialogs } from "./PendingInterruptDialogs";
+import { SpeciesScoreModals } from "./SpeciesScoreModals";
 import { TableHand } from "./TableHand";
 import { AnimatedNumber } from "../ui/AnimatedNumber";
 import { playLogEvent } from "../ui/audio";
@@ -99,13 +100,14 @@ import { ResourceText } from "../ui/ResourceText";
 import { ScenarioVotingOverlay } from "../ui/ScenarioVotingOverlay";
 import { MovementGuideFloating, SpeciesBoardModal } from "../ui/BoardModals";
 import { ScoreAnimationPanels } from "../ui/ScoreAnimationPanels";
-import { JaguarScoreModal, WolfScoreModal } from "../ui/ScoreSpendModals";
 import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesActionHud } from "../ui/SpeciesActionHud";
 import { SpeciesStatusHud } from "../ui/SpeciesStatusHud";
 import { LeftActionDock } from "../ui/LeftActionDock";
 import { MobileTabbar, type MobileTabId } from "../ui/MobileTabbar";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
+import { HudControls } from "../ui/HudControls";
+import { SpectatorBanner } from "../ui/SpectatorBanner";
 import { StageBanners } from "../ui/StageBanners";
 import { TravelEffectLayer } from "../ui/TravelEffectLayer";
 import { TurnCountdown } from "../ui/TurnCountdown";
@@ -1692,36 +1694,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         />
       )}
 
-      {hasStartedGame && !cleanBoardMode && room?.game && (
-        <div className="hud-round-indicator" aria-label={`Rodada ${room.game.round} de ${room.game.maxRounds}`}>
-          Rodada {room.game.round}/{room.game.maxRounds}
-        </div>
-      )}
-
-      {hasStartedGame && (
-        <button
-          type="button"
-          className={`clean-board-toggle ${cleanBoardMode ? "is-clean" : ""}`}
-          title={cleanBoardMode ? "Mostrar HUD" : "Ocultar HUD"}
-          aria-label={cleanBoardMode ? "Mostrar HUD" : "Ocultar HUD"}
-          aria-pressed={cleanBoardMode}
-          onClick={toggleCleanBoardMode}
-        >
-          {cleanBoardMode ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-        </button>
-      )}
-
-      {hasStartedGame && !cleanBoardMode && (
-        <button
-          type="button"
-          className="hud-config-btn"
-          title="Mesa e configurações"
-          aria-label="Mesa e configurações"
-          onClick={() => setConfigOpen(true)}
-        >
-          <Settings aria-hidden="true" />
-        </button>
-      )}
+      <HudControls
+        showRoundIndicator={Boolean(hasStartedGame && !cleanBoardMode && room?.game)}
+        round={room?.game?.round ?? 0}
+        maxRounds={room?.game?.maxRounds ?? 0}
+        showCleanToggle={hasStartedGame}
+        cleanBoardMode={cleanBoardMode}
+        showConfigButton={Boolean(hasStartedGame && !cleanBoardMode)}
+        onToggleCleanBoard={toggleCleanBoardMode}
+        onOpenConfig={() => setConfigOpen(true)}
+      />
 
       {hasStartedGame && !cleanBoardMode && expansionPreview && (
         <ExpansionPreviewOverlay
@@ -1746,15 +1728,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         />
       )}
 
-      {hasStartedGame && !cleanBoardMode && isSpectator && (
-        <div className="spectator-banner" role="status">
-          <Eye aria-hidden="true" />
-          <span>Modo espectador</span>
-          <button type="button" className="spectator-leave" onClick={leaveTable} title="Sair">
-            <LogOut aria-hidden="true" />
-          </button>
-        </div>
-      )}
+      {hasStartedGame && !cleanBoardMode && isSpectator && <SpectatorBanner onLeave={leaveTable} />}
 
       {tutorialActive && hasStartedGame && !cleanBoardMode && tutorialDef && (
         <TutorialCoach
@@ -2032,14 +2006,44 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         document.body
       )}
 
-      {!cleanBoardMode && shouldShowJaguarScoreModal && showJaguarScoreModal && (
-        <JaguarScoreModal
-          availablePointSpendCount={availableJaguarPointSpendCount}
-          completeDisabled={tutorialActive}
-          onSpend={handleSpendJaguarMeat}
-          onComplete={handleCompleteAction}
-        />
-      )}
+      <SpeciesScoreModals
+        jaguar={
+          !cleanBoardMode && shouldShowJaguarScoreModal && showJaguarScoreModal
+            ? { availablePointSpendCount: availableJaguarPointSpendCount, completeDisabled: tutorialActive }
+            : null
+        }
+        wolf={
+          !cleanBoardMode &&
+          hasStartedGame &&
+          !hasPendingCoatiPairBonus &&
+          room?.game?.status === "active" &&
+          activeGamePlayer &&
+          activeSpecies?.speciesId === "maned_wolf" &&
+          activeActionId === "C" &&
+          canControlActivePlayer &&
+          (!tutorialActive || tutorialId !== "wolf" || tutorialGate === "score")
+            ? {
+                resources: activeGamePlayer.resources,
+                selectedResources: selectedWolfResources,
+                spendableResources: wolfSpendableResources,
+                availablePointSpendCount: availableWolfPointSpendCount,
+                completeDisabled: tutorialActive
+              }
+            : null
+        }
+        onJaguarSpend={handleSpendJaguarMeat}
+        onWolfToggleResource={(resource) =>
+          setSelectedWolfResources((current) =>
+            current.includes(resource)
+              ? current.filter((candidate) => candidate !== resource)
+              : current.length < availableWolfPointSpendCount
+                ? [...current, resource]
+                : current
+          )
+        }
+        onWolfSpend={handleSpendWolfResources}
+        onComplete={handleCompleteAction}
+      />
 
       {!cleanBoardMode && room?.game?.status === "finished" && room.game.finalScoreBreakdown && (
         <EndgameCeremony
@@ -2051,35 +2055,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
         />
       )}
 
-
-      {!cleanBoardMode &&
-        hasStartedGame &&
-        !hasPendingCoatiPairBonus &&
-        room?.game?.status === "active" &&
-        activeGamePlayer &&
-        activeSpecies?.speciesId === "maned_wolf" &&
-        activeActionId === "C" &&
-        canControlActivePlayer &&
-        (!tutorialActive || tutorialId !== "wolf" || tutorialGate === "score") && (
-          <WolfScoreModal
-            resources={activeGamePlayer.resources}
-            selectedResources={selectedWolfResources}
-            spendableResources={wolfSpendableResources}
-            availablePointSpendCount={availableWolfPointSpendCount}
-            completeDisabled={tutorialActive}
-            onToggleResource={(resource) =>
-              setSelectedWolfResources((current) =>
-                current.includes(resource)
-                  ? current.filter((candidate) => candidate !== resource)
-                  : current.length < availableWolfPointSpendCount
-                    ? [...current, resource]
-                    : current
-              )
-            }
-            onSpend={handleSpendWolfResources}
-            onComplete={handleCompleteAction}
-          />
-        )}
 
       {!cleanBoardMode && turnSummary && room?.game?.status === "active" && (
         <TurnRecapPanel
