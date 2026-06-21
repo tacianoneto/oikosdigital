@@ -61,6 +61,7 @@ import { useBoardOverlays } from "../hooks/useBoardOverlays";
 import { useBoardPieceHandlers } from "../hooks/useBoardPieceHandlers";
 import { useCacaIlegalHandlers } from "../hooks/useCacaIlegalHandlers";
 import { useGameFeedback } from "../hooks/useGameFeedback";
+import { useGamePreloader } from "../hooks/useGamePreloader";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
 import { useLocalGameConfig } from "../hooks/useLocalGameConfig";
@@ -1411,6 +1412,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     visualAccessibility,
     mobileSheet
   });
+  const gamePreloader = useGamePreloader(room?.game);
 
   if (isBelowDesktop) {
     return (
@@ -1423,6 +1425,22 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
             A HUD atual foi desenhada para telas grandes. Use um computador ou aumente a janela para pelo menos
             1024px de largura.
           </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (hasStartedGame && !gamePreloader.ready) {
+    return (
+      <main className="game-loading-shell" role="status" aria-live="polite">
+        <div className="game-loading-card">
+          <img className="game-loading-logo" src="/oikos-logo.webp" alt="Oikos Digital" />
+          <div className="game-loading-spinner" aria-hidden="true" />
+          <h1>{gamePreloader.label}</h1>
+          <div className="game-loading-bar" aria-label="Progresso do carregamento">
+            <span style={{ width: `${Math.round(gamePreloader.progress * 100)}%` }} />
+          </div>
+          <p>{Math.round(gamePreloader.progress * 100)}%</p>
         </div>
       </main>
     );
