@@ -1,7 +1,5 @@
 import { useCallback } from "react";
-import { applyGameIntent } from "@oikos/rules";
-import type { GameState, PublicRoomState } from "@oikos/shared";
-import { roomApi, type OikosSocket } from "../socket";
+import type { GameIntent, GameState, PublicRoomState } from "@oikos/shared";
 import type { TutorialStepDef } from "../ui/tutorials";
 
 export type ExecuteGameAction = (
@@ -11,13 +9,19 @@ export type ExecuteGameAction = (
   reset?: () => void
 ) => void;
 
+export type ExecuteGameIntent = (
+  playerId: string,
+  intent: GameIntent,
+  notice: string,
+  reset?: () => void
+) => void;
+
 interface SimpleActionHandlersParams {
   room: PublicRoomState | null;
   canControlActivePlayer: boolean;
   tutorialActive: boolean;
   tutorialDef: TutorialStepDef | null;
-  executeGameAction: ExecuteGameAction;
-  requireSocket: () => OikosSocket;
+  executeGameIntent: ExecuteGameIntent;
   setNotice: (notice: string | null) => void;
 }
 
@@ -26,8 +30,7 @@ export function useSimpleActionHandlers({
   canControlActivePlayer,
   tutorialActive,
   tutorialDef,
-  executeGameAction,
-  requireSocket,
+  executeGameIntent,
   setNotice
 }: SimpleActionHandlersParams) {
   const handleSpendJaguarMeat = useCallback(
@@ -36,17 +39,17 @@ export function useSimpleActionHandlers({
         return;
       }
       if (tutorialActive && tutorialDef?.requiredSpendCount && count !== tutorialDef.requiredSpendCount) {
-        setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} carnes para ver a pontuação completa.`);
+        setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} carnes para ver a pontuacao completa.`);
         return;
       }
 
-      executeGameAction(
-        () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "jaguar.spend-meat", count }),
-        () => roomApi.spendJaguarMeat(requireSocket(), room.roomId, count),
+      executeGameIntent(
+        room.game.activePlayerId,
+        { type: "jaguar.spend-meat", count },
         "Carne gasta e pontos marcados."
       );
     },
-    [canControlActivePlayer, executeGameAction, requireSocket, room, setNotice, tutorialActive, tutorialDef?.requiredSpendCount]
+    [canControlActivePlayer, executeGameIntent, room, setNotice, tutorialActive, tutorialDef?.requiredSpendCount]
   );
 
   const handleScoreGalo = useCallback(() => {
@@ -54,24 +57,24 @@ export function useSimpleActionHandlers({
       return;
     }
 
-    executeGameAction(
-      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "species.score", speciesId: "galo_de_campina" }),
-      () => roomApi.scoreGalo(requireSocket(), room.roomId),
+    executeGameIntent(
+      room.game.activePlayerId,
+      { type: "species.score", speciesId: "galo_de_campina" },
       "Galo-de-campina pontuado."
     );
-  }, [canControlActivePlayer, executeGameAction, requireSocket, room]);
+  }, [canControlActivePlayer, executeGameIntent, room]);
 
   const handleScoreArmadillo = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
       return;
     }
 
-    executeGameAction(
-      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "species.score", speciesId: "armadillo" }),
-      () => roomApi.scoreArmadillo(requireSocket(), room.roomId),
+    executeGameIntent(
+      room.game.activePlayerId,
+      { type: "species.score", speciesId: "armadillo" },
       "Tatu-bola pontuado."
     );
-  }, [canControlActivePlayer, executeGameAction, requireSocket, room]);
+  }, [canControlActivePlayer, executeGameIntent, room]);
 
   const handleCompleteAction = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
@@ -81,12 +84,12 @@ export function useSimpleActionHandlers({
       return;
     }
 
-    executeGameAction(
-      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "action.complete" }),
-      () => roomApi.completeAction(requireSocket(), room.roomId),
-      "Ação concluída."
+    executeGameIntent(
+      room.game.activePlayerId,
+      { type: "action.complete" },
+      "Acao concluida."
     );
-  }, [canControlActivePlayer, executeGameAction, requireSocket, room, tutorialActive]);
+  }, [canControlActivePlayer, executeGameIntent, room, tutorialActive]);
 
   return {
     handleSpendJaguarMeat,

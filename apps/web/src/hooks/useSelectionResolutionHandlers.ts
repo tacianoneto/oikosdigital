@@ -1,11 +1,7 @@
 import { useCallback } from "react";
-import {
-  applyGameIntent
-} from "@oikos/rules";
 import type { PublicRoomState, Resource } from "@oikos/shared";
-import { roomApi, type OikosSocket } from "../socket";
 import type { TutorialStepDef } from "../ui/tutorials";
-import type { ExecuteGameAction } from "./useSimpleActionHandlers";
+import type { ExecuteGameIntent } from "./useSimpleActionHandlers";
 
 interface SelectionResolutionHandlersParams {
   room: PublicRoomState | null;
@@ -18,8 +14,7 @@ interface SelectionResolutionHandlersParams {
   selectedWolfResources: Resource[];
   requiredCoatiRemovalCount: number;
   clearWolfActionSelection: () => void;
-  executeGameAction: ExecuteGameAction;
-  requireSocket: () => OikosSocket;
+  executeGameIntent: ExecuteGameIntent;
   setNotice: (notice: string | null) => void;
 }
 
@@ -34,8 +29,7 @@ export function useSelectionResolutionHandlers({
   selectedWolfResources,
   requiredCoatiRemovalCount,
   clearWolfActionSelection,
-  executeGameAction,
-  requireSocket,
+  executeGameIntent,
   setNotice
 }: SelectionResolutionHandlersParams) {
   const handleRemoveSelectedPieces = useCallback(() => {
@@ -48,18 +42,17 @@ export function useSelectionResolutionHandlers({
       return;
     }
 
-    executeGameAction(
-      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "pieces.remove", pieceIds: selectedRemovalPieceIds }),
-      () => roomApi.removePieces(requireSocket(), room.roomId, selectedRemovalPieceIds),
+    executeGameIntent(
+      room.game.activePlayerId,
+      { type: "pieces.remove", pieceIds: selectedRemovalPieceIds },
       "Quatis removidos da floresta.",
       clearWolfActionSelection
     );
   }, [
     canControlActivePlayer,
     clearWolfActionSelection,
-    executeGameAction,
+    executeGameIntent,
     requiredCoatiRemovalCount,
-    requireSocket,
     room,
     selectedRemovalPieceIds
   ]);
@@ -72,12 +65,12 @@ export function useSelectionResolutionHandlers({
       return;
     }
 
-    executeGameAction(
-      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "species.hide-piece", speciesId: "armadillo", pieceId: selectedPieceId }),
-      () => roomApi.hideArmadillo(requireSocket(), room.roomId, selectedPieceId),
+    executeGameIntent(
+      room.game.activePlayerId,
+      { type: "species.hide-piece", speciesId: "armadillo", pieceId: selectedPieceId },
       "Tatu-bola escondido."
     );
-  }, [canControlActivePlayer, executeGameAction, requireSocket, room, selectedPieceId, tutorialActive, tutorialDef?.markedPieceId]);
+  }, [canControlActivePlayer, executeGameIntent, room, selectedPieceId, tutorialActive, tutorialDef?.markedPieceId]);
 
   const handleRemoveWolfBasePiece = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer || !selectedWolfTargetPieceId) {
@@ -87,17 +80,16 @@ export function useSelectionResolutionHandlers({
       return;
     }
 
-    executeGameAction(
-      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "wolf.remove-base", pieceId: selectedWolfTargetPieceId }),
-      () => roomApi.removeWolfBasePiece(requireSocket(), room.roomId, selectedWolfTargetPieceId),
-      "Lobo-guará removeu peça de base.",
+    executeGameIntent(
+      room.game.activePlayerId,
+      { type: "wolf.remove-base", pieceId: selectedWolfTargetPieceId },
+      "Lobo-guara removeu peca de base.",
       clearWolfActionSelection
     );
   }, [
     canControlActivePlayer,
     clearWolfActionSelection,
-    executeGameAction,
-    requireSocket,
+    executeGameIntent,
     room,
     selectedWolfTargetPieceId,
     tutorialActive,
@@ -113,21 +105,20 @@ export function useSelectionResolutionHandlers({
       tutorialDef?.requiredSpendCount &&
       selectedWolfResources.length !== tutorialDef.requiredSpendCount
     ) {
-      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuação completa.`);
+      setNotice(`Neste tutorial, gaste ${tutorialDef.requiredSpendCount} recursos diferentes para ver a pontuacao completa.`);
       return;
     }
 
-    executeGameAction(
-      () => applyGameIntent(room.game!, room.game!.activePlayerId!, { type: "wolf.spend-resources", resources: selectedWolfResources }),
-      () => roomApi.spendWolfResources(requireSocket(), room.roomId, selectedWolfResources),
-      "Lobo-guará gastou recursos e marcou pontos.",
+    executeGameIntent(
+      room.game.activePlayerId,
+      { type: "wolf.spend-resources", resources: selectedWolfResources },
+      "Lobo-guara gastou recursos e marcou pontos.",
       clearWolfActionSelection
     );
   }, [
     canControlActivePlayer,
     clearWolfActionSelection,
-    executeGameAction,
-    requireSocket,
+    executeGameIntent,
     room,
     selectedWolfResources,
     setNotice,

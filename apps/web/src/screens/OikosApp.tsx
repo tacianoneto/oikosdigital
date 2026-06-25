@@ -33,9 +33,11 @@ import {
   resourceLabels
 } from "@oikos/content";
 import {
+  applyGameIntent,
   getArmadilloHidePieceIds
 } from "@oikos/rules";
 import type {
+  GameIntent,
   GameState,
   PublicRoomState,
   SpeciesId
@@ -866,6 +868,27 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     [applyLocalAction, clearActionSelection, isLocalRoom, run]
   );
 
+  const executeGameIntent = useCallback(
+    (
+      playerId: string,
+      intent: GameIntent,
+      notice: string,
+      reset: () => void = clearActionSelection
+    ) => {
+      if (!room?.game) {
+        return;
+      }
+
+      executeGameAction(
+        () => applyGameIntent(room.game!, playerId, intent),
+        () => roomApi.gameIntent(requireSocket(), room.roomId, intent),
+        notice,
+        reset
+      );
+    },
+    [clearActionSelection, executeGameAction, room]
+  );
+
   function requireSocket(): OikosSocket {
     if (!socket) {
       throw new Error("Conexão com o servidor ainda não foi aberta.");
@@ -880,8 +903,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       canControlActivePlayer,
       tutorialActive,
       tutorialDef,
-      executeGameAction,
-      requireSocket,
+      executeGameIntent,
       setNotice
     });
 
@@ -897,8 +919,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       selectedWolfResources,
       requiredCoatiRemovalCount,
       clearWolfActionSelection,
-      executeGameAction,
-      requireSocket,
+      executeGameIntent,
       setNotice
     });
 
@@ -1038,6 +1059,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     socket,
     autoScoredRef,
     executeGameAction,
+    executeGameIntent,
     run,
     requireSocket,
     handleScoreGalo,

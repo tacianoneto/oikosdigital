@@ -10,7 +10,7 @@ import { roomApi, type OikosSocket } from "../socket";
 import { getAddPieceHandler } from "../screens/OikosApp.helpers";
 import { sameGridPosition } from "../ui/geometry";
 import type { CapuchinScoreAnim, MacawScoreAnim } from "./useGameFeedback";
-import type { ExecuteGameAction } from "./useSimpleActionHandlers";
+import type { ExecuteGameAction, ExecuteGameIntent } from "./useSimpleActionHandlers";
 import type { TutorialBoardAction } from "./useTutorialController";
 import type { TutorialStepDef } from "../ui/tutorials";
 
@@ -65,6 +65,7 @@ interface BoardPieceHandlersParams {
   socket: OikosSocket | null;
   autoScoredRef: MutableRefObject<string | null>;
   executeGameAction: ExecuteGameAction;
+  executeGameIntent: ExecuteGameIntent;
   run: (action: () => Promise<PublicRoomState>, success?: string) => Promise<void>;
   requireSocket: () => OikosSocket;
   handleScoreGalo: () => void;
@@ -112,6 +113,7 @@ export function useBoardPieceHandlers({
   socket,
   autoScoredRef,
   executeGameAction,
+  executeGameIntent,
   run,
   requireSocket,
   handleScoreGalo,
@@ -458,17 +460,13 @@ export function useBoardPieceHandlers({
         return;
       }
 
-      executeGameAction(
-        () => applyGameIntent(room.game!, room.game!.activePlayerId!, {
-          type: "coati.resolve-pair",
-          x: position.x,
-          y: position.y
-        }),
-        () => roomApi.resolveCoatiPair(requireSocket(), room.roomId, position.x, position.y),
+      executeGameIntent(
+        room.game.activePlayerId,
+        { type: "coati.resolve-pair", x: position.x, y: position.y },
         "Quati da passiva adicionado e 1 ponto marcado."
       );
     },
-    [coatiPairBonusTargets.length, executeGameAction, room, socket, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]
+    [coatiPairBonusTargets.length, executeGameIntent, room, tutorialActive, tutorialDef?.markedPairTarget, tutorialGate]
   );
 
   const handleScoreCapuchin = useCallback(() => {
@@ -481,11 +479,7 @@ export function useBoardPieceHandlers({
     const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Macaco-prego";
 
     const finalize = () => {
-      executeGameAction(
-        () => applyGameIntent(room.game!, activeId, { type: "species.score", speciesId: "capuchin" }),
-        () => roomApi.scoreCapuchin(requireSocket(), room.roomId),
-        "Macaco-prego pontuado."
-      );
+      executeGameIntent(activeId, { type: "species.score", speciesId: "capuchin" }, "Macaco-prego pontuado.");
     };
 
     if (groups.length === 0) {
@@ -499,7 +493,7 @@ export function useBoardPieceHandlers({
       setCapuchinScoreAnim(null);
       finalize();
     }, 2400);
-  }, [canControlActivePlayer, executeGameAction, room, socket]);
+  }, [canControlActivePlayer, executeGameIntent, room]);
 
   const handleScoreMacaw = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
@@ -511,11 +505,7 @@ export function useBoardPieceHandlers({
     const playerName = room.game.players.find((p) => p.playerId === activeId)?.name ?? "Arara-azul";
 
     const finalize = () => {
-      executeGameAction(
-        () => applyGameIntent(room.game!, activeId, { type: "species.score", speciesId: "macaw" }),
-        () => roomApi.scoreMacaw(requireSocket(), room.roomId),
-        "Arara-azul pontuada."
-      );
+      executeGameIntent(activeId, { type: "species.score", speciesId: "macaw" }, "Arara-azul pontuada.");
     };
 
     if (lines.length === 0) {
@@ -533,7 +523,7 @@ export function useBoardPieceHandlers({
       setMacawScoreAnim(null);
       finalize();
     }, 2400);
-  }, [canControlActivePlayer, executeGameAction, room, socket]);
+  }, [canControlActivePlayer, executeGameIntent, room]);
 
   useEffect(() => {
     if (
