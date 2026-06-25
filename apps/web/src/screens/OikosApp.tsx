@@ -29,19 +29,16 @@ import {
 import {
   habitatLabels,
   movementLabels,
-  threatCardsById,
   resourceAssets,
   resourceLabels
 } from "@oikos/content";
 import {
-  getArmadilloHidePieceIds,
-  getWolfSpendableResourceTypes
+  getArmadilloHidePieceIds
 } from "@oikos/rules";
 import type {
   GameState,
   PublicRoomState,
-  SpeciesId,
-  ThreatCardId
+  SpeciesId
 } from "@oikos/shared";
 import type { ForestCanvasComponent, ForestCanvasHandle } from "../game/ForestCanvasTypes";
 import { useActionSelection } from "../hooks/useActionSelection";
@@ -52,6 +49,7 @@ import { useBoardCardHandlers } from "../hooks/useBoardCardHandlers";
 import { useBoardInteractionTargets } from "../hooks/useBoardInteractionTargets";
 import { useBoardOverlays } from "../hooks/useBoardOverlays";
 import { useBoardPieceHandlers } from "../hooks/useBoardPieceHandlers";
+import { useBoardUiOrchestration } from "../hooks/useBoardUiOrchestration";
 import { useCacaIlegalHandlers } from "../hooks/useCacaIlegalHandlers";
 import { useGameFeedback } from "../hooks/useGameFeedback";
 import { useGamePreloader } from "../hooks/useGamePreloader";
@@ -70,6 +68,8 @@ import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
 import { useRoomTableState } from "../hooks/useRoomTableState";
 import { useRoomSettingsHandlers } from "../hooks/useRoomSettingsHandlers";
 import { useScoringPreview } from "../hooks/useScoringPreview";
+import { useScenarioThreatOrchestration } from "../hooks/useScenarioThreatOrchestration";
+import { useSelectionGuards } from "../hooks/useSelectionGuards";
 import { useTurnTransitionEffects } from "../hooks/useTurnTransitionEffects";
 import { useSelectionResolutionHandlers } from "../hooks/useSelectionResolutionHandlers";
 import { useSimpleActionHandlers } from "../hooks/useSimpleActionHandlers";
@@ -100,7 +100,7 @@ import { SettingsModal } from "../ui/SettingsModal";
 import { SpeciesActionHud } from "../ui/SpeciesActionHud";
 import { SpeciesStatusHud } from "../ui/SpeciesStatusHud";
 import { LeftActionDock } from "../ui/LeftActionDock";
-import { MobileTabbar, type MobileTabId } from "../ui/MobileTabbar";
+import { MobileTabbar } from "../ui/MobileTabbar";
 import { ScenarioDescription } from "../ui/ScenarioDescription";
 import { useAppShellClass } from "../hooks/useAppShellClass";
 import { HudControls } from "../ui/HudControls";
@@ -286,15 +286,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     recapCollapsed,
     setRecapCollapsed
   } = usePanelState();
-  // expansionPreview/expansionOrigin (fly-from-origin open animation) live in
-  // useActionSelection. threatReveal (full-screen threat announcement) lives in useGameFeedback; its
-  // auto-dismiss timer and the reveal effect stay below. Tracks the last threat
-  // seen per game so the announcement fires only on an actual change, not on the
-  // initial load / reconnect into an ongoing game.
-  const lastThreatRef = useRef<{ gameId: string | null; threatId: ThreatCardId | null }>({
-    gameId: null,
-    threatId: null
-  });
+  // expansionPreview/expansionOrigin (fly-from-origin open animation) live in useActionSelection.
   // Mobile-only HUD: below this width the floating docks become bottom sheets
   // driven by a tab bar. Desktop keeps the original floating layout untouched.
   const { isMobile, isBelowDesktop } = useResponsiveLayout();
@@ -617,53 +609,16 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     room
   });
 
-  // Announce a newly revealed threat to everyone. Fires only when the active
-  // threat changes within the same game session (a new round), never on the
-  // first load or on reconnect into an ongoing game.
   const gameId = room?.game?.gameId ?? null;
   const activeThreatCardId = room?.game?.activeThreatCardId ?? null;
-  useEffect(() => {
-    if (!gameId) {
-      lastThreatRef.current = { gameId: null, threatId: null };
-      return;
-    }
-    const prev = lastThreatRef.current;
-    if (prev.gameId !== gameId) {
-      // New game or first sight of this game: adopt current threat silently.
-      lastThreatRef.current = { gameId, threatId: activeThreatCardId };
-      return;
-    }
-    if (activeThreatCardId && activeThreatCardId !== prev.threatId) {
-      setThreatReveal(activeThreatCardId);
-    }
-    lastThreatRef.current = { gameId, threatId: activeThreatCardId };
-  }, [gameId, activeThreatCardId]);
-
-  // Auto-dismiss the threat announcement after 5s.
-  useEffect(() => {
-    if (!threatReveal) return;
-    const timer = setTimeout(() => setThreatReveal(null), 5000);
-    return () => clearTimeout(timer);
-  }, [threatReveal]);
-
-  const threatRevealDefinition = threatReveal ? threatCardsById.get(threatReveal) ?? null : null;
-
-  const activeScenarioKey = activeScenarioDefinitions.map((scenario) => scenario.id).join("|");
-  useEffect(() => {
-    if (activeScenarioKey) {
-      setScenarioDockOpen(true);
-    } else {
-      setScenarioDockOpen(false);
-    }
-  }, [activeScenarioKey]);
-  useEffect(() => {
-    if (!selectedOpponentPlayerId) {
-      return;
-    }
-    if (!hasStartedGame || cleanBoardMode || !opponentInspectorEntries.some((entry) => entry.player.playerId === selectedOpponentPlayerId)) {
-      setSelectedOpponentPlayerId(null);
-    }
-  }, [cleanBoardMode, hasStartedGame, opponentInspectorEntries, selectedOpponentPlayerId]);
+  const { threatRevealDefinition } = useScenarioThreatOrchestration({
+    activeScenarioDefinitions,
+    activeThreatCardId,
+    gameId,
+    setScenarioDockOpen,
+    setThreatReveal,
+    threatReveal
+  });
   const {
     addPieceTargets,
     boardSelectablePieceIds,
@@ -785,46 +740,33 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   // True while the player must click something on the board (place a card,
   // move/add a piece, pick a bonus, etc). On mobile we auto-close the
   // Jogadores/Mão sheets when this turns on so the board is visible.
-  const boardChoiceActive =
-    canPlaceSetupPiece ||
-    Boolean(pendingPlacement) ||
-    displayExpansionTargets.length > 0 ||
-    displayRotateFitTargets.length > 0 ||
-    displayMovementTargets.length > 0 ||
-    displayAddPieceTargets.length > 0 ||
-    displayCoatiPairBonusTargets.length > 0;
-  useEffect(() => {
-    if (!isMobile || !boardChoiceActive) return;
-    setMobileSheet((current) => (current === "jogadores" || current === "mao" ? null : current));
-  }, [isMobile, boardChoiceActive]);
+  const {
+    boardChoiceActive,
+    handleMobileTabSelect,
+    toggleCleanBoardMode
+  } = useBoardUiOrchestration({
+    addPieceTargets: displayAddPieceTargets,
+    canPlaceSetupPiece,
+    coatiPairBonusTargets: displayCoatiPairBonusTargets,
+    expansionTargets: displayExpansionTargets,
+    isMobile,
+    movementTargets: displayMovementTargets,
+    opponentInspectorEntries,
+    pendingPlacement,
+    rotateFitTargets: displayRotateFitTargets,
+    setCleanBoardMode,
+    setConfigOpen,
+    setHandCollapsed,
+    setHoveredSummaryCardIds,
+    setHudLeftCollapsed,
+    setMobileSheet,
+    setMovementPreview,
+    setRecapCollapsed,
+    setSelectedOpponentPlayerId
+  });
   function closeTurnRecap(): void {
     setTurnRecap((current) => ({ ...current, visible: false }));
     setHoveredSummaryCardIds([]);
-  }
-
-  function handleMobileTabSelect(id: MobileTabId): void {
-    setMobileSheet((current) => {
-      const next = current === id ? null : id;
-      if (next === "acao") setHudLeftCollapsed(false);
-      if (next === "mao") setHandCollapsed(false);
-      if (next === "jogadores") {
-        setSelectedOpponentPlayerId((currentId) => currentId ?? opponentInspectorEntries[0]?.player.playerId ?? null);
-      }
-      if (next === "resumo") setRecapCollapsed(false);
-      return next;
-    });
-  }
-
-  function toggleCleanBoardMode(): void {
-    setCleanBoardMode((value) => {
-      const next = !value;
-      if (next) {
-        setConfigOpen(false);
-        setMovementPreview(null);
-        setHoveredSummaryCardIds([]);
-      }
-      return next;
-    });
   }
 
   function moveTurnRecapHistory(delta: -1 | 1): void {
@@ -839,51 +781,33 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setHoveredSummaryCardIds([]);
   }
 
-  useEffect(() => {
-    if (selectedHandCardId && !handCards.some((card) => card.id === selectedHandCardId)) {
-      setSelectedHandCardId(null);
-      setSelectedCardRotation(0);
-    }
-  }, [handCards, selectedHandCardId]);
-
-  useEffect(() => {
-    if (selectedPieceId && !selectablePieceIds.includes(selectedPieceId)) {
-      setSelectedPieceId(null);
-    }
-  }, [selectablePieceIds, selectedPieceId]);
-
-  useEffect(() => {
-    if (selectedJaguarTargetPieceId && !jaguarTargetPieceIds.includes(selectedJaguarTargetPieceId)) {
-      setSelectedJaguarTargetPieceId(null);
-    }
-  }, [jaguarTargetPieceIds, selectedJaguarTargetPieceId]);
-
-  useEffect(() => {
-    if (selectedWolfTargetPieceId && !selectablePieceIds.includes(selectedWolfTargetPieceId)) {
-      setSelectedWolfTargetPieceId(null);
-    }
-  }, [selectablePieceIds, selectedWolfTargetPieceId]);
-
-  useEffect(() => {
-    const nextSelected = selectedWolfResources.filter((resource) =>
-      room?.game?.activePlayerId ? getWolfSpendableResourceTypes(room.game, room.game.activePlayerId).includes(resource) : false
-    );
-    if (nextSelected.length !== selectedWolfResources.length) {
-      setSelectedWolfResources(nextSelected);
-    }
-  }, [room?.game, selectedWolfResources]);
-
-  useEffect(() => {
-    const nextSelected = selectedRemovalPieceIds.filter((pieceId) => selectablePieceIds.includes(pieceId));
-    if (nextSelected.length !== selectedRemovalPieceIds.length) {
-      setSelectedRemovalPieceIds(nextSelected);
-    }
-  }, [selectablePieceIds, selectedRemovalPieceIds]);
-  useEffect(() => {
-    if (!cacaIlegalPending || cacaIlegalPending.playerId !== controlledPlayerId) {
-      setCacaIlegalRemovalMode(false);
-    }
-  }, [cacaIlegalPending, controlledPlayerId]);
+  useSelectionGuards({
+    cacaIlegalPending,
+    cleanBoardMode,
+    controlledPlayerId,
+    game: room?.game,
+    handCards,
+    hasStartedGame,
+    jaguarTargetPieceIds,
+    opponentInspectorEntries,
+    selectablePieceIds,
+    selectedHandCardId,
+    selectedJaguarTargetPieceId,
+    selectedOpponentPlayerId,
+    selectedPieceId,
+    selectedRemovalPieceIds,
+    selectedWolfResources,
+    selectedWolfTargetPieceId,
+    setCacaIlegalRemovalMode,
+    setSelectedCardRotation,
+    setSelectedHandCardId,
+    setSelectedJaguarTargetPieceId,
+    setSelectedOpponentPlayerId,
+    setSelectedPieceId,
+    setSelectedRemovalPieceIds,
+    setSelectedWolfResources,
+    setSelectedWolfTargetPieceId
+  });
 
   useEffect(() => {
     if (!shouldShowJaguarScoreModal) {
