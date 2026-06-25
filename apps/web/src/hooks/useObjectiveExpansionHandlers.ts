@@ -1,13 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
-import {
-  collectCaatingaBonus,
-  collectCerradoBonus,
-  discardMataAtlanticaPileCard,
-  discardObjectiveForResources,
-  resolveExtraTurnObjective,
-  resolveSeedSpendObjective,
-  selectObjectiveCard
-} from "@oikos/rules";
+import { applyGameIntent } from "@oikos/rules";
 import type { GameState, PlayerState, PublicRoomState } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 import type { ExpansionPreviewKind } from "../ui/GameOverlays";
@@ -80,7 +72,10 @@ export function useObjectiveExpansionHandlers({
 
       if (isLocalRoom) {
         try {
-          const nextGame = selectObjectiveCard(room.game, currentGamePlayer.playerId, objectiveCardId);
+          const nextGame = applyGameIntent(room.game, currentGamePlayer.playerId, {
+            type: "objective.select",
+            objectiveCardId
+          });
           setRoom({
             ...room,
             game: nextGame,
@@ -130,7 +125,7 @@ export function useObjectiveExpansionHandlers({
 
     if (isLocalRoom) {
       try {
-        const nextGame = discardObjectiveForResources(room.game, currentGamePlayer.playerId);
+        const nextGame = applyGameIntent(room.game, currentGamePlayer.playerId, { type: "objective.discard" });
         setRoom({
           ...room,
           game: nextGame,
@@ -167,7 +162,10 @@ export function useObjectiveExpansionHandlers({
       if (!room?.game || !caatingaPending || !canResolveCaatinga) return;
       if (isLocalRoom) {
         try {
-          const nextGame = collectCaatingaBonus(room.game, caatingaPending.playerId, mode);
+          const nextGame = applyGameIntent(room.game, caatingaPending.playerId, {
+            type: "scenario.caatinga-collect",
+            mode
+          });
           setRoom((current) => (current ? { ...current, game: nextGame } : current));
         } catch (e) {
           setError(e instanceof Error ? e.message : "Falha ao resolver Caatinga.");
@@ -185,7 +183,10 @@ export function useObjectiveExpansionHandlers({
       if (!room?.game || !cerradoPending || !canResolveCerrado) return;
       if (isLocalRoom) {
         try {
-          const nextGame = collectCerradoBonus(room.game, cerradoPending.playerId, mode);
+          const nextGame = applyGameIntent(room.game, cerradoPending.playerId, {
+            type: "scenario.cerrado-collect",
+            mode
+          });
           setRoom((current) => (current ? { ...current, game: nextGame } : current));
         } catch (e) {
           setError(e instanceof Error ? e.message : "Falha ao resolver Cerrado.");
@@ -205,7 +206,10 @@ export function useObjectiveExpansionHandlers({
       const pendingPlayerId = room.game.pendingExtraTurnPlayerId;
       if (isLocalRoom) {
         try {
-          const nextGame = resolveExtraTurnObjective(room.game, pendingPlayerId, accept);
+          const nextGame = applyGameIntent(room.game, pendingPlayerId, {
+            type: "objective.extra-turn",
+            accept
+          });
           setRoom({
             ...room,
             status: nextGame.status === "finished" ? "finished" : "active",
@@ -232,7 +236,10 @@ export function useObjectiveExpansionHandlers({
       const pendingPlayerId = room.game.pendingSeedSpendObjectivePlayerId;
       if (isLocalRoom) {
         try {
-          const nextGame = resolveSeedSpendObjective(room.game, pendingPlayerId, accept);
+          const nextGame = applyGameIntent(room.game, pendingPlayerId, {
+            type: "objective.seed-spend",
+            accept
+          });
           setRoom({
             ...room,
             status: nextGame.status === "finished" ? "finished" : "active",
@@ -272,7 +279,10 @@ export function useObjectiveExpansionHandlers({
       if (!room?.game || !currentGamePlayer) return;
       if (isLocalRoom) {
         try {
-          const nextGame = discardMataAtlanticaPileCard(room.game, currentGamePlayer.playerId, cardId);
+          const nextGame = applyGameIntent(room.game, currentGamePlayer.playerId, {
+            type: "scenario.mata-atlantica-discard",
+            cardId
+          });
           setRoom((current) => (current ? { ...current, game: nextGame } : current));
         } catch (e) {
           setError(e instanceof Error ? e.message : "Falha ao descartar (Mata Atlantica).");

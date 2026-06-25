@@ -12,6 +12,7 @@ import {
   addBots,
   addBotForSpecies,
   advanceBot,
+  applyRoomGameIntent,
   createRoom,
   joinRoom,
   leaveRoom,
@@ -121,6 +122,33 @@ describe("room lifecycle", () => {
 
     expect(updated.scenarioCount).toBe(2);
     quitRoom(room.roomId, hostId);
+  });
+
+  it("applies setup through the generic game intent room API", () => {
+    const hostId = "intent-setup-host";
+    let room = createRoom(hostId, "Host");
+    room = selectSpecies(room.roomId, hostId, "jaguar");
+    room = addBotForSpecies(room.roomId, hostId, "coati");
+    room = setReady(room.roomId, hostId, true);
+    room = startGame(room.roomId, hostId);
+
+    while (room.game?.status === "setup") {
+      const playerId = room.game.setupActivePlayerId!;
+      const target = room.game.forest.cards.find(
+        (card) => !room.game!.pieces.some((piece) => piece.ownerId === playerId && piece.location?.x === card.x && piece.location.y === card.y)
+      )!;
+      room = applyRoomGameIntent(room.roomId, playerId, {
+        type: "setup.place-piece",
+        x: target.x,
+        y: target.y
+      });
+    }
+
+    expect(room.status).toBe("active");
+    expect(room.game?.status).toBe("active");
+    expect(room.game?.setupActivePlayerId).toBeNull();
+
+    leaveRooms(hostId);
   });
 
   it("resolves the Galo-de-campina between-turn move through the online room API", () => {

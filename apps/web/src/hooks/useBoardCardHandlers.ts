@@ -1,5 +1,5 @@
 import { useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
-import { applyGameIntent, placeInitialPiece } from "@oikos/rules";
+import { applyGameIntent } from "@oikos/rules";
 import type { PublicRoomState } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 import type { PendingPlacement } from "./useActionSelection";
@@ -112,7 +112,11 @@ export function useBoardCardHandlers({
       if (tutorialBlocks("setupPlace")) return;
 
       if (isLocalRoom && room.game?.setupActivePlayerId) {
-        const nextGame = placeInitialPiece(room.game, room.game.setupActivePlayerId, position);
+        const nextGame = applyGameIntent(room.game, room.game.setupActivePlayerId, {
+          type: "setup.place-piece",
+          x: position.x,
+          y: position.y
+        });
         setRoom({
           ...room,
           status: nextGame.status === "active" ? "active" : "setup",

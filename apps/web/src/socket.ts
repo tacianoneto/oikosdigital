@@ -131,27 +131,27 @@ export const roomApi = {
   voteScenarios: (socket: OikosSocket, roomId: string, votes: ScenarioCardId[]) =>
     emitWithReply<PublicRoomState>(socket, "scenario:vote", { roomId, votes }),
   collectCaatinga: (socket: OikosSocket, roomId: string, mode: "gain" | "lose" | "skip" = "gain") =>
-    emitWithReply<PublicRoomState>(socket, "scenario:caatinga-collect", { roomId, mode }),
+    sendIntent(socket, roomId, { type: "scenario.caatinga-collect", mode }),
   collectCerrado: (socket: OikosSocket, roomId: string, mode: "collect" | "skip" = "collect") =>
-    emitWithReply<PublicRoomState>(socket, "scenario:cerrado-collect", { roomId, mode }),
+    sendIntent(socket, roomId, { type: "scenario.cerrado-collect", mode }),
   discardMataAtlantica: (socket: OikosSocket, roomId: string, cardId: string) =>
-    emitWithReply<PublicRoomState>(socket, "scenario:mata-atlantica-discard", { roomId, cardId }),
+    sendIntent(socket, roomId, { type: "scenario.mata-atlantica-discard", cardId }),
   resolveCacaIlegal: (
     socket: OikosSocket,
     roomId: string,
     choice: { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource }
   ) =>
-    emitWithReply<PublicRoomState>(socket, "threat:caca-ilegal-resolve", { roomId, ...choice }),
+    sendIntent(socket, roomId, { type: "threat.caca-ilegal-resolve", choice }),
   selectObjective: (socket: OikosSocket, roomId: string, objectiveCardId: string) =>
-    emitWithReply<PublicRoomState>(socket, "objective:select", { roomId, objectiveCardId }),
+    sendIntent(socket, roomId, { type: "objective.select", objectiveCardId }),
   discardObjective: (socket: OikosSocket, roomId: string) =>
-    emitWithReply<PublicRoomState>(socket, "objective:discard", { roomId }),
+    sendIntent(socket, roomId, { type: "objective.discard" }),
   resolveExtraTurn: (socket: OikosSocket, roomId: string, accept: boolean) =>
-    emitWithReply<PublicRoomState>(socket, "objective:extra-turn", { roomId, accept }),
+    sendIntent(socket, roomId, { type: "objective.extra-turn", accept }),
   resolveSeedSpend: (socket: OikosSocket, roomId: string, accept: boolean) =>
-    emitWithReply<PublicRoomState>(socket, "objective:seed-spend", { roomId, accept }),
+    sendIntent(socket, roomId, { type: "objective.seed-spend", accept }),
   placeSetupPiece: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "setup:place-piece", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "setup.place-piece", x, y }),
   placeForestCard: (
     socket: OikosSocket,
     roomId: string,
@@ -166,9 +166,9 @@ export const roomApi = {
   addGalo: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "galo_de_campina", x, y }),
   resolveGaloInterrupt: (socket: OikosSocket, roomId: string, pieceId: string | undefined, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "galo:resolve-interrupt", { roomId, pieceId, x, y }),
+    sendIntent(socket, roomId, { type: "galo.resolve-interrupt", pieceId, x, y }),
   resolveCoatiPair: (socket: OikosSocket, roomId: string, x: number, y: number) =>
-    emitWithReply<PublicRoomState>(socket, "coati:resolve-pair", { roomId, x, y }),
+    sendIntent(socket, roomId, { type: "coati.resolve-pair", x, y }),
   addCapuchin: (socket: OikosSocket, roomId: string, x: number, y: number) =>
     sendIntent(socket, roomId, { type: "species.add-piece", speciesId: "capuchin", x, y }),
   addMacaw: (socket: OikosSocket, roomId: string, x: number, y: number) =>

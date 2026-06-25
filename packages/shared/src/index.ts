@@ -62,6 +62,7 @@ export interface GridPosition {
 export type ScoringSpeciesId = "armadillo" | "capuchin" | "galo_de_campina" | "macaw";
 
 export type GameIntent =
+  | { type: "setup.place-piece"; x: number; y: number }
   | { type: "action.complete" }
   | { type: "forest.place-card"; cardId: string; x: number; y: number; rotation: 0 | 90 | 180 | 270 }
   | { type: "species.add-piece"; speciesId: SpeciesId; x: number; y: number }
@@ -71,7 +72,22 @@ export type GameIntent =
   | { type: "piece.move"; pieceId: string; x: number; y: number; targetPieceId?: string }
   | { type: "jaguar.spend-meat"; count: number }
   | { type: "wolf.remove-base"; pieceId: string }
-  | { type: "wolf.spend-resources"; resources: Resource[] };
+  | { type: "wolf.spend-resources"; resources: Resource[] }
+  | { type: "coati.resolve-pair"; x: number; y: number }
+  | { type: "galo.resolve-interrupt"; pieceId?: string; x: number; y: number }
+  | { type: "objective.select"; objectiveCardId: string }
+  | { type: "objective.discard" }
+  | { type: "objective.extra-turn"; accept: boolean }
+  | { type: "objective.seed-spend"; accept: boolean }
+  | { type: "scenario.caatinga-collect"; mode?: "gain" | "lose" | "skip" }
+  | { type: "scenario.cerrado-collect"; mode?: "collect" | "skip" }
+  | { type: "scenario.mata-atlantica-discard"; cardId: string }
+  | {
+      type: "threat.caca-ilegal-resolve";
+      choice:
+        | { kind: "remove_piece"; pieceId: string }
+        | { kind: "spend_resource"; resource: Resource };
+    };
 
 export interface PieceLocation extends GridPosition {
   siteId: string;

@@ -3,9 +3,7 @@ import {
   applyGameIntent,
   getCapuchinScoringHabitats,
   getMacawScoringLines,
-  type MacawScoringLine,
-  resolveGaloInterruptMove,
-  resolveCoatiPairBonus
+  type MacawScoringLine
 } from "@oikos/rules";
 import type { GameState, PublicRoomState, SpeciesId } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
@@ -145,7 +143,12 @@ export function useBoardPieceHandlers({
 
       if (currentGame.pendingGaloInterrupt?.ownerId === controlledPlayerId) {
         if (isLocalRoom) {
-          const nextGame = resolveGaloInterruptMove(currentGame, controlledPlayerId, position, movingPieceId);
+          const nextGame = applyGameIntent(currentGame, controlledPlayerId, {
+            type: "galo.resolve-interrupt",
+            pieceId: movingPieceId,
+            x: position.x,
+            y: position.y
+          });
           setRoom({
             ...room,
             status: nextGame.status === "active" ? "active" : room.status,
@@ -456,7 +459,11 @@ export function useBoardPieceHandlers({
       }
 
       executeGameAction(
-        () => resolveCoatiPairBonus(room.game!, room.game!.activePlayerId!, position),
+        () => applyGameIntent(room.game!, room.game!.activePlayerId!, {
+          type: "coati.resolve-pair",
+          x: position.x,
+          y: position.y
+        }),
         () => roomApi.resolveCoatiPair(requireSocket(), room.roomId, position.x, position.y),
         "Quati da passiva adicionado e 1 ponto marcado."
       );

@@ -881,6 +881,21 @@ const statusActiveOrKeep = (game: ActiveGame, room: ServerRoom): ServerRoom["sta
   game.status === "active" ? "active" : room.status;
 const statusFinishedOrActive = (game: ActiveGame): ServerRoom["status"] =>
   game.status === "finished" ? "finished" : "active";
+const statusFromGame = (game: ActiveGame, room: ServerRoom): ServerRoom["status"] => {
+  if (game.status === "finished") {
+    return "finished";
+  }
+
+  if (game.status === "active") {
+    return "active";
+  }
+
+  if (game.status === "setup") {
+    return "setup";
+  }
+
+  return room.status;
+};
 
 // Shared body for the endpoints that mutate an in-progress game: fetch the room,
 // require a started game, apply the engine step, then recompute status/warnings
@@ -1079,7 +1094,7 @@ export function applyRoomGameIntent(roomId: string, playerId: string, intent: Ga
       intent.type === "species.score" && isStaleScoreRequest(room, playerId, intent.speciesId)
         ? null
         : applyGameIntent(game, playerId, intent),
-    statusActiveOrKeep
+    statusFromGame
   );
 }
 

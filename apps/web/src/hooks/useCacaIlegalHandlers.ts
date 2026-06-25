@@ -1,5 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
-import { resolveCacaIlegal } from "@oikos/rules";
+import { applyGameIntent } from "@oikos/rules";
 import type { GameState, PublicRoomState, Resource } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 
@@ -51,7 +51,10 @@ export function useCacaIlegalHandlers({
 
       if (isLocalRoom) {
         try {
-          const nextGame = resolveCacaIlegal(room.game, cacaIlegalPending.playerId, choice);
+          const nextGame = applyGameIntent(room.game, cacaIlegalPending.playerId, {
+            type: "threat.caca-ilegal-resolve",
+            choice
+          });
           setRoom((current) => (current ? { ...current, game: nextGame } : current));
           clearCacaIlegalRemoval();
         } catch (e) {

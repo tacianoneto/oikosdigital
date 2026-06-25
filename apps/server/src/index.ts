@@ -12,40 +12,17 @@ import {
   addBots,
   addBotForSpecies,
   removeBotForSpecies,
-  addArmadillo,
-  addCapuchin,
-  addCoati,
-  addGalo,
-  addMacaw,
-  addWolf,
-  completeAction,
   createRoom,
   setTurnTimer,
-  chooseObjective,
-  discardObjective,
-  resolveExtraTurn,
-  resolveSeedSpend,
   getPublicRoom,
   listOpenRooms,
-  hideArmadillo,
   joinRoom,
   leaveRoom,
   leaveRooms,
   quitRoom,
   kickPlayer,
   renamePlayer,
-  movePiece,
-  placeCardInForest,
-  placeSetupPiece,
-  removeWolfBasePiece,
-  removePieces,
-  resolveGaloInterrupt,
-  resolveCoatiPair,
   removeBots,
-  scoreCapuchin,
-  scoreGalo,
-  scoreArmadillo,
-  scoreMacaw,
   selectSpecies,
   setBotTurnDelay,
   setMiniExpansion,
@@ -60,10 +37,6 @@ import {
   castScenarioVote,
   finalizeScenarioVoting,
   isScenarioVotingComplete,
-  collectCaatinga,
-  collectCerrado,
-  discardMataAtlanticaCard,
-  resolveCacaIlegalThreat,
   applyRoomGameIntent
 } from "./rooms";
 
@@ -289,9 +262,15 @@ io.on("connection", (socket) => {
     });
   });
 
-  onRoomAction("scenario:caatinga-collect", (p: { roomId: string; mode?: "gain" | "lose" | "skip" }, pid) => collectCaatinga(p.roomId, pid, p.mode ?? "gain"));
-  onRoomAction("scenario:cerrado-collect", (p: { roomId: string; mode?: "collect" | "skip" }, pid) => collectCerrado(p.roomId, pid, p.mode ?? "collect"));
-  onRoomAction("scenario:mata-atlantica-discard", (p: { roomId: string; cardId: string }, pid) => discardMataAtlanticaCard(p.roomId, pid, p.cardId));
+  onRoomAction("scenario:caatinga-collect", (p: { roomId: string; mode?: "gain" | "lose" | "skip" }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "scenario.caatinga-collect", mode: p.mode ?? "gain" })
+  );
+  onRoomAction("scenario:cerrado-collect", (p: { roomId: string; mode?: "collect" | "skip" }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "scenario.cerrado-collect", mode: p.mode ?? "collect" })
+  );
+  onRoomAction("scenario:mata-atlantica-discard", (p: { roomId: string; cardId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "scenario.mata-atlantica-discard", cardId: p.cardId })
+  );
   onRoomAction(
     "threat:caca-ilegal-resolve",
     (
@@ -304,7 +283,7 @@ io.on("connection", (socket) => {
         p.kind === "remove_piece"
           ? { kind: "remove_piece" as const, pieceId: p.pieceId }
           : { kind: "spend_resource" as const, resource: p.resource };
-      return resolveCacaIlegalThreat(p.roomId, pid, choice);
+      return applyRoomGameIntent(p.roomId, pid, { type: "threat.caca-ilegal-resolve", choice });
     }
   );
 
@@ -321,38 +300,96 @@ io.on("connection", (socket) => {
     });
   });
 
-  onRoomAction("objective:select", (p: { roomId: string; objectiveCardId: string }, pid) => chooseObjective(p.roomId, pid, p.objectiveCardId));
-  onRoomAction("objective:discard", (p: { roomId: string }, pid) => discardObjective(p.roomId, pid));
-  onRoomAction("objective:extra-turn", (p: { roomId: string; accept: boolean }, pid) => resolveExtraTurn(p.roomId, pid, p.accept));
-  onRoomAction("objective:seed-spend", (p: { roomId: string; accept: boolean }, pid) => resolveSeedSpend(p.roomId, pid, p.accept));
-  onRoomAction("setup:place-piece", (p: { roomId: string; x: number; y: number }, pid) => placeSetupPiece(p.roomId, pid, p.x, p.y));
+  onRoomAction("objective:select", (p: { roomId: string; objectiveCardId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "objective.select", objectiveCardId: p.objectiveCardId })
+  );
+  onRoomAction("objective:discard", (p: { roomId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "objective.discard" })
+  );
+  onRoomAction("objective:extra-turn", (p: { roomId: string; accept: boolean }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "objective.extra-turn", accept: p.accept })
+  );
+  onRoomAction("objective:seed-spend", (p: { roomId: string; accept: boolean }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "objective.seed-spend", accept: p.accept })
+  );
+  onRoomAction("setup:place-piece", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "setup.place-piece", x: p.x, y: p.y })
+  );
   onRoomAction(
     "forest:place-card",
     (p: { roomId: string; cardId: string; x: number; y: number; rotation: 0 | 90 | 180 | 270 }, pid) =>
-      placeCardInForest(p.roomId, pid, p.cardId, p.x, p.y, p.rotation)
+      applyRoomGameIntent(p.roomId, pid, {
+        type: "forest.place-card",
+        cardId: p.cardId,
+        x: p.x,
+        y: p.y,
+        rotation: p.rotation
+      })
   );
   onRoomAction("game:intent", (p: { roomId: string; intent: GameIntent }, pid) => applyRoomGameIntent(p.roomId, pid, p.intent));
-  onRoomAction("action:complete", (p: { roomId: string }, pid) => completeAction(p.roomId, pid));
-  onRoomAction("coati:add", (p: { roomId: string; x: number; y: number }, pid) => addCoati(p.roomId, pid, p.x, p.y));
-  onRoomAction("galo:add", (p: { roomId: string; x: number; y: number }, pid) => addGalo(p.roomId, pid, p.x, p.y));
-  onRoomAction("galo:resolve-interrupt", (p: { roomId: string; pieceId?: string; x: number; y: number }, pid) =>
-    resolveGaloInterrupt(p.roomId, pid, p.x, p.y, p.pieceId)
+  onRoomAction("action:complete", (p: { roomId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "action.complete" })
   );
-  onRoomAction("coati:resolve-pair", (p: { roomId: string; x: number; y: number }, pid) => resolveCoatiPair(p.roomId, pid, p.x, p.y));
-  onRoomAction("capuchin:add", (p: { roomId: string; x: number; y: number }, pid) => addCapuchin(p.roomId, pid, p.x, p.y));
-  onRoomAction("macaw:add", (p: { roomId: string; x: number; y: number }, pid) => addMacaw(p.roomId, pid, p.x, p.y));
-  onRoomAction("armadillo:add", (p: { roomId: string; x: number; y: number }, pid) => addArmadillo(p.roomId, pid, p.x, p.y));
-  onRoomAction("wolf:add", (p: { roomId: string; x: number; y: number }, pid) => addWolf(p.roomId, pid, p.x, p.y));
-  onRoomAction("piece:move", (p: { roomId: string; pieceId: string; targetPieceId?: string; x: number; y: number }, pid) => movePiece(p.roomId, pid, p.pieceId, p.x, p.y, p.targetPieceId));
-  onRoomAction("pieces:remove", (p: { roomId: string; pieceIds: string[] }, pid) => removePieces(p.roomId, pid, p.pieceIds));
-  onRoomAction("jaguar:spend-meat", (p: { roomId: string; count: number }, pid) => spendJaguarMeat(p.roomId, pid, p.count));
-  onRoomAction("capuchin:score", (p: { roomId: string }, pid) => scoreCapuchin(p.roomId, pid));
-  onRoomAction("macaw:score", (p: { roomId: string }, pid) => scoreMacaw(p.roomId, pid));
-  onRoomAction("galo:score", (p: { roomId: string }, pid) => scoreGalo(p.roomId, pid));
-  onRoomAction("armadillo:hide", (p: { roomId: string; pieceId: string }, pid) => hideArmadillo(p.roomId, pid, p.pieceId));
-  onRoomAction("armadillo:score", (p: { roomId: string }, pid) => scoreArmadillo(p.roomId, pid));
-  onRoomAction("wolf:remove-base", (p: { roomId: string; pieceId: string }, pid) => removeWolfBasePiece(p.roomId, pid, p.pieceId));
-  onRoomAction("wolf:spend-resources", (p: { roomId: string; resources: Array<"meat" | "egg" | "fruit" | "seed"> }, pid) => spendWolfResources(p.roomId, pid, p.resources));
+  onRoomAction("coati:add", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.add-piece", speciesId: "coati", x: p.x, y: p.y })
+  );
+  onRoomAction("galo:add", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.add-piece", speciesId: "galo_de_campina", x: p.x, y: p.y })
+  );
+  onRoomAction("galo:resolve-interrupt", (p: { roomId: string; pieceId?: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "galo.resolve-interrupt", pieceId: p.pieceId, x: p.x, y: p.y })
+  );
+  onRoomAction("coati:resolve-pair", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "coati.resolve-pair", x: p.x, y: p.y })
+  );
+  onRoomAction("capuchin:add", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.add-piece", speciesId: "capuchin", x: p.x, y: p.y })
+  );
+  onRoomAction("macaw:add", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.add-piece", speciesId: "macaw", x: p.x, y: p.y })
+  );
+  onRoomAction("armadillo:add", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.add-piece", speciesId: "armadillo", x: p.x, y: p.y })
+  );
+  onRoomAction("wolf:add", (p: { roomId: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.add-piece", speciesId: "maned_wolf", x: p.x, y: p.y })
+  );
+  onRoomAction("piece:move", (p: { roomId: string; pieceId: string; targetPieceId?: string; x: number; y: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, {
+      type: "piece.move",
+      pieceId: p.pieceId,
+      targetPieceId: p.targetPieceId,
+      x: p.x,
+      y: p.y
+    })
+  );
+  onRoomAction("pieces:remove", (p: { roomId: string; pieceIds: string[] }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "pieces.remove", pieceIds: p.pieceIds })
+  );
+  onRoomAction("jaguar:spend-meat", (p: { roomId: string; count: number }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "jaguar.spend-meat", count: p.count })
+  );
+  onRoomAction("capuchin:score", (p: { roomId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.score", speciesId: "capuchin" })
+  );
+  onRoomAction("macaw:score", (p: { roomId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.score", speciesId: "macaw" })
+  );
+  onRoomAction("galo:score", (p: { roomId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.score", speciesId: "galo_de_campina" })
+  );
+  onRoomAction("armadillo:hide", (p: { roomId: string; pieceId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.hide-piece", speciesId: "armadillo", pieceId: p.pieceId })
+  );
+  onRoomAction("armadillo:score", (p: { roomId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "species.score", speciesId: "armadillo" })
+  );
+  onRoomAction("wolf:remove-base", (p: { roomId: string; pieceId: string }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "wolf.remove-base", pieceId: p.pieceId })
+  );
+  onRoomAction("wolf:spend-resources", (p: { roomId: string; resources: Array<"meat" | "egg" | "fruit" | "seed"> }, pid) =>
+    applyRoomGameIntent(p.roomId, pid, { type: "wolf.spend-resources", resources: p.resources })
+  );
 
   socket.on("disconnect", () => {
     unregisterSocket(playerId, socket.id);
