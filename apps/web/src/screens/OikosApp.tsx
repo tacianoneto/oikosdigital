@@ -27,26 +27,19 @@ import {
   X
 } from "lucide-react";
 import {
-  getObjectiveCardDefinition,
   habitatLabels,
   movementLabels,
-  scenarioCardsById,
   threatCardsById,
   resourceAssets,
-  resourceLabels,
-  speciesDefinitions
+  resourceLabels
 } from "@oikos/content";
 import {
-  createPreviewInitialForest,
   getArmadilloHidePieceIds,
-  getWolfSpendableResourceTypes,
-  getCacaIlegalRemovablePieceIds,
-  getCacaIlegalTopResources,
+  getWolfSpendableResourceTypes
 } from "@oikos/rules";
 import type {
   GameState,
   PublicRoomState,
-  ScenarioCardDefinition,
   SpeciesId,
   ThreatCardId
 } from "@oikos/shared";
@@ -72,7 +65,9 @@ import { useOnlineRoom } from "../hooks/useOnlineRoom";
 import { useOpenRoomsPolling } from "../hooks/useOpenRoomsPolling";
 import { useObjectiveExpansionHandlers } from "../hooks/useObjectiveExpansionHandlers";
 import { usePanelState } from "../hooks/usePanelState";
+import { usePendingRuleState } from "../hooks/usePendingRuleState";
 import { useResponsiveLayout } from "../hooks/useResponsiveLayout";
+import { useRoomTableState } from "../hooks/useRoomTableState";
 import { useRoomSettingsHandlers } from "../hooks/useRoomSettingsHandlers";
 import { useScoringPreview } from "../hooks/useScoringPreview";
 import { useTurnTransitionEffects } from "../hooks/useTurnTransitionEffects";
@@ -122,7 +117,6 @@ import {
   SPECIES_HEX,
   botTurnDelayStepMs,
   categoryLabels,
-  defaultBotTurnDelayMs,
   localRoomId,
   resourceOrder,
   speciesList
@@ -599,25 +593,29 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setVisualAccessibility(setVisualAccessibilityPreference(enabled));
   }, []);
 
-  const isHost = Boolean(room && !isLocalRoom && playerId === room.hostPlayerId);
-  const roomHasBots = Boolean(room?.players.some((player) => player.isBot));
-  const readyPlayerCount = room?.players.filter((player) => player.ready).length ?? 0;
-  const enabledMiniExpansions = room?.enabledMiniExpansions ?? room?.game?.enabledMiniExpansions ?? [];
-  const scenarioSelectionMode = room?.scenarioSelectionMode ?? "vote";
-  const scenarioCount = room?.scenarioCount ?? 1;
-  const hostSelectedScenarioIds = room?.hostSelectedScenarioIds ?? [];
-  const needsHostScenarioSelection =
-    !isLocalRoom &&
-    enabledMiniExpansions.includes("scenarios") &&
-    scenarioSelectionMode === "host" &&
-    hostSelectedScenarioIds.length !== scenarioCount;
-  const activeScenarioDefinitions = useMemo(
-    () => (room?.game?.activeScenarioIds ?? []).map((id) => scenarioCardsById.get(id)).filter(Boolean) as ScenarioCardDefinition[],
-    [room?.game?.activeScenarioIds]
-  );
-  const activeThreatDefinition = room?.game?.activeThreatCardId
-    ? threatCardsById.get(room.game.activeThreatCardId) ?? null
-    : null;
+  const {
+    isHost,
+    roomHasBots,
+    readyPlayerCount,
+    enabledMiniExpansions,
+    scenarioSelectionMode,
+    scenarioCount,
+    hostSelectedScenarioIds,
+    needsHostScenarioSelection,
+    activeScenarioDefinitions,
+    activeThreatDefinition,
+    botTurnDelayMs,
+    turnTimerMs,
+    showTurnCountdown,
+    forestCards,
+    pieces,
+    roomWarnings
+  } = useRoomTableState({
+    isLocalRoom,
+    localBotTurnDelayMs,
+    playerId,
+    room
+  });
 
   // Announce a newly revealed threat to everyone. Fires only when the active
   // threat changes within the same game session (a new round), never on the
@@ -666,16 +664,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       setSelectedOpponentPlayerId(null);
     }
   }, [cleanBoardMode, hasStartedGame, opponentInspectorEntries, selectedOpponentPlayerId]);
-  const botTurnDelayMs = isLocalRoom
-    ? room?.botTurnDelayMs ?? localBotTurnDelayMs
-    : room?.botTurnDelayMs ?? defaultBotTurnDelayMs;
-  const turnTimerMs = room?.turnTimerMs ?? null;
-  const showTurnCountdown = Boolean(
-    !isLocalRoom && room?.game?.status === "active" && turnTimerMs && room?.activeTurnStartedAt
-  );
-  const forestCards = room?.game?.forest.cards ?? createPreviewInitialForest();
-  const pieces = room?.game?.pieces ?? [];
-
   const {
     addPieceTargets,
     boardSelectablePieceIds,
@@ -809,11 +797,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     if (!isMobile || !boardChoiceActive) return;
     setMobileSheet((current) => (current === "jogadores" || current === "mao" ? null : current));
   }, [isMobile, boardChoiceActive]);
-  const roomWarnings = useMemo(() => {
-    const warnings = [...(room?.warnings ?? []), ...(room?.game?.contentWarnings ?? [])];
-    return [...new Set(warnings)];
-  }, [room]);
-
   function closeTurnRecap(): void {
     setTurnRecap((current) => ({ ...current, visible: false }));
     setHoveredSummaryCardIds([]);
@@ -1279,60 +1262,37 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     tutorialGate
   ]);
 
-  const setupSpecies = currentGamePlayer?.speciesId ? speciesDefinitions[currentGamePlayer.speciesId] : null;
-  const setupPlaced = currentGamePlayer?.piecesInForest.length ?? 0;
-  const setupNeeded = setupSpecies?.initialPieces ?? 0;
-  const caatingaPending = room?.game?.caatingaPending ?? null;
-  const caatingaGamePlayer = caatingaPending
-    ? room?.game?.players.find((candidate) => candidate.playerId === caatingaPending.playerId) ?? null
-    : null;
-  const cacaIlegalGamePlayer = cacaIlegalPending
-    ? room?.game?.players.find((candidate) => candidate.playerId === cacaIlegalPending.playerId) ?? null
-    : null;
-  const cacaIlegalTopResources = useMemo(
-    () => (room?.game && cacaIlegalPending ? getCacaIlegalTopResources(room.game, cacaIlegalPending.playerId) : []),
-    [cacaIlegalPending, room?.game]
-  );
-  const cacaIlegalRemovablePieceIds = useMemo(
-    () => (room?.game && cacaIlegalPending ? getCacaIlegalRemovablePieceIds(room.game, cacaIlegalPending.playerId) : []),
-    [cacaIlegalPending, room?.game]
-  );
-  const cacaIlegalRemovablePieces = useMemo(
-    () =>
-      room?.game
-        ? cacaIlegalRemovablePieceIds
-            .map((pieceId) => room.game!.pieces.find((piece) => piece.pieceId === pieceId) ?? null)
-            .filter((piece): piece is NonNullable<typeof piece> => Boolean(piece))
-        : [],
-    [cacaIlegalRemovablePieceIds, room?.game]
-  );
-  const cerradoPending = room?.game?.cerradoPending ?? null;
-  const cerradoGamePlayer = cerradoPending
-    ? room?.game?.players.find((candidate) => candidate.playerId === cerradoPending.playerId) ?? null
-    : null;
-  const canResolveCacaIlegal = Boolean(cacaIlegalPending && controlledPlayerId === cacaIlegalPending.playerId);
-  const canResolveCaatinga = Boolean(caatingaPending && controlledPlayerId === caatingaPending.playerId);
-  const canResolveCerrado = Boolean(!caatingaPending && !cacaIlegalPending && cerradoPending && controlledPlayerId === cerradoPending.playerId);
-  const pendingExtraTurnPlayer = room?.game?.pendingExtraTurnPlayerId
-    ? room.game.players.find((player) => player.playerId === room.game?.pendingExtraTurnPlayerId) ?? null
-    : null;
-  const canResolveExtraTurn = Boolean(
-    room?.game?.pendingExtraTurnPlayerId && (isLocalRoom || controlledPlayerId === room.game.pendingExtraTurnPlayerId)
-  );
-  const pendingSeedSpendPlayer = room?.game?.pendingSeedSpendObjectivePlayerId
-    ? room.game.players.find((player) => player.playerId === room.game?.pendingSeedSpendObjectivePlayerId) ?? null
-    : null;
-  const pendingSeedSpendCard = pendingSeedSpendPlayer?.selectedObjectiveCardId
-    ? getObjectiveCardDefinition(pendingSeedSpendPlayer.selectedObjectiveCardId)
-    : null;
-  const pendingSeedSpendCount = pendingSeedSpendCard?.scoring.spendSeedCount ?? 3;
-  const pendingSeedSpendPoints = pendingSeedSpendCard?.scoring.points ?? 3;
-  const pendingSeedSpendSeeds = pendingSeedSpendPlayer?.resources.seed ?? 0;
-  const canResolveSeedSpend = Boolean(
-    room?.game?.pendingSeedSpendObjectivePlayerId &&
-      !room.game.pendingExtraTurnPlayerId &&
-      (isLocalRoom || controlledPlayerId === room.game.pendingSeedSpendObjectivePlayerId)
-  );
+  const {
+    setupSpecies,
+    setupPlaced,
+    setupNeeded,
+    caatingaPending,
+    caatingaGamePlayer,
+    cacaIlegalGamePlayer,
+    cacaIlegalTopResources,
+    cacaIlegalRemovablePieceIds,
+    cacaIlegalRemovablePieces,
+    cerradoPending,
+    cerradoGamePlayer,
+    canResolveCacaIlegal,
+    canResolveCaatinga,
+    canResolveCerrado,
+    pendingExtraTurnPlayer,
+    canResolveExtraTurn,
+    pendingSeedSpendPlayer,
+    pendingSeedSpendCount,
+    pendingSeedSpendPoints,
+    pendingSeedSpendSeeds,
+    canResolveSeedSpend,
+    mataAtlanticaForcedDiscard
+  } = usePendingRuleState({
+    controlledPlayerId,
+    currentGamePlayer,
+    cacaIlegalPending,
+    game: room?.game,
+    isLocalRoom,
+    mataAtlanticaPileTopIds
+  });
 
   const {
     handleSelectObjective,
@@ -1388,21 +1348,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     requireSocket,
     setError
   });
-  const mataAtlanticaForcedDiscard = Boolean(
-    room?.game &&
-      room.game.status === "active" &&
-      room.game.mataAtlanticaPiles &&
-      currentGamePlayer?.speciesId &&
-      !speciesDefinitions[currentGamePlayer.speciesId].usesForestCards &&
-      room.game.activePlayerId === currentGamePlayer.playerId &&
-      controlledPlayerId === currentGamePlayer.playerId &&
-      (room.game.mataAtlanticaDiscardByPlayer ?? {})[currentGamePlayer.playerId] !== currentGamePlayer.turnsTaken &&
-      mataAtlanticaPileTopIds.length > 0 &&
-      !caatingaPending &&
-      !cerradoPending &&
-      !cacaIlegalPending
-  );
-
   const appShell = useAppShellClass({
     hasStartedGame,
     isMobile,
