@@ -1,15 +1,16 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
-import { applyGameIntent } from "@oikos/rules";
 import type { GameState, PlayerState, PublicRoomState } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 import type { ExpansionPreviewKind } from "../ui/GameOverlays";
+import type { ExecuteGameIntent } from "./useSimpleActionHandlers";
 
 type PendingCaatinga = NonNullable<GameState["caatingaPending"]>;
 type PendingCerrado = NonNullable<GameState["cerradoPending"]>;
 
+const keepSelection = () => undefined;
+
 interface ObjectiveExpansionHandlersParams {
   room: PublicRoomState | null;
-  setRoom: Dispatch<SetStateAction<PublicRoomState | null>>;
   currentGamePlayer: PlayerState | null;
   canDiscardSelectedObjective: boolean;
   pendingObjectiveCardId: string | null;
@@ -28,7 +29,7 @@ interface ObjectiveExpansionHandlersParams {
   name: string;
   applyOnlineRoomState: (room: PublicRoomState, options?: { direct?: boolean }) => void;
   saveOnlineSession: (room: PublicRoomState, name: string, spectating?: boolean) => void;
-  run: (action: () => Promise<PublicRoomState>, success?: string) => Promise<void>;
+  executeGameIntent: ExecuteGameIntent;
   requireSocket: () => OikosSocket;
   setError: Dispatch<SetStateAction<string | null>>;
   setNotice: Dispatch<SetStateAction<string | null>>;
@@ -36,7 +37,6 @@ interface ObjectiveExpansionHandlersParams {
 
 export function useObjectiveExpansionHandlers({
   room,
-  setRoom,
   currentGamePlayer,
   canDiscardSelectedObjective,
   pendingObjectiveCardId,
@@ -55,7 +55,7 @@ export function useObjectiveExpansionHandlers({
   name,
   applyOnlineRoomState,
   saveOnlineSession,
-  run,
+  executeGameIntent,
   requireSocket,
   setError,
   setNotice
@@ -70,27 +70,22 @@ export function useObjectiveExpansionHandlers({
       setError(null);
       setNotice(null);
 
-      if (isLocalRoom) {
-        try {
-          const nextGame = applyGameIntent(room.game, currentGamePlayer.playerId, {
-            type: "objective.select",
-            objectiveCardId
-          });
-          setRoom({
-            ...room,
-            game: nextGame,
-            warnings: nextGame.contentWarnings
-          });
-          setNotice("Objetivo escolhido.");
-        } catch (err) {
-          setPendingObjectiveCardId(null);
-          setError(err instanceof Error ? err.message : "Falha ao escolher objetivo.");
-        }
-        return;
-      }
-
       try {
-        const nextRoom = await roomApi.selectObjective(requireSocket(), room.roomId, objectiveCardId);
+        if (isLocalRoom) {
+          executeGameIntent(
+            currentGamePlayer.playerId,
+            { type: "objective.select", objectiveCardId },
+            "Objetivo escolhido.",
+            keepSelection
+          );
+          return;
+        }
+
+        const nextRoom = await roomApi.gameIntent(
+          requireSocket(),
+          room.roomId,
+          { type: "objective.select", objectiveCardId }
+        );
         applyOnlineRoomState(nextRoom, { direct: true });
         saveOnlineSession(nextRoom, name);
         setNotice("Objetivo escolhido.");
@@ -102,6 +97,7 @@ export function useObjectiveExpansionHandlers({
     [
       applyOnlineRoomState,
       currentGamePlayer,
+      executeGameIntent,
       isLocalRoom,
       name,
       pendingObjectiveCardId,
@@ -110,8 +106,7 @@ export function useObjectiveExpansionHandlers({
       saveOnlineSession,
       setError,
       setNotice,
-      setPendingObjectiveCardId,
-      setRoom
+      setPendingObjectiveCardId
     ]
   );
 
@@ -122,177 +117,93 @@ export function useObjectiveExpansionHandlers({
 
     setError(null);
     setNotice(null);
-
-    if (isLocalRoom) {
-      try {
-        const nextGame = applyGameIntent(room.game, currentGamePlayer.playerId, { type: "objective.discard" });
-        setRoom({
-          ...room,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
+    executeGameIntent(
+      currentGamePlayer.playerId,
+      { type: "objective.discard" },
+      "Objetivo descartado: +1 recurso de cada.",
+      () => {
         setExpansionPreview(null);
         setExpandedObjectiveCardId(null);
-        setNotice("Objetivo descartado: +1 recurso de cada.");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Falha ao descartar objetivo.");
       }
-      return;
-    }
-
-    await run(() => roomApi.discardObjective(requireSocket(), room.roomId), "Objetivo descartado: +1 recurso de cada.");
-    setExpansionPreview(null);
-    setExpandedObjectiveCardId(null);
+    );
   }, [
     canDiscardSelectedObjective,
     currentGamePlayer,
-    isLocalRoom,
-    requireSocket,
+    executeGameIntent,
     room,
-    run,
     setError,
     setExpandedObjectiveCardId,
     setExpansionPreview,
-    setNotice,
-    setRoom
+    setNotice
   ]);
 
   const resolveCaatingaChoice = useCallback(
     (mode: "gain" | "lose" | "skip") => {
       if (!room?.game || !caatingaPending || !canResolveCaatinga) return;
-      if (isLocalRoom) {
-        try {
-          const nextGame = applyGameIntent(room.game, caatingaPending.playerId, {
-            type: "scenario.caatinga-collect",
-            mode
-          });
-          setRoom((current) => (current ? { ...current, game: nextGame } : current));
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Falha ao resolver Caatinga.");
-        }
-      } else {
-        const rid = room.roomId;
-        run(() => roomApi.collectCaatinga(requireSocket(), rid, mode));
-      }
+      executeGameIntent(
+        caatingaPending.playerId,
+        { type: "scenario.caatinga-collect", mode },
+        "Caatinga resolvida.",
+        keepSelection
+      );
     },
-    [caatingaPending, canResolveCaatinga, isLocalRoom, requireSocket, room, run, setError, setRoom]
+    [caatingaPending, canResolveCaatinga, executeGameIntent, room]
   );
 
   const resolveCerradoChoice = useCallback(
     (mode: "collect" | "skip") => {
       if (!room?.game || !cerradoPending || !canResolveCerrado) return;
-      if (isLocalRoom) {
-        try {
-          const nextGame = applyGameIntent(room.game, cerradoPending.playerId, {
-            type: "scenario.cerrado-collect",
-            mode
-          });
-          setRoom((current) => (current ? { ...current, game: nextGame } : current));
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Falha ao resolver Cerrado.");
-        }
-      } else {
-        const rid = room.roomId;
-        run(() => roomApi.collectCerrado(requireSocket(), rid, mode));
-      }
+      executeGameIntent(
+        cerradoPending.playerId,
+        { type: "scenario.cerrado-collect", mode },
+        "Cerrado resolvido.",
+        keepSelection
+      );
     },
-    [canResolveCerrado, cerradoPending, isLocalRoom, requireSocket, room, run, setError, setRoom]
+    [canResolveCerrado, cerradoPending, executeGameIntent, room]
   );
 
   const resolveExtraTurnChoice = useCallback(
     (accept: boolean) => {
       if (!room?.game?.pendingExtraTurnPlayerId || !canResolveExtraTurn) return;
 
-      const pendingPlayerId = room.game.pendingExtraTurnPlayerId;
-      if (isLocalRoom) {
-        try {
-          const nextGame = applyGameIntent(room.game, pendingPlayerId, {
-            type: "objective.extra-turn",
-            accept
-          });
-          setRoom({
-            ...room,
-            status: nextGame.status === "finished" ? "finished" : "active",
-            game: nextGame,
-            warnings: nextGame.contentWarnings
-          });
-          setNotice(accept ? "Turno extra iniciado: -1 ponto." : "Turno extra recusado.");
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Falha ao resolver turno extra.");
-        }
-        return;
-      }
-
-      const rid = room.roomId;
-      run(() => roomApi.resolveExtraTurn(requireSocket(), rid, accept));
+      executeGameIntent(
+        room.game.pendingExtraTurnPlayerId,
+        { type: "objective.extra-turn", accept },
+        accept ? "Turno extra iniciado: -1 ponto." : "Turno extra recusado.",
+        keepSelection
+      );
     },
-    [canResolveExtraTurn, isLocalRoom, requireSocket, room, run, setError, setNotice, setRoom]
+    [canResolveExtraTurn, executeGameIntent, room]
   );
 
   const resolveSeedSpendChoice = useCallback(
     (accept: boolean) => {
       if (!room?.game?.pendingSeedSpendObjectivePlayerId || !canResolveSeedSpend) return;
 
-      const pendingPlayerId = room.game.pendingSeedSpendObjectivePlayerId;
-      if (isLocalRoom) {
-        try {
-          const nextGame = applyGameIntent(room.game, pendingPlayerId, {
-            type: "objective.seed-spend",
-            accept
-          });
-          setRoom({
-            ...room,
-            status: nextGame.status === "finished" ? "finished" : "active",
-            game: nextGame,
-            warnings: nextGame.contentWarnings
-          });
-          setNotice(
-            accept
-              ? `Objetivo ativado: -${pendingSeedSpendCount} sementes, +${pendingSeedSpendPoints} pontos.`
-              : "Objetivo recusado."
-          );
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Falha ao resolver objetivo de sementes.");
-        }
-        return;
-      }
-
-      const rid = room.roomId;
-      run(() => roomApi.resolveSeedSpend(requireSocket(), rid, accept));
+      executeGameIntent(
+        room.game.pendingSeedSpendObjectivePlayerId,
+        { type: "objective.seed-spend", accept },
+        accept
+          ? `Objetivo ativado: -${pendingSeedSpendCount} sementes, +${pendingSeedSpendPoints} pontos.`
+          : "Objetivo recusado.",
+        keepSelection
+      );
     },
-    [
-      canResolveSeedSpend,
-      isLocalRoom,
-      pendingSeedSpendCount,
-      pendingSeedSpendPoints,
-      requireSocket,
-      room,
-      run,
-      setError,
-      setNotice,
-      setRoom
-    ]
+    [canResolveSeedSpend, executeGameIntent, pendingSeedSpendCount, pendingSeedSpendPoints, room]
   );
 
   const resolveMataAtlanticaDiscard = useCallback(
     (cardId: string) => {
       if (!room?.game || !currentGamePlayer) return;
-      if (isLocalRoom) {
-        try {
-          const nextGame = applyGameIntent(room.game, currentGamePlayer.playerId, {
-            type: "scenario.mata-atlantica-discard",
-            cardId
-          });
-          setRoom((current) => (current ? { ...current, game: nextGame } : current));
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Falha ao descartar (Mata Atlantica).");
-        }
-      } else {
-        const rid = room.roomId;
-        run(() => roomApi.discardMataAtlantica(requireSocket(), rid, cardId));
-      }
+      executeGameIntent(
+        currentGamePlayer.playerId,
+        { type: "scenario.mata-atlantica-discard", cardId },
+        "Carta da Mata Atlantica descartada.",
+        keepSelection
+      );
     },
-    [currentGamePlayer, isLocalRoom, requireSocket, room, run, setError, setRoom]
+    [currentGamePlayer, executeGameIntent, room]
   );
 
   return {

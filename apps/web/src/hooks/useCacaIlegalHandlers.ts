@@ -1,39 +1,30 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
-import { applyGameIntent } from "@oikos/rules";
 import type { GameState, PublicRoomState, Resource } from "@oikos/shared";
-import { roomApi, type OikosSocket } from "../socket";
+import type { ExecuteGameIntent } from "./useSimpleActionHandlers";
 
 type PendingCacaIlegal = NonNullable<GameState["cacaIlegalPending"]>;
 type CacaIlegalChoice = { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource };
 
 interface CacaIlegalHandlersParams {
   room: PublicRoomState | null;
-  setRoom: Dispatch<SetStateAction<PublicRoomState | null>>;
   cacaIlegalPending: PendingCacaIlegal | null;
   canResolveCacaIlegal: boolean;
   cacaIlegalRemovalMode: boolean;
   setCacaIlegalRemovalMode: Dispatch<SetStateAction<boolean>>;
   selectedRemovalPieceIds: string[];
   setSelectedRemovalPieceIds: Dispatch<SetStateAction<string[]>>;
-  isLocalRoom: boolean;
-  run: (action: () => Promise<PublicRoomState>, success?: string) => Promise<void>;
-  requireSocket: () => OikosSocket;
-  setError: Dispatch<SetStateAction<string | null>>;
+  executeGameIntent: ExecuteGameIntent;
 }
 
 export function useCacaIlegalHandlers({
   room,
-  setRoom,
   cacaIlegalPending,
   canResolveCacaIlegal,
   cacaIlegalRemovalMode,
   setCacaIlegalRemovalMode,
   selectedRemovalPieceIds,
   setSelectedRemovalPieceIds,
-  isLocalRoom,
-  run,
-  requireSocket,
-  setError
+  executeGameIntent
 }: CacaIlegalHandlersParams) {
   const clearCacaIlegalRemoval = useCallback(() => {
     setCacaIlegalRemovalMode(false);
@@ -49,34 +40,14 @@ export function useCacaIlegalHandlers({
     (choice: CacaIlegalChoice) => {
       if (!room?.game || !cacaIlegalPending || !canResolveCacaIlegal) return;
 
-      if (isLocalRoom) {
-        try {
-          const nextGame = applyGameIntent(room.game, cacaIlegalPending.playerId, {
-            type: "threat.caca-ilegal-resolve",
-            choice
-          });
-          setRoom((current) => (current ? { ...current, game: nextGame } : current));
-          clearCacaIlegalRemoval();
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Falha ao resolver Caca ilegal.");
-        }
-        return;
-      }
-
-      const rid = room.roomId;
-      run(() => roomApi.resolveCacaIlegal(requireSocket(), rid, choice)).then(clearCacaIlegalRemoval);
+      executeGameIntent(
+        cacaIlegalPending.playerId,
+        { type: "threat.caca-ilegal-resolve", choice },
+        "Caca ilegal resolvida.",
+        clearCacaIlegalRemoval
+      );
     },
-    [
-      cacaIlegalPending,
-      canResolveCacaIlegal,
-      clearCacaIlegalRemoval,
-      isLocalRoom,
-      requireSocket,
-      room,
-      run,
-      setError,
-      setRoom
-    ]
+    [cacaIlegalPending, canResolveCacaIlegal, clearCacaIlegalRemoval, executeGameIntent, room]
   );
 
   const resolveSelectedCacaIlegalPiece = useCallback(() => {

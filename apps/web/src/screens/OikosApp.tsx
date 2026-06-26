@@ -1250,7 +1250,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     resolveMataAtlanticaDiscard
   } = useObjectiveExpansionHandlers({
     room,
-    setRoom,
     currentGamePlayer,
     canDiscardSelectedObjective,
     pendingObjectiveCardId,
@@ -1269,7 +1268,7 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     name,
     applyOnlineRoomState,
     saveOnlineSession,
-    run,
+    executeGameIntent,
     requireSocket,
     setError,
     setNotice
@@ -1282,17 +1281,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     resolveSelectedCacaIlegalPiece
   } = useCacaIlegalHandlers({
     room,
-    setRoom,
     cacaIlegalPending,
     canResolveCacaIlegal,
     cacaIlegalRemovalMode,
     setCacaIlegalRemovalMode,
     selectedRemovalPieceIds,
     setSelectedRemovalPieceIds,
-    isLocalRoom,
-    run,
-    requireSocket,
-    setError
+    executeGameIntent
   });
   const appShell = useAppShellClass({
     hasStartedGame,
