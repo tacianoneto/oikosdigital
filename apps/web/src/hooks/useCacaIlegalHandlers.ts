@@ -1,6 +1,6 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import type { GameState, PublicRoomState, Resource } from "@oikos/shared";
-import type { ExecuteGameIntent } from "./useSimpleActionHandlers";
+import type { ExecuteGameIntent } from "./useGameIntentExecutor";
 
 type PendingCacaIlegal = NonNullable<GameState["cacaIlegalPending"]>;
 type CacaIlegalChoice = { kind: "remove_piece"; pieceId: string } | { kind: "spend_resource"; resource: Resource };

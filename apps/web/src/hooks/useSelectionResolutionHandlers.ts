@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { PublicRoomState, Resource } from "@oikos/shared";
 import type { TutorialStepDef } from "../ui/tutorials";
-import type { ExecuteGameIntent } from "./useSimpleActionHandlers";
+import type { ExecuteGameIntent } from "./useGameIntentExecutor";
 
 interface SelectionResolutionHandlersParams {
   room: PublicRoomState | null;

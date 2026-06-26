@@ -1,20 +1,7 @@
 import { useCallback } from "react";
-import type { GameIntent, GameState, PublicRoomState } from "@oikos/shared";
+import type { PublicRoomState } from "@oikos/shared";
 import type { TutorialStepDef } from "../ui/tutorials";
-
-export type ExecuteGameAction = (
-  localAction: () => GameState,
-  onlineAction: () => Promise<PublicRoomState>,
-  notice: string,
-  reset?: () => void
-) => void;
-
-export type ExecuteGameIntent = (
-  playerId: string,
-  intent: GameIntent,
-  notice: string,
-  reset?: () => void
-) => void;
+import type { ExecuteGameIntent } from "./useGameIntentExecutor";
 
 interface SimpleActionHandlersParams {
   room: PublicRoomState | null;

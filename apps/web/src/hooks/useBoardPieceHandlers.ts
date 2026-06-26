@@ -1,16 +1,14 @@
 import { useCallback, useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import {
-  applyGameIntent,
   getCapuchinScoringHabitats,
   getMacawScoringLines,
   type MacawScoringLine
 } from "@oikos/rules";
 import type { GameState, PublicRoomState, SpeciesId } from "@oikos/shared";
-import { roomApi, type OikosSocket } from "../socket";
-import { getAddPieceHandler } from "../screens/OikosApp.helpers";
+import { getAddPieceIntentFactory } from "../screens/OikosApp.helpers";
 import { sameGridPosition } from "../ui/geometry";
 import type { CapuchinScoreAnim, MacawScoreAnim } from "./useGameFeedback";
-import type { ExecuteGameAction, ExecuteGameIntent } from "./useSimpleActionHandlers";
+import type { ExecuteGameIntent } from "./useGameIntentExecutor";
 import type { TutorialBoardAction } from "./useTutorialController";
 import type { TutorialStepDef } from "../ui/tutorials";
 
@@ -40,7 +38,6 @@ export function shouldPromptJaguarRemovalTargetBeforeMove(
 
 interface BoardPieceHandlersParams {
   room: PublicRoomState | null;
-  isLocalRoom: boolean;
   activeActionId: string | null;
   activeSpeciesId: SpeciesId | null;
   selectedPieceId: string | null;
@@ -62,15 +59,10 @@ interface BoardPieceHandlersParams {
   tutorialGate: string | null;
   tutorialDef: TutorialStepDef | null;
   tutorialBlocks: (action: TutorialBoardAction) => boolean;
-  socket: OikosSocket | null;
   autoScoredRef: MutableRefObject<string | null>;
-  executeGameAction: ExecuteGameAction;
   executeGameIntent: ExecuteGameIntent;
-  run: (action: () => Promise<PublicRoomState>, success?: string) => Promise<void>;
-  requireSocket: () => OikosSocket;
   handleScoreGalo: () => void;
   handleScoreArmadillo: () => void;
-  setRoom: Dispatch<SetStateAction<PublicRoomState | null>>;
   setSelectedPieceId: Dispatch<SetStateAction<string | null>>;
   setSelectedJaguarDestination: Dispatch<SetStateAction<GridTarget | null>>;
   setSelectedJaguarTargetPieceId: Dispatch<SetStateAction<string | null>>;
@@ -81,14 +73,8 @@ interface BoardPieceHandlersParams {
   setMacawScoreAnim: Dispatch<SetStateAction<MacawScoreAnim | null>>;
 }
 
-// Board-piece interaction cluster: moving the selected piece, clicking pieces and
-// movement/add/coati-pair targets, the macaw/capuchin score animations, and the
-// effect that auto-scores the trivial action-D species (capuchin/macaw/galo/
-// armadillo). Local/online parity, tutorial gates and selection resets are
-// preserved via injected dependencies.
 export function useBoardPieceHandlers({
   room,
-  isLocalRoom,
   activeActionId,
   activeSpeciesId,
   selectedPieceId,
@@ -103,22 +89,15 @@ export function useBoardPieceHandlers({
   controlledPlayerId,
   requiredCoatiRemovalCount,
   canControlActivePlayer,
-  canSkipExtraTurnNoCardAction,
-  needsEndgameOverflowRepair,
   hasPendingCoatiPairBonus,
   tutorialActive,
   tutorialGate,
   tutorialDef,
   tutorialBlocks,
-  socket,
   autoScoredRef,
-  executeGameAction,
   executeGameIntent,
-  run,
-  requireSocket,
   handleScoreGalo,
   handleScoreArmadillo,
-  setRoom,
   setSelectedPieceId,
   setSelectedJaguarDestination,
   setSelectedJaguarTargetPieceId,
@@ -129,7 +108,7 @@ export function useBoardPieceHandlers({
   setMacawScoreAnim
 }: BoardPieceHandlersParams) {
   const executeSelectedPieceMove = useCallback(
-    (position: { x: number; y: number }, targetPieceId?: string) => {
+    (position: GridTarget, targetPieceId?: string) => {
       if (!room?.game || !selectedPieceId) {
         return;
       }
@@ -141,30 +120,15 @@ export function useBoardPieceHandlers({
       }
 
       const currentGame = room.game;
-      const movingPieceId = selectedPieceId!;
+      const movingPieceId = selectedPieceId;
 
       if (currentGame.pendingGaloInterrupt?.ownerId === controlledPlayerId) {
-        if (isLocalRoom) {
-          const nextGame = applyGameIntent(currentGame, controlledPlayerId, {
-            type: "galo.resolve-interrupt",
-            pieceId: movingPieceId,
-            x: position.x,
-            y: position.y
-          });
-          setRoom({
-            ...room,
-            status: nextGame.status === "active" ? "active" : room.status,
-            game: nextGame,
-            warnings: nextGame.contentWarnings
-          });
-          setSelectedPieceId(null);
-          setNotice("Galo-de-campina movido entre turnos.");
-          return;
-        }
-
-        void run(() => roomApi.resolveGaloInterrupt(requireSocket(), room.roomId, movingPieceId, position.x, position.y)).then(() => {
-          setSelectedPieceId(null);
-        });
+        executeGameIntent(
+          controlledPlayerId,
+          { type: "galo.resolve-interrupt", pieceId: movingPieceId, x: position.x, y: position.y },
+          "Galo-de-campina movido entre turnos.",
+          () => setSelectedPieceId(null)
+        );
         return;
       }
 
@@ -172,60 +136,29 @@ export function useBoardPieceHandlers({
         return;
       }
 
-      const activePlayerId = currentGame.activePlayerId!;
-
-      if (isLocalRoom) {
-        const nextGame = applyGameIntent(currentGame, activePlayerId, {
-          type: "piece.move",
-          pieceId: movingPieceId,
-          x: position.x,
-          y: position.y,
-          targetPieceId
-        });
-        setRoom({
-          ...room,
-          status: nextGame.status === "active" ? "active" : room.status,
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
-        setSelectedPieceId(null);
-        setSelectedJaguarDestination(null);
-        setSelectedJaguarTargetPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setNotice(
-          activeSpeciesId === "jaguar"
-            ? "Onça movida."
-            : activeSpeciesId === "capuchin"
-              ? "Macaco-prego movido."
-              : activeSpeciesId === "macaw"
-              ? activeActionId === "C"
-                ? "Arara realocada."
-                : "Arara movida."
-              : activeSpeciesId === "armadillo"
-                ? "Tatu-bola movido."
-                : activeSpeciesId === "maned_wolf"
-                  ? "Lobo-guará movido."
-                  : activeSpeciesId === "galo_de_campina"
-                    ? "Galo-de-campina movido."
-                    : "Quati movido."
-        );
-        return;
-      }
-
-      void run(() => roomApi.movePiece(requireSocket(), room.roomId, movingPieceId, position.x, position.y, targetPieceId)).then(() => {
-        setSelectedPieceId(null);
-        setSelectedJaguarDestination(null);
-        setSelectedJaguarTargetPieceId(null);
-      });
+      executeGameIntent(
+        currentGame.activePlayerId,
+        { type: "piece.move", pieceId: movingPieceId, x: position.x, y: position.y, targetPieceId },
+        getMoveNotice(activeSpeciesId, activeActionId),
+        () => {
+          setSelectedPieceId(null);
+          setSelectedJaguarDestination(null);
+          setSelectedJaguarTargetPieceId(null);
+          setSelectedRemovalPieceIds([]);
+        }
+      );
     },
     [
       activeActionId,
       activeSpeciesId,
       controlledPlayerId,
-      isLocalRoom,
+      executeGameIntent,
       room,
       selectedPieceId,
-      socket,
+      setSelectedJaguarDestination,
+      setSelectedJaguarTargetPieceId,
+      setSelectedPieceId,
+      setSelectedRemovalPieceIds,
       tutorialActive,
       tutorialBlocks,
       tutorialDef?.markedMoveTarget,
@@ -265,41 +198,22 @@ export function useBoardPieceHandlers({
             return;
           }
 
-          if (isLocalRoom) {
-            const nextGame = applyGameIntent(room.game, pendingJaguarRemoval.playerId, {
+          executeGameIntent(
+            pendingJaguarRemoval.playerId,
+            {
               type: "piece.move",
               pieceId: jaguarPieceId,
               x: pendingJaguarRemoval.location.x,
               y: pendingJaguarRemoval.location.y,
               targetPieceId: pieceId
-            });
-            setRoom({
-              ...room,
-              status: nextGame.status === "active" ? "active" : room.status,
-              game: nextGame,
-              warnings: nextGame.contentWarnings
-            });
-            setSelectedPieceId(null);
-            setSelectedJaguarDestination(null);
-            setSelectedJaguarTargetPieceId(null);
-            setNotice("Onca removeu 1 peca.");
-            return;
-          }
-
-          void run(() =>
-            roomApi.movePiece(
-              requireSocket(),
-              room.roomId,
-              jaguarPieceId,
-              pendingJaguarRemoval.location.x,
-              pendingJaguarRemoval.location.y,
-              pieceId
-            )
-          ).then(() => {
-            setSelectedPieceId(null);
-            setSelectedJaguarDestination(null);
-            setSelectedJaguarTargetPieceId(null);
-          });
+            },
+            "Onca removeu 1 peca.",
+            () => {
+              setSelectedPieceId(null);
+              setSelectedJaguarDestination(null);
+              setSelectedJaguarTargetPieceId(null);
+            }
+          );
           return;
         }
 
@@ -345,19 +259,23 @@ export function useBoardPieceHandlers({
       cacaIlegalPending?.playerId,
       cacaIlegalRemovalMode,
       controlledPlayerId,
+      executeGameIntent,
       executeSelectedPieceMove,
-      isLocalRoom,
       jaguarTargetPieceIds,
-      requireSocket,
       requiredCoatiRemovalCount,
       room,
-      run,
-      selectedJaguarDestination
+      selectedJaguarDestination,
+      setNotice,
+      setSelectedJaguarDestination,
+      setSelectedJaguarTargetPieceId,
+      setSelectedPieceId,
+      setSelectedRemovalPieceIds,
+      setSelectedWolfTargetPieceId
     ]
   );
 
   const handleMovementTargetClick = useCallback(
-    (position: { x: number; y: number }) => {
+    (position: GridTarget) => {
       if (!room?.game || !room.game.activePlayerId || !selectedPieceId || movementTargets.length === 0) {
         return;
       }
@@ -395,7 +313,7 @@ export function useBoardPieceHandlers({
         if (shouldChooseJaguarTarget) {
           setSelectedJaguarDestination(position);
           setSelectedJaguarTargetPieceId(null);
-          setNotice("Escolha qual meeple a Onça deve remover neste local.");
+          setNotice("Escolha qual meeple a Onca deve remover neste local.");
           return;
         }
 
@@ -405,15 +323,25 @@ export function useBoardPieceHandlers({
 
       executeSelectedPieceMove(position);
     },
-    [activeSpeciesId, executeSelectedPieceMove, movementTargets.length, room, selectedPieceId]
+    [
+      activeSpeciesId,
+      controlledPlayerId,
+      executeSelectedPieceMove,
+      movementTargets.length,
+      room,
+      selectedPieceId,
+      setNotice,
+      setSelectedJaguarDestination,
+      setSelectedJaguarTargetPieceId,
+      setSelectedPieceId
+    ]
   );
 
   const handleAddPieceTargetClick = useCallback(
-    (position: { x: number; y: number }) => {
+    (position: GridTarget) => {
       if (!room?.game || !room.game.activePlayerId || addPieceTargets.length === 0) {
         return;
       }
-      // Some tutorials teach adding as part of action A; Lobo teaches it in D.
       if (tutorialActive && tutorialGate !== "placeCard" && tutorialGate !== "addPiece") return;
       if (
         tutorialActive &&
@@ -424,20 +352,14 @@ export function useBoardPieceHandlers({
         return;
       }
 
-      const addHandler = getAddPieceHandler(activeSpeciesId ?? undefined);
-
-      executeGameAction(
-        () => addHandler.local(room.game!, room.game!.activePlayerId!, position),
-        () => addHandler.api(requireSocket(), room.roomId, position.x, position.y),
-        addHandler.notice
-      );
+      const addPiece = getAddPieceIntentFactory(activeSpeciesId ?? undefined);
+      executeGameIntent(room.game.activePlayerId, addPiece.intent(position), addPiece.notice);
     },
     [
       activeSpeciesId,
       addPieceTargets.length,
-      executeGameAction,
+      executeGameIntent,
       room,
-      socket,
       tutorialActive,
       tutorialDef?.markedAddPieceTarget,
       tutorialGate
@@ -445,7 +367,7 @@ export function useBoardPieceHandlers({
   );
 
   const handleCoatiPairBonusTargetClick = useCallback(
-    (position: { x: number; y: number }) => {
+    (position: GridTarget) => {
       if (!room?.game || !room.game.activePlayerId || coatiPairBonusTargets.length === 0) {
         return;
       }
@@ -493,7 +415,7 @@ export function useBoardPieceHandlers({
       setCapuchinScoreAnim(null);
       finalize();
     }, 2400);
-  }, [canControlActivePlayer, executeGameIntent, room]);
+  }, [canControlActivePlayer, executeGameIntent, room, setCapuchinScoreAnim]);
 
   const handleScoreMacaw = useCallback(() => {
     if (!room?.game || !room.game.activePlayerId || !canControlActivePlayer) {
@@ -523,7 +445,7 @@ export function useBoardPieceHandlers({
       setMacawScoreAnim(null);
       finalize();
     }, 2400);
-  }, [canControlActivePlayer, executeGameIntent, room]);
+  }, [canControlActivePlayer, executeGameIntent, room, setMacawScoreAnim]);
 
   useEffect(() => {
     if (
@@ -545,8 +467,6 @@ export function useBoardPieceHandlers({
       return;
     }
     autoScoredRef.current = key;
-    // Armadillo highlights each rival species sharing a tile; give the player
-    // longer to read the portraits before the automatic score advances.
     const scoreDelayMs = species === "armadillo" ? 3500 : 1500;
     const timer = window.setTimeout(() => {
       if (species === "capuchin") {
@@ -564,6 +484,7 @@ export function useBoardPieceHandlers({
   }, [
     activeActionId,
     activeSpeciesId,
+    autoScoredRef,
     canControlActivePlayer,
     handleScoreArmadillo,
     handleScoreCapuchin,
@@ -587,4 +508,14 @@ export function useBoardPieceHandlers({
     handleScoreCapuchin,
     handleScoreMacaw
   };
+}
+
+function getMoveNotice(activeSpeciesId: SpeciesId | null, activeActionId: string | null): string {
+  if (activeSpeciesId === "jaguar") return "Onca movida.";
+  if (activeSpeciesId === "capuchin") return "Macaco-prego movido.";
+  if (activeSpeciesId === "macaw") return activeActionId === "C" ? "Arara realocada." : "Arara movida.";
+  if (activeSpeciesId === "armadillo") return "Tatu-bola movido.";
+  if (activeSpeciesId === "maned_wolf") return "Lobo-guara movido.";
+  if (activeSpeciesId === "galo_de_campina") return "Galo-de-campina movido.";
+  return "Quati movido.";
 }

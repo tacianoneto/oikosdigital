@@ -1,7 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import { applyGameIntent } from "@oikos/rules";
-import type { GameState, GridPosition, MovementKind, PublicRoomState, SpeciesId } from "@oikos/shared";
-import { roomApi, type OikosSocket } from "../socket";
+import type { GameIntent, GridPosition, MovementKind, PublicRoomState, SpeciesId } from "@oikos/shared";
 import {
   createArmadilloTutorialRoom,
   createCapuchinTutorialRoom,
@@ -18,7 +16,7 @@ export const getOpenPortraitAsset = (portraitAsset: string) =>
 
 export type MobileSheet = "acao" | "mao" | "jogadores" | "resumo" | null;
 
-export const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponível. Inicie o servidor para testar lobby multiplayer.";
+export const SERVER_UNAVAILABLE_MESSAGE = "Servidor indisponivel. Inicie o servidor para testar lobby multiplayer.";
 
 export const movementKindLabels: Record<MovementKind, string> = {
   adjacent: "Adjacente",
@@ -67,55 +65,41 @@ export function getAuthDisplayName(user: User): string {
   return (user.email?.split("@")[0] || "Jogador").slice(0, 24);
 }
 
-// Per-species "add piece" wiring: the local engine step, the online socket call,
-// and the confirmation notice. Species not listed here (coati included) fall back
-// to the coati handler, matching the previous default branch.
-export type AddPieceHandler = {
-  local: (game: GameState, playerId: string, position: GridPosition) => GameState;
-  api: (socket: OikosSocket, roomId: string, x: number, y: number) => Promise<PublicRoomState>;
+// Per-species "add piece" wiring. Species not listed here (coati included) fall
+// back to the coati intent, matching the previous default branch.
+export type AddPieceIntentFactory = {
+  intent: (position: GridPosition) => GameIntent;
   notice: string;
 };
 
-const ADD_PIECE_DEFAULT: AddPieceHandler = {
-  local: (game, playerId, position) =>
-    applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "coati", x: position.x, y: position.y }),
-  api: (socket, roomId, x, y) => roomApi.addCoati(socket, roomId, x, y),
+const ADD_PIECE_DEFAULT: AddPieceIntentFactory = {
+  intent: (position) => ({ type: "species.add-piece", speciesId: "coati", x: position.x, y: position.y }),
   notice: "Quati adicionado em local de fruta."
 };
 
-const ADD_PIECE_HANDLERS: Partial<Record<SpeciesId, AddPieceHandler>> = {
+const ADD_PIECE_HANDLERS: Partial<Record<SpeciesId, AddPieceIntentFactory>> = {
   capuchin: {
-    local: (game, playerId, position) =>
-      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "capuchin", x: position.x, y: position.y }),
-    api: (socket, roomId, x, y) => roomApi.addCapuchin(socket, roomId, x, y),
+    intent: (position) => ({ type: "species.add-piece", speciesId: "capuchin", x: position.x, y: position.y }),
     notice: "Macaco-prego adicionado."
   },
   macaw: {
-    local: (game, playerId, position) =>
-      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "macaw", x: position.x, y: position.y }),
-    api: (socket, roomId, x, y) => roomApi.addMacaw(socket, roomId, x, y),
+    intent: (position) => ({ type: "species.add-piece", speciesId: "macaw", x: position.x, y: position.y }),
     notice: "Arara adicionada."
   },
   galo_de_campina: {
-    local: (game, playerId, position) =>
-      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "galo_de_campina", x: position.x, y: position.y }),
-    api: (socket, roomId, x, y) => roomApi.addGalo(socket, roomId, x, y),
+    intent: (position) => ({ type: "species.add-piece", speciesId: "galo_de_campina", x: position.x, y: position.y }),
     notice: "Galo-de-campina adicionado."
   },
   armadillo: {
-    local: (game, playerId, position) =>
-      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "armadillo", x: position.x, y: position.y }),
-    api: (socket, roomId, x, y) => roomApi.addArmadillo(socket, roomId, x, y),
+    intent: (position) => ({ type: "species.add-piece", speciesId: "armadillo", x: position.x, y: position.y }),
     notice: "Tatu-bola adicionado."
   },
   maned_wolf: {
-    local: (game, playerId, position) =>
-      applyGameIntent(game, playerId, { type: "species.add-piece", speciesId: "maned_wolf", x: position.x, y: position.y }),
-    api: (socket, roomId, x, y) => roomApi.addWolf(socket, roomId, x, y),
-    notice: "Lobo-guará adicionado."
+    intent: (position) => ({ type: "species.add-piece", speciesId: "maned_wolf", x: position.x, y: position.y }),
+    notice: "Lobo-guara adicionado."
   }
 };
 
-export function getAddPieceHandler(speciesId: SpeciesId | null | undefined): AddPieceHandler {
+export function getAddPieceIntentFactory(speciesId: SpeciesId | null | undefined): AddPieceIntentFactory {
   return (speciesId && ADD_PIECE_HANDLERS[speciesId]) || ADD_PIECE_DEFAULT;
 }

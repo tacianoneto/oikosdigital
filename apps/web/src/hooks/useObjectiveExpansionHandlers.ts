@@ -2,7 +2,7 @@ import { useCallback, type Dispatch, type SetStateAction } from "react";
 import type { GameState, PlayerState, PublicRoomState } from "@oikos/shared";
 import { roomApi, type OikosSocket } from "../socket";
 import type { ExpansionPreviewKind } from "../ui/GameOverlays";
-import type { ExecuteGameIntent } from "./useSimpleActionHandlers";
+import type { ExecuteGameIntent } from "./useGameIntentExecutor";
 
 type PendingCaatinga = NonNullable<GameState["caatingaPending"]>;
 type PendingCerrado = NonNullable<GameState["cerradoPending"]>;

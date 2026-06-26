@@ -1,14 +1,14 @@
 import { useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
-import { applyGameIntent } from "@oikos/rules";
 import type { PublicRoomState } from "@oikos/shared";
-import { roomApi, type OikosSocket } from "../socket";
 import type { PendingPlacement } from "./useActionSelection";
+import type { ExecuteGameIntent } from "./useGameIntentExecutor";
 import type { TutorialBoardAction } from "./useTutorialController";
 import type { TutorialStepDef } from "../ui/tutorials";
 
+const keepSelection = () => undefined;
+
 interface BoardCardHandlersParams {
   room: PublicRoomState | null;
-  isLocalRoom: boolean;
   canPlaceSetupPiece: boolean;
   canPlaceSelectedForestCard: boolean;
   selectedHandCardId: string | null;
@@ -18,17 +18,13 @@ interface BoardCardHandlersParams {
   tutorialSteps: TutorialStepDef[];
   tutorialMarkedSlot: { x: number; y: number } | null;
   tutorialBlocks: (action: TutorialBoardAction) => boolean;
-  socket: OikosSocket | null;
-  setRoom: Dispatch<SetStateAction<PublicRoomState | null>>;
+  executeGameIntent: ExecuteGameIntent;
   setSelectedHandCardId: Dispatch<SetStateAction<string | null>>;
   setSelectedCardRotation: Dispatch<SetStateAction<0 | 90 | 180 | 270>>;
   setSelectedPieceId: Dispatch<SetStateAction<string | null>>;
   setSelectedRemovalPieceIds: Dispatch<SetStateAction<string[]>>;
   setPendingPlacement: Dispatch<SetStateAction<PendingPlacement | null>>;
-  setNotice: (notice: string | null) => void;
   clearPendingPlacement: () => void;
-  run: (action: () => Promise<PublicRoomState>, success?: string) => Promise<void>;
-  requireSocket: () => OikosSocket;
 }
 
 // Card-placement interaction cluster: rotating the selected forest card, placing
@@ -38,7 +34,6 @@ interface BoardCardHandlersParams {
 // Local/online parity and tutorial gates are preserved via injected dependencies.
 export function useBoardCardHandlers({
   room,
-  isLocalRoom,
   canPlaceSetupPiece,
   canPlaceSelectedForestCard,
   selectedHandCardId,
@@ -48,17 +43,13 @@ export function useBoardCardHandlers({
   tutorialSteps,
   tutorialMarkedSlot,
   tutorialBlocks,
-  socket,
-  setRoom,
+  executeGameIntent,
   setSelectedHandCardId,
   setSelectedCardRotation,
   setSelectedPieceId,
   setSelectedRemovalPieceIds,
   setPendingPlacement,
-  setNotice,
-  clearPendingPlacement,
-  run,
-  requireSocket
+  clearPendingPlacement
 }: BoardCardHandlersParams) {
   const rotateSelectedCard = useCallback((dir: 1 | -1) => {
     setSelectedCardRotation((r) => (((r + (dir === 1 ? 90 : 270)) % 360) as 0 | 90 | 180 | 270));
@@ -111,24 +102,35 @@ export function useBoardCardHandlers({
       }
       if (tutorialBlocks("setupPlace")) return;
 
-      if (isLocalRoom && room.game?.setupActivePlayerId) {
-        const nextGame = applyGameIntent(room.game, room.game.setupActivePlayerId, {
-          type: "setup.place-piece",
-          x: position.x,
-          y: position.y
-        });
-        setRoom({
-          ...room,
-          status: nextGame.status === "active" ? "active" : "setup",
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        });
+      if (room.game?.setupActivePlayerId) {
+        executeGameIntent(
+          room.game.setupActivePlayerId,
+          {
+            type: "setup.place-piece",
+            x: position.x,
+            y: position.y
+          },
+          "Peca inicial colocada.",
+          keepSelection
+        );
         return;
       }
 
-      void run(() => roomApi.placeSetupPiece(requireSocket(), room.roomId, position.x, position.y));
+      if (room.game?.activePlayerId) {
+        executeGameIntent(
+          room.game.activePlayerId,
+          {
+          type: "setup.place-piece",
+          x: position.x,
+          y: position.y
+          },
+          "Peca inicial colocada.",
+          keepSelection
+        );
+        return;
+      }
     },
-    [canPlaceSetupPiece, isLocalRoom, room, socket, tutorialBlocks]
+    [canPlaceSetupPiece, executeGameIntent, room, tutorialBlocks]
   );
 
   const placeCard = useCallback(
@@ -144,51 +146,35 @@ export function useBoardCardHandlers({
         if (tutorialMarkedSlot && (position.x !== tutorialMarkedSlot.x || position.y !== tutorialMarkedSlot.y)) return;
       }
 
-      if (isLocalRoom) {
-        const game = room.game;
-        const activePlayerId = game.activePlayerId;
-        if (!activePlayerId) {
-          return;
-        }
-        const cardId = selectedHandCardId;
-        const nextGame = applyGameIntent(game, activePlayerId, {
+      const activePlayerId = room.game.activePlayerId;
+      if (!activePlayerId) {
+        return;
+      }
+      const cardId = selectedHandCardId;
+      executeGameIntent(
+        activePlayerId,
+        {
           type: "forest.place-card",
           cardId,
           x: position.x,
           y: position.y,
           rotation
-        });
-        setRoom((current) => current ? {
-          ...current,
-          status: "active",
-          game: nextGame,
-          warnings: nextGame.contentWarnings
-        } : current);
-        setSelectedHandCardId(null);
-        setSelectedCardRotation(0);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setPendingPlacement(null);
-        setNotice("Carta colocada na floresta.");
-        return;
-      }
-
-      void run(() =>
-        roomApi.placeForestCard(requireSocket(), room.roomId, selectedHandCardId, position.x, position.y, rotation)
-      ).then(() => {
-        setSelectedHandCardId(null);
-        setSelectedCardRotation(0);
-        setSelectedPieceId(null);
-        setSelectedRemovalPieceIds([]);
-        setPendingPlacement(null);
-      });
+        },
+        "Carta colocada na floresta.",
+        () => {
+          setSelectedHandCardId(null);
+          setSelectedCardRotation(0);
+          setSelectedPieceId(null);
+          setSelectedRemovalPieceIds([]);
+          setPendingPlacement(null);
+        }
+      );
     },
     [
       canPlaceSelectedForestCard,
-      isLocalRoom,
+      executeGameIntent,
       room,
       selectedHandCardId,
-      socket,
       tutorialBlocks,
       tutorialActive,
       tutorialStep,

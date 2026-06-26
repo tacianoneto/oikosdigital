@@ -32,13 +32,8 @@ import {
   resourceAssets,
   resourceLabels
 } from "@oikos/content";
-import {
-  applyGameIntent,
-  getArmadilloHidePieceIds
-} from "@oikos/rules";
+import { getArmadilloHidePieceIds } from "@oikos/rules";
 import type {
-  GameIntent,
-  GameState,
   PublicRoomState,
   SpeciesId
 } from "@oikos/shared";
@@ -54,6 +49,7 @@ import { useBoardPieceHandlers } from "../hooks/useBoardPieceHandlers";
 import { useBoardUiOrchestration } from "../hooks/useBoardUiOrchestration";
 import { useCacaIlegalHandlers } from "../hooks/useCacaIlegalHandlers";
 import { useGameFeedback } from "../hooks/useGameFeedback";
+import { useGameIntentExecutor } from "../hooks/useGameIntentExecutor";
 import { useGamePreloader } from "../hooks/useGamePreloader";
 import { usePlayerCardState } from "../hooks/usePlayerCardState";
 import { usePlayerHudState } from "../hooks/usePlayerHudState";
@@ -836,58 +832,15 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     setHoveredSummaryCardIds
   });
 
-  const applyLocalAction = useCallback((nextGame: GameState, notice: string) => {
-    setRoom((current) =>
-      current
-        ? {
-            ...current,
-            status: nextGame.status === "active" ? "active" : current.status,
-            game: nextGame,
-            warnings: nextGame.contentWarnings
-          }
-        : current
-    );
-    setNotice(notice);
-  }, []);
-
-  const executeGameAction = useCallback(
-    (
-      localAction: () => GameState,
-      onlineAction: () => Promise<PublicRoomState>,
-      notice: string,
-      reset: () => void = clearActionSelection
-    ) => {
-      if (isLocalRoom) {
-        applyLocalAction(localAction(), notice);
-        reset();
-        return;
-      }
-
-      void run(onlineAction).then(reset);
-    },
-    [applyLocalAction, clearActionSelection, isLocalRoom, run]
-  );
-
-  const executeGameIntent = useCallback(
-    (
-      playerId: string,
-      intent: GameIntent,
-      notice: string,
-      reset: () => void = clearActionSelection
-    ) => {
-      if (!room?.game) {
-        return;
-      }
-
-      executeGameAction(
-        () => applyGameIntent(room.game!, playerId, intent),
-        () => roomApi.gameIntent(requireSocket(), room.roomId, intent),
-        notice,
-        reset
-      );
-    },
-    [clearActionSelection, executeGameAction, room]
-  );
+  const executeGameIntent = useGameIntentExecutor({
+    clearActionSelection,
+    isLocalRoom,
+    requireSocket,
+    room,
+    run,
+    setNotice,
+    setRoom
+  });
 
   function requireSocket(): OikosSocket {
     if (!socket) {
@@ -1001,7 +954,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
   const { rotateSelectedCard, handleCardClick, placeCard, handleConfirmPlacement, handleCancelPlacement } =
     useBoardCardHandlers({
       room,
-      isLocalRoom,
       canPlaceSetupPiece,
       canPlaceSelectedForestCard,
       selectedHandCardId,
@@ -1011,17 +963,13 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
       tutorialSteps,
       tutorialMarkedSlot,
       tutorialBlocks,
-      socket,
-      setRoom,
+      executeGameIntent,
       setSelectedHandCardId,
       setSelectedCardRotation,
       setSelectedPieceId,
       setSelectedRemovalPieceIds,
       setPendingPlacement,
-      setNotice,
-      clearPendingPlacement,
-      run,
-      requireSocket
+      clearPendingPlacement
     });
 
   const {
@@ -1034,7 +982,6 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     handleScoreMacaw
   } = useBoardPieceHandlers({
     room,
-    isLocalRoom,
     activeActionId,
     activeSpeciesId: activeSpecies?.speciesId ?? null,
     selectedPieceId,
@@ -1056,15 +1003,10 @@ export function OikosApp({ authSession, authUser, onSignOut }: OikosAppProps) {
     tutorialGate,
     tutorialDef,
     tutorialBlocks,
-    socket,
     autoScoredRef,
-    executeGameAction,
     executeGameIntent,
-    run,
-    requireSocket,
     handleScoreGalo,
     handleScoreArmadillo,
-    setRoom,
     setSelectedPieceId,
     setSelectedJaguarDestination,
     setSelectedJaguarTargetPieceId,
